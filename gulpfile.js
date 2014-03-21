@@ -29,8 +29,7 @@ gulp.task('mocha', function () {
 gulp.task('coverage', function () {
   gulp.src(paths.tests, { read: false })
     .pipe(cover.instrument({
-      pattern: ['js/*'],
-      debugDirectory: 'debug'
+      pattern: ['js/*']
     }))
     .pipe(mocha({
     }))
