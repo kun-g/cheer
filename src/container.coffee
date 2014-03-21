@@ -24,13 +24,13 @@ class Bag extends Serializer
         item.slot[@type] = index
       return item
     )
-  getMaxLength: () -> @container.reduce( ((r, l) =>
+  getMaxLength: () -> @container.reduce( ((r, l) ->
     if l and l.spaceCount() is 0 then return r+1
     return r
   ),
   @limit )
 
-  countSpace: () -> @container.reduce( ((r, l) =>
+  countSpace: () -> @container.reduce( ((r, l) ->
     if l then return r - l.spaceCount()
     return r
   ),

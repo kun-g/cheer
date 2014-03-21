@@ -20,7 +20,9 @@ class Unit extends Wizard
     @isVisible = false
 
   calculatePower: () ->
-    ret = @health + @attack*6 + @speed*2 + @critical*2 + @strong*2 + @reactivity*2 + @accuracy*2 + (@level-1)*40
+    ret = @health + @attack*6 + @speed*2 +
+          @critical*2 + @strong*2 + @reactivity*2 +
+          @accuracy*2 + (@level-1)*40
     return if ret then ret else 0
 
   getActiveSpell: () ->
@@ -46,7 +48,8 @@ class Unit extends Wizard
     @type = Unit_Boss if roleConfig.bossFlag
     @collectId = roleConfig.collectId if roleConfig.collectId?
     @modifyProperty(roleConfig.property) if roleConfig.property?
-    console.log('Property ', JSON.stringify(roleConfig.property)) if flagCreation
+    if flagCreation
+      console.log('Property ', JSON.stringify(roleConfig.property))
 
     if roleConfig.xproperty? and @rank? > 0
       @health = Math.ceil(@health*@rank)
@@ -70,9 +73,9 @@ class Unit extends Wizard
     
   gearUp: () ->
     return false unless @equipment?
-    for k, e of @equipment
+    for k, e of @equipment when queryTable(TABLE_ITEM, e.cid)?
       equipment = queryTable(TABLE_ITEM, e.cid)
-      @modifyProperty(equipment.basic_properties) if equipment?.basic_properties?
+      @modifyProperty(equipment.basic_properties) if equipment.basic_properties?
 
       console.log('Equipment ', JSON.stringify(equipment)) if flagCreation
       if e.eh?
@@ -80,7 +83,10 @@ class Unit extends Wizard
           enhance = queryTable(TABLE_ENHANCE, enhancement.id)
           continue unless enhance?.property?[enhancement.level]?
           @modifyProperty(enhance.property[enhancement.level])
-          console.log('Enhancement ', JSON.stringify(enhance.property[enhancement.level])) if flagCreation
+          if flagCreation
+            console.log('Enhancement ',
+              JSON.stringify(enhance.property[enhancement.level])
+            )
 
   isMonster: () -> false
   isHero: () -> false
@@ -154,7 +160,7 @@ class Npc extends Unit
 
 createUnit = (config) ->
   cfg = queryTable(TABLE_ROLE, config.id) if config?.id?
-  throw 'No such an unit:'+config?.id unless cfg?
+  throw Error('No such an unit:'+config?.id) unless cfg?
 
   switch cfg.classType
     when Unit_Enemy then return new Monster(config)
