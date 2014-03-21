@@ -1,0 +1,55 @@
+{
+  "name": "Server",
+  "version": "0.0.0",
+  "description": "My own game server",
+  "main": "index.js",
+  "directories": {
+    "test": "test"
+  },
+  "dependencies": {
+    "fluent-logger": "*",
+    "async": "*",
+    "bson": "*",
+    "msgpack": "*",
+    "hiredis": "~0.1.16",
+    "jshint": "~2.3.0",
+    "q": "*",
+    "redis": "~0.10.1",
+    "strong-agent": "~0.2.20",
+    "moment": "~2.5.0"
+  },
+  "devDependencies": {
+    "debug": "~0.7.4",
+    "faye-websocket": "~0.7.2",
+    "grunt": "~0.4.2",
+    "grunt-contrib-coffee": "~0.7.0",
+    "grunt-contrib-copy": "~0.4.1",
+    "grunt-contrib-jshint": "~0.6.3",
+    "grunt-contrib-watch": "*",
+    "grunt-mocha-cli": "~1.3.0",
+    "gulp": "^3.5.6",
+    "matchdep": "*",
+    "mocha": "~1.14.0",
+    "qs": "~0.6.6",
+    "should": "~2.1.1",
+    "ursa": "~0.8.0"
+  },
+  "scripts": {
+    "test": "mocha",
+    "start": "node index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/kun-g/success"
+  },
+  "keywords": [
+    "node.js",
+    "game",
+    "server"
+  ],
+  "author": "Kun.G",
+  "license": "BSD",
+  "bugs": {
+    "url": "https://github.com/kun-g/success/issues"
+  }
+}
