@@ -25,7 +25,8 @@ getTypeof = (expr) ->
     return 'Variable' if k[0] is 'v'
   for k, v of expr
     switch k
-      when '<', '>', '==', '>=', '<=', '!=', 'or', 'and', 'not' then return 'Boolean'
+      when '<', '>', '==', '>=', '<=', '!=', 'or', 'and', 'not'
+        return 'Boolean'
       when '+', '-', '*', '/', '&', '|', '~' then return 'Formular'
 
   return 'Undefined'
@@ -42,7 +43,8 @@ doLoop = (expr, variable, cmd) ->
 
 getVar = (kv, variable, cmd) ->
   return variable[kv] if variable? and variable[kv]?
-  return cmd.getEnvironment().getVar(kv) if cmd? and cmd.getEnvironment?().getVar?(kv)?
+  if cmd? and cmd.getEnvironment?().getVar?(kv)?
+    return cmd.getEnvironment().getVar(kv)
   if Array.isArray(kv) then return kv.map( (k) -> return getVar(k) )
   return kv
 
@@ -54,7 +56,8 @@ doAction = (actions, variables, cmd) ->
       variables = env.getTrigger(act.trigger).variables
     switch act.type
       when 'deleteVariable' then delete variables[act.name]
-      when 'newVariable' then variables[act.name] = parse(act.value, variables, cmd)
+      when 'newVariable'
+        variables[act.name] = parse(act.value, variables, cmd)
       when 'modifyVariable'
         if variables[act.name]?
           variables[act.name] = parse(act.value, variables, cmd)
@@ -70,15 +73,24 @@ conditionCheck = (conditionFormular, variables, cmd) ->
   return false if conditionFormular is false
   for k, c of conditionFormular
     switch k
-      when '>'   then return parse(c[0], variables, cmd) >  parse(c[1], variables, cmd)
-      when '<'   then return parse(c[0], variables, cmd) <  parse(c[1], variables, cmd)
-      when '=='  then return parse(c[0], variables, cmd) == parse(c[1], variables, cmd)
-      when '!='  then return parse(c[0], variables, cmd) != parse(c[1], variables, cmd)
-      when '<='  then return parse(c[0], variables, cmd) <= parse(c[1], variables, cmd)
-      when '>='  then return parse(c[0], variables, cmd) >= parse(c[1], variables, cmd)
-      when 'or'  then return parse(c, variables, cmd).some( (x) -> parse(x, variables, cmd) )
-      when 'and' then return parse(c, variables, cmd).every( (x) -> parse(x, variables, cmd) )
-      when 'not' then return not parse(c, variables, cmd)
+      when '>'
+        return parse(c[0], variables, cmd) >  parse(c[1], variables, cmd)
+      when '<'
+        return parse(c[0], variables, cmd) <  parse(c[1], variables, cmd)
+      when '=='
+        return parse(c[0], variables, cmd) == parse(c[1], variables, cmd)
+      when '!='
+        return parse(c[0], variables, cmd) != parse(c[1], variables, cmd)
+      when '<='
+        return parse(c[0], variables, cmd) <= parse(c[1], variables, cmd)
+      when '>='
+        return parse(c[0], variables, cmd) >= parse(c[1], variables, cmd)
+      when 'or'
+        return parse(c, variables, cmd).some( (x) -> parse(x, variables, cmd) )
+      when 'and'
+        return parse(c, variables, cmd).every( (x) -> parse(x, variables, cmd) )
+      when 'not'
+        return not parse(c, variables, cmd)
 
 bindVariable = (variables, dummy, cmd) ->
   ret = {}
@@ -87,16 +99,23 @@ bindVariable = (variables, dummy, cmd) ->
 
   return ret
 
-calculate = (formular, variables) ->
+calculate = (formular, variables, cmd) ->
   for k, c of formular
     switch k
-      when '+' then return parse(c[0], variables, cmd) + parse(c[1], variables, cmd)
-      when '-' then return parse(c[0], variables, cmd) - parse(c[1], variables, cmd)
-      when '*' then return parse(c[0], variables, cmd) * parse(c[1], variables, cmd)
-      when '/' then return parse(c[0], variables, cmd) / parse(c[1], variables, cmd)
-      when '&' then return parse(c[0], variables, cmd) & parse(c[1], variables, cmd)
-      when '|' then return parse(c[0], variables, cmd) | parse(c[1], variables, cmd)
-      when '~' then return ~parse(c, variables, cmd)
+      when '+'
+        return parse(c[0], variables, cmd) + parse(c[1], variables, cmd)
+      when '-'
+        return parse(c[0], variables, cmd) - parse(c[1], variables, cmd)
+      when '*'
+        return parse(c[0], variables, cmd) * parse(c[1], variables, cmd)
+      when '/'
+        return parse(c[0], variables, cmd) / parse(c[1], variables, cmd)
+      when '&'
+        return parse(c[0], variables, cmd) & parse(c[1], variables, cmd)
+      when '|'
+        return parse(c[0], variables, cmd) | parse(c[1], variables, cmd)
+      when '~'
+        return ~parse(c, variables, cmd)
 
 class TriggerManager
   constructor: () ->
@@ -119,7 +138,7 @@ class TriggerManager
 
   installTrigger: (name, variables, cmd) ->
     cfg = queryTable(TABLE_TRIGGER, name)
-    throw 'Unconfigured trigger:'+name unless cfg?
+    throw Error('Unconfigured trigger:'+name) unless cfg?
     @triggers[name] = {
       variables: bindVariable(cfg.variable, variables, cmd),
       enable: true
@@ -134,10 +153,12 @@ class TriggerManager
   enableTrigger:  (name) -> @triggers[name]?.enable = true
   removeTrigger:  (name) -> delete @triggers[name] #TODO: remove events
   invokeTrigger:  (name, paramaters, cmd) ->
-    return false unless @triggers[name]? and @triggers[name].enable
+    trigger = @triggers[name]
+    return false unless trigger? and trigger.enable
     cfg = queryTable(TABLE_TRIGGER, name)
-    return false if cfg.condition? and not parse(cfg.condition, @triggers[name].variables, cmd)
-    parse(cfg.action, @triggers[name].variables, cmd)
+    if cfg.condition? and not parse(cfg.condition, trigger.variables, cmd)
+      return false
+    parse(cfg.action, trigger.variables, cmd)
 
 exports.parse = parse
 exports.TriggerManager = TriggerManager
