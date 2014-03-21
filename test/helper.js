@@ -1,18 +1,12 @@
-//var dbLib = require('../db');
-//var should = require('should');
-//require('../define');
-//require('../shared');
-//initServer();
-//gServerID = 1;
-//var helpLib = require('../helper');
-//
-//events = helpLib.events;
-//
-//describe('Campaign', function () {
+var should = require('should');
+var helpLib = require('../js/helper');
+events = helpLib.events;
+
+describe('Campaign', function () {
 //  before(function (done) {
 //    initGlobalConfig(done);
 //  });
-//  describe('ChainEvent', function () {
+  describe('ChainEvent', function () {
 //    it('Should be ok~', function () {
 //      var me = { 
 //        battleForce: 75,
@@ -81,5 +75,6 @@
 //      should(me.event_daily).have.property('step').equal(0);
 //      should(me.event_daily.status).equal('Ready');
 //    });
-//  });
-//});
+  });
+});
+
