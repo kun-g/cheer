@@ -7,8 +7,8 @@ require('./define')
 {CommandStream, Environment } = require('./commandStream')
 {Bag, CardStack} = require('./container')
 {parse, TriggerManager} = require('./trigger')
-seed_random = require('./seed-random')
 
+seed_random = require('./seed-random')
 speedFormula = { 'a' : 1, 'b' : 60, 'c' : 0.5}
 hitFormula = { 'a' : 1, 'b' : 150, 'c' : 0.75, downLimit : 0.5 }
 criticalFormula = { 'a' : 7, 'b' : 140, 'c' : 0.1, upLimit : 0.4 }
