@@ -48,8 +48,7 @@ parse = (expr, variable, cmd) ->
 getTypeof = (expr) ->
   return 'Undefined' unless expr?
   return 'Boolean' if expr is true or expr is false
-  return 'Undefined' unless typeof expr is 'object'
-  return 'Undefined' if Array.isArray(expr)
+  return 'Undefined' unless typeof expr is 'object' or Array.isArray(expr)
   return 'Action' if expr.type?
   if getTypeof(expr.condition) is 'Boolean'
     return 'Branch' if expr.if?

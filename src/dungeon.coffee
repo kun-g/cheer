@@ -97,7 +97,7 @@ filterObject = (objects, filters, env) ->
 # 指定位置 pos
 # 指定属性 property
 # 指定数量（单层，所有层，不多于，不少于） id* count from to
-# 从池子里抽取（多个池子，池子附加属性） xx pool 
+# 从池子里抽取（多个池子，池子附加属性） xx pool
 createUnits = (rules, randFunc) ->
   rand = (mod) ->
     mod = 30 unless mod?
@@ -129,7 +129,10 @@ createUnits = (rules, randFunc) ->
     levelConfig.push(cfg)
 
   selectFromPool = (poolID, count) ->
-    ( selectElementFromWeightArray(rules.pool[poolID], rand()) for i in [0..count-1] )
+    (
+      for i in [0..count-1]
+        selectElementFromWeightArray(rules.pool[poolID], rand())
+    )
 
   selectPos = (positions, lConfig) ->
     pos = positions.filter( (p) -> not lConfig.takenPos[p] )
@@ -271,7 +274,8 @@ class Dungeon extends DBWrapper
   initiateHeroes: (team) ->
     team = [] unless team
     ref = 0
-    this.heroes = (new Hero({
+    this.heroes = (
+      new Hero({
         name: e.nam,
         class: e.cid,
         gender: e.gen,
@@ -493,7 +497,7 @@ class Dungeon extends DBWrapper
     return ret
 
   onReplayMissMatch: () ->
-    if @replayMode then throw 'ReplayFailed'
+    if @replayMode then throw Error('ReplayFailed')
 
   replayActionLog: (actionLog) ->
     @replayMode = true
@@ -719,7 +723,7 @@ class Level
           return true
       )
 
-    monsterCount = objectConfig.reduce( ((r, l) =>
+    monsterCount = objectConfig.reduce( ((r, l) ->
       count = 1
       count = l.count if l.count?
       r.boss += count if l.boss?
@@ -1509,7 +1513,7 @@ dungeonCSConfig = {
       return ret
   },
   Evade: {
-    output: (env) -> return [{act: env.variable('src').ref, id: ACT_EVADE, dey: 0}] # TODO:delay 
+    output: (env) -> return [{act: env.variable('src').ref, id: ACT_EVADE, dey: 0}] # TODO:delay
   },
   ActivateMechanism: {
     callback: (env) ->
