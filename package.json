@@ -19,6 +19,7 @@
     "moment": "~2.5.0"
   },
   "devDependencies": {
+    "benchmark": "^1.0.0",
     "debug": "~0.7.4",
     "faye-websocket": "~0.7.2",
     "gulp": "^3.5.6",
