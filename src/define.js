@@ -386,13 +386,16 @@ selectElementFromWeightArray = function (array, randNumber) {
 
 logLevel = 0;
 
-updateStageStatus = function (stageStatus, abindex) {
+var helperLib = require('./helper');
+updateStageStatus = function (stageStatus, player, abindex) {
   if (!stageStatus) return [];
   var stageConfig = queryTable(TABLE_STAGE);
   var ret = [];
   for (var sid = 0; sid < stageConfig.length; sid++) {
+    var triggerLib = require('./trigger');
     var stage = queryTable(TABLE_STAGE, sid, abindex);
-    var unlockable = stage.prev.reduce(function (r, l) {
+    var unlockable = triggerLib.conditionCheck(stage.cond, player);
+    unlockable = unlockable && stage.prev.reduce(function (r, l) {
       return stageStatus[l] && stageStatus[l].state === STAGE_STATE_PASSED && r;
     }, true);
     if (unlockable && stageStatus[sid] == null) ret.push(sid);
@@ -400,12 +403,14 @@ updateStageStatus = function (stageStatus, abindex) {
   return ret;
 };
 
-updateQuestStatus = function (questStatus) {
+updateQuestStatus = function (questStatus, player, abindex) {
   if (!questStatus) return [];
   var questConfig = queryTable(TABLE_QUEST);
   var ret = [];
   questConfig.forEach(function (quest, qid) {
-    var unlockable = quest.prev.reduce(function (r, l) {
+    var triggerLib = require('./trigger');
+    var unlockable = triggerLib.conditionCheck(quest.cond, player);
+    unlockable = unlockable && quest.prev.reduce(function (r, l) {
       return questStatus[l] && questStatus[l].complete && r;
     }, true);
     if (unlockable && (typeof questStatus[qid] == 'undefined' || questStatus[qid] === null)) ret.push(qid);

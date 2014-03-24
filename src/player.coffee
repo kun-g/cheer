@@ -214,11 +214,12 @@ class Player extends DBWrapper
 
   updateStageStatus: () ->
     ret = []
-    for s in updateStageStatus(@stage, @abIndex)
+    for s in updateStageStatus(@stage, @, @abIndex)
       ret = ret.concat(@changeStage(s, STAGE_STATE_ACTIVE))
     return ret
 
-  updateQuestStatus: () -> ( @acceptQuest(q) for q in updateQuestStatus(@quests) )
+  updateQuestStatus: () ->
+    ( @acceptQuest(q) for q in updateQuestStatus(@quests, @, @abIndex) )
 
   loadDungeon: () ->
     if @dungeonData?

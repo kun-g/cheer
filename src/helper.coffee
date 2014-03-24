@@ -1,4 +1,15 @@
 moment = require('moment')
+{conditionCheck} = require('./trigger')
+
+updateLockStatus = (curStatus, target, config) ->
+  return [] unless curStatus
+  ret = []
+  for id, cfg of config
+    unlockable = true
+    if cfg.cond? then unlockable = unlockable and conditionCheck(cfg.cond, target)
+    if unlockable and not curStatus[id]? then ret.push(+id)
+  return ret
+exports.updateLockStatus = updateLockStatus
 
 currentTime = (needObject) ->
   obj = moment().zone("+08:00")

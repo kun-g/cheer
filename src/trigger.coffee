@@ -7,6 +7,7 @@ doGetProperty = (obj, key) ->
 exports.doGetProperty = doGetProperty
 
 conditionCheck = (conditionFormular, variables, cmd) ->
+  return false unless getTypeof(conditionFormular) is 'Boolean'
   return true if conditionFormular is true
   return false if conditionFormular is false
   for k, c of conditionFormular

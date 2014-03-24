@@ -1,6 +1,27 @@
-var should = require('should');
+var shall = require('should');
 var helpLib = require('../js/helper');
 events = helpLib.events;
+
+describe('Unlock', function () {
+  var updateLockStatus = helpLib.updateLockStatus;
+  var me = {
+    stage: []
+  };
+  var config = [
+    { nolimitation: true },
+    { cond: { '==': [1, 1] } },
+    { cond: {
+              '==': [
+                { type: "getProperty", key: "stage.1" }, true
+              ]
+            }
+    }
+  ];
+
+  it('Basic', function () {
+    shall(updateLockStatus(me.stage, me, config)).eql([0, 1]);
+  });
+});
 
 describe('Campaign', function () {
 //  before(function (done) {
