@@ -24,6 +24,28 @@ describe('Unlock', function () {
 });
 
 describe('Campaign', function () {
+//describe('#Helper Lib', function () {
+//  var helperLib = require('../helper');
+//  it('C', function () {
+//    helperLib.calculateTotalItemXP({xp: 0, quality: 0, rank: 0}).should.equal(0);
+//    helperLib.calculateTotalItemXP({xp: 100, quality: 0, rank: 0}).should.equal(100);
+//    helperLib.calculateTotalItemXP({xp: 100, quality: 1, rank: 1}).should.equal(100);
+//    helperLib.calculateTotalItemXP({xp: 100, quality: 1, rank: 2}).should.equal(200);
+//    helperLib.calculateTotalItemXP({xp: 100, quality: 2, rank: 2}).should.equal(100);
+//  });
+//});
+//describe('#moment', function () {
+//  moment = require('moment');
+//  helper = require('../helper');
+//  it('helper of time', function () {
+//    helper.diffDate(1393171200000, '2014/02/24').should.equal(0);
+//    helper.diffDate(1393171200000, '2014/02/25').should.equal(1);
+//    helper.diffDate('2014/02/24', '2014/02/25').should.equal(1);
+//    helper.diffDate('2014/02/23', '2014/02/25').should.equal(2);
+//    helper.diffDate('2014/01/01', '2014/02/25').should.equal(55);
+//  });
+//});
+
 //  before(function (done) {
 //    initGlobalConfig(done);
 //  });
