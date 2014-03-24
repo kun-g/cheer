@@ -149,6 +149,7 @@ function readHandlerGenerator(item) {
       try {
         var tmp = JSON.parse(String(data));
         if (item.func) tmp = item.func(tmp);
+        tmp = prepareForABtest(tmp);
         gConfigTable[item.name] = tmp;
         return cb(null);
       } catch (error) {
@@ -202,28 +203,30 @@ initStageConfig = function (cfg) {
   return ret;
 };
 
-initQuestConfig = function (cfg) {
+prepareForABtest = function (cfg) {
   var ret = [];
+  var maxABIndex = 0;
   cfg.forEach(function (c, index) {
+    if (c.abtest && c.abtest.length > maxABIndex) maxABIndex = c.abtest.length;
     ret[index] = c;
   });
-  ret.forEach(function (c, index) {
-    if (c.prev) {
-      c.prev.forEach(function (p) {
-        if (ret[p]) {
-          if (ret[p].next) {
-            ret[p].next.push(index);
-          } else {
-            ret[p].next = [index];
-          }
+  if (maxABIndex > 0) {
+    ret = [];
+    for (var i = 0; i < maxABIndex; i++) {
+      ret.push(cfg.map( function (e) {
+        if (e.abtest) {
+          return e.abtest[i % e.abtest.length];
+        } else {
+          return e;
         }
-      });
-    } else {
-      c.prev = [];
+      }));
     }
-  });
+  } else {
+    ret = [ret];
+  }
   return ret;
 };
+
 varifyDungeonConfig = function (cfg) {
   cfg.forEach(function (dungeon, dungeonID) {
     if (dungeon.prize) {
@@ -242,39 +245,24 @@ varifyDungeonConfig = function (cfg) {
 
 initGlobalConfig = function (callback) {
   queryTable = function (type, index, abIndex) {
-    if (gConfigTable[type]) {
-      if (index == null) {
-        // TODO: speed up
-        if (abIndex != null) {
-          return gConfigTable[type].map( function (e) {
-            if (e.abtest) {
-              return e.abtest[abIndex % e.abtest.length];
-            } else {
-              return e;
-            }
-          });
-        } else {
-          return gConfigTable[type];
-        }
-      } else {
-        var tb = gConfigTable[type][index];
-        if (tb && tb.abtest) {
-          if (abIndex) {
-            return tb.abtest[abIndex%tb.abtest.length];
-          } else {
-            return tb.abtest[0];
-          }
-        } else {
-          return tb;
-        }
-      }
+    var cfg = gConfigTable[type];
+    if (!cfg) return null;
+    if (abIndex != null) {
+      cfg = cfg[abIndex % cfg.length];
+    } else {
+      cfg = cfg[0];
     }
-    return null;
+
+    if (index == null) {
+      return cfg;
+    } else {
+      return cfg[index];
+    }
   };
   var configTable = [
     {name:TABLE_ROLE}, {name:TABLE_LEVEL}, {name:TABLE_VERSION},
-    {name:TABLE_ITEM}, {name:TABLE_CARD}, {name:TABLE_DUNGEON, func: varifyDungeonConfig},
-    {name:TABLE_STAGE, func: initStageConfig}, {name:TABLE_QUEST, func: initQuestConfig},
+    {name:TABLE_ITEM}, {name:TABLE_CARD}, {name:TABLE_DUNGEON, func:varifyDungeonConfig},
+    {name:TABLE_STAGE, func: initStageConfig}, {name:TABLE_QUEST},
     {name:TABLE_UPGRADE}, {name:TABLE_ENHANCE}, {name: TABLE_CONFIG}, {name: TABLE_VIP},
     {name:TABLE_SKILL}, {name:TABLE_CAMPAIGN}, {name: TABLE_DROP}, {name: TABLE_TRIGGER}
   ];
@@ -397,7 +385,6 @@ selectElementFromWeightArray = function (array, randNumber) {
 
 logLevel = 0;
 
-var helperLib = require('./helper');
 updateStageStatus = function (stageStatus, player, abindex) {
   if (!stageStatus) return [];
   var stageConfig = queryTable(TABLE_STAGE);
