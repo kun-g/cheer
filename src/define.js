@@ -244,7 +244,18 @@ initGlobalConfig = function (callback) {
   queryTable = function (type, index, abIndex) {
     if (gConfigTable[type]) {
       if (index == null) {
-        return gConfigTable[type];
+        // TODO: speed up
+        if (abIndex != null) {
+          return gConfigTable[type].map( function (e) {
+            if (e.abtest) {
+              return e.abtest[abIndex % e.abtest.length];
+            } else {
+              return e;
+            }
+          });
+        } else {
+          return gConfigTable[type];
+        }
       } else {
         var tb = gConfigTable[type][index];
         if (tb && tb.abtest) {
