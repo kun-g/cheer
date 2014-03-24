@@ -202,7 +202,7 @@ class Dungeon extends DBWrapper
       }
     }
 
-    @triggerManager = new TriggerManager()
+    @triggerManager = new TriggerManager(queryTable(TABLE_TRIGGER))
     return false unless data?
 
     @attrSave(k, v) for k, v of data
