@@ -55,7 +55,7 @@ gulp.task('watch', function () {
 gulp.task('lint', function () {
   return gulp.src(paths.coffees)
     .pipe(cache('lint'))
-    .pipe(coffeeLint())
+    .pipe(coffeeLint(null, {max_line_length: {level: 'error', value: 90}}))
     .pipe(coffeeLint.reporter());
 });
 /*
