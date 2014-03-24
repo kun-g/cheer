@@ -23,7 +23,7 @@ gulp.task('mocha', function () {
     .pipe(mocha({
       reporter: 'nyan',
     }))
-    .on('error', function () {});
+    .on('error', console.log);
 });
 
 gulp.task('coverage', function () {
