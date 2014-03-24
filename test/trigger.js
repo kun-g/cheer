@@ -1,13 +1,21 @@
 var triggerLib = require('../js/trigger');
-var should = require('should');
-//require('../globals');
-//initServer();
-//gServerName = 'UnitTest';
-//dbPrefix = gServerName+'.';
-//
-//logLevel = 1;
-//
+var shall = require('should');
 describe('', function () {
+  var obj = {
+    name: 'Ken', 
+    birth: {
+      year: 1234,
+      month: 3,
+      day: 2
+    },
+    proglan: [
+      {name: 'C', years: 11},
+      {name: 'C++', years: 10},
+      {name: 'ASM', years: 12},
+      {name: 'JS', years: 2},
+      {name: 'Lisp', years: 2}
+    ]
+  };
   describe('Conditions', function () {
     conditionCheck = triggerLib.parse;
     it('Should deal with and or not > >= < <= == !=', function () {
@@ -44,6 +52,30 @@ describe('', function () {
       variables = {"v_var1": [true, true, true, true]};
       conditionCheck(formular, variables).should.equal(true);
       done();
+    });
+    it('should pass doGetProperty', function () {
+      var tests = [
+        { key: "name", result: 'Ken' },
+        { key: "birth.year", result: 1234 },
+        { key: "proglan.2.name", result: "ASM" },
+        { key: "proglan.2.years", result: 12},
+        { key: "proglan.9.years", result: undefined},
+      ];
+      tests.forEach( function (t) {
+        shall(triggerLib.doGetProperty(obj, t.key)).equal(t.result);
+      });
+    });
+    it('should pass', function () {
+      var cond1 = { "and": [
+        { "==": [ { "type": "getProperty", "key": "stage.0.state"}, 2 ] }
+      ]};
+      var cond2 = { "and": [
+        { "==": [ { "type": "getProperty", "key": "name"}, 'Ken' ] }
+      ]};
+      var tests = [ { cond: cond1, result: false}, { cond: cond2, result: true} ];
+      tests.forEach( function (t) {
+        shall(triggerLib.parse(t.cond, obj)).equal(t.result);
+      });
     });
   });
   describe('Variable', function () {
@@ -101,51 +133,87 @@ describe('', function () {
       done();
     });
   });
-//  describe('TriggerManager', function () {
-//    var parse = triggerLib.parse;
-//    var tm = triggerLib.TriggerManager;
-//    tm = new tm();
-//    var tmCmd = {
-//      getEnvironment: function() { return tm; }
-//    };
-//
-//    it('Install and Remove', function (done) {
-//      parse({type: 'installTrigger', name: 'test'}, {}, tmCmd);
-//      tm.triggers.should.have.property('test');
-//      parse({type: 'removeTrigger', name: 'test'}, {}, tmCmd);
-//      tm.triggers.should.not.have.property('test');
-//      done();
-//    });
-//    it('on event', function (done) {
-//      parse({type: 'installTrigger', name: 'test3'}, {}, tmCmd);
-//      tm.getTrigger('test3').variables.v_count.should.equal(0);
-//      tm.onEvent('onTestEvent', tmCmd);
-//      tm.getTrigger('test3').variables.v_count.should.equal(1);
-//      done();
-//    });
-//    it('Enable, disable and invoke', function (done) {
-//      parse({type: 'installTrigger', name: 'test3'}, {}, tmCmd);
-//      tm.getTrigger('test3').variables.v_count.should.equal(0);
-//      tm.invokeTrigger('test3');
-//      tm.getTrigger('test3').variables.v_count.should.equal(1);
-//      tm.disableTrigger('test3');
-//      tm.invokeTrigger('test3');
-//      tm.getTrigger('test3').variables.v_count.should.equal(1);
-//      tm.enableTrigger('test3');
-//      tm.invokeTrigger('test3');
-//      tm.getTrigger('test3').variables.v_count.should.equal(2);
-//      done();
-//    });
-//    it('Invoke, condition and modify variable', function (done) {
-//      parse({type: 'installTrigger', name: 'test1'}, {}, tmCmd);
-//      parse({type: 'installTrigger', name: 'test2'}, {}, tmCmd);
-//      tm.getTrigger('test1').variables.should.not.have.property('v_done');
-//      tm.invokeTrigger('test1', {}, tmCmd);
-//      tm.getTrigger('test1').variables.should.not.have.property('v_done');
-//      tm.invokeTrigger('test2', {}, tmCmd);
-//      tm.invokeTrigger('test1', {}, tmCmd);
-//      tm.getTrigger('test1').variables.should.have.property('v_done');
-//      done();
-//    });
-//  });
+
+  describe('TriggerManager', function () {
+    var parse = triggerLib.parse;
+    var tm = triggerLib.TriggerManager;
+    var triggersConf = {
+      "test": {
+        "description": "测试",
+        "triggerEvent": ["onTestEvent"],
+        "action": [{"type": "newVariable", "name": "v_flag", "value": true}]
+      },
+      "test1": {
+        "description": "测试",
+        "variable": {"v_flag": false},
+        "triggerEvent": ["onTestEvent"],
+        "condition": { "and": [ "v_flag" ] },
+        "action": [{"type": "newVariable", "name": "v_done", "value": true}]
+      },
+      "test2": {
+        "action": [
+          {
+            "type": "modifyVariable",
+            "name": "v_flag",
+            "value": true,
+            "trigger": "test1"
+          }
+        ]
+      },
+      "test3": {
+        "variable": {"v_count": 0},
+        "triggerEvent": ["onTestEvent"],
+        "action": [
+          {
+            "type": "modifyVariable",
+            "name": "v_count",
+            "value": {"+": ["v_count", 1]}
+          }
+        ]
+      }
+    };
+    tm = new tm(triggersConf);
+    var tmCmd = {
+      getEnvironment: function() { return tm; }
+    };
+
+    it('Install and Remove', function (done) {
+      parse({type: 'installTrigger', name: 'test'}, {}, tmCmd);
+      tm.triggers.should.have.property('test');
+      parse({type: 'removeTrigger', name: 'test'}, {}, tmCmd);
+      tm.triggers.should.not.have.property('test');
+      done();
+    });
+    it('on event', function (done) {
+      parse({type: 'installTrigger', name: 'test3'}, {}, tmCmd);
+      tm.getTrigger('test3').variables.v_count.should.equal(0);
+      tm.onEvent('onTestEvent', tmCmd);
+      tm.getTrigger('test3').variables.v_count.should.equal(1);
+      done();
+    });
+    it('Enable, disable and invoke', function (done) {
+      parse({type: 'installTrigger', name: 'test3'}, {}, tmCmd);
+      tm.getTrigger('test3').variables.v_count.should.equal(0);
+      tm.invokeTrigger('test3');
+      tm.getTrigger('test3').variables.v_count.should.equal(1);
+      tm.disableTrigger('test3');
+      tm.invokeTrigger('test3');
+      tm.getTrigger('test3').variables.v_count.should.equal(1);
+      tm.enableTrigger('test3');
+      tm.invokeTrigger('test3');
+      tm.getTrigger('test3').variables.v_count.should.equal(2);
+      done();
+    });
+    it('Invoke, condition and modify variable', function (done) {
+      parse({type: 'installTrigger', name: 'test1'}, {}, tmCmd);
+      parse({type: 'installTrigger', name: 'test2'}, {}, tmCmd);
+      tm.getTrigger('test1').variables.should.not.have.property('v_done');
+      tm.invokeTrigger('test1', {}, tmCmd);
+      tm.getTrigger('test1').variables.should.not.have.property('v_done');
+      tm.invokeTrigger('test2', {}, tmCmd);
+      tm.invokeTrigger('test1', {}, tmCmd);
+      tm.getTrigger('test1').variables.should.have.property('v_done');
+      done();
+    });
+  });
 });

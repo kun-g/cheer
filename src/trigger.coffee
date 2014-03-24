@@ -1,3 +1,36 @@
+doGetProperty = (obj, key) ->
+  properties = key.split('.')
+  for k in properties
+    if obj? then obj = obj[k] else return undefined
+  return obj
+
+exports.doGetProperty = doGetProperty
+
+conditionCheck = (conditionFormular, variables, cmd) ->
+  return true if conditionFormular is true
+  return false if conditionFormular is false
+  for k, c of conditionFormular
+    switch k
+      when '>'
+        return parse(c[0], variables, cmd) >  parse(c[1], variables, cmd)
+      when '<'
+        return parse(c[0], variables, cmd) <  parse(c[1], variables, cmd)
+      when '=='
+        return parse(c[0], variables, cmd) == parse(c[1], variables, cmd)
+      when '!='
+        return parse(c[0], variables, cmd) != parse(c[1], variables, cmd)
+      when '<='
+        return parse(c[0], variables, cmd) <= parse(c[1], variables, cmd)
+      when '>='
+        return parse(c[0], variables, cmd) >= parse(c[1], variables, cmd)
+      when 'or'
+        return parse(c, variables, cmd).some( (x) -> parse(x, variables, cmd) )
+      when 'and'
+        return parse(c, variables, cmd).every( (x) -> parse(x, variables, cmd) )
+      when 'not'
+        return not parse(c, variables, cmd)
+
+exports.conditionCheck = conditionCheck
 parse = (expr, variable, cmd) ->
   if Array.isArray(expr)
     return expr.map( (e) -> parse(e, variable, cmd) )
@@ -56,41 +89,21 @@ doAction = (actions, variables, cmd) ->
       variables = env.getTrigger(act.trigger).variables
     switch act.type
       when 'deleteVariable' then delete variables[act.name]
+      when 'getProperty'
+        return doGetProperty(variables, act.key)
       when 'newVariable'
         variables[act.name] = parse(act.value, variables, cmd)
+        return variables[act.name]
       when 'modifyVariable'
         if variables[act.name]?
           variables[act.name] = parse(act.value, variables, cmd)
         else if env.variable(act.name)?
-          env.variable(act.name, parse(act.value, variables, cmd))
+          return env.variable(act.name, parse(act.value, variables, cmd))
       else
         a = {}
         a[k] = parse(v, variables, cmd) for k, v of act
-        env.doAction(a, variables, cmd) if env?
+        return env.doAction(a, variables, cmd) if env?
 
-conditionCheck = (conditionFormular, variables, cmd) ->
-  return true if conditionFormular is true
-  return false if conditionFormular is false
-  for k, c of conditionFormular
-    switch k
-      when '>'
-        return parse(c[0], variables, cmd) >  parse(c[1], variables, cmd)
-      when '<'
-        return parse(c[0], variables, cmd) <  parse(c[1], variables, cmd)
-      when '=='
-        return parse(c[0], variables, cmd) == parse(c[1], variables, cmd)
-      when '!='
-        return parse(c[0], variables, cmd) != parse(c[1], variables, cmd)
-      when '<='
-        return parse(c[0], variables, cmd) <= parse(c[1], variables, cmd)
-      when '>='
-        return parse(c[0], variables, cmd) >= parse(c[1], variables, cmd)
-      when 'or'
-        return parse(c, variables, cmd).some( (x) -> parse(x, variables, cmd) )
-      when 'and'
-        return parse(c, variables, cmd).every( (x) -> parse(x, variables, cmd) )
-      when 'not'
-        return not parse(c, variables, cmd)
 
 bindVariable = (variables, dummy, cmd) ->
   ret = {}
@@ -118,7 +131,7 @@ calculate = (formular, variables, cmd) ->
         return ~parse(c, variables, cmd)
 
 class TriggerManager
-  constructor: () ->
+  constructor: (@config) ->
     @triggers = {}
     @events = {}
 
@@ -137,7 +150,7 @@ class TriggerManager
       # TODO: action & trigger returnes values
 
   installTrigger: (name, variables, cmd) ->
-    cfg = queryTable(TABLE_TRIGGER, name)
+    cfg = @config[name]
     throw Error('Unconfigured trigger:'+name) unless cfg?
     @triggers[name] = {
       variables: bindVariable(cfg.variable, variables, cmd),
@@ -155,7 +168,7 @@ class TriggerManager
   invokeTrigger:  (name, paramaters, cmd) ->
     trigger = @triggers[name]
     return false unless trigger? and trigger.enable
-    cfg = queryTable(TABLE_TRIGGER, name)
+    cfg = @config[name]
     if cfg.condition? and not parse(cfg.condition, trigger.variables, cmd)
       return false
     parse(cfg.action, trigger.variables, cmd)
