@@ -407,9 +407,6 @@ updateQuestStatus = function (questStatus, player, abindex) {
     var triggerLib = require('./trigger');
     var unlockable = true;
     if (quest.cond) unlockable = triggerLib.conditionCheck(quest.cond, player);
-    unlockable = unlockable && quest.prev.reduce(function (r, l) {
-      return questStatus[l] && questStatus[l].complete && r;
-    }, true);
     if (unlockable && (typeof questStatus[qid] == 'undefined' || questStatus[qid] === null)) ret.push(qid);
   });
   return ret;
