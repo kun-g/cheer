@@ -206,6 +206,7 @@ initStageConfig = function (cfg) {
 prepareForABtest = function (cfg) {
   var ret = [];
   var maxABIndex = 0;
+  if (!Array.isArray(cfg)) return [cfg];
   cfg.forEach(function (c, index) {
     if (c.abtest && c.abtest.length > maxABIndex) maxABIndex = c.abtest.length;
     ret[index] = c;
