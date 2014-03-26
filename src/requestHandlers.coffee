@@ -305,6 +305,48 @@ exports.route = {
     args: [],
     needPid: true
   },
+  RPC_Reconnect: {
+    id: 104,
+    func: (arg, player, handler, rpcID, socket) ->
+      async.waterfall([
+        (cbb) -> dbLib.loadSessionInfo(arg.PID, cbb),
+        (sessionInfo, cbb) ->
+          if not sessionInfo
+            cbb(Error(RET_SessionOutOfDate))
+          else
+            cbb(null, sessionInfo)
+        ,
+        (info, cbb) ->
+          if info.bin_version != queryTable(TABLE_VERSION, 'bin_version') or
+             info.resource_version != queryTable(TABLE_VERSION, 'resource_version')
+               cbb(Error(RET_NewVersionArrived))
+             else
+               cbb( null, info.player )
+        ,
+        (playerName, cbb) -> dbLib.loadPlayer(playerName, cbb);,
+        (p, cbb) ->
+          if not p or p.runtimeID isnt arg.PID
+            cbb(Error(RET_SessionOutOfDate))
+          else
+            cbb(null, p)
+        ,
+        (p, cbb) ->
+          p.onReconnect(socket)
+          p.socket = socket
+          socket.player = p
+          socket.playerName = p.name
+          gPlayerDB[p.name] = p
+          p.updateFriendInfo(cbb)
+        ], (err, result) ->
+          if err and err.message isnt RET_OK
+            handler([
+              {REQ: rpcID, RET: err.message},
+              {NTF: Event_ExpiredPID, err: err.message}
+            ])
+          else
+            handler([{REQ: rpcID, RET: RET_OK}])
+        )
+  },
   RPC_SubmitDailyQuest: {
     id: 29,
     func: (arg, player, handler, rpcID, socket) ->

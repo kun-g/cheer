@@ -139,6 +139,7 @@ lua_createSessionInfo = " \
   local id = redis.call('INCR', 'SessionCounter'); \
   local key = 'Session.'..id; \
   redis.call('hset', key, 'create_date', date, id); \
+  redis.call('expire', key, 6000); \
   return id;";
 
 exports.updateSessionInfo = function (session, obj, handler) {
