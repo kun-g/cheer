@@ -387,7 +387,7 @@ exports.initializeDB = function (cfg) {
   });
 
   dbClient.script('load', lua_createSessionInfo, function (err, sha) {
-    newSessionInfo = function (handler) {
+    exports.newSessionInfo = function (handler) {
       dbClient.evalsha(sha, 0, (new Date()).valueOf(), function (err, ret) {
         if (handler) { handler(err, ret); }
       });
