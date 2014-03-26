@@ -819,6 +819,7 @@ class DungeonEnvironment extends Environment
   doAction: (act, variables, cmd) ->
     switch act.type
       when 'dialog' then cmd.routine?({id: 'Dialog', dialogId: act.dialogId})
+      when 'tutorial' then cmd.routine?({id: 'Tutorial', dialogId: act.tutorialId})
       when 'modifyEnvVariable' then @variable(act.name, act.value)
 
   indexOfCard: (card) ->
@@ -1282,9 +1283,8 @@ dungeonCSConfig = {
       evt.rag = env.variable('range') if env.variable('range')?
       return [evt]
   },
-  Dialog: {
-    output: (env) -> [{id: ACT_Dialog, did: env.variable('dialogId')}]
-  },
+  Dialog: { output: (env) -> [{id: ACT_Dialog, did: env.variable('dialogId')}] },
+  Tutorial: { output: (env) -> [{id: ACT_Tutorial, tid: env.variable('tutorialId')}] },
   ChangeBGM: {
     output: (env) ->
       evt = {id: ACT_ChangeBGM}
