@@ -135,10 +135,10 @@ exports.loadSessionInfo = function (session, handler) {
 };
 
 lua_createSessionInfo = " \
-  local date = ARGV[1]; \
+  local prefix, date, bv, rv = ARGV[1], ARGV[2], ARGV[3], ARGV[4]; \
   local id = redis.call('INCR', 'SessionCounter'); \
-  local key = 'Session.'..id; \
-  redis.call('hset', key, 'create_date', date, id); \
+  local key = prefix..'Session.'..id; \
+  redis.call('hmset', key, 'create_date', date, 'bin_version', bv, 'resource_version', rv); \
   redis.call('expire', key, 6000); \
   return id;";
 
@@ -389,9 +389,12 @@ exports.initializeDB = function (cfg) {
 
   dbClient.script('load', lua_createSessionInfo, function (err, sha) {
     exports.newSessionInfo = function (handler) {
-      dbClient.evalsha(sha, 0, (new Date()).valueOf(), function (err, ret) {
-        if (handler) { handler(err, ret); }
-      });
+      dbClient.evalsha(sha, 0, dbPrefix, (new Date()).valueOf(),
+        queryTable(TABLE_VERSION, 'bin_version'),
+        queryTable(TABLE_VERSION, 'resource_version'),
+        function (err, ret) {
+          if (handler) { handler(err, ret); }
+        });
     };
   });
   dbClient.script('load', lua_createNewPlayer, function (err, sha) {

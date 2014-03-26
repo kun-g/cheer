@@ -68,8 +68,8 @@ exports.route = {
     id: 15,
     func: (arg, player, handle, rpcID, socket) ->
       switch arg.stp
-        when 'AppStore' then throw 'AppStore Payment'
-        when 'PP25' then throw 'PP25 Payment'
+        when 'AppStore' then throw Error('AppStore Payment')
+        when 'PP25' then throw Error('PP25 Payment')
     ,
     args: ['pid', 'string', 'rep', 'string'],
     needPid: true
@@ -307,6 +307,7 @@ exports.route = {
   },
   RPC_Reconnect: {
     id: 104,
+    args: ['pid', 'string'],
     func: (arg, player, handler, rpcID, socket) ->
       async.waterfall([
         (cbb) -> dbLib.loadSessionInfo(arg.PID, cbb),
@@ -317,8 +318,8 @@ exports.route = {
             cbb(null, sessionInfo)
         ,
         (info, cbb) ->
-          if info.bin_version != queryTable(TABLE_VERSION, 'bin_version') or
-             info.resource_version != queryTable(TABLE_VERSION, 'resource_version')
+          if info.bin_version isnt queryTable(TABLE_VERSION, 'bin_version') or
+             +info.resource_version isnt +queryTable(TABLE_VERSION, 'resource_version')
                cbb(Error(RET_NewVersionArrived))
              else
                cbb( null, info.player )
@@ -337,7 +338,8 @@ exports.route = {
           socket.playerName = p.name
           gPlayerDB[p.name] = p
           p.updateFriendInfo(cbb)
-        ], (err, result) ->
+        ],
+        (err, result) ->
           if err and err.message isnt RET_OK
             handler([
               {REQ: rpcID, RET: err.message},
