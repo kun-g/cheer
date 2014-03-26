@@ -90,7 +90,9 @@ doAction = (actions, variables, cmd) ->
     switch act.type
       when 'deleteVariable' then delete variables[act.name]
       when 'getProperty'
-        return doGetProperty(variables, act.key)
+        local = doGetProperty(variables, act.key)
+        if not local? and env? then return doGetProperty(env.variable(), act.key)
+        return local
       when 'newVariable'
         variables[act.name] = parse(act.value, variables, cmd)
         return variables[act.name]

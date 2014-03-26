@@ -1045,7 +1045,6 @@ dungeonCSConfig = {
           @routine({id: 'ExploreBlock', block: e, positions: entrance}) for e in entrance
         else
           @routine({id: 'ExploreBlock', block: entrance})
-      console.log(newPosition)
       env.moveHeroes(newPosition)
 
       monster.onEvent('onEnterLevel', @) for monster in env.getMonsters()
@@ -1111,6 +1110,8 @@ dungeonCSConfig = {
       @routine({id: 'BlockInfo', block: env.variable('block')})
       block = env.getBlock(env.variable('block'))
       if block.getType() is Block_Npc or block.getType() is Block_Enemy
+        env.variable('monster', e)
+        env.onEvent('onMonsterShow', @)
         e = block.getRef(-1)
         if e?.isVisible isnt true
           e.isVisible = true
@@ -1549,6 +1550,9 @@ onEvent = (evt, cmd, src, tar) ->
   if tar
     tar.onEvent('onBe'+evt, cmd)
     m.onEvent('onTeammateBe'+evt, cmd) for m in env.getTeammateOf(tar)
+  env.variable('src', src)
+  env.variable('tar', tar)
+  env.onEvent(evt, @)
 
 exports.DungeonEnvironment = DungeonEnvironment
 exports.DungeonCommandStream = DungeonCommandStream
