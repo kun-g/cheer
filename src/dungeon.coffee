@@ -41,7 +41,7 @@ changeSeed = (seed) ->
   @attrSave('randSeed', seed)
   randomFunc = seed_random.seedrandom(seed)
 
-  @random = () =>
+  @random = () ->
     ret = randomFunc()
     console.log('Rand:', ret) if flagShowRand
     #showMeTheStack()
@@ -1032,14 +1032,21 @@ dungeonCSConfig = {
     callback: (env) ->
       entrance = env.getEntrance()
       env.onEvent('onEnterLevel', @)
+      if Array.isArray(entrance)
+        newPosition = entrance
+        for i in [newPosition.length..env.getHeroes().length-1]
+          newPosition.push( entrance[0] )
+      else
+        newPosition = [entrance, entrance, entrance]
       if env.isEntranceExplored()
         @routine({id: 'OpenBlock', block: e}) for e in [0..DG_BLOCKCOUNT-1] when env.getBlock(e).explored
       else
         if Array.isArray(entrance)
           @routine({id: 'ExploreBlock', block: e, positions: entrance}) for e in entrance
-          env.moveHeroes(entrance)
         else
           @routine({id: 'ExploreBlock', block: entrance})
+      console.log(newPosition)
+      env.moveHeroes(newPosition)
 
       monster.onEvent('onEnterLevel', @) for monster in env.getMonsters()
 

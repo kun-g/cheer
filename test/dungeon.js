@@ -1,15 +1,14 @@
 //var serialLib = require('../serializer');
-//var dungeonLib = require('../dungeon');
-//var should = require('should');
-//require('../define');
+var dungeonLib = require('../js/dungeon');
+var shall = require('should');
 //require('../shared');
-//initServer();
-//
-//describe('Dungeon', function () {
-//  before(function (done) {
-//    initGlobalConfig();
-//    done();
-//  });
+gServerID = 1;
+initServer();
+
+describe('Dungeon', function () {
+  before(function (done) {
+    initGlobalConfig(done);
+  });
 //
 //  it('Shuffle', function () {
 //    shuffle([1,2,3,4], 0).should.eql([1,2,3,4]);
@@ -116,29 +115,29 @@
 //      //cmd.getEnvironment().mergeFirstPace([{id: ACT_ATTACK, act: 0}, {id: ACT_HURT, act: 2}], [{id: ACT_HURT, act: 0}]).should.eql([[{id: ACT_ATTACK, act: 0}, {id: ACT_HURT, act: 2}], {id: ACT_HURT, act: 0}]);
 //      //console.log(cmd.getEnvironment().mergeFirstPace([1,2,3,4, [5,6,7,8]], [2,4,5]));
 //    });
-//
-//    it('Should be ok', function (done) {
-//      cmdStreamLib = require('../commandStream');
-//      d = new dungeonLib.Dungeon({
-//        stage: 1,
-//        randSeed: 1,
-//        abIndex: 0,
-//        //initialQuests: { '20': { counters: [ 0 ] },  
-//        //    '21': { counters: [ 0 ] } },
-//        team : [
-//          {nam: 'W', cid: 0, gen: 0, hst:0, hcl: 0, exp: 100000},
-//          {nam: 'M', cid: 1, gen: 0, hst:0, hcl: 0, exp: 100000},
-//          {nam: 'P', cid: 2, gen: 0, hst:0, hcl: 0, exp: 100000},
-//          //{nam: 'W1', cid: 0, gen: 0, hst:0, hcl: 0, exp:100000}
-//        ]
-//      });
-//      done();
-//
-//      d.initialize();
+
+    it('Should be ok', function (done) {
+      cmdStreamLib = require('../js/commandStream');
+      d = new dungeonLib.Dungeon({
+        stage: 104,
+        randSeed: 1,
+        abIndex: 0,
+        //initialQuests: { '20': { counters: [ 0 ] },  
+        //    '21': { counters: [ 0 ] } },
+        team : [
+          {nam: 'W', cid: 0, gen: 0, hst:0, hcl: 0, exp: 100000},
+          {nam: 'M', cid: 1, gen: 0, hst:0, hcl: 0, exp: 100000},
+          {nam: 'P', cid: 2, gen: 0, hst:0, hcl: 0, exp: 100000},
+          //{nam: 'W1', cid: 0, gen: 0, hst:0, hcl: 0, exp:100000}
+        ]
+      });
+      done();
+
+      d.initialize();
 //      //d.aquireCard(6);
 //      //d.getHeroes()[0].attack = 10000;
-//      var actions = [
-//        {CMD:RPC_GameStartDungeon},
+      var actions = [
+        {CMD:RPC_GameStartDungeon},
 //        {CMD:Request_DungeonExplore, arg: {tar: 13, pos:8, pos1:8, pos2:8}},
 //        {CMD:REQUEST_CancelDungeon, arg: {}},
 //
@@ -204,12 +203,12 @@
 //      //{CMD:Request_DungeonAttack, arg: {tar: 12, pos: 17, pos1:18, pos2:19}},
 //
 //      //{CMD:Request_DungeonCard, arg: {slt: 0}},
-//      ]; 
-//    for (var k = 0; k < actions.length-1; k++) {
-//      d.doAction(actions[k]);
-//    }
-//    print(d.doAction(actions[actions.length-1]));
-//    //d.level.print();
+      ]; 
+      for (var k = 0; k < actions.length-1; k++) {
+        d.doAction(actions[k]);
+      }
+      print(d.doAction(actions[actions.length-1]));
+      d.level.print();
 //
 //
 //    x = d;
@@ -251,5 +250,5 @@
 //    //  done();
 //    //}, 100);
 //    });
-//  });
-//});
+  });
+});
