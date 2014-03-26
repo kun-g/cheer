@@ -130,23 +130,17 @@ function createNewPlayer (account, server, name, handle) {
 }
 exports.createNewPlayer = createNewPlayer;
 
-exports.loadSessionInfo = function (session, handler) { dbClient.hgetall(makeDBKey([sessionPrefix, session]), handler); }
-exports.newSessionInfo = function (handler) {
-  var session = -1;
-  async.waterfall([
-      function (cb) { dbClient.incr(SessionCounter, cb); },
-      function (counter, cb) {
-        session = counter;
-        dbClient.hmset(
-          makeDBKey([sessionPrefix, session]),
-          {
-            bin_version: queryTable(TABLE_VERSION, 'bin_version'),
-            resource_version: queryTable(TABLE_VERSION, 'resource_version')
-          }, cb);
-      }], function (err, result) {
-        if (handler) { handler(err, session); }
-      });
+exports.loadSessionInfo = function (session, handler) {
+  dbClient.hgetall(makeDBKey([sessionPrefix, session]), handler);
 };
+
+lua_createSessionInfo = " \
+  local date = ARGV[1]; \
+  local id = redis.call('INCR', 'SessionCounter'); \
+  local key = 'Session.'..id; \
+  redis.call('hset', key, 'create_date', date, id); \
+  return id;";
+
 exports.updateSessionInfo = function (session, obj, handler) {
   dbClient.hmset(makeDBKey([sessionPrefix, session]), obj, handler);
 };
@@ -373,7 +367,6 @@ exports.initializeDB = function (cfg) {
   limitsPrefix = dbPrefix + 'limits' + dbSeparator;
 
   sessionPrefix = dbPrefix + 'Session';
-  SessionCounter = dbPrefix + 'SessionCounter';
 
   PlayerNameSet = dbPrefix + 'UsedName';
   CurrentAccountID = 'CurrentUID';
@@ -388,7 +381,17 @@ exports.initializeDB = function (cfg) {
 
   // Scripts
   accountDBClient.script('load', lua_createPassportWithAccount, function (err, sha) {
-    createPassportWithAccount = function (type, id, handler) { accountDBClient.evalsha(sha, 0, type, id, (new Date()).valueOf(), handler); };
+    createPassportWithAccount = function (type, id, handler) {
+      accountDBClient.evalsha(sha, 0, type, id, (new Date()).valueOf(), handler);
+    };
+  });
+
+  dbClient.script('load', lua_createSessionInfo, function (err, sha) {
+    newSessionInfo = function (handler) {
+      dbClient.evalsha(sha, 0, (new Date()).valueOf(), function (err, ret) {
+        if (handler) { handler(err, ret); }
+      });
+    };
   });
   dbClient.script('load', lua_createNewPlayer, function (err, sha) {
     doCreateNewPlayer = function (account, prefix, name, handler) {
