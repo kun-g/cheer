@@ -140,6 +140,9 @@ describe('Dungeon', function () {
         {CMD:RPC_GameStartDungeon},
         {CMD:Request_DungeonExplore, arg: {tar: 11, pos:10, pos1:10, pos2:10}},
         {CMD:Request_DungeonExplore, arg: {tar: 16, pos:10, pos1:10, pos2:10}},
+        {CMD:Request_DungeonExplore, arg: {tar: 21, pos:10, pos1:10, pos2:10}},
+        {CMD:Request_DungeonExplore, arg: {tar: 22, pos:10, pos1:10, pos2:10}},
+        {CMD:Request_DungeonExplore, arg: {tar: 23, pos:10, pos1:10, pos2:10}},
 //        {CMD:REQUEST_CancelDungeon, arg: {}},
 //
 //        //{CMD:Request_DungeonCard, arg: {slt: 0}},

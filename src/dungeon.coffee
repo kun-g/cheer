@@ -1118,9 +1118,9 @@ dungeonCSConfig = {
       @routine({id: 'BlockInfo', block: env.variable('block')})
       block = env.getBlock(env.variable('block'))
       if block.getType() is Block_Npc or block.getType() is Block_Enemy
+        e = block.getRef(-1)
         env.variable('monster', e)
         env.onEvent('onMonsterShow', @)
-        e = block.getRef(-1)
         if e?.isVisible isnt true
           e.isVisible = true
         @routine({id: 'UnitInfo', unit: e})
