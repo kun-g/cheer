@@ -33,17 +33,11 @@ startTcpServer = (servers, port) ->
     )
 
     c.on('error', (error) ->
-      logError({
-        type : 'Socket Error',
-        address : c.remoteAddress,
-        error : error
-      })
+      console.log(error)
       c.destroy()
     )
   )
-  # TODO: alive
   appNet.backends = servers.map( (s, id) -> return {
-    socket: net.connect(s.ip, s.port),
     ip: s.ip,
     port: s.port,
     alive: false
@@ -75,7 +69,7 @@ startTcpServer = (servers, port) ->
 
   appNet.currIndex = 0
   appNet.aliveConnections = []
-  appNet.server.listen(port)
-  appNet.server.on('error', (e) -> logError({ type : 'Server Error', error : e }))
+  appNet.server.listen(port, console.log)
+  appNet.server.on('error', console.log)
 
 startTcpServer([{ip: 'localhost', port: 7756}], 7757)
