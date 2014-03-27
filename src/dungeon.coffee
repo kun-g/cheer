@@ -827,6 +827,10 @@ class DungeonEnvironment extends Environment
       when 'changeBGM' then cmd.routine({id: 'ChangeBGM', music: a.music, repeat: a.repeat})
       when 'whiteScreen' then cmd.routine({id: 'WhiteScreen', mode: a.mode, time: a.time, color: a.color})
       when 'playSound' then cmd.routine({id: 'SoundEffect', sound: a.sound})
+      when 'delay'
+        c = {id: 'Delay'}
+        if a.delay? then c.delay = a.delay
+        cmd = cmd.next(c)
 
   indexOfCard: (card) ->
     return -1 unless @dungeon?
