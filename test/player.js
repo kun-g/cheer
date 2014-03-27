@@ -1,3 +1,4 @@
+shall = require('should');
 //var assert = require("assert");
 //var playerLib = require('../player');
 //var dbLib = require('../db');
@@ -25,10 +26,10 @@
 //logLevel = 1;
 //var handlers = require('../commandHandlers').route;
 //
-//describe('', function () {
-//  before(function (done) {
-//    initGlobalConfig(done);
-//  });
+describe('', function () {
+  before(function (done) {
+    initGlobalConfig(done);
+  });
 //  after(function () {
 //    dbLib.releaseDB();
 //  });
@@ -810,20 +811,21 @@
 //      });
 //    });
 //
-//    describe('Lock & Unlock', function (done) {
-//      it('Should unlock stage & quest with no prev', function () {
-//        // TODO
-//        //var initialQuest = updateQuestStatus([]).length;
-//        //should(initialQuest > 0).equal(true);
-//        //updateQuestStatus([])[0].should.equal(6);
-//        //should(updateQuestStatus([{complete:true}]).length > (initialQuest - 1)).equal(true);
-//        //updateStageStatus([]).should.length(1);
-//        //updateStageStatus([])[0].should.equal(0);
-//        //updateStageStatus([{}]).should.length(0);
-//        //updateStageStatus([{state:STAGE_STATE_PASSED}]).should.length(1);
-//        updateStageStatus([{state:STAGE_STATE_PASSED}])[0].should.equal(1);
-//      });
-//    });
+    describe('Lock & Unlock', function (done) {
+      it('Should unlock stage & quest with no prev', function () {
+        var initialQuest = updateQuestStatus([]).length;
+        shall(initialQuest > 0).equal(true);
+        //updateQuestStatus([])[0].should.equal(6);
+        //should(updateQuestStatus([{complete:true}]).length > (initialQuest - 1)).equal(true);
+        //updateStageStatus([]).should.length(1);
+        //updateStageStatus([])[0].should.equal(0);
+        //updateStageStatus([{}]).should.length(0);
+        //updateStageStatus([{state:STAGE_STATE_PASSED}]).should.length(1);
+        var x = [];
+        x[104] = {state: STAGE_STATE_PASSED};
+        console.log(updateStageStatus(x, {stage: x}));
+      });
+    });
 //
 //    describe('Item operation', function () {
 //      it('aquireItem', function (done) {
@@ -914,4 +916,4 @@
 //      //});
 //    });
 //  });
-//});
+});

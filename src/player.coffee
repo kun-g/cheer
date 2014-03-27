@@ -1036,6 +1036,7 @@ class Player extends DBWrapper
           else
             @setCampaignState('TotalCharge', 0)
           reward.push({cfg: config, lv: level})
+        { config, level } = @getCampaignConfig('FirstCharge')
       when 'Level'
         { config, level } = @getCampaignConfig('LevelUp')
         if config? and level? and @createHero().level >= level.count
