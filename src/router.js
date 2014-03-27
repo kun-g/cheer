@@ -115,7 +115,7 @@ function dispatchCommand (routeTable, req, socket, retValHandler) {
       });
     }
   } else {
-    retValHandler([{NTF: Event_ExpiredPID, err: err}]);
+    retValHandler([{NTF: Event_ExpiredPID}]);
   }
 }
 

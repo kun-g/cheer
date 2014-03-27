@@ -75,7 +75,7 @@ startTcpServer = (servers, port) ->
 
   appNet.currIndex = 0
   appNet.aliveConnections = []
-  appNet.listen(port)
-  appNet.on('error', (e) -> logError({ type : 'Server Error', error : e }))
+  appNet.server.listen(port)
+  appNet.server.on('error', (e) -> logError({ type : 'Server Error', error : e }))
 
 startTcpServer([{ip: 'localhost', port: 7756}], 7757)
