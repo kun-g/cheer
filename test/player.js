@@ -823,7 +823,7 @@ describe('', function () {
         //updateStageStatus([{state:STAGE_STATE_PASSED}]).should.length(1);
         var x = [];
         x[104] = {state: STAGE_STATE_PASSED};
-        console.log(updateStageStatus(x, {stage: x}));
+        //console.log(updateStageStatus(x, {stage: x}));
       });
     });
 //

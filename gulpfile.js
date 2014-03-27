@@ -14,6 +14,7 @@ var cover = require('gulp-coverage');
 
 var paths = {
   coffees: ['src/*.coffee'],
+  js: ['src/*.js'],
   scripts: ['js/*.js'],
   tests: ['test/*.js']
 };
@@ -39,6 +40,14 @@ gulp.task('coverage', function () {
     .on('error', function () {});
 });
 
+gulp.task('js', function () {
+  return gulp.src(paths.js)
+    .pipe(cache('js'))
+    //.pipe(uglify())
+    .pipe(gulp.dest('js'))
+    .on('error', console.log);
+});
+
 gulp.task('compile', function () {
   return gulp.src(paths.coffees)
     .pipe(cache('compile'))
@@ -51,6 +60,7 @@ gulp.task('compile', function () {
 gulp.task('watch', function () {
   gulp.watch(paths.coffees, ['lint', 'compile']);
   gulp.watch(paths.tests, ['mocha']);
+  gulp.watch(paths.js, ['js']);
 });
 
 gulp.task('lint', function () {
