@@ -5,7 +5,6 @@ net = require('net')
 startTcpServer = (servers, port) ->
   appNet = {}
   appNet.server = net.createServer((c) ->
-    console.log('New Connection', c.remoteAddress)
     appNet.aliveConnections.push(c)
     c.connectionIndex = appNet.aliveConnections.length - 1
     c.pendingRequest = new Buffer(0)
@@ -27,7 +26,11 @@ startTcpServer = (servers, port) ->
     c.server.pipe(c)
     decoder.on('request', (request) ->
       if request
-        console.log(request)
+        if request.CMD is 101
+          console.log({
+            request: request,
+            ip: c.remoteAddress
+          })
         encoder.writeObject(request)
       else
         c.destroy()
