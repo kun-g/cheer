@@ -342,7 +342,7 @@ class Player extends DBWrapper
 
       ret = []
       if @stage[stage].state isnt state
-        if stg.tutorial? and state is STAGE_STATE_ACTIVE
+        if stg.tutorial? and state is STAGE_STATE_PASSED
           @tutorialStage = stg.tutorial
           ret.push({NTF: Event_TutorialInfo, arg: { tut: @tutorialStage }})
         @stage[stage].state = state
