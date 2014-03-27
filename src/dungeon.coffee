@@ -1033,6 +1033,7 @@ dungeonCSConfig = {
   EnterDungeon: {
     callback:(env) ->
       @routine({id: 'EnterLevel'})
+      @routine({id:'UpdateLockStatues'})
     ,
     output: (env) ->
       ev = []
