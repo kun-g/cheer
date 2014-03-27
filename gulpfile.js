@@ -44,7 +44,8 @@ gulp.task('compile', function () {
     .pipe(cache('compile'))
     .pipe(coffee())
     //.pipe(uglify())
-    .pipe(gulp.dest('js'));
+    .pipe(gulp.dest('js'))
+    .on('error', console.log);
 });
 
 gulp.task('watch', function () {

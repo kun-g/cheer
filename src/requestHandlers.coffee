@@ -177,7 +177,7 @@ exports.route = {
         if err
           handle([{REQ: rpcID, RET: +err.message}])
         else
-          exports.route.RPC_Login.func(socket.pendingLogin, dummy, handle, rpcID, socket, true)
+          exports.route.RPC_Login.func(socket.session.pendingLogin, dummy, handle, rpcID, socket, true)
       )
     ,
     args: ['pid', 'string', 'nam', 'string', 'cid', 'number', 'gen', 'number', 'hst', 'number', 'hcl', 'number']
