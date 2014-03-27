@@ -1552,7 +1552,7 @@ onEvent = (evt, cmd, src, tar) ->
     m.onEvent('onTeammateBe'+evt, cmd) for m in env.getTeammateOf(tar)
   env.variable('src', src)
   env.variable('tar', tar)
-  env.onEvent(evt, @)
+  env.onEvent(evt, cmd)
 
 exports.DungeonEnvironment = DungeonEnvironment
 exports.DungeonCommandStream = DungeonCommandStream
