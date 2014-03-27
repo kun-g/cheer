@@ -817,10 +817,16 @@ class DungeonEnvironment extends Environment
       else return undefined
 
   doAction: (act, variables, cmd) ->
-    switch act.type
+    a = act
+    switch a.type
       when 'dialog' then cmd.routine?({id: 'Dialog', dialogId: act.dialogId})
       when 'tutorial' then cmd.routine?({id: 'Tutorial', tutorialId: act.tutorialId})
-      when 'modifyEnvVariable' then @variable(act.name, act.value)
+      when 'modifyEnvVariable' then @variable(a.name, a.value)
+      when 'shock' then cmd.routine?({id: 'Shock', time: a.time, delay: a.delay, range: a.range})
+      when 'blink' then cmd.routine?({id: 'Blink', time: a.time, delay: a.delay, color: a.color})
+      when 'changeBGM' then cmd.routine({id: 'ChangeBGM', music: a.music, repeat: a.repeat})
+      when 'whiteScreen' then cmd.routine({id: 'WhiteScreen', mode: a.mode, time: a.time, color: a.color})
+      when 'playSound' then cmd.routine({id: 'SoundEffect', sound: a.sound})
 
   indexOfCard: (card) ->
     return -1 unless @dungeon?

@@ -338,9 +338,9 @@ class Wizard
         when 'whiteScreen' then cmd.routine({id: 'WhiteScreen', mode: a.mode, time: a.time, color: a.color})
         when 'endDungeon' then cmd.routine({id: 'EndDungeon', result: a.result})
         when 'openBlock' then cmd.routine({id: 'OpenBlock', block: a.block})
+        when 'playSound' then cmd.routine({id: 'SoundEffect', sound: a.sound})
         when 'chainBlock' then cmd.routine({id: 'ChainBlock', src: src, tar: a.target}) for src in a.source
         when 'castSpell' then @castSpell(a.spell, a.level ? 1, cmd)
-        when 'playSound' then cmd.routine({id: 'SoundEffect', sound: a.sound})
         when 'heal'
           if a.self
             cmd.routine?({id: 'Heal', src: @, tar: @, hp: formularResult})
