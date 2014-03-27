@@ -24,6 +24,7 @@ startTcpServer = (servers, port) ->
     c.encoder = encoder
     c.server = appNet.createConnection()
     encoder.pipe(c.server)
+    c.server.pipe(c)
     decoder.on('request', (request) ->
       if request
         console.log(request)
@@ -46,13 +47,13 @@ startTcpServer = (servers, port) ->
   appNet.createConnection = () ->
     server = appNet.aliveServers[appNet.currIndex]
     appNet.currIndex = appNet.currIndex + 1 % appNet.aliveServers.length
-    return net.connect(server.ip, server.port)
+    return net.connect(server)
 
   setInterval( (() ->
     async.map(
       appNet.backends,
       (e, cb) ->
-        s = net.connect(e.ip, e.port, () ->
+        s = net.connect(e, () ->
           e.alive = true
           s.destroy()
           cb(null, e)
