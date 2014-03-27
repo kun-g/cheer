@@ -118,6 +118,7 @@ exports.route = {
               (cb) -> player.fetchMessage(cb),
               (cb) -> player.updateFriendInfo(cb),
               (cb) -> dbLib.newSessionInfo((err, session) ->
+                # TODO: accelerate this
                 player.runtimeID = session
                 dbLib.publish('login', JSON.stringify({player: player.name, session: session}))
                 dbLib.updateSessionInfo(session, {player: player.name}, () ->)
@@ -132,15 +133,18 @@ exports.route = {
               player.saveDB(cb)
             )
           else
-            if socket?
-              socket.pendingLogin = arg
-            cb(Error(RET_AccountHaveNoHero))
+            dbLib.newSessionInfo((err, session) ->
+              if socket?
+                socket.session = {pendingLogin: arg}
+              dbLib.updateSessionInfo(session, {pendingLogin:arg}, () ->)
+              cb(Error(RET_AccountHaveNoHero))
+            )
       ], (err, result) ->
         if err
           switch +err.message
             when RET_AppVersionNotMatch then ret = {arg: { url: queryTable(TABLE_VERSION, 'bin_url') }}
             when RET_ResourceVersionNotMatch then ret = {arg: { url: queryTable(TABLE_VERSION, 'url'), tar: queryTable(TABLE_VERSION, 'resource_version')}}
-            when RET_AccountHaveNoHero then ret = {arg: {pid: 0}}
+            when RET_AccountHaveNoHero then ret = {arg: {pid: socket.session}}
             else ret = {}
           ret.REQ = rpcID
           ret.RET = +err.message
@@ -152,12 +156,17 @@ exports.route = {
   RPC_Register: {
     id: 101,
     func: (arg, dummy, handle, rpcID, socket) ->
-      return handle([{REQ: rpcID, RET: RET_Issue38}]) unless socket?.pendingLogin?
+        #return handle([{REQ: rpcID, RET: RET_Issue38}]) unless socket?.pendingLogin?
       name = arg.nam
-      passportType = socket.pendingLogin.tp
-      passport = socket.pendingLogin.id
       async.waterfall([
-        (cb)          -> dbLib.loadPassport(passportType, passport, false, cb),
+        (cb) ->
+          pendingLogin = socket.session.pendingLogin
+          cb(null, pendingLogin.tp, pendingLogin.id)
+        ,
+        (passportType, passport, cb) ->
+          dbLib.loadPassport(passportType, passport, false, cb)
+        ,
+        #TODO: accelerate this
         (account, cb) -> dbLib.createNewPlayer(account, gServerName, name, cb),
         (player, cb) ->
           player.initialize()
@@ -315,6 +324,7 @@ exports.route = {
           if not sessionInfo
             cbb(Error(RET_SessionOutOfDate))
           else
+            socket.session = sessionInfo
             cbb(null, sessionInfo)
         ,
         (info, cbb) ->
