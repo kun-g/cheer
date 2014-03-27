@@ -103,7 +103,7 @@ doAction = (actions, variables, cmd) ->
           return env.variable(act.name, parse(act.value, variables, cmd))
       when 'delay'
         c = {id: 'Delay'}
-        if a.delay? then c.delay = a.delay
+        if act.delay? then c.delay = act.delay
         cmd = cmd.next(c)
       else
         a = {}
