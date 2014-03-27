@@ -101,6 +101,10 @@ doAction = (actions, variables, cmd) ->
           variables[act.name] = parse(act.value, variables, cmd)
         else if env.variable(act.name)?
           return env.variable(act.name, parse(act.value, variables, cmd))
+      when 'delay'
+        c = {id: 'Delay'}
+        if a.delay? then c.delay = a.delay
+        cmd = cmd.next(c)
       else
         a = {}
         a[k] = parse(v, variables, cmd) for k, v of act
