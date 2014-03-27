@@ -360,6 +360,7 @@ class Wizard
             cmd.routine?({id: 'SpellAction', motion: a.motion, ref: @ref})
           else if a.pos is 'target'
             cmd.routine?({id: 'SpellAction', motion: a.motion, ref: t.ref}) for t in target
+        when 'tutorial' then cmd.routine?({id: 'Tutorial', tutorialId: a.tutorialId})
         when 'playEffect'
           if a.pos is 'self'
             cmd.routine?({id: 'Effect', delay: delay, effect: a.effect, pos: @pos})
