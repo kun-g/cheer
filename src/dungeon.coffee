@@ -819,7 +819,7 @@ class DungeonEnvironment extends Environment
   doAction: (act, variables, cmd) ->
     switch act.type
       when 'dialog' then cmd.routine?({id: 'Dialog', dialogId: act.dialogId})
-      when 'tutorial' then cmd.routine?({id: 'Tutorial', dialogId: act.tutorialId})
+      when 'tutorial' then cmd.routine?({id: 'Tutorial', tutorialId: act.tutorialId})
       when 'modifyEnvVariable' then @variable(act.name, act.value)
 
   indexOfCard: (card) ->

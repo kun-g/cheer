@@ -138,7 +138,8 @@ describe('Dungeon', function () {
 //      //d.getHeroes()[0].attack = 10000;
       var actions = [
         {CMD:RPC_GameStartDungeon},
-//        {CMD:Request_DungeonExplore, arg: {tar: 13, pos:8, pos1:8, pos2:8}},
+        {CMD:Request_DungeonExplore, arg: {tar: 11, pos:10, pos1:10, pos2:10}},
+        {CMD:Request_DungeonExplore, arg: {tar: 16, pos:10, pos1:10, pos2:10}},
 //        {CMD:REQUEST_CancelDungeon, arg: {}},
 //
 //        //{CMD:Request_DungeonCard, arg: {slt: 0}},
