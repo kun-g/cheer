@@ -332,9 +332,14 @@ exports.route = {
              +info.resource_version isnt +queryTable(TABLE_VERSION, 'resource_version')
                cbb(Error(RET_NewVersionArrived))
              else
-               cbb( null, info.player )
+               cbb( null, info )
         ,
-        (playerName, cbb) -> dbLib.loadPlayer(playerName, cbb);,
+        (session, cbb) ->
+          if session.player
+            dbLib.loadPlayer(playerName, cbb)
+          else
+            cb(Error(RET_OK))
+        ,
         (p, cbb) ->
           if not p or p.runtimeID isnt arg.PID
             cbb(Error(RET_SessionOutOfDate))
@@ -351,10 +356,7 @@ exports.route = {
         ],
         (err, result) ->
           if err and err.message isnt RET_OK
-            handler([
-              {REQ: rpcID, RET: err.message},
-              {NTF: Event_ExpiredPID, err: err.message}
-            ])
+            handler([ {REQ: rpcID, RET: err.message} ])
           else
             handler([{REQ: rpcID, RET: RET_OK}])
         )
