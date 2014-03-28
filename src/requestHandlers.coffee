@@ -77,6 +77,7 @@ exports.route = {
   RPC_Login: {
     id: 100,
     func: (arg, dummy, handle, rpcID, socket, registerFlag) ->
+      console.log(arg)
       async.waterfall([
         (cb) ->
           if not arg.bv?
@@ -90,7 +91,7 @@ exports.route = {
             else
               cb(null)
         ,
-        (cb) -> if arg.rv isnt queryTable(TABLE_VERSION, 'resource_version') then cb(Error(RET_ResourceVersionNotMatch)) else cb(null),
+        (cb) -> if +arg.rv isnt queryTable(TABLE_VERSION, 'resource_version') then cb(Error(RET_ResourceVersionNotMatch)) else cb(null),
         (cb) -> if registerFlag then cb(null) else loginBy(arg.tp, arg.id, arg.tk, cb),
         (cb) -> loadPlayer(arg.tp, arg.id, cb),
         (player, cb) ->
@@ -177,7 +178,7 @@ exports.route = {
         if err
           handle([{REQ: rpcID, RET: +err.message}])
         else
-          exports.route.RPC_Login.func(socket.session.pendingLogin, dummy, handle, rpcID, socket, true)
+          exports.route.RPC_Login.func(socket.session, dummy, handle, rpcID, socket, true)
       )
     ,
     args: ['pid', 'string', 'nam', 'string', 'cid', 'number', 'gen', 'number', 'hst', 'number', 'hcl', 'number']
@@ -338,7 +339,7 @@ exports.route = {
           if session.player
             dbLib.loadPlayer(session.player, cbb)
           else
-            cb(Error(RET_OK))
+            cbb(Error(RET_OK))
         ,
         (p, cbb) ->
           if not p or p.runtimeID isnt arg.PID
