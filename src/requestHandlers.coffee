@@ -135,6 +135,7 @@ exports.route = {
             dbLib.newSessionInfo((err, session) ->
               if socket?
                 socket.session = arg
+                socket.session.sid = session
               dbLib.updateSessionInfo(session, arg, () ->)
               cb(Error(RET_AccountHaveNoHero))
             )
@@ -143,7 +144,7 @@ exports.route = {
           switch +err.message
             when RET_AppVersionNotMatch then ret = {arg: { url: queryTable(TABLE_VERSION, 'bin_url') }}
             when RET_ResourceVersionNotMatch then ret = {arg: { url: queryTable(TABLE_VERSION, 'url'), tar: queryTable(TABLE_VERSION, 'resource_version')}}
-            when RET_AccountHaveNoHero then ret = {arg: {pid: socket.session.id}}
+            when RET_AccountHaveNoHero then ret = {arg: {pid: socket.session.sid}}
             else ret = {}
           ret.REQ = rpcID
           ret.RET = +err.message
