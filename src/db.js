@@ -138,7 +138,8 @@ lua_createSessionInfo = " \
   local prefix, date, bv, rv = ARGV[1], ARGV[2], ARGV[3], ARGV[4]; \
   local id = redis.call('INCR', 'SessionCounter'); \
   local key = prefix..'Session.'..id; \
-  redis.call('hmset', key, 'create_date', date, 'bin_version', bv, 'resource_version', rv); \
+  redis.call('hmset', key, 'create_date', date, 'sid', id, \
+      'bin_version', bv, 'resource_version', rv); \
   redis.call('expire', key, 600); \
   return id;";
 

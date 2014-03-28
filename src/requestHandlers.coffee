@@ -20,7 +20,6 @@ loginBy = (passportType, passport, token, callback) ->
           if result.ErrorCode is '1'
             callback(null)
           else
-            console.log(chunk)
             callback(Error(RET_LoginFailed))
         )
       ).on('error', (e) -> logError({action: 'login', type:  LOGIN_ACCOUNT_TYPE_91, error: e}))
@@ -77,7 +76,6 @@ exports.route = {
   RPC_Login: {
     id: 100,
     func: (arg, dummy, handle, rpcID, socket, registerFlag) ->
-      console.log(arg)
       async.waterfall([
         (cb) ->
           if not arg.bv?
@@ -136,7 +134,7 @@ exports.route = {
           else
             dbLib.newSessionInfo((err, session) ->
               if socket?
-                socket.session = {id: session}
+                socket.session = arg
               dbLib.updateSessionInfo(session, arg, () ->)
               cb(Error(RET_AccountHaveNoHero))
             )
