@@ -135,8 +135,8 @@ exports.route = {
           else
             dbLib.newSessionInfo((err, session) ->
               if socket?
-                socket.session = {pendingLogin: arg, id: session}
-              dbLib.updateSessionInfo(session, {pendingLogin:arg}, () ->)
+                socket.session = {id: session}
+              dbLib.updateSessionInfo(session, arg, () ->)
               cb(Error(RET_AccountHaveNoHero))
             )
       ], (err, result) ->
@@ -160,7 +160,7 @@ exports.route = {
       name = arg.nam
       async.waterfall([
         (cb) ->
-          pendingLogin = socket.session.pendingLogin
+          pendingLogin = socket.session
           cb(null, pendingLogin.tp, pendingLogin.id)
         ,
         (passportType, passport, cb) ->
@@ -336,7 +336,7 @@ exports.route = {
         ,
         (session, cbb) ->
           if session.player
-            dbLib.loadPlayer(playerName, cbb)
+            dbLib.loadPlayer(session.player, cbb)
           else
             cb(Error(RET_OK))
         ,
