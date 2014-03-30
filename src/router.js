@@ -73,7 +73,7 @@ function v_dispatchCommand (routeTable, req, socket, retValHandler) {
       player = p;
     }], function (err, result) {
       if (err && err.message != RET_OK) {
-        retValHandler([{NTF: Event_ExpiredPID, err: err}]);
+        retValHandler([{NTF: Event_ExpiredPID, err: RET_SessionOutOfDate}]);
       } else {
         try {
           handler.func(req.arg, player, retValHandler, req.REQ, socket, false, req);
@@ -115,7 +115,7 @@ function dispatchCommand (routeTable, req, socket, retValHandler) {
       });
     }
   } else {
-    retValHandler([{NTF: Event_ExpiredPID}]);
+    retValHandler([{NTF: Event_ExpiredPID, err: RET_SessionOutOfDate}]);
   }
 }
 

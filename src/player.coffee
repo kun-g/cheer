@@ -1002,6 +1002,7 @@ class Player extends DBWrapper
     cfg = queryTable(TABLE_CAMPAIGN, campaignName, @abIndex)
     if cfg?
       if cfg.date? and moment(cfg.date).format('YYYYMMDD') - moment().format('YYYYMMDD') < 0 then return { config: null }
+      if @getCampaignState(campaignName)? nd @getCampaignState(campaignName) is false then return { config: null }
       if @getCampaignState(campaignName)? and cfg.level? and @getCampaignState(campaignName) >= cfg.level.length then return { config: null }
       if campaignName is 'LevelUp' and cfg.timeLimit*1000 <= moment()- @creationDate then return { config: null }
     else
@@ -1029,6 +1030,7 @@ class Player extends DBWrapper
             reward.push({cfg: config, lv: o})
             state[rmb] = true
             @setCampaignState('Charge', state)
+
         { config, level } = @getCampaignConfig('TotalCharge')
         if config? and level? and @rmb >= level.count
           if @getCampaignState('TotalCharge')?
@@ -1036,7 +1038,13 @@ class Player extends DBWrapper
           else
             @setCampaignState('TotalCharge', 0)
           reward.push({cfg: config, lv: level})
+
         { config, level } = @getCampaignConfig('FirstCharge')
+        if config? and level?
+          rmb = data
+          if level[rmb]?
+            reward.push({cfg: config, lv: level[rmb]})
+            @setCampaignState('FirstCharge', false)
       when 'Level'
         { config, level } = @getCampaignConfig('LevelUp')
         if config? and level? and @createHero().level >= level.count

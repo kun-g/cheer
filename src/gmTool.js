@@ -5,7 +5,7 @@ require('./globals');
 
 //players = ['天走卢克', '埃及傲', '萌成喵', '鲍哥', '江湖飘', '飛扬', 
 //        'Doyle', '豆豆同学丶', '震北冥', '888666', '蛋町' ];
-players = ['j j j'];
+players = ['Kjjb'];
 
 serverName = 'Develop';
 //serverName = 'Master';
@@ -32,8 +32,8 @@ dbPrefix = serverName+'.';
 var rewardMessage = {
   type: Event_SystemReward,
   src: MESSAGE_REWARD_TYPE_SYSTEM,
-  tit: '~',
-  txt: '~',
+  tit: '奖励',
+  txt: '首充奖励',
   prize: [
     //{type: PRIZETYPE_EXP, count: 10000},
     //{type: PRIZETYPE_ITEM, value: 0, count: 50},
