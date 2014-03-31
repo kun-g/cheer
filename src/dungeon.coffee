@@ -1145,9 +1145,11 @@ dungeonCSConfig = {
     output: (env) ->
       e = env.variable('unit')
       return [] unless e.health > 0
-      eEv = { id: ACT_Enemy, pos: e.pos, rid: e.id, hp: e.health, ref: e.ref, typ: e.type }
+      eEv = {id: ACT_Enemy, pos: e.pos, rid: e.id, hp: e.health, ref: e.ref, typ: e.type}
       eEv.dc = e.attack if e.attack?
       eEv.eff = e.effect if e.effect?
+      if getBasicInfo(e) then eEv.role = getBasicInfo(e)
+      console.log(eEv)
       return [eEv]
   },
   TouchBlock: {

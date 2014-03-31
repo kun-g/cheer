@@ -91,11 +91,16 @@ isNameValid = function(name) {
 grabAndTranslate = function (data, translateTable) {
   if (data == null || translateTable == null) return {};
   var ret = {};
+  var flag = false;
 
   for (var k in translateTable) {
-    if (data[k] != null) ret[translateTable[k]] = data[k];
+    if (data[k] != null) {
+      ret[translateTable[k]] = data[k];
+      flag = true;
+    }
   }
 
+  if (!flag) return null;
   return ret;
 };
 
