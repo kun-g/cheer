@@ -9,9 +9,6 @@ describe('Dungeon', function () {
     initGlobalConfig('../build/', done);
   });
 
-  describe('C', function () {
-  });
-
 //  it('Shuffle', function () {
 //    shuffle([1,2,3,4], 0).should.eql([1,2,3,4]);
 //    shuffle([1,2,3,4], 1).should.eql([1,2,4,3]);

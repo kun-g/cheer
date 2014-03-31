@@ -182,6 +182,7 @@ class Dungeon extends DBWrapper
   constructor: (data) ->
     super
 
+    @effectCounter = 0
     @killingInfo = []
     @currentLevel = -1
     @cardStack = CardStack(5)
@@ -894,6 +895,7 @@ class DungeonEnvironment extends Environment
       when 'hit' then @dungeon.hitCompete(a, b)
       when 'critical' then @dungeon.criticalCompete(a, b)
 
+  incrEffectCount: () -> return @dungeon.effectCounter++
   aquireCard: (id) -> @dungeon?.aquireCard(id)
   costCard: (slot, count) -> @dungeon?.costCard(slot, count)
   getCard: (slot) -> @dungeon?.getCard(slot)
@@ -1360,7 +1362,6 @@ dungeonCSConfig = {
     output: (env) -> [{ id: ACT_DROPITEM, sid: +env.variable('slot'), typ: env.variable('type'), cnt: env.variable('count') }]
   },
   Casting: {
-    callback: (env) ->,
     output: (env) ->
       src = env.variable('caster')
       tar = env.variable('castee')
@@ -1375,7 +1376,11 @@ dungeonCSConfig = {
       return ret
   },
   Effect: {
-    output: (env) -> [{id:ACT_EFFECT, dey: env.variable('delay'), eff: env.variable('effect'), pos: env.variable('pos')}]
+    output: (env) ->
+      if env.variable('pos')?
+        [{id:ACT_EFFECT, dey: env.variable('delay'), eff: env.variable('effect'), pos: env.variable('pos')}]
+      else
+        [{id:ACT_EFFECT, dey: env.variable('delay'), eff: env.variable('effect'), act: env.variable('act')}]
   },
   CastSpell: {
     callback: (env) ->

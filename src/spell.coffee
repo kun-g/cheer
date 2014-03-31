@@ -362,14 +362,24 @@ class Wizard
             cmd.routine?({id: 'SpellAction', motion: a.motion, ref: t.ref}) for t in target
         when 'tutorial' then cmd.routine?({id: 'Tutorial', tutorialId: a.tutorialId})
         when 'playEffect'
-          if a.pos is 'self'
-            cmd.routine?({id: 'Effect', delay: delay, effect: a.effect, pos: @pos})
-          else if a.pos is 'target'
-            cmd.routine?({id: 'Effect', delay: delay, effect: a.effect, pos: t.pos}) for t in target
-          else if typeof a.pos is 'number'
-            cmd.routine?({id: 'Effect', delay: delay, effect: a.effect, pos: a.pos})
-          else if Array.isArray(a.pos)
-            cmd.routine?({id: 'Effect', delay: delay, effect: a.effect, pos: pos}) for pos in a.pos
+          if a.pos?
+            if a.pos is 'self'
+              cmd.routine?({id: 'Effect', delay: delay, effect: a.effect, pos: @pos})
+            else if a.pos is 'target'
+              for t in target
+                cmd.routine?({id: 'Effect', delay: delay, effect: a.effect, pos: t.pos})
+            else if typeof a.pos is 'number'
+              cmd.routine?({id: 'Effect', delay: delay, effect: a.effect, pos: a.pos})
+            else if Array.isArray(a.pos)
+              for pos in a.pos
+                cmd.routine?({id: 'Effect', delay: delay, effect: a.effect, pos: pos})
+          else
+            switch a.act
+              when 'self'
+                cmd.routine?({id: 'Effect', delay: delay, effect: a.effect, act: @ref})
+              when 'target'
+                for t in target
+                  cmd.routine?({id: 'Effect', delay: delay, effect: a.effect, act: t.ref})
         when 'delay'
           c = {id: 'Delay'}
           if a.delay? then c.delay = a.delay
