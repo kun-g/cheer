@@ -62,7 +62,7 @@ var config = {
 if (config) {
   initiateFluentLogger();
   initServer();
-  initGlobalConfig(config.init);
+  initGlobalConfig(null, config.init);
 } else {
   throw 'No config';
 }

@@ -1,4 +1,3 @@
-//var serialLib = require('../serializer');
 var dungeonLib = require('../js/dungeon');
 var shall = require('should');
 //require('../shared');
@@ -7,9 +6,12 @@ initServer();
 
 describe('Dungeon', function () {
   before(function (done) {
-    initGlobalConfig(done);
+    initGlobalConfig('../build/', done);
   });
-//
+
+  describe('C', function () {
+  });
+
 //  it('Shuffle', function () {
 //    shuffle([1,2,3,4], 0).should.eql([1,2,3,4]);
 //    shuffle([1,2,3,4], 1).should.eql([1,2,4,3]);

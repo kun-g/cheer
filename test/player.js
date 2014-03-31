@@ -28,7 +28,7 @@ shall = require('should');
 //
 describe('', function () {
   before(function (done) {
-    initGlobalConfig(done);
+    initGlobalConfig('../build/', done);
   });
 //  after(function () {
 //    dbLib.releaseDB();
