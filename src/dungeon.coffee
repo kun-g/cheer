@@ -1557,6 +1557,8 @@ dungeonCSConfig = {
 #////////////////////////////////// callBack
 onEvent = (evt, cmd, src, tar) ->
   env = cmd.getEnvironment()
+  env.variable('src', src)
+  env.variable('tar', tar)
   if src
     src.onEvent('on'+evt, cmd)
     m.onEvent('onTeammate'+evt, cmd) for m in env.getTeammateOf(src)
@@ -1564,8 +1566,6 @@ onEvent = (evt, cmd, src, tar) ->
   if tar
     tar.onEvent('onBe'+evt, cmd)
     m.onEvent('onTeammateBe'+evt, cmd) for m in env.getTeammateOf(tar)
-  env.variable('src', src)
-  env.variable('tar', tar)
   env.onEvent(evt, cmd)
 
 exports.DungeonEnvironment = DungeonEnvironment

@@ -641,7 +641,7 @@ class Player extends DBWrapper
         prize.push(gems[r])
       gems[r].count++
 
-    retPrize = @claimPrize(gems)
+    retPrize = @claimPrize(prize)
     if retPrize
       ret = @doAction({id: 'ItemChange', ret: retRM, version: @inventoryVersion})
       ret = ret.concat(retPrize)

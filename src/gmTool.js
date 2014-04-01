@@ -5,7 +5,7 @@ require('./globals');
 
 //players = ['天走卢克', '埃及傲', '萌成喵', '鲍哥', '江湖飘', '飛扬', 
 //        'Doyle', '豆豆同学丶', '震北冥', '888666', '蛋町' ];
-players = ['sw'];
+players = ['jvf'];
 
 serverName = 'Develop';
 //serverName = 'Master';
@@ -62,11 +62,11 @@ var rewardMessage = {
     //{type: PRIZETYPE_DIAMOND, count: 150}
     //{type: PRIZETYPE_WXP, count: 10000},
     //{type: PRIZETYPE_GOLD, count: 100000},
-    {type: PRIZETYPE_DIAMOND, count: 10000},
+    //{type: PRIZETYPE_DIAMOND, count: 10000},
     //{type: PRIZETYPE_ITEM, value: 533, count: 20}//至尊礼包
-    {type: PRIZETYPE_ITEM, value: 553, count: 1},//至尊礼包
-    {type: PRIZETYPE_ITEM, value: 550, count: 1},//至尊礼包
-    {type: PRIZETYPE_EXP, count: 1000000},
+    //{type: PRIZETYPE_ITEM, value: 553, count: 1},//至尊礼包
+    {type: PRIZETYPE_ITEM, value: 0, count: 1000},//至尊礼包
+    //{type: PRIZETYPE_EXP, count: 1000000},
   ]
 };
 dbLib.initializeDB({
