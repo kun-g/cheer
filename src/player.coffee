@@ -634,7 +634,7 @@ class Player extends DBWrapper
     gems = {}
     gemIndex = queryTable(TABLE_CONFIG, 'Global_Enhancement_GEM_Index', @abIndex)
     prize = []
-    for i in [1..Math.floor(count*0.8)]
+    for i in [1..Math.floor(count*0.5)]
       r = rand() % gemIndex.length
       unless gems[r]?
         gems[r] = { type : PRIZETYPE_ITEM, value: gemIndex[r], count: 0}

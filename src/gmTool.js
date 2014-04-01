@@ -5,7 +5,7 @@ require('./globals');
 
 //players = ['天走卢克', '埃及傲', '萌成喵', '鲍哥', '江湖飘', '飛扬', 
 //        'Doyle', '豆豆同学丶', '震北冥', '888666', '蛋町' ];
-players = ['Kjjb'];
+players = ['sw'];
 
 serverName = 'Develop';
 //serverName = 'Master';

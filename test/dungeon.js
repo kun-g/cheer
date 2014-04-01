@@ -1,6 +1,5 @@
 var dungeonLib = require('../js/dungeon');
 var shall = require('should');
-//require('../shared');
 gServerID = 1;
 initServer();
 
