@@ -526,7 +526,7 @@ class Player extends DBWrapper
     quest = queryTable(TABLE_QUEST, qid, @abIndex)
     return false unless @quests[qid]? and quest
 
-    for i, objective in quest.objects
+    for i, objective of quest.objects
       switch objective.type
         when QUEST_TYPE_GOLD then @quests[qid].counters[i] = @gold
         when QUEST_TYPE_DIAMOND then @quests[qid].counters[i] = @diamond
