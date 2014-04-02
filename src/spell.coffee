@@ -405,7 +405,7 @@ class Wizard
             for spellID, thisSpell of h.wSpellDB
               cfg = getSpellConfig(spellID)
               h.removeSpell(spellID, cmd) if _buffType.indexOf(cfg.buffType) != -1
-        when 'collect' then cmd.routine({id: 'CollectID', collectID: a.collectID})
+        when 'collect' then cmd.routine({id: 'CollectID', collectId: a.collectID})
         when 'createMonster'
           c = {
             id: 'CreateObject',
