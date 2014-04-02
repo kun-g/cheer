@@ -532,7 +532,7 @@ class Player extends DBWrapper
         when QUEST_TYPE_DIAMOND then @quests[qid].counters[i] = @diamond
         when QUEST_TYPE_ITEM then @quests[qid].counters[i] = @inventory.filter((e) -> e.id is objective.collect).reduce( ((r,l) -> r+l.count), 0 )
         when QUEST_TYPE_LEVEL then @quests[qid].counters[i] = @createHero().level
-        when QUEST_TYPE_POWER then @quests[qid].counters[i] = @battleForce
+        when QUEST_TYPE_POWER then @quests[qid].counters[i] = @createHero().calculatePower()
       if @quests[qid].counters[i] > objective.count then @quests[qid].counters[i] = objective.count
 
   onEvent: (eventID) ->
@@ -1254,7 +1254,7 @@ class Player extends DBWrapper
         reward.push({
           type: PRIZETYPE_ITEM,
           value: queryTable(TABLE_CONFIG, 'Global_Material_ID')[item.quality],
-          count: 1 + rand() % 2
+          count: 2 + rand() % 2
         })
       reward = reward.filter( (e) -> return e? )
       #reward.push({

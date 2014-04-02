@@ -28,7 +28,10 @@ var spellLib = require('../js/spell');
 //
 describe('', function () {
   before(function (done) {
-    initGlobalConfig('../build/', done);
+    initGlobalConfig('../build/', function () {
+      console.log(queryTable(TABLE_CONFIG,  'Global_Material_ID'));
+      done();
+    });
   });
 //  after(function () {
 //    dbLib.releaseDB();
