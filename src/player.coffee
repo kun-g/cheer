@@ -665,6 +665,9 @@ class Player extends DBWrapper
     ret = ret.concat(@aquireItem(newItem))
     ret = ret.concat({NTF: Event_InventoryUpdateItem, arg:{syn: @inventoryVersion, god: @gold }})
     @log('craftItem', { slot: slot, id: recipe.id })
+
+    if newItem.rank >= 8
+      dbLib.broadcastEvent(BROADCAST_CRAFT, {who: @name, what: newItem.id})
     return { out: { type: PRIZETYPE_ITEM, value: newItem.id, count: 1}, res: ret }
 
   levelUpItem: (slot) ->
