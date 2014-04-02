@@ -11,8 +11,6 @@ startTcpServer = (servers, port) ->
     #if (config.timeout) c.setTimeout(config.timeout)
     #c.on('timeout', () -> c.end())
     c.on('end', () ->
-      require("./router").peerOffline(c)
-      name = c.playerName
       delete appNet.aliveConnections[c.connectionIndex]
     )
     decoder = new SimpleProtocolDecoder()

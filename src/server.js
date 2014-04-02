@@ -1,6 +1,7 @@
 var defLib = require('./define');
 var dbLib = require('./db');
 var parseLib = require('./requestStream');
+var net = require('net');
 
 function Server () {
   this.serverInfo = {
@@ -27,7 +28,7 @@ Server.prototype.startTcpServer = function (config) {
   }
 
   var handler = config.handler;
-  var appNet = require('net').createServer(function (c) {
+  var appNet = net.createServer(function (c) {
     //console.log('New Connection', c.remoteAddress)
     appNet.aliveConnections.push(c);
     c.connectionIndex = appNet.aliveConnections.length - 1;
@@ -119,6 +120,25 @@ Server.prototype.startTcpServer = function (config) {
     if (me.tcpServer) me.serverInfo.connections = me.tcpServer.net.aliveConnections.length;
     dbLib.publish('ServerInfo', me.serverInfo);
   }, 3000);
-}
+};
+/*
+c = net.connect({ip: 'localhost', port: 7760});
+var decoder = new parseLib.SimpleProtocolDecoder();
+var encoder = new parseLib.SimpleProtocolEncoder();
+encoder.pipe(c);
+encoder.setFlag('size');
+c.pipe(decoder);
+decoder.on('request', function (request) {
+  console.log(request);
+});
+c.decoder = decoder;
+c.encoder = encoder;
+encoder.writeObject({CMD: 'get', key: '测试'});
+*/
+
+
+
+
+
 
 exports.Server = Server;
