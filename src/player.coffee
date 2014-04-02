@@ -94,6 +94,7 @@ class Player extends DBWrapper
     @attrSave('loginStreak', {count: 0}) unless @loginStreak?
     if diffDate(@lastLogin) > 0 then @purchasedCount = {}
     @lastLogin = currentTime()
+    if diffDate(@creationDate) > 0 then @tutorialStage = 1000 #TODO
 
     if not @infiniteTimer or not moment().isSame(@infiniteTimer, 'week')
       @attrSave('infiniteTimer', currentTime())
