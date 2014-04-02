@@ -505,7 +505,7 @@ class Player extends DBWrapper
     ret = []
     return RET_Unknown unless quest? and @quests[qid]? and not @quests[qid].complete
     return RET_Unknown unless @isQuestAchieved(qid)
-    @checkQuestStatues()
+    @checkQuestStatues(qid)
 
     prize = @claimPrize(quest.prize.filter((e) => isClassMatch(@hero.class, e.classLimit)))
     if not prize or prize.length is 0 then return RET_InventoryFull
