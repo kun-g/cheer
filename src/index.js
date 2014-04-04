@@ -3,6 +3,11 @@ require('./define');
 dbLib = require('./db');
 dbWrapper = require('./dbWrapper');
 http = require('http');
+var domain = require('domain').create();
+
+domain.on('error', function (err) {
+  console.log(err.message, err.stack);
+});
 
 var srvLib = require("./server");
 gServer = new srvLib.Server();
@@ -62,7 +67,9 @@ var config = {
 if (config) {
   initiateFluentLogger();
   initServer();
-  initGlobalConfig(null, config.init);
+  initGlobalConfig(null, function () {
+    domain.run(config.init);
+  });
 } else {
   throw 'No config';
 }
