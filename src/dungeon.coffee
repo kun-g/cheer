@@ -1,6 +1,5 @@
 require('./define')
 {Wizard} = require './spell'
-{Serializer, registerConstructor} = require './serializer'
 {DBWrapper} = require './dbWrapper'
 {createUnit, Hero} = require './unit'
 {Item, Card} = require './item'
@@ -539,7 +538,6 @@ class Dungeon extends DBWrapper
       quest = if @quests? then @quests else []
       @level.init(lvConfig, @baseRank, @getHeroes(), quest, soldierPool, elitePool, bossPool)
 
-registerConstructor(Dungeon)
 exports.Dungeon = Dungeon
 #////////////////////// Block
 class Block extends Wizard

@@ -1,6 +1,5 @@
 require('./define')
 {Wizard} = require('./spell')
-{Serializer, registerConstructor} = require './serializer'
 #中途遇见凯瑟琳，凯瑟琳加入队伍，凯瑟琳死亡，任务失败
 #win / lose condition
 #new teammate
@@ -165,9 +164,6 @@ createUnit = (config) ->
   switch cfg.classType
     when Unit_Enemy then return new Monster(config)
     when Unit_NPC then return new Npc(config)
-
-registerConstructor(Hero)
-registerConstructor(Monster)
 
 exports.createUnit = createUnit
 exports.Hero = Hero

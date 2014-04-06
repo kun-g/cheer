@@ -1,44 +1,49 @@
 # Provide serializing mechanism
+tap = require('./helper').tap
+
+generateMonitor = (obj) ->
+  return (key, val) -> obj.s_attr_dirtyFlag[key] = true
 
 class Serializer
   constructor: () ->
     @s_attr_to_save = []
-    @s_attr_version = {}
     @s_attr_dirtyFlag = {}
-    Object.defineProperty(this, 's_attr_to_save', {enumerable:false})
-    Object.defineProperty(this, 's_attr_version', {enumerable:false})
-    Object.defineProperty(this, 's_attr_dirtyFlag', {enumerable:false})
+    @s_attr_monitor = generateMonitor(this)
+    Object.defineProperty(this, 's_attr_to_save', {enumerable:false, writable: true})
+    Object.defineProperty(this, 's_attr_dirtyFlag', {enumerable:false, writable: true})
+    Object.defineProperty(this, 's_attr_monitor', {enumerable:false, writable: false})
 
   attrSave: (key, val) ->
-    this[key] = val if val?
     return false unless @s_attr_to_save.indexOf(key) is -1
+    this[key] = val
+    tap(this, key, @s_attr_monitor)
     @s_attr_to_save.push(key)
 
   versionControl: (versionKey, keys) ->
     keys = [keys] unless Array.isArray(keys)
     @attrSave(key) for key in keys
-    this[versionKey] = 1 unless this[versionKey]?
-    @s_attr_version[versionKey] = [] unless @s_attr_version[versionKey]
-    @s_attr_version[versionKey].push(key) for key in keys when @s_attr_version[versionKey].indexOf(key) is -1
+    ver = this[versionKey] ? 1
+    @attrSave(versionKey, ver)
+    versionIncr = () => this[versionKey]++
+    tap(this, key, versionIncr) for key in keys
 
-  getConstructor: () -> g_attr_constructorTable[this.constructor.name] # TODO:not a necessary interface
+  getConstructor: () -> g_attr_constructorTable[this.constructor.name]
 
   dump: () ->
     ret = {_constructor_: this.constructor.name, save: {}}
-    for key in @s_attr_to_save when @[key]?
+    for key in @s_attr_to_save
       val = @[key]
       if Array.isArray(val)
         ret.save[key] = val.map( (e) -> if e?.dump? then e.dump() else e )
       else
         ret.save[key] = if val?.dump? then val.dump() else val
 
-    for key, v of @s_attr_version
-      ret.save[key] = this[key]
-
+    ret.save = JSON.parse(JSON.stringify(ret.save))
     return ret
 
   restore: (data) ->
     return @ unless data?
+    if typeof data is 'string' then data = JSON.parse(data)
 
     for k, v of data when v?
       if v._constructor_?
@@ -50,23 +55,24 @@ class Serializer
 
     return @
 
-  dumpChanged: () -> @dump().save
-#   for key in @s_attr_to_save when this[key]? and @s_attr_dirtyFlag[key]
-#     ret = {} unless ret?
-#     @s_attr_dirtyFlag[key] = false
-#     if this[key].dump
-#       ret[key] = this[key].dump()
-#     else if Array.isArray(this[key])
-#       ret[key] = this[key].map( (v) ->
-#         if v?.dump then v.dump() else v
-#       )
-#     else
-#       ret[key] = this[key]
+  dumpChanged: () ->
+    ret = null
+    for key, val of @s_attr_dirtyFlag
+      ret = {} unless ret?
+      if this[key].dump
+        ret[key] = this[key].dump()
+      else if Array.isArray(this[key])
+        ret[key] = this[key].map( (v) ->
+          if v?.dump then v.dump() else v
+        )
+      else
+        ret[key] = this[key]
+ 
+    @s_attr_dirtyFlag = {}
 
-#   for key, v of @s_attr_version when ret?
-#     ret[key] = this[key]
-
-#   return ret
+    if ret then ret = JSON.parse(JSON.stringify(ret)) # destroy functions
+ 
+    return ret
 
 objectlize  = (data) ->
   throw 'No constructor' unless data?._constructor_?

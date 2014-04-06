@@ -28,7 +28,6 @@ tap = (obj, key, callback) ->
     
     if typeof obj[key] is 'object' then tapObject(obj[key], theCB)
   else
-    console.log('Rehook', key)
     obj.reactDB[key].hooks.push(callback)
 
 tapObject = (obj, callback) ->

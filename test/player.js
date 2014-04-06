@@ -76,29 +76,6 @@ describe('', function () {
 //    });
 //  });
 //
-//  describe('Serializer', function () {
-//    var test = new serialLib.Serializer();
-//    test.attrSave('pNumber', 1);
-//    test.attrSave('pString', 'init');
-//    test.attrSave('pObject', {foo: 'bar', t: {foo: 'bar'}});
-//    test.attrSave('pArray', [1,2,3]);
-//    test.versionControl('version', ['pNumber', 'pString', 'pObject', 'pArray']);
-//    serialLib.registerConstructor(serialLib.Serializer);
-//
-//    it('Should restore from dumped data.', function () {
-//      test.pNumber = 2;
-//      test.pString = 'data';
-//      test.pObject.foo = 'bar1';
-//      var tmp = serialLib.objectlize(test.dump());
-//      should(test.dump()).eql(tmp.dump());
-//      //should(test.dumpChanged()).eql(test.dump().save);
-//      //should(test.dumpChanged()).equal(undefined);
-//      test.pObject.t = {foo: 'barT'};
-//      //should(test.dumpChanged()).eql({pObject: {foo: 'bar1', t: {foo: 'barT'}}, version: 6});
-//      test.pArray.push(4);
-//      //should(test.dumpChanged()).eql({pArray: [1,2,3,4], version: 7});
-//    });
-//  });
 //
   describe('CommandStream', function () {
     var cmdLib = require('../js/commandStream');
