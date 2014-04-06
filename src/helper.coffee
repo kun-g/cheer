@@ -27,7 +27,7 @@ tap = (obj, key, callback) ->
     })
     if typeof obj[key] is 'object' then tapObject(obj[key], theCB)
   else
-    obj.reactDB[key].callback.push(callback)
+    obj.reactDB[key].hooks.push(callback)
 
 tapObject = (obj, callback) ->
   tabNewProperty = (key, val) ->
