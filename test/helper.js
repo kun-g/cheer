@@ -2,28 +2,73 @@ var shall = require('should');
 var helpLib = require('../js/helper');
 events = helpLib.events;
 
-describe('Unlock', function () {
-  var updateLockStatus = helpLib.updateLockStatus;
-  var me = {
-    stage: []
-  };
-  var config = [
-    { nolimitation: true },
-    { cond: { '==': [1, 1] } },
-    { cond: {
-              '==': [
-                { type: "getProperty", key: "stage.1" }, true
-              ]
-            }
-    }
-  ];
+describe('Helper', function () {
+  describe('Unlock', function () {
+    var updateLockStatus = helpLib.updateLockStatus;
+    var me = {
+      stage: []
+    };
+    var config = [
+      { nolimitation: true },
+      { cond: { '==': [1, 1] } },
+      { cond: {
+                '==': [
+                  { type: "getProperty", key: "stage.1" }, true
+                ]
+              }
+      }
+    ];
 
-  it('Basic', function () {
-    shall(updateLockStatus(me.stage, me, config)).eql([0, 1]);
+    it('Basic', function () {
+      shall(updateLockStatus(me.stage, me, config)).eql([0, 1]);
+    });
+  });
+//describe('calculateTotalItemXP', function () {
+//  var calculate = helpLib.calculateTotalItemXP;
+//  shall(calculate({xp: 0, quality: 0, rank: 0})).equal(0);
+//  shall(calculate({xp: 100, quality: 0, rank: 0})).equal(100);
+//  shall(calculate({xp: 100, quality: 1, rank: 1})).equal(100);
+//  shall(calculate({xp: 100, quality: 1, rank: 2})).equal(200);
+//  shall(calculate({xp: 100, quality: 2, rank: 2})).equal(100);
+//});
+  describe('React programming', function () {
+    var tap = helpLib.tap;
+    function generate(marker) {
+      return function (key, val) {
+        if ( marker[key] ) {
+          marker[key] += 1;
+        } else {
+          marker[key] = 1;
+        }
+      };
+    }
+    var obj = {name: 'Obj', age: 3, friend: [], equip: {}}, marker = {};
+    var cb1 = generate(marker);
+    for (var key in obj) tap(obj, key, cb1);
+    obj.name = 'React';
+    obj.age += 1;
+    shall(marker).eql({ name: 1, age: 1 });
+    obj.age += 1;
+    shall(marker).eql({ name: 1, age: 2 });
+    delete obj.name;
+    shall(marker).eql({ name: 1, age: 2 });
+    shall(obj.name).equal(undefined);
+
+    obj.equip.newProperty('head', 0);
+    shall(marker).eql({ name: 1, age: 2, equip: 1 });
+    obj.equip.newProperty('arm', 1);
+    shall(marker).eql({ name: 1, age: 2, equip: 2 });
+
+    obj.friend.push('T0');
+    shall(marker).eql({ name: 1, age: 2, equip: 2, friend: 1 });
+    obj.friend.push('T1');
+    shall(marker).eql({ name: 1, age: 2, equip: 2, friend: 2 });
+    obj.friend[1] = 'T2';
+    shall(marker).eql({ name: 1, age: 2, equip: 2, friend: 3 });
   });
 });
 
-describe('Campaign', function () {
+//describe('Campaign', function () {
 //describe('#Helper Lib', function () {
 //  var helperLib = require('../helper');
 //  it('C', function () {
@@ -49,7 +94,7 @@ describe('Campaign', function () {
 //  before(function (done) {
 //    initGlobalConfig(done);
 //  });
-  describe('ChainEvent', function () {
+//  describe('ChainEvent', function () {
 //    it('Should be ok~', function () {
 //      var me = { 
 //        battleForce: 75,
@@ -118,6 +163,6 @@ describe('Campaign', function () {
 //      should(me.event_daily).have.property('step').equal(0);
 //      should(me.event_daily.status).equal('Ready');
 //    });
-  });
-});
+//  });
+//});
 

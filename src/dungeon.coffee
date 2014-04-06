@@ -1150,7 +1150,6 @@ dungeonCSConfig = {
       eEv.dc = e.attack if e.attack?
       eEv.eff = e.effect if e.effect?
       if getBasicInfo(e) then eEv.role = getBasicInfo(e)
-      console.log(eEv)
       return [eEv]
   },
   TouchBlock: {

@@ -1,6 +1,58 @@
 moment = require('moment')
 {conditionCheck} = require('./trigger')
 
+# React Programming
+tap = (obj, key, callback) ->
+  unless obj.reactDB?
+    Object.defineProperty(obj, 'reactDB', {
+      enumerable : false,
+      configurable : false,
+      value: { }
+    })
+
+  unless obj.reactDB[key]?
+    obj.reactDB[key] = {
+      value: obj[key],
+      hooks: [callback]
+    }
+    theCB = (val) ->
+      cb(key, val) for cb in obj.reactDB[key].hooks when cb?
+      return obj.reactDB[key].value = val
+
+    Object.defineProperty(obj, key, {
+      get : () -> return obj.reactDB[key].value,
+      set : theCB,
+      enumerable : true,
+      configurable : true
+    })
+    if typeof obj[key] is 'object' then tapObject(obj[key], theCB)
+  else
+    obj.reactDB[key].callback.push(callback)
+
+tapObject = (obj, callback) ->
+  tabNewProperty = (key, val) ->
+    obj[key] = val
+    tap(obj, key, callback)
+    callback(obj)
+
+  config = {
+    value: tabNewProperty,
+    enumerable : false,
+    configurable : false
+    writable : false,
+  }
+  Object.defineProperty(obj, 'newProperty', config)
+  if Array.isArray(obj)
+    Object.defineProperty(obj, 'push', {
+      value: (val) -> @newProperty(@length, val)
+    })
+exports.tap = tap
+
+
+
+
+
+
 updateLockStatus = (curStatus, target, config) ->
   return [] unless curStatus
   ret = []
@@ -139,7 +191,7 @@ actCampaign = (me, key, config, handler) ->
       me[key].status = 'Claimed'
       ret = ret.concat(initCampaign(me, config))
     when 'Done' then ret = []
-    else throw 'WrongCampainStatus'+me[key].status
+    else throw Error('WrongCampainStatus'+me[key].status)
   if handler
     handler(null, ret)
   else
