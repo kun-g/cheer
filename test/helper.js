@@ -42,7 +42,7 @@ describe('Helper', function () {
         }
       };
     }
-    var obj = {name: 'Obj', age: 3, friend: [], equip: {}}, marker = {};
+    var obj = {name: 'Obj', age: 3, friend: ['Tx'], equip: {body: 3}}, marker = {};
     var cb1 = generate(marker);
     for (var key in obj) tap(obj, key, cb1);
     obj.name = 'React';
@@ -58,13 +58,17 @@ describe('Helper', function () {
     shall(marker).eql({ name: 1, age: 2, equip: 1 });
     obj.equip.newProperty('arm', 1);
     shall(marker).eql({ name: 1, age: 2, equip: 2 });
+    obj.equip.head = 5;
+    shall(marker).eql({ name: 1, age: 2, equip: 3 });
+    obj.equip.body = 6;
+    shall(marker).eql({ name: 1, age: 2, equip: 4 });
 
     obj.friend.push('T0');
-    shall(marker).eql({ name: 1, age: 2, equip: 2, friend: 1 });
+    shall(marker).eql({ name: 1, age: 2, equip: 4, friend: 1 });
     obj.friend.push('T1');
-    shall(marker).eql({ name: 1, age: 2, equip: 2, friend: 2 });
+    shall(marker).eql({ name: 1, age: 2, equip: 4, friend: 2 });
     obj.friend[1] = 'T2';
-    shall(marker).eql({ name: 1, age: 2, equip: 2, friend: 3 });
+    shall(marker).eql({ name: 1, age: 2, equip: 4, friend: 3 });
   });
 });
 

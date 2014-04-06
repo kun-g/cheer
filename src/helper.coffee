@@ -25,15 +25,21 @@ tap = (obj, key, callback) ->
       enumerable : true,
       configurable : true
     })
+    
     if typeof obj[key] is 'object' then tapObject(obj[key], theCB)
   else
+    console.log('Rehook', key)
     obj.reactDB[key].hooks.push(callback)
 
 tapObject = (obj, callback) ->
+  theCallback = () -> callback(obj)
   tabNewProperty = (key, val) ->
     obj[key] = val
-    tap(obj, key, callback)
+    tap(obj, key, theCallback)
     callback(obj)
+
+  for k, v of obj
+    tap(obj, k, theCallback)
 
   config = {
     value: tabNewProperty,
