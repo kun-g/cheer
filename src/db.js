@@ -368,6 +368,8 @@ exports.initializeDB = function (cfg) {
   sharedPrefix = dbPrefix + 'shared' + dbSeparator;
   limitsPrefix = dbPrefix + 'limits' + dbSeparator;
 
+  LeaderboardPrefix = 'Leaderboard';
+
   sessionPrefix = dbPrefix + 'Session';
 
   PlayerNameSet = dbPrefix + 'UsedName';

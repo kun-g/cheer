@@ -53,6 +53,32 @@ tapObject = (obj, callback) ->
     })
 exports.tap = tap
 
+# Leaderboard
+exports.initLeaderboard = (config) ->
+  localConfig = {}
+  generateHandler = (dbKey, cfg) ->
+    return (name, value) ->
+      require('./dbWrapper').updateLeaderboard(dbKey, name, value)
+
+  for key, cfg of config
+    localConfig[key] = { func: generateHandler(key, cfg) }
+    localConfig[key][k] = v for k, v of cfg
+
+  exports.assignLeaderboard = (player) ->
+    for k, v of config when player.type is v.type
+      tmp = v.key.split('.')
+      key = tmp.pop()
+      obj = player
+      if tmp.length
+        obj = require('./trigger').doGetProperty(player, tmp.join('.')) ? player
+      obj[key] = v.initialValue unless obj[key]?
+      tap(obj, key, (dummy, value) ->
+        localConfig[k].func(player.name, value)
+      )
+
+  exports.getPositionOnLeaderboard = (board, name, cb) ->
+    require('./dbWrapper')
+      .getPositionOnLeaderboard(board, name, localConfig[board].reverse, cb)
 
 
 

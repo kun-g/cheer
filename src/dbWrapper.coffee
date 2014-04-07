@@ -156,3 +156,17 @@ exports.demoteMercenaryMember = (battleForce, member, handler) -> mercenaryDemot
 exports.updateMercenaryMember = (preBattleForce, battleForce, member, handler) ->
   mercenaryDel(preBattleForce, member)
   mercenaryAdd(battleForce, member, handler)
+
+makeDBKey = (keys, prefix) ->
+  prefix = prefix ? dbPrefix
+  return [prefix].concat(keys).join(dbSeparator)
+
+exports.updateLeaderboard = (board, member, score, callback) ->
+  dbClient.zadd(makeDBKey([LeaderboardPrefix, board]), score, member, callback)
+
+exports.getPositionOnLeaderboard = (board, member, rev, callback) ->
+  key = makeDBKey([LeaderboardPrefix, board])
+  if rev
+    dbClient.zrevrank(key, member, callback)
+  else
+    dbClient.zrank(key, member, callback)

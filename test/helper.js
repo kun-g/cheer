@@ -1,36 +1,10 @@
 var shall = require('should');
 var helpLib = require('../js/helper');
+var dbWrapper = require('../js/dbWrapper');
+var async = require('async');
 events = helpLib.events;
 
 describe('Helper', function () {
-  describe('Unlock', function () {
-    var updateLockStatus = helpLib.updateLockStatus;
-    var me = {
-      stage: []
-    };
-    var config = [
-      { nolimitation: true },
-      { cond: { '==': [1, 1] } },
-      { cond: {
-                '==': [
-                  { type: "getProperty", key: "stage.1" }, true
-                ]
-              }
-      }
-    ];
-
-    it('Basic', function () {
-      shall(updateLockStatus(me.stage, me, config)).eql([0, 1]);
-    });
-  });
-//describe('calculateTotalItemXP', function () {
-//  var calculate = helpLib.calculateTotalItemXP;
-//  shall(calculate({xp: 0, quality: 0, rank: 0})).equal(0);
-//  shall(calculate({xp: 100, quality: 0, rank: 0})).equal(100);
-//  shall(calculate({xp: 100, quality: 1, rank: 1})).equal(100);
-//  shall(calculate({xp: 100, quality: 1, rank: 2})).equal(200);
-//  shall(calculate({xp: 100, quality: 2, rank: 2})).equal(100);
-//});
   describe('React programming', function () {
     var tap = helpLib.tap;
     function generate(marker) {
@@ -70,7 +44,96 @@ describe('Helper', function () {
     obj.friend[1] = 'T2';
     shall(marker).eql({ name: 1, age: 2, equip: 4, friend: 3 });
   });
+
+  describe('Leaderboard', function () {
+    var dbLib = require('../js/db');
+    gServerName = 'UnitTest';
+    gServerID = 1;
+    dbPrefix = gServerName;
+    dbLib.initializeDB({
+      "Account": { "IP": "localhost", "PORT": 6379},
+      "Role": { "IP": "localhost", "PORT": 6379},
+      "Publisher": { "IP": "localhost", "PORT": 6379},
+      "Subscriber": { "IP": "localhost", "PORT": 6379}
+    });
+    var config = {
+      battleForce : {
+        key: 'battleForce',
+        reverse: false,
+        initialValue: 0,
+        type: 'player',
+        availableConfition: true
+      },
+      goldenSlime : {
+        key: 'scores.goldenSlime',
+        reverse: true,
+        initialValue: 5,
+        type: 'player',
+        availableConfition: true
+      }
+    };
+    var players = [
+      { name: 'Ken',  type: 'player', scores: {} },
+      { name: 'Ken1', type: 'player', scores: {} },
+      { name: 'Ken2', type: 'player', scores: {} },
+      { name: 'Ken3', type: 'player', scores: {} },
+      { name: 'Ken4', type: 'player', scores: {} },
+      { name: 'Ken5', type: 'player', scores: {} }
+    ];
+    helpLib.initLeaderboard(config);
+    players.forEach(helpLib.assignLeaderboard);
+    it('monitor root values', function (done) {
+      players.forEach(function (p, i) {
+        p.battleForce += i;
+        shall(p.scores.goldenSlime).equal(5);
+      });
+      async.map(
+        players,
+        function (e, cb) {
+          helpLib.getPositionOnLeaderboard('battleForce', e.name, cb);
+        },
+        function (err, result) {
+          for (var i in result) {
+            if (result[i] != players[i].battleForce) {
+              done(Error('No'));
+            }
+          }
+
+          done();
+        });
+    });
+  });
 });
+
+//describe('Unlock', function () {
+//  var updateLockStatus = helpLib.updateLockStatus;
+//  var me = {
+//    stage: []
+//  };
+//  var config = [
+//    { nolimitation: true },
+//    { cond: { '==': [1, 1] } },
+//    { cond: {
+//              '==': [
+//                { type: "getProperty", key: "stage.1" }, true
+//              ]
+//            }
+//    }
+//  ];
+
+//  it('Basic', function () {
+//    shall(updateLockStatus(me.stage, me, config)).eql([0, 1]);
+//  });
+//});
+//describe('calculateTotalItemXP', function () {
+//  var calculate = helpLib.calculateTotalItemXP;
+//  shall(calculate({xp: 0, quality: 0, rank: 0})).equal(0);
+//  shall(calculate({xp: 100, quality: 0, rank: 0})).equal(100);
+//  shall(calculate({xp: 100, quality: 1, rank: 1})).equal(100);
+//  shall(calculate({xp: 100, quality: 1, rank: 2})).equal(200);
+//  shall(calculate({xp: 100, quality: 2, rank: 2})).equal(100);
+//});
+//});
 
 //describe('Campaign', function () {
 //describe('#Helper Lib', function () {
@@ -169,4 +232,3 @@ describe('Helper', function () {
 //    });
 //  });
 //});
-
