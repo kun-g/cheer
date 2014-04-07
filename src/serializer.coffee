@@ -1,5 +1,5 @@
 # Provide serializing mechanism
-tap = require('./helper').tap
+#tap = require('./helper').tap
 
 generateMonitor = (obj) ->
   return (key, val) -> obj.s_attr_dirtyFlag[key] = true
