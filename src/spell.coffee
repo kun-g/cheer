@@ -341,6 +341,9 @@ class Wizard
         when 'playSound' then cmd.routine({id: 'SoundEffect', sound: a.sound})
         when 'chainBlock' then cmd.routine({id: 'ChainBlock', src: src, tar: a.target}) for src in a.source
         when 'castSpell' then @castSpell(a.spell, a.level ? 1, cmd)
+        when 'newFaction' then env.newFaction(a.name)
+        when 'factionAttack' then env.factionAttack(a.src, a.tar, a.flag)
+        when 'factionHeal' then env.factionHeal(a.src, a.tar, a.flag)
         when 'heal'
           if a.self
             cmd.routine?({id: 'Heal', src: @, tar: @, hp: formularResult})

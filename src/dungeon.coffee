@@ -881,6 +881,10 @@ class DungeonEnvironment extends Environment
 
   exploreBlock: (block) -> @dungeon?.explore(block)
 
+  newFaction: (name) -> @dungeon.newFaction(name)
+  factionAttack: (src, dst, flag) -> @dungeon.factionAttack(src, dst, flag)
+  factionHeal: (src, dst, flag) -> @dungeon.factionHeal(src, dst, flag)
+
   getObjectAtBlock: (block) -> return @getBlock(block).getRef(-1)
 
   getCurrentLevel: () -> return @dungeon?.currentLevel
