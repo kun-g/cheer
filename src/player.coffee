@@ -133,7 +133,7 @@ class Player extends DBWrapper
 
     reward = queryTable(TABLE_CAMPAIGN, 'LoginStreak', @abIndex).level[@loginStreak.count].award
     ret = @claimPrize(reward)
-    @loginStreak.count += 1
+    @loginStreak.count +=   1
     # TODO: 这个会导致重新登录之后玩家今日奖励变第一天
     @loginStreak.count = 0 if @loginStreak.count >= queryTable(TABLE_CAMPAIGN, 'LoginStreak').level.length
  
@@ -264,10 +264,11 @@ class Player extends DBWrapper
     return false unless @heroBase[hClass]?
 
     if @hero?
-      @heroBase[@hero.class] = @hero
+      #TODO: update heroBase autoMate
+      #@heroBase[@hero.class] = @hero
       @hero = @heroBase[hClass]
     else
-      @attrSave('hero', @heroBase[hClass])
+      @hero = @heroBase[hClass]
 
     @hero.equipment = {}
     @hero.vip = @vipLevel()

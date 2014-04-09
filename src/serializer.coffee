@@ -1,5 +1,5 @@
 # Provide serializing mechanism
-#tap = require('./helper').tap
+tap = require('./helper').tap
 
 generateMonitor = (obj) ->
   return (key, val) -> obj.s_attr_dirtyFlag[key] = true
@@ -15,6 +15,7 @@ class Serializer
 
   attrSave: (key, val) ->
     return false unless @s_attr_to_save.indexOf(key) is -1 and val?
+    this[key] = val
     tap(this, key, @s_attr_monitor)
     this[key] = val
     @s_attr_to_save.push(key)
@@ -47,12 +48,12 @@ class Serializer
 
     for k, v of data when v?
       if v._constructor_?
-        @attrSave(k, objectlize(v))
+        this[k] = objectlize(v)
       else if Array.isArray(v)
-        @attrSave(k, v.map( (e) -> if e?._constructor_? then objectlize(e) else  e ))
+        this[k] = v.map( (e) -> if e?._constructor_? then objectlize(e) else  e )
       else
-        @attrSave(k, v)
-
+        this[k] = v
+    @dumpChanged()
     return @
 
   dumpChanged: () ->

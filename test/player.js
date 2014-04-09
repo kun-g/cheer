@@ -34,14 +34,16 @@ describe('Player', function () {
 //    dbLib.releaseDB();
 //  });
 //
-//  //describe('Auth', function () {
-//  //  it('Bind and verify', function (done) {
-//  //    async.series([
-//  //      function (cb) { dbLib.bindAuth(0, 'test', 'test', cb); },
-//  //      function (cb) { dbLib.verifyAuth('test', 'test', cb); },
-//  //    ], done);
-//  //  });
-//  //});
+    describe('Player', function () {
+      it('Creation', function () {
+        var p = new playerLib.Player('Test');
+        p.createHero({name: 'K', class: 1, gender: 1, hairStyle: 1, hairColor: 1});
+        shall(p.dumpChanged()).eql(p.dump().save);
+        var x = new playerLib.Player('Test');
+        x.restore(p.dump().save);
+        shall(p.dump()).eql(x.dump());
+      });
+    });
 //
 //  describe('SimpleProtocol', function () {
 //    var parseLib = require('../requestStream');

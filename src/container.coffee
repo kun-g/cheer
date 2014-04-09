@@ -5,13 +5,18 @@ STACK_TYPE_SINGLE_STACK = 1
 STACK_TYPE_MULTIPLE_STACK = 2
  
 class Bag extends Serializer
-  constructor: (type, limit, stackType) ->
+  constructor: () ->
     super
     @attrSave('container', [])
     @attrSave('version', 0)
-    @attrSave('limit', limit)
-    @attrSave('type', type)
-    @attrSave('stackType', stackType)
+    @attrSave('limit', 0)
+    @attrSave('type', 0)
+    @attrSave('stackType', 0)
+
+  init: (type, limit, stackType) ->
+    @type = type
+    @limit = limit
+    @stackType = stackType
 
   validate: () ->
     @container.map( (item, index) =>
@@ -213,9 +218,15 @@ CONTAINER_TYPE_BAG = 0
 CONTAINER_TYPE_CARD_STACK = 1
 CONTAINER_TYPE_FURANCE = 2
 
-CardStack = (count) -> new Bag(CONTAINER_TYPE_CARD_STACK, count, STACK_TYPE_SINGLE_STACK)
+CardStack = (count) ->
+  bag = new Bag()
+  bag.init(CONTAINER_TYPE_CARD_STACK, count, STACK_TYPE_SINGLE_STACK)
+  return bag
 
-PlayerBag = (count) -> new Bag(CONTAINER_TYPE_BAG, count, STACK_TYPE_MULTIPLE_STACK)
+PlayerBag = (count) ->
+  bag = new Bag()
+  bag.init(CONTAINER_TYPE_BAG, count, STACK_TYPE_MULTIPLE_STACK)
+  return bag
 
 exports.Bag = PlayerBag
 exports.CardStack = CardStack

@@ -25,7 +25,6 @@ tap = (obj, key, callback) ->
       enumerable : true,
       configurable : true
     })
-    
     if typeof obj[key] is 'object' then tapObject(obj[key], theCB)
   else
     obj.reactDB[key].hooks.push(callback)
