@@ -37,11 +37,14 @@ describe('Player', function () {
     describe('Player', function () {
       it('Creation', function () {
         var p = new playerLib.Player('Test');
+        //p.initialize();
         p.createHero({name: 'K', class: 1, gender: 1, hairStyle: 1, hairColor: 1});
         shall(p.dumpChanged()).eql(p.dump().save);
         var x = new playerLib.Player('Test');
         x.restore(p.dump().save);
+        //x.initialize();
         shall(p.dump()).eql(x.dump());
+        x.saveDB();
       });
     });
 //

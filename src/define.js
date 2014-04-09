@@ -396,7 +396,7 @@ updateStageStatus = function (stageStatus, player, abindex) {
   var stageConfig = queryTable(TABLE_STAGE);
   var ret = [];
   for (var sid = 0; sid < stageConfig.length; sid++) {
-    var triggerLib = require('./trigger');
+    var triggerLib = require('../js/trigger');
     var stage = queryTable(TABLE_STAGE, sid, abindex);
     var unlockable = true;
     if (stage.cond) unlockable = triggerLib.conditionCheck(stage.cond, player);
@@ -410,7 +410,7 @@ updateQuestStatus = function (questStatus, player, abindex) {
   var questConfig = queryTable(TABLE_QUEST);
   var ret = [];
   questConfig.forEach(function (quest, qid) {
-    var triggerLib = require('./trigger');
+    var triggerLib = require('../js/trigger');
     var unlockable = true;
     if (quest.cond) unlockable = triggerLib.conditionCheck(quest.cond, player);
     if (unlockable && (typeof questStatus[qid] == 'undefined' || questStatus[qid] === null)) ret.push(qid);

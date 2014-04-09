@@ -59,6 +59,8 @@ class Player extends DBWrapper
     @attrSave('isNewPlayer', false)
     @attrSave('loginStreak', {count: 0})
     @attrSave('accountID', -1)
+    @attrSave('campaignState', {})
+    @attrSave('infiniteTimer', currentTime())
 
   logout: (reason) ->
     if @socket then @socket.encoder.writeObject({NTF: Event_ExpiredPID, err: reason})
@@ -100,8 +102,8 @@ class Player extends DBWrapper
     @lastLogin = currentTime()
     if diffDate(@creationDate) > 0 then @tutorialStage = 1000 #TODO
 
-    if not @infiniteTimer or not moment().isSame(@infiniteTimer, 'week')
-      @attrSave('infiniteTimer', currentTime())
+    if not moment().isSame(@infiniteTimer, 'week')
+      @infiniteTimer = currentTime()
       for s in @stage when s and s.level?
         s.level = 0
 
@@ -996,7 +998,6 @@ class Player extends DBWrapper
       ))
 
   getCampaignState: (campaignName) ->
-    if not @campaignState? then @attrSave('campaignState', {})
     if not @campaignState[campaignName]?
       if campaignName is 'Charge'
         @campaignState[campaignName] = {}
@@ -1005,7 +1006,6 @@ class Player extends DBWrapper
     return @campaignState[campaignName]
 
   setCampaignState: (campaignName, val) ->
-    if not @campaignState? then @attrSave('campaignState', {})
     return @campaignState[campaignName] = val
 
   getCampaignConfig: (campaignName) ->
