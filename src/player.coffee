@@ -16,6 +16,7 @@ async = require('async')
 class Player extends DBWrapper
   constructor: (name) ->
     super
+    @setDBKeyName(playerPrefix+name)
     @attrSave('name', name) if name?
     @attrSave('questTableVersion', -1)
     @attrSave('stageTableVersion', -1)
