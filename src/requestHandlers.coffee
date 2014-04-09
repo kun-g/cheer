@@ -4,6 +4,7 @@ dbWrapperLib = require('./dbWrapper')
 async = require('async')
 http = require('http')
 moment = require('moment')
+{Player} = require('./player')
 
 loginBy = (passportType, passport, token, callback) ->
   switch passportType
@@ -168,7 +169,8 @@ exports.route = {
         ,
         #TODO: accelerate this
         (account, cb) -> dbLib.createNewPlayer(account, gServerName, name, cb),
-        (player, cb) ->
+        (_, cb) ->
+          player = new Player(name)
           player.initialize()
           player.createHero({ name: name, class: arg.cid, gender: arg.gen, hairStyle: arg.hst, hairColor: arg.hcl })
           logUser({ name: name, action: 'register', class: arg.cid, gender: arg.gen, hairStyle: arg.hst, hairColor: arg.hcl })

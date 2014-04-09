@@ -86,7 +86,6 @@ class Player extends DBWrapper
 
   getType: () -> 'player'
 
-
   submitCampaign: (campaign, handler) ->
     event = this[campaign]
     if event?

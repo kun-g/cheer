@@ -119,14 +119,7 @@ function createNewPlayer (account, server, name, handle) {
           cb(null);
         }
       }
-    ],
-    function (err, results) {
-      if (err) {
-        if (handle) handle(err);
-      } else {
-        loadPlayer(name, handle);
-      }
-    });
+    ], handle);
 }
 exports.createNewPlayer = createNewPlayer;
 
