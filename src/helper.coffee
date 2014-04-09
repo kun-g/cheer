@@ -1,8 +1,8 @@
-moment = require('moment')
 {conditionCheck} = require('./trigger')
 
 # React Programming
 tap = (obj, key, callback) ->
+  return false if typeof obj[key] is 'function'
   unless obj.reactDB?
     Object.defineProperty(obj, 'reactDB', {
       enumerable : false,
@@ -80,20 +80,8 @@ exports.initLeaderboard = (config) ->
     require('./dbWrapper')
       .getPositionOnLeaderboard(board, name, localConfig[board].reverse, cb)
 
-
-
-
-
-updateLockStatus = (curStatus, target, config) ->
-  return [] unless curStatus
-  ret = []
-  for id, cfg of config
-    unlockable = true
-    if cfg.cond? then unlockable = unlockable and conditionCheck(cfg.cond, target)
-    if unlockable and not curStatus[id]? then ret.push(+id)
-  return ret
-exports.updateLockStatus = updateLockStatus
-
+# Time util
+moment = require('moment')
 currentTime = (needObject) ->
   obj = moment().zone("+08:00")
   if needObject
@@ -102,22 +90,21 @@ currentTime = (needObject) ->
     return obj.format(time_format)
 exports.currentTime = currentTime
 
-diffDate = (date, today) ->
+diffDate = (date, today, flag = 'day') ->
   return null unless date
   date = moment(date).zone("+08:00").startOf('day') if date
   today = moment(today).zone("+08:00").startOf('day')
-  return moment.duration(today.diff(date)).asDays()
+  duration = moment.duration(today.diff(date))
+  switch flag
+    when 'second' then return duration.asSeconds()
+    when 'minite' then return duration.asMinites()
+    when 'hour' then return duration.asHours()
+    when 'day' then return duration.asDays()
+    when 'month' then return duration.asMonths()
+    when 'year' then return duration.asYears()
 exports.diffDate = diffDate
 
-exports.calculateTotalItemXP = (item) ->
-  return 0 unless item.xp?
-  levelTable = [0, 1, 2, 3, 4]
-  upgrade = queryTable(TABLE_UPGRADE)
-  xp = item.xp
-  for i, cfg of upgrade when levelTable[item.quality] <= i < item.rank
-    xp += cfg.xp
-  return xp
-
+# campaign
 initCampaign = (me, allCampaign, abIndex) ->
   ret = []
   for key, e of allCampaign when me.getType() is e.storeType
@@ -269,3 +256,23 @@ exports.events = {
 #    "action": { "type": "setGlobalFlag", "key": "classHall", "value": true}
 #  }
 }
+
+updateLockStatus = (curStatus, target, config) ->
+  return [] unless curStatus
+  ret = []
+  for id, cfg of config
+    unlockable = true
+    if cfg.cond? then unlockable = unlockable and conditionCheck(cfg.cond, target)
+    if unlockable and not curStatus[id]? then ret.push(+id)
+  return ret
+exports.updateLockStatus = updateLockStatus
+
+
+exports.calculateTotalItemXP = (item) ->
+  return 0 unless item.xp?
+  levelTable = [0, 1, 2, 3, 4]
+  upgrade = queryTable(TABLE_UPGRADE)
+  xp = item.xp
+  for i, cfg of upgrade when levelTable[item.quality] <= i < item.rank
+    xp += cfg.xp
+  return xp

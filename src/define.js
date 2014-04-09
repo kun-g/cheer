@@ -551,6 +551,9 @@ exports.fileVersion = -1;
 
 tap = function(obj, key, callback) {
   var theCB;
+  if (typeof obj[key] === 'function') {
+    return false;
+  }
   if (obj.reactDB == null) {
     Object.defineProperty(obj, 'reactDB', {
       enumerable: false,

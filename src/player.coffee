@@ -28,7 +28,10 @@ class Player extends DBWrapper
     @versionControl('inventoryVersion', ['gold', 'diamond', 'inventory', 'equipment'])
 
     @attrSave('heroBase', {})
-    @versionControl('heroVersion', ['hero', 'heroBase'])
+    @attrSave('heroIndex', -1)
+    @attrSave('hero', {})
+    #TODO: hero is duplicated
+    @versionControl('heroVersion', ['heroIndex', 'hero', 'heroBase'])
 
     @attrSave('stage', [])
     @attrSave('stageVersion', 0)
@@ -53,7 +56,9 @@ class Player extends DBWrapper
     @attrSave('purchasedCount', {})
     @attrSave('lastLogin', currentTime())
     @attrSave('creationDate', now.valueOf())
-    @versionControl('dummyVersion', ['isNewPlayer', 'loginStreak', 'accountID'])
+    @attrSave('isNewPlayer', false)
+    @attrSave('loginStreak', {count: 0})
+    @attrSave('accountID', -1)
 
   logout: (reason) ->
     if @socket then @socket.encoder.writeObject({NTF: Event_ExpiredPID, err: reason})
@@ -91,7 +96,6 @@ class Player extends DBWrapper
   syncEvent: () -> return helperLib.initCampaign(@, helperLib.events)
 
   onLogin: () ->
-    @attrSave('loginStreak', {count: 0}) unless @loginStreak?
     if diffDate(@lastLogin) > 0 then @purchasedCount = {}
     @lastLogin = currentTime()
     if diffDate(@creationDate) > 0 then @tutorialStage = 1000 #TODO
@@ -1322,8 +1326,6 @@ class Player extends DBWrapper
         return null unless e? and bag.queryItemSlot(e)?
         ret = {sid: bag.queryItemSlot(e), cid: e.id, stc: e.count}
 
-        if e.xp is NaN then console.error({action: 'syncBag', type: 'NaN', name: @name, slot: index, item: e})
-        if e.xp is NaN then console.log({action: 'syncBag', type: 'NaN', name: @name, slot: index, item: e})
         if e.xp? then ret.xp = e.xp
         for i, equip of this.equipment when equip is index
           ret.sta = 1

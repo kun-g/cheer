@@ -18,7 +18,10 @@ describe('Helper', function () {
     }
     var obj = {name: 'Obj', age: 3, friend: ['Tx'], equip: {body: 3}}, marker = {};
     var cb1 = generate(marker);
+    var mark2 = {};
+    var cb2 = generate(mark2);
     for (var key in obj) tap(obj, key, cb1);
+    tap(obj, 'friend', cb2);
     obj.name = 'React';
     obj.age += 1;
     shall(marker).eql({ name: 1, age: 1 });
@@ -47,6 +50,7 @@ describe('Helper', function () {
 
   describe('Leaderboard', function () {
     var dbLib = require('../js/db');
+
     gServerName = 'UnitTest';
     gServerID = 1;
     dbPrefix = gServerName;
@@ -102,6 +106,12 @@ describe('Helper', function () {
           done();
         });
     });
+  });
+
+  describe('Time Diff', function () {
+    var diff = helpLib.diffDate;
+    var x = diff('2014/3/16', '2014/3/12', 'second');
+    console.log('X', x);
   });
 });
 

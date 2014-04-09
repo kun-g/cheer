@@ -6,7 +6,7 @@ http = require('http');
 var domain = require('domain').create();
 
 domain.on('error', function (err) {
-  console.log(err.message, err.stack);
+  console.log("UnhandledError", err.message, err.stack);
 });
 
 var srvLib = require("./server");

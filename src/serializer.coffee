@@ -14,9 +14,9 @@ class Serializer
     Object.defineProperty(this, 's_attr_monitor', {enumerable:false, writable: false})
 
   attrSave: (key, val) ->
-    return false unless @s_attr_to_save.indexOf(key) is -1
-    this[key] = val
+    return false unless @s_attr_to_save.indexOf(key) is -1 and val?
     tap(this, key, @s_attr_monitor)
+    this[key] = val
     @s_attr_to_save.push(key)
 
   versionControl: (versionKey, keys) ->

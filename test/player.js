@@ -1,6 +1,6 @@
 shall = require('should');
+var playerLib = require('../js/player');
 //var assert = require("assert");
-//var playerLib = require('../player');
 //var dbLib = require('../db');
 //var serialLib = require('../serializer');
 var dungeonLib = require('../js/dungeon');
@@ -26,12 +26,9 @@ var spellLib = require('../js/spell');
 //logLevel = 1;
 //var handlers = require('../commandHandlers').route;
 //
-describe('', function () {
+describe('Player', function () {
   before(function (done) {
-    initGlobalConfig('../build/', function () {
-      console.log(queryTable(TABLE_CONFIG,  'Global_Material_ID'));
-      done();
-    });
+    initGlobalConfig('../build/', done);
   });
 //  after(function () {
 //    dbLib.releaseDB();
@@ -536,71 +533,6 @@ describe('', function () {
 //      });
 //    });
 //
-//    describe('Container', function () {
-//      var container = require('../container');
-//      it('Should be ok', function () {
-//        var c = container.Bag(3);
-//        // single
-//        c.add(new itemLib.Item(1), 1)[0].should.have.property('slot').equal(0);
-//        c.get(0).should.have.property('count').equal(1);
-//        c.add(new itemLib.Item(1), 99)[0].should.have.property('slot').equal(0);
-//        c.get(0).should.have.property('count').equal(99);
-//        c.get(1).should.have.property('count').equal(1);
-//        c.add(new itemLib.Item(1), 999)[0].should.have.property('left').equal(802);
-//        c.add(new itemLib.Item(1), 999)[0].should.have.property('left').equal(999);
-//        c.get(1).should.have.property('count').equal(99);
-//        c.get(2).should.have.property('count').equal(99);
-//        c.add(new itemLib.Item(1), 99)[0].should.have.property('left').equal(99);
-//        c.removeItemAt(0)[0].should.have.property('slot').equal(0);
-//        c.removeById(1, 1)[0].should.have.property('slot').equal(1);
-//        c.removeById(1, 100)[0].should.have.property('slot').equal(1);
-//        should(c.get(0)).equal(null);
-//        should(c.get(1)).equal(null);
-//        should(c.get(2)).have.property('count').equal(97);
-//        c.removeById(1, 100, true).should.equal(false);
-//        c.removeItemAt(2);
-//        should(c.get(2)).equal(null);
-//        // multiple
-//        c.add([
-//                {item: new itemLib.Item(1), count: 10},
-//                {item: new itemLib.Item(1), count: 10},
-//                {item: new itemLib.Item(1), count: 10}
-//              ]);
-//        should(c.add([
-//              {item: new itemLib.Item(1), count: 100},
-//              {item: new itemLib.Item(1), count: 100},
-//              {item: new itemLib.Item(1), count: 100}
-//            ],
-//            0, true)).equal(false);
-//        should(c.get(0)).have.property('count').equal(30);
-//        should(c.get(1)).equal(null);
-//        should(c.get(2)).equal(null);
-//        c.remove([{item: 1, count: 1}, {item: 1, count: 1}]);
-//        should(c.remove([{item: 1, count: 20}, {item: 1, count: 20}], null, null, true)).equal(false);
-//        should(c.get(0)).have.property('count').equal(28);
-//        should(c.get(1)).equal(null);
-//        should(c.get(2)).equal(null);
-//        c.add(new itemLib.Item(540), 26)[0].should.have.property('slot').equal(1);
-//        should(c.add([
-//              {item: new itemLib.Item(1), count: 100},
-//              {item: new itemLib.Item(1), count: 100},
-//              {item: new itemLib.Item(1), count: 100}
-//            ],
-//            0, true)).equal(false);
-//        should(c.add([
-//              {item: new itemLib.Item(1), count: 101},
-//              {item: new itemLib.Item(1), count: 102},
-//              {item: new itemLib.Item(1), count: 103}
-//            ], 0)[0]).have.property('slot').equal(0);
-//        should(c.add(new itemLib.Item(1), 1, true)).equal(false);
-//        should(c.get(0)).have.property('count').equal(99);
-//        should(c.get(1)).have.property('count').equal(25);
-//        should(c.get(2)).have.property('count').equal(1);
-//        should(c.get(3)).have.property('count').equal(99);
-//        should(c.get(4)).have.property('count').equal(99);
-//        c.add(new itemLib.Item(540), 26)[0].should.have.property('slot').equal(2);
-//      });
-//    });
 //    describe('CommandStreamTest', function () {
 //      it('Test basics', function () {
 //        var p = new playerLib.Player({name:'Player'});
@@ -792,21 +724,22 @@ describe('', function () {
 //      });
 //    });
 //
-    describe('Lock & Unlock', function (done) {
-      it('Should unlock stage & quest with no prev', function () {
-        var initialQuest = updateQuestStatus([]).length;
-        shall(initialQuest > 0).equal(true);
-        //updateQuestStatus([])[0].should.equal(6);
-        //should(updateQuestStatus([{complete:true}]).length > (initialQuest - 1)).equal(true);
-        //updateStageStatus([]).should.length(1);
-        //updateStageStatus([])[0].should.equal(0);
-        //updateStageStatus([{}]).should.length(0);
-        //updateStageStatus([{state:STAGE_STATE_PASSED}]).should.length(1);
-        var x = [];
-        x[104] = {state: STAGE_STATE_PASSED};
-        //console.log(updateStageStatus(x, {stage: x}));
-      });
+  describe('Lock & Unlock', function (done) {
+    it('Should unlock stage & quest with no prev', function () {
+      //var initialQuest = updateQuestStatus([]).length;
+      //shall(initialQuest > 0).equal(true);
+      //console.log(updateQuestStatus([], {tutorialStage: 10}));
+      //updateQuestStatus([])[0].should.equal(6);
+//      //should(updateQuestStatus([{complete:true}]).length > (initialQuest - 1)).equal(true);
+//      //updateStageStatus([]).should.length(1);
+//      //updateStageStatus([])[0].should.equal(0);
+//      //updateStageStatus([{}]).should.length(0);
+//      //updateStageStatus([{state:STAGE_STATE_PASSED}]).should.length(1);
+//      var x = [];
+//      x[104] = {state: STAGE_STATE_PASSED};
+//      //console.log(updateStageStatus(x, {stage: x}));
     });
+  });
 //
 //    describe('Item operation', function () {
 //      it('aquireItem', function (done) {

@@ -37,7 +37,7 @@ privateRand = (round) ->
 
 changeSeed = (seed) ->
   seed = rand() unless seed?
-  @attrSave('randSeed', seed)
+  @randSeed = seed
   randomFunc = seed_random.seedrandom(seed)
 
   @random = () ->
@@ -177,15 +177,13 @@ createUnits = (rules, randFunc) ->
 exports.filterObject = filterObject
 exports.createUnits = createUnits
 
-class Dungeon extends DBWrapper
+class Dungeon
   constructor: (data) ->
-    super
-
     @effectCounter = 0
     @killingInfo = []
     @currentLevel = -1
     @cardStack = CardStack(5)
-    @attrSave('actionLog', [])
+    @actionLog = []
     @revive = 0
     @factionDB = {
       hero: {
@@ -208,7 +206,7 @@ class Dungeon extends DBWrapper
     @triggerManager = new TriggerManager(queryTable(TABLE_TRIGGER))
     return false unless data?
 
-    @attrSave(k, v) for k, v of data
+    this[k] = v for k, v of data
     @quests = deepCopy(@initialQuests) if @initialQuests?
     cfg = @getConfig()
     if cfg.triggers
@@ -348,7 +346,7 @@ class Dungeon extends DBWrapper
         iPrize = { type: iPrize.type, value: iPrize.value, count: iPrize.count }
       reward.infinityPrize = iPrize
 
-    @attrSave('reward', reward)
+    @reward = reward
 
   getInitialInfo: () -> {syn: 0, pat: @team, stg: @stage}
 
@@ -517,8 +515,8 @@ class Dungeon extends DBWrapper
         .filter( (m) -> m?.health <= 0 )
         .reduce( ((r, m) ->
           r.gold += m.gold if m.gold?
-          r.exp += m.exp if m.exp?
           r.wxp += m.wxp if m.wxp?
+          r.exp += m.exp if m.exp?
           return r), {gold: 0, exp: 0, wxp: 0})
 
     @currentLevel++

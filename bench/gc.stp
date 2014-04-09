@@ -1,0 +1,34 @@
+#!/usr/bin/env stap
+ 
+global samples
+global all_samples
+global timestamp
+ 
+probe process("node").mark("gc__start")
+{
+  timestamp = gettimeofday_us()
+}
+ 
+probe process("node").mark("gc__done")
+{
+  sample = gettimeofday_us() - timestamp
+  samples <<< sample
+  all_samples <<< sample
+}
+ 
+probe timer.s(5)
+{
+  print(@hist_log(samples))
+  printf("min:%d avg:%d max:%d count:%d\n",
+         @min(samples), @avg(samples),
+         @max(samples), @count(samples))
+  delete samples
+}
+ 
+probe end
+{
+  print(@hist_log(all_samples))
+  printf("min:%d avg:%d max:%d count:%d\n",
+         @min(all_samples), @avg(all_samples),
+         @max(all_samples), @count(all_samples))
+}
