@@ -14,54 +14,62 @@ dbLib = require('./db')
 async = require('async')
 
 class Player extends DBWrapper
-  constructor: (name) ->
-    super
-    @setDBKeyName(playerPrefix+name)
-    @attrSave('name', name) if name?
-    @attrSave('questTableVersion', -1)
-    @attrSave('stageTableVersion', -1)
-
-    @attrSave('inventory', Bag(InitialBagSize))
-    @attrSave('gold', 0)
-    @attrSave('diamond', 0)
-    @attrSave('equipment', {})
-    @attrSave('inventoryVersion', 0)
-    @versionControl('inventoryVersion', ['gold', 'diamond', 'inventory', 'equipment'])
-
-    @attrSave('heroBase', {})
-    @attrSave('heroIndex', -1)
-    @attrSave('hero', {})
-    #TODO: hero is duplicated
-    @versionControl('heroVersion', ['heroIndex', 'hero', 'heroBase'])
-
-    @attrSave('stage', [])
-    @attrSave('stageVersion', 0)
-    @versionControl('stageVersion', 'stage')
-
-    @attrSave('quests', {})
-    @attrSave('questsVersion', 0)
-    @versionControl('questVersion', 'quests')
-
+  constructor: (data) ->
     now = new Date()
-    @attrSave('energy', ENERGY_MAX)
-    @attrSave('energyTime', now.valueOf())
-    @versionControl('energyVersion', ['energy', 'energyTime'])
+    cfg = {
+      dbKeyName: '',
+      name: '',
+      questTableVersion: -1,
+      stageTableVersion: -1,
 
-    @attrSave('flags', {})
-    @attrSave('mercenary', [])
-    @attrSave('dungeonData', null)
-    @attrSave('runtimeID', -1)
-    @attrSave('rmb', 0)
-    @attrSave('spendedDiamond', 0)
-    @attrSave('tutorialStage', 0)
-    @attrSave('purchasedCount', {})
-    @attrSave('lastLogin', currentTime())
-    @attrSave('creationDate', now.valueOf())
-    @attrSave('isNewPlayer', false)
-    @attrSave('loginStreak', {count: 0})
-    @attrSave('accountID', -1)
-    @attrSave('campaignState', {})
-    @attrSave('infiniteTimer', currentTime())
+      inventory: Bag(InitialBagSize),
+      gold: 0,
+      diamond: 0,
+      equipment: {},
+      inventoryVersion: 0,
+
+      heroBase: {},
+      heroIndex: -1,
+      #TODO: hero is duplicated
+      hero: {},
+
+      stage: [],
+      stageVersion: 0,
+
+      quests: {},
+      questsVersion: 0,
+
+      energy: ENERGY_MAX,
+      energyTime: now.valueOf(),
+
+      flags: {},
+      mercenary: [],
+      dungeonData: null,
+      runtimeID: -1,
+      rmb: 0,
+      spendedDiamond: 0,
+      tutorialStage: 0,
+      purchasedCount: {},
+      lastLogin: currentTime(),
+      creationDate: now.valueOf(),
+      isNewPlayer: true,
+      loginStreak: {count: 0, date: currentTime()},
+      accountID: -1,
+      campaignState: {},
+      infiniteTimer: currentTime()
+    }
+
+    versionCfg = {
+      inventoryVersion: ['gold', 'diamond', 'inventory', 'equipment'],
+      heroVersion: ['heroIndex', 'hero', 'heroBase'],
+      stageVersion: 'stage',
+      questVersion: 'quests',
+      energyVersion: ['energy', 'energyTime']
+    }
+    super(data, cfg, versionCfg)
+
+  setName: (@name) ->
+    @dbKeyName = playerPrefix+@name
 
   logout: (reason) ->
     if @socket then @socket.encoder.writeObject({NTF: Event_ExpiredPID, err: reason})
@@ -621,7 +629,6 @@ class Player extends DBWrapper
     return cmd.translate()
 
   aquireItem: (item, count, allOrFail) ->
-    @inventoryVersion++
     @doAction({id: 'AquireItem', item: item, count: count, allorfail: allOrFail})
 
   removeItemById: (id, count, allorfail) ->

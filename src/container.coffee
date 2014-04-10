@@ -5,18 +5,14 @@ STACK_TYPE_SINGLE_STACK = 1
 STACK_TYPE_MULTIPLE_STACK = 2
  
 class Bag extends Serializer
-  constructor: () ->
-    super
-    @attrSave('container', [])
-    @attrSave('version', 0)
-    @attrSave('limit', 0)
-    @attrSave('type', 0)
-    @attrSave('stackType', 0)
-
-  init: (type, limit, stackType) ->
-    @type = type
-    @limit = limit
-    @stackType = stackType
+  constructor: (data) ->
+    cfg = {
+      container: [],
+      limit: 0,
+      type: 0,
+      stackType: 0
+    }
+    super(data, cfg, {})
 
   validate: () ->
     @container.map( (item, index) =>
@@ -89,10 +85,11 @@ class Bag extends Serializer
           else
             tmpCount = if left > stack then stack else left
             if count is 1
-              bag[e] = item
+              bag.newProperty(e, item)
             else
               constructor = item.getConstructor()
-              bag[e] = new constructor(item)
+              tmp = new constructor(item.dump().save)
+              bag.newProperty(e, tmp)
 
           bag[e].count = tmpCount
           left -= (tmpCount-eCount)
@@ -116,7 +113,6 @@ class Bag extends Serializer
         @reverseOpration(ret)
         return false
 
-    @version += 1
     return ret
 
   #/* id   count   slot
@@ -184,7 +180,6 @@ class Bag extends Serializer
         return false
       else
         logError({action: 'containerAdd', err:err.stack})
-    this.version += 1
     return ret
 
   size: (size) ->
@@ -209,7 +204,6 @@ class Bag extends Serializer
         bag[e.slot] = e.item
         bag[e.slot].count = e.oldAmount
     )
-    this.version -= 1
   
   map: (func) -> this.container.map(func)
   filter: (func) -> this.container.filter(func)
@@ -219,13 +213,19 @@ CONTAINER_TYPE_CARD_STACK = 1
 CONTAINER_TYPE_FURANCE = 2
 
 CardStack = (count) ->
-  bag = new Bag()
-  bag.init(CONTAINER_TYPE_CARD_STACK, count, STACK_TYPE_SINGLE_STACK)
+  bag = new Bag({
+    type: CONTAINER_TYPE_CARD_STACK,
+    limit: count,
+    stackType: STACK_TYPE_SINGLE_STACK
+  })
   return bag
 
 PlayerBag = (count) ->
-  bag = new Bag()
-  bag.init(CONTAINER_TYPE_BAG, count, STACK_TYPE_MULTIPLE_STACK)
+  bag = new Bag({
+    type: CONTAINER_TYPE_BAG,
+    limit: count,
+    stackType: STACK_TYPE_MULTIPLE_STACK
+  })
   return bag
 
 exports.Bag = PlayerBag

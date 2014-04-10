@@ -141,7 +141,6 @@ exports.route = {
               cb(Error(RET_AccountHaveNoHero))
             )
       ], (err, result) ->
-        console.log(err)
         if err
           switch +err.message
             when RET_AppVersionNotMatch then ret = {arg: { url: queryTable(TABLE_VERSION, 'bin_url') }}

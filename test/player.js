@@ -25,7 +25,7 @@ var spellLib = require('../js/spell');
 //var countOfOthers = 30;
 //logLevel = 1;
 //var handlers = require('../commandHandlers').route;
-//
+
 describe('Player', function () {
   before(function (done) {
     initGlobalConfig('../build/', done);
@@ -36,14 +36,21 @@ describe('Player', function () {
 //
     describe('Player', function () {
       it('Creation', function () {
-        var p = new playerLib.Player('Test');
+        var p = new playerLib.Player();
+        p.setName('Test');
         //p.initialize();
         p.createHero({name: 'K', class: 1, gender: 1, hairStyle: 1, hairColor: 1});
-        shall(p.dumpChanged()).eql(p.dump().save);
-        var x = new playerLib.Player('Test');
-        x.restore(p.dump().save);
+
+        var pChanged = p.dumpChanged();
+        var x = new playerLib.Player(pChanged);
         //x.initialize();
+        shall(x.dump()).eql(p.dump());
+        shall(x.dumpChanged()).eql(p.dumpChanged());
+        p.aquireItem(0);
+        x.aquireItem(0);
         shall(p.dump()).eql(x.dump());
+        shall(p.dumpChanged()).eql(x.dumpChanged());
+
         x.saveDB();
       });
     });

@@ -5,7 +5,7 @@ generateMonitor = (obj) ->
   return (key, val) -> obj.s_attr_dirtyFlag[key] = true
 
 class Serializer
-  constructor: () ->
+  constructor: (data, cfg, versionCfg = {}) ->
     @s_attr_to_save = []
     @s_attr_dirtyFlag = {}
     @s_attr_monitor = generateMonitor(this)
@@ -13,11 +13,27 @@ class Serializer
     Object.defineProperty(this, 's_attr_dirtyFlag', {enumerable:false, writable: true})
     Object.defineProperty(this, 's_attr_monitor', {enumerable:false, writable: false})
 
-  attrSave: (key, val) ->
+    for k, v of cfg
+      if data and data[k]?
+        if data[k]._constructor_
+          @attrSave(k, objectlize(data[k]), true)
+        else
+          @attrSave(k, data[k], true)
+      else
+        @attrSave(k, cfg[k])
+
+    for k, v of versionCfg
+      if data and data[k]?
+        @attrSave(k, data[k], true)
+      else
+        @attrSave(k, 1)
+      @versionControl(k, v);
+
+  attrSave: (key, val, restoreFlag = false) ->
     return false unless @s_attr_to_save.indexOf(key) is -1 and val?
     this[key] = val
     tap(this, key, @s_attr_monitor)
-    this[key] = val
+    this[key] = val unless restoreFlag
     @s_attr_to_save.push(key)
 
   versionControl: (versionKey, keys) ->
@@ -47,13 +63,14 @@ class Serializer
     if typeof data is 'string' then data = JSON.parse(data)
 
     for k, v of data when v?
+      @s_attr_to_save = @s_attr_to_save.filter((e) -> return e isnt k)
       if v._constructor_?
-        this[k] = objectlize(v)
+        @attrSave(k, objectlize(v), true)
       else if Array.isArray(v)
-        this[k] = v.map( (e) -> if e?._constructor_? then objectlize(e) else  e )
+        @attrSave(k, v.map( (e) -> if e?._constructor_? then objectlize(e) else  e ), true)
       else
-        this[k] = v
-    @dumpChanged()
+        @attrSave(k, v, true)
+    @s_attr_dirtyFlag = {}
     return @
 
   dumpChanged: () ->
@@ -78,8 +95,8 @@ class Serializer
 objectlize  = (data) ->
   throw 'No constructor' unless data?._constructor_?
   throw 'No constructor:'+data._constructor_ unless g_attr_constructorTable[data._constructor_]
-  o = new g_attr_constructorTable[data._constructor_]()
-  o.restore(data.save)
+  o = new g_attr_constructorTable[data._constructor_](data.save)
+  #o.restore(data.save)
   o.initialize() if o.initialize?
   return o
 

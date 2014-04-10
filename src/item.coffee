@@ -2,12 +2,20 @@ require('./define')
 {Serializer, registerConstructor} = require './serializer'
 
 class Item extends Serializer
-  constructor: (id) ->
-    super
-    @attrSave('slot', [])
-    @attrSave('count', 1)
-    if id? and typeof id is 'object' then id = id.id
-    @attrSave('id', id) if id?
+  constructor: (data) ->
+    if typeof data is 'number' then data = {id: data}
+    cfg = {
+      slot: [],
+      count: 1,
+      id: data.id
+    }
+
+    @id = data.id
+    if @getConfig().category is ITEM_EQUIPMENT 
+      cfg.xp = 0
+      cfg. enhancement = []
+
+    super(data, cfg, {})
     @initialize() if @id?
 
   getConfig: () -> queryTable(TABLE_ITEM, @id)
@@ -18,9 +26,6 @@ class Item extends Serializer
 
   initialize: () ->
     @restore(@getConfig()) if @id?
-    @attrSave('id', @id) if @id?
-    @attrSave('xp', 0) if @category is ITEM_EQUIPMENT and not @xp?
-    @attrSave('enhancement', []) if @category is ITEM_EQUIPMENT and not @enhancement?
 
 class Card extends Item
   constructor: (id) -> super id
