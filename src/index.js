@@ -149,7 +149,7 @@ paymentServer = require('http').createServer(wrapCallback(function (request, res
       var serverName = 'Master'; //TODO:多服的情况?
       dbWrapper.updateReceipt(receipt, RECEIPT_STATE_AUTHORIZED, function (err) {
         dbLib.getPlayerNameByID(receiptInfo.id, serverName, function (err, name) {
-          dbLib.deliverMessage(receiptInfo.name, {
+          dbLib.deliverMessage(name, {
             type: MESSAGE_TYPE_ChargeDiamond,
             paymentType: 'ND91',
             receipt: receipt
@@ -157,10 +157,10 @@ paymentServer = require('http').createServer(wrapCallback(function (request, res
             dbWrapper.updateReceipt(receipt, RECEIPT_STATE_DELIVERED, function () {});
           }, serverName);
           if (err === null) {
-            logInfo({action: 'AcceptPayment', receipt: receipt, info: out});
+            logInfo({action: 'AcceptPayment', receipt: receipt, info: out, receiptInfo: receiptInfo});
             return response.end('{"ErrorCode": "1", "ErrorDesc": "OK"}');
           } else {
-            logError({action: 'AcceptPayment', error:err, info: out});
+            logError({action: 'AcceptPayment', error:err, info: out, receiptInfo: receiptInfo});
             return response.end('{"ErrorCode": "0", "ErrorDesc": "Fail"}');
           }
         });
