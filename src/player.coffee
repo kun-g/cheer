@@ -257,7 +257,7 @@ class Player extends DBWrapper
       return null if @heroBase[heroData.class]?
       heroData.xp = 0
       heroData.equipment = []
-      @heroBase[heroData.class] = heroData
+      @heroBase.newProperty(heroData.class, heroData)
       @switchHero(heroData.class)
       return @createHero()
     else if @hero
@@ -273,15 +273,18 @@ class Player extends DBWrapper
   switchHero: (hClass) ->
     return false unless @heroBase[hClass]?
 
-    if @hero?
+    #if @hero?
       #TODO: update heroBase autoMate
       #@heroBase[@hero.class] = @hero
-      @hero = @heroBase[hClass]
-    else
-      @hero = @heroBase[hClass]
+      #@hero = @heroBase[hClass]
+    #else
+      #@hero = @heroBase[hClass]
 
-    @hero.equipment = {}
-    @hero.vip = @vipLevel()
+    for k, v of @heroBase[hClass]
+      @hero.newProperty(k, JSON.parse(JSON.stringify(v)))
+
+    @hero.newProperty('equipment', {})
+    @hero.newProperty('vip', @vipLevel())
 
   addMoney: (type, point) ->
     return this[type] unless point
