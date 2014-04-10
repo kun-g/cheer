@@ -157,10 +157,10 @@ paymentServer = require('http').createServer(wrapCallback(function (request, res
             dbWrapper.updateReceipt(receipt, RECEIPT_STATE_DELIVERED, function () {});
           }, serverName);
           if (err === null) {
-            logInfo({action: 'AcceptPayment', receipt: receipt, info: out, receiptInfo: receiptInfo});
+            logInfo({action: 'AcceptPayment', receipt: receipt, info: out, receiptInfo: receiptInfo, name: name});
             return response.end('{"ErrorCode": "1", "ErrorDesc": "OK"}');
           } else {
-            logError({action: 'AcceptPayment', error:err, info: out, receiptInfo: receiptInfo});
+            logError({action: 'AcceptPayment', error:err, info: out, receiptInfo: receiptInfo, name: name});
             return response.end('{"ErrorCode": "0", "ErrorDesc": "Fail"}');
           }
         });
