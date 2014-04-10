@@ -198,8 +198,18 @@ function loadPlayer(name, handler) {
   var playerLib = require('./player');
   var dbKeyName = playerPrefix+name;
   dbClient.hgetall(dbKeyName, function (err, result) {
+    var p = null;
     if (result) {
-      var p = new playerLib.Player(result);
+      attributes = {};
+      for (var k in result) {
+        var v = result[k];
+        try {
+          attributes[k] = JSON.parse(v);
+        } catch (error) {
+          attributes[k] = v;
+        }
+      }
+      p = new playerLib.Player(attributes);
       p.setName(name);
       p.initialize();
     }

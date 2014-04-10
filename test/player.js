@@ -2,7 +2,6 @@ shall = require('should');
 require('../js/define');
 var playerLib = require('../js/player');
 //var assert = require("assert");
-//var dbLib = require('../db');
 //var serialLib = require('../serializer');
 var dungeonLib = require('../js/dungeon');
 //var should = require('should');
@@ -13,13 +12,25 @@ var spellLib = require('../js/spell');
 //gServerName = 'UnitTest';
 //gServerID = 1;
 //dbPrefix = gServerName+'.';
-//dbLib.initializeDB({
-//  "Account": { "IP": "localhost", "PORT": 6379},
-//  "Role": { "IP": "localhost", "PORT": 6379},
-//  "Publisher": { "IP": "localhost", "PORT": 6379},
-//  "Subscriber": { "IP": "localhost", "PORT": 6379}
-//});
-//
+/*
+var dbLib = require('../js/db');
+dbPrefix = 'Develop'+'.';
+dbLib.initializeDB({
+  "Account": { "IP": "10.4.3.41", "PORT": 6379},
+  "Role": { "IP": "10.4.3.41", "PORT": 6379},
+  "Publisher": { "IP": "10.4.3.41", "PORT": 6379},
+  "Subscriber": { "IP": "10.4.3.41", "PORT": 6379}
+  // "Account": { "IP": "localhost", "PORT": 6379},
+  // "Role": { "IP": "localhost", "PORT": 6379},
+  // "Publisher": { "IP": "localhost", "PORT": 6379},
+  // "Subscriber": { "IP": "localhost", "PORT": 6379}
+});
+
+dbLib.loadPlayer('官方地方', function (err, p) {
+  console.log("XXXXXXXX", err, p)
+});
+*/
+
 //var playerName = 'unitTestQ';
 //var othersName = 'pawn';
 //var countOfOthers = 30;
