@@ -111,7 +111,7 @@ exports.route = {
               player.attrSave('abIndex', rand())
             ev.push({NTF: Event_ABIndex, arg: {ab: +player.abIndex}})
             ev.push({NTF: Event_UpdateStoreInfo, arg: gShop.dump(player)})
-            ev.push({NTF: Event_PlayerInfo, arg: { vip: player.vipLevel(), rmb: player.rmb}})
+            ev.push({NTF: Event_PlayerInfo, arg: { aid: player.accountID, vip: player.vipLevel(), rmb: player.rmb}})
             ev.push({NTF: Event_RoleUpdate, arg: { act: { vip: player.vipLevel()} } })
             async.parallel([
               (cb) -> player.fetchMessage(cb),

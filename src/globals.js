@@ -69,6 +69,21 @@ unwrapReceipt = function(receipt) {
   };
 };
 
+unwrapReceipt91 = function(receipt) {
+  var id = receipt.slice(0, 8),
+      productID = receipt.slice(8, 10),
+      serverID = receipt.slice(10, 12),
+      time = receipt.slice(12, 22),
+      tunnel = receipt.slice(22, -1);
+  return {
+    id: +id,
+    serverID: +serverID,
+    time: +time,
+    productID: +productID,
+    tunnel: tunnel
+  };
+};
+
 var zlib = require('zlib');
 var http = require('http');
 postPaymentInfo = function (level, orderID) {
