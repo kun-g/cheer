@@ -74,7 +74,7 @@ unwrapReceipt91 = function(receipt) {
       productID = receipt.slice(8, 10),
       serverID = receipt.slice(10, 12),
       time = receipt.slice(12, 22),
-      tunnel = receipt.slice(22, -1);
+      tunnel = receipt.slice(22, receipt.length);
   return {
     id: +id,
     serverID: +serverID,

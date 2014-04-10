@@ -186,6 +186,10 @@ class Player extends DBWrapper
       when 'AppStore' then throw 'AppStore Payment'
       when 'PP25', 'ND91'
         myReceipt = payment.receipt
+        switch payment.paymentType
+          when 'PP25' then myUnwrap = unwrapReceipt
+          when 'ND91' then myUnwrap = unwrapReceipt91
+
         async.waterfall([
           (cb) ->
             dbWrapper.getReceipt(myReceipt, (err, receipt) ->
@@ -194,7 +198,7 @@ class Player extends DBWrapper
           ,
           (receipt, cb) =>
             productList = queryTable(TABLE_CONFIG, 'Product_List')
-            rec = unwrapReceipt(myReceipt)
+            rec = myUnwrap(myReceipt)
             cfg = productList[rec.productID]
             ret = [{ NTF: Event_InventoryUpdateItem, arg: { dim : @addDiamond(cfg.diamond) }}]
             @rmb += cfg.rmb
