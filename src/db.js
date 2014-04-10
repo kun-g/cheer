@@ -191,22 +191,16 @@ function tryToRegisterName (name, callback) {
   dbClient.sadd(PlayerNameSet, name, function (err, ret) {
     if (err == null && ret == 0) err = new Error(RET_NameTaken);
     callback(err);
-  }); 
+  });
 }
 
 function loadPlayer(name, handler) {
   var playerLib = require('./player');
-  var p = new playerLib.Player(name); 
-  p.setDBKeyName(playerPrefix+name);
-  p.load(function (err, result) {
-    p = result;
-    if (err == null) {
-      if (result) {
-        p.initialize();
-      } else {
-        p = null;
-      }
-    }
+  var dbKeyName = playerPrefix+name;
+  dbClient.hgetall(dbKeyName, function (err, result) {
+    var p = new playerLib.Player(result);
+    p.setName(name);
+    p.initialize();
     if (handler) handler(err, p);
   });
 }
