@@ -1,4 +1,5 @@
 shall = require('should');
+require('../js/define');
 var playerLib = require('../js/player');
 //var assert = require("assert");
 //var dbLib = require('../db');
@@ -7,7 +8,6 @@ var dungeonLib = require('../js/dungeon');
 //var should = require('should');
 var spellLib = require('../js/spell');
 //var itemLib = require('../item');
-//require('../define');
 //require('../shared');
 //initServer();
 //gServerName = 'UnitTest';
@@ -38,12 +38,12 @@ describe('Player', function () {
       it('Creation', function () {
         var p = new playerLib.Player();
         p.setName('Test');
-        //p.initialize();
+        p.initialize();
         p.createHero({name: 'K', class: 1, gender: 1, hairStyle: 1, hairColor: 1});
 
         var pChanged = p.dumpChanged();
         var x = new playerLib.Player(pChanged);
-        //x.initialize();
+        x.initialize();
         shall(x.dump()).eql(p.dump());
         shall(x.dumpChanged()).eql(p.dumpChanged());
         p.aquireItem(0);
@@ -52,7 +52,7 @@ describe('Player', function () {
         shall(p.dumpChanged()).eql(x.dumpChanged());
 
         p.hero.xp += 10;
-        p.aquireItem(0)
+        p.aquireItem(0);
         p.saveDB();
 
         x.saveDB();

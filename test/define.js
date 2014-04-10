@@ -1,4 +1,4 @@
-require('../src/define');
+require('../js/define');
 var shall = require("should");
 
 describe('Define', function () {

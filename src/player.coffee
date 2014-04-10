@@ -264,9 +264,12 @@ class Player extends DBWrapper
       bag = @inventory
       equip = []
       equip.push({ cid: bag.get(e).classId, eh: bag.get(e).enhancement }) for i, e of @equipment when bag.get(e)?
-      @hero.equipment = equip
-      @hero.vip = @vipLevel()
-      return new Hero(@hero)
+      heroData = { }
+      for k, v of @hero
+        heroData[k] = v
+      heroData.equipment = equip
+      heroData.vip = @vipLevel()
+      return new Hero(heroData)
     else
       throw 'NoHero'
 

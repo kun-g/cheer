@@ -31,6 +31,7 @@ tap = (obj, key, callback) ->
     obj.reactDB[key].hooks.push(callback)
 
 tapObject = (obj, callback) ->
+  return false unless obj?
   theCallback = () -> callback(obj)
   tabNewProperty = (key, val) ->
     obj[key] = val

@@ -1,4 +1,5 @@
 require('./shared');
+var triggerLib = require('./trigger');
 
 DUNGEON_RESULT_DONE = 2;
 DUNGEON_RESULT_WIN = 1;
@@ -396,7 +397,6 @@ updateStageStatus = function (stageStatus, player, abindex) {
   var stageConfig = queryTable(TABLE_STAGE);
   var ret = [];
   for (var sid = 0; sid < stageConfig.length; sid++) {
-    var triggerLib = require('./trigger');
     var stage = queryTable(TABLE_STAGE, sid, abindex);
     var unlockable = true;
     if (stage.cond) unlockable = triggerLib.conditionCheck(stage.cond, player);
@@ -410,7 +410,6 @@ updateQuestStatus = function (questStatus, player, abindex) {
   var questConfig = queryTable(TABLE_QUEST);
   var ret = [];
   questConfig.forEach(function (quest, qid) {
-    var triggerLib = require('./trigger');
     var unlockable = true;
     if (quest.cond) unlockable = triggerLib.conditionCheck(quest.cond, player);
     if (unlockable && (typeof questStatus[qid] == 'undefined' || questStatus[qid] === null)) ret.push(qid);
@@ -594,6 +593,8 @@ tap = function(obj, key, callback) {
 };
 
 tapObject = function(obj, callback) {
+  if (obj == null) return false;
+  return 
   var config, k, tabNewProperty, theCallback, v;
   theCallback = function() {
     return callback(obj);

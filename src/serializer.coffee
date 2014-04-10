@@ -1,5 +1,5 @@
 # Provide serializing mechanism
-#tap = require('./helper').tap
+tap = require('./helper').tap
 
 generateMonitor = (obj) ->
   return (key, val) -> obj.s_attr_dirtyFlag[key] = true
@@ -38,9 +38,7 @@ class Serializer
 
   versionControl: (versionKey, keys) ->
     keys = [keys] unless Array.isArray(keys)
-    @attrSave(key) for key in keys
     ver = this[versionKey] ? 1
-    @attrSave(versionKey, ver)
     versionIncr = () => this[versionKey]++
     tap(this, key, versionIncr) for key in keys
 

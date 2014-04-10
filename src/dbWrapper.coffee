@@ -16,9 +16,9 @@ class DBWrapper extends Serializer
 
   save: (handler) ->
     data = @dumpChanged()
-    if data?
+    if data
       data[k] = JSON.stringify(v) for k, v of data when typeof v is 'object'
-      logInfo('Savvvvvvvv', data)
+      logInfo({info:'Saving', data: data})
       dbClient.hmset(@getDBKeyName(), data, (err, e) => handler(err, this) if handler?)
 
   load: (handler) ->
