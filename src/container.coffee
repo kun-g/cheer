@@ -1,5 +1,5 @@
 require('./define')
-{Serializer, registerConstructor} = require './serializer'
+{Serializer, registerConstructor, objectlize} = require './serializer'
 
 STACK_TYPE_SINGLE_STACK = 1
 STACK_TYPE_MULTIPLE_STACK = 2
@@ -13,6 +13,7 @@ class Bag extends Serializer
       stackType: 0
     }
     super(data, cfg, {})
+
 
   validate: () ->
     @container.map( (item, index) =>

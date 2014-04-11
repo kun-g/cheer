@@ -10,7 +10,9 @@ class DBWrapper extends Serializer
   constructor: () ->
     super
 
-  setDBKeyName: (keyName) -> @attrSave('dbKeyName', keyName)
+  setDBKeyName: (keyName) ->
+    @dbKeyName = keyName
+    @attrSave('dbKeyName', true)
 
   getDBKeyName: () -> @dbKeyName
 

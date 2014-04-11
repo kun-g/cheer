@@ -1,7 +1,7 @@
 {conditionCheck} = require('./trigger')
 
 # React Programming
-tap = (obj, key, callback) ->
+tap = (obj, key, callback, invokeFlag = false) ->
   return false if typeof obj[key] is 'function'
   unless obj.reactDB?
     Object.defineProperty(obj, 'reactDB', {
@@ -29,6 +29,7 @@ tap = (obj, key, callback) ->
     if typeof obj[key] is 'object' then tapObject(obj[key], theCB)
   else
     obj.reactDB[key].hooks.push(callback)
+  if invokeFlag then callback(key, obj[key])
 
 tapObject = (obj, callback) ->
   return false unless obj?

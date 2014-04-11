@@ -26,10 +26,11 @@ dbLib.initializeDB({
   // "Subscriber": { "IP": "localhost", "PORT": 6379}
 });
 
-dbLib.loadPlayer('官方地方', function (err, p) {
-  console.log("XXXXXXXX", err, p)
+dbLib.loadPlayer('关关', function (err, p) {
+  console.log(p.inventory.container);
 });
 */
+
 
 //var playerName = 'unitTestQ';
 //var othersName = 'pawn';
@@ -53,6 +54,7 @@ describe('Player', function () {
         p.createHero({name: 'K', class: 1, gender: 1, hairStyle: 1, hairColor: 1});
 
         var pChanged = p.dumpChanged();
+        console.log(pChanged)
         var x = new playerLib.Player(pChanged);
         x.initialize();
         shall(x.dump()).eql(p.dump());

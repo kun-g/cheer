@@ -13,32 +13,34 @@ class Serializer
     Object.defineProperty(this, 's_attr_dirtyFlag', {enumerable:false, writable: true})
     Object.defineProperty(this, 's_attr_monitor', {enumerable:false, writable: false})
 
-    for k, v of cfg
-      if data and data[k]?
-        if data[k]._constructor_
-          @attrSave(k, objectlize(data[k]), true)
-        else
-          @attrSave(k, data[k], true)
-      else
-        @attrSave(k, cfg[k])
+    @restore(data)
+    # for k, v of cfg
+    #   if data and data[k]?
+    #     if data[k]._constructor_
+    #       @attrSave(k, objectlize(data[k]), true)
+    #     else
+    #       @attrSave(k, data[k], true)
+    #   else
+    #     @attrSave(k, cfg[k])
+
+    flags = {}
+    for k, v of cfg when not this[k]?
+      this[k] = v
+      flags[k] = true
 
     for k, v of versionCfg
-      if data and data[k]?
-        @attrSave(k, data[k], true)
-      else
-        @attrSave(k, 1)
       @versionControl(k, v);
 
-  attrSave: (key, val, restoreFlag = false) ->
-    return false unless @s_attr_to_save.indexOf(key) is -1 and val?
-    this[key] = val
-    tap(this, key, @s_attr_monitor)
-    this[key] = val unless restoreFlag
+    for k, v of cfg
+      @attrSave(k, flags[k])
+
+  attrSave: (key, restoreFlag = false) ->
+    return false unless @s_attr_to_save.indexOf(key) is -1
+    tap(this, key, @s_attr_monitor, restoreFlag)
     @s_attr_to_save.push(key)
 
   versionControl: (versionKey, keys) ->
     keys = [keys] unless Array.isArray(keys)
-    ver = this[versionKey] ? 1
     versionIncr = () => this[versionKey]++
     tap(this, key, versionIncr) for key in keys
 
@@ -61,19 +63,19 @@ class Serializer
     if typeof data is 'string' then data = JSON.parse(data)
 
     for k, v of data when v?
-      @s_attr_to_save = @s_attr_to_save.filter((e) -> return e isnt k)
+      #@s_attr_to_save = @s_attr_to_save.filter((e) -> return e isnt k)
       if v._constructor_?
-        @attrSave(k, objectlize(v), true)
+        this[k] = objectlize(v)
       else if Array.isArray(v)
-        @attrSave(k, v.map( (e) -> if e?._constructor_? then objectlize(e) else  e ), true)
+        this[k] = v.map( (e) -> if e?._constructor_? then objectlize(e) else  e )
       else
-        @attrSave(k, v, true)
-    @s_attr_dirtyFlag = {}
+        this[k] = v
     return @
 
   dumpChanged: () ->
     ret = null
     for key, val of @s_attr_dirtyFlag
+      console.log('Key', key, this[key])
       ret = {} unless ret?
       if this[key].dump
         ret[key] = this[key].dump()
@@ -93,6 +95,7 @@ class Serializer
 objectlize  = (data) ->
   throw 'No constructor' unless data?._constructor_?
   throw 'No constructor:'+data._constructor_ unless g_attr_constructorTable[data._constructor_]
+  console.log(data._constructor_, data.save)
   o = new g_attr_constructorTable[data._constructor_](data.save)
   #o.restore(data.save)
   o.initialize() if o.initialize?

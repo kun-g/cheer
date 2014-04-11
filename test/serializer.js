@@ -16,7 +16,8 @@ describe('Serializer', function () {
       pString: 'init',
       pObject: {foo: 'bar', t: {foo: 'bar'}},
       pObj: new TestObj(),
-      pArray: [1,2,3]
+      pArray: [1,2,3],
+      version: 1
     };
     var versionControl = {
       'version': ['pNumber', 'pString', 'pObject', 'pArray', 'pObj']
@@ -34,9 +35,8 @@ describe('Serializer', function () {
     test.pString = 'data';
     test.pObject.foo = 'bar1';
     test.pArray.push(4);
-    var tmp = new Test(test.dump().save);
+    var tmp = new Test(test.dumpChanged());
     shall(test.dump()).eql(tmp.dump());
-    shall(test.dumpChanged()).eql(test.dump().save);
     shall(test.dumpChanged()).equal(null);
     test.pObject.t = {foo: 'barT'};
     shall(test.dumpChanged()).eql({pObject: {foo: 'bar1',t: {foo: 'barT'}}, version: 6});

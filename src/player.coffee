@@ -44,7 +44,7 @@ class Player extends DBWrapper
 
       flags: {},
       mercenary: [],
-      dungeonData: null,
+      dungeonData: {},
       runtimeID: -1,
       rmb: 0,
       spendedDiamond: 0,
@@ -56,7 +56,12 @@ class Player extends DBWrapper
       loginStreak: {count: 0, date: currentTime()},
       accountID: -1,
       campaignState: {},
-      infiniteTimer: currentTime()
+      infiniteTimer: currentTime(),
+      inventoryVersion: 1,
+      heroVersion: 1,
+      stageVersion: 1,
+      questVersion: 1,
+      energyVersion: 1
     }
 
     versionCfg = {
@@ -237,13 +242,13 @@ class Player extends DBWrapper
     ( @acceptQuest(q) for q in updateQuestStatus(@quests, @, @abIndex) )
 
   loadDungeon: () ->
-    if @dungeonData?
+    if @dungeonData.stage?
       @dungeon = new Dungeon(@dungeonData)
       @dungeon.initialize()
 
   releaseDungeon: () ->
     delete @dungeon
-    @dungeonData = null
+    @dungeonData = {}
     dbLib.removeDungeon(@name)
 
   getPurchasedCount: (id) -> return @purchasedCount[id] ? 0
