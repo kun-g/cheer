@@ -278,7 +278,7 @@ addHandler(RPC_ClaimQuestReward, handler_doClaimQuestReward, [], 'Money!!', true
 
 function handler_doUpdateTutorial(arg, player, handler, rpcID) {
   player.log('updateTutorial', {tutorial: arg.stg});
-  player.attrSave('tutorialStage', +arg.stg);
+  player.tutorialStage = +arg.stg;
   player.saveDB();
 }
 addHandler(Request_TutorialStageComplete, handler_doUpdateTutorial, [], '', true);

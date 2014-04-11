@@ -108,8 +108,6 @@ exports.route = {
             ev.push(player.notifyVersions())
             ev.push(player.syncEnergy())
             ev.push(player.syncFlags())
-            if not player.abIndex?
-              player.attrSave('abIndex', rand())
             ev.push({NTF: Event_ABIndex, arg: {ab: +player.abIndex}})
             ev.push({NTF: Event_UpdateStoreInfo, arg: gShop.dump(player)})
             ev.push({NTF: Event_PlayerInfo, arg: { vip: player.vipLevel(), rmb: player.rmb}})

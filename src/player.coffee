@@ -61,6 +61,7 @@ class Player extends DBWrapper
       heroVersion: 1,
       stageVersion: 1,
       questVersion: 1,
+      abIndex: rand(),
       energyVersion: 1
     }
 

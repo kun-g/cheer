@@ -114,7 +114,7 @@ initCampaign = (me, allCampaign, abIndex) ->
     if e.prev? and me[e.prev]? and me[e.prev].status isnt 'Done'
       delete me[key]
       return []
-    if not me.flags? then me.attrSave('flags', {})
+    if not me.flags? then me.flags = {}
     if e.flag? and not me.flags[e.flag]
       delete me[key]
       return []
@@ -123,7 +123,8 @@ initCampaign = (me, allCampaign, abIndex) ->
 
     flag = false
     if not me[key]?
-      me.attrSave(key, {})
+      me.newProperty(key, {})
+      me.attrSave(key, true)
       flag = true
     if e.daily
       if not me[key].date or diffDate(me[key].date, currentTime()) isnt 0
