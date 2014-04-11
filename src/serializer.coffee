@@ -32,6 +32,7 @@ class Serializer
       @versionControl(k, v);
 
     for k, v of cfg
+      #console.log(k, flags[k])
       @attrSave(k, flags[k])
 
   attrSave: (key, restoreFlag = false) ->

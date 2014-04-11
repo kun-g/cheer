@@ -27,9 +27,11 @@ dbLib.initializeDB({
 });
 
 dbLib.loadPlayer('法规规范', function (err, p) {
-  p.startDungeon(104, true, function (err, ret) {
-    console.log('XXX', err, ret);
-  });
+  // p.startDungeon(104, true, function (err, ret) {
+  //   console.log('XXX', err, ret);
+  // });
+  p.aquireItem(0);
+  console.log('FFFFFFFFFFF', p.dumpChanged());
 });
 
 
@@ -66,7 +68,7 @@ describe('Player', function () {
 
         p.hero.xp += 10;
         p.aquireItem(0);
-        p.saveDB();
+        //p.saveDB();
 
         //x.startDungeon(104, true, console.log);
 

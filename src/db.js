@@ -193,13 +193,13 @@ function tryToRegisterName (name, callback) {
     callback(err);
   });
 }
+/*
 function loadPlayer(name, handler) {
   var playerLib = require('./player');
   var p = new playerLib.Player();
   p.setName(name);
   p.load(function (err, result) {
     if (result) {
-      console.log(p.inventory.container[0])
       p.initialize();
     } else {
       p = null;
@@ -207,7 +207,8 @@ function loadPlayer(name, handler) {
     if (handler) handler(err, p);
   });
 }
-/*
+*/
+
 function loadPlayer(name, handler) {
   var playerLib = require('./player');
   var dbKeyName = playerPrefix+name;
@@ -224,13 +225,13 @@ function loadPlayer(name, handler) {
         }
       }
       p = new playerLib.Player(attributes);
-      p.setName(name);
+      //p.setName(name);
       p.initialize();
     }
     if (handler) handler(err, p);
   });
 }
-*/
+
 exports.loadPlayer = loadPlayer;
  
 ////////////// Player Manipulation //////////////

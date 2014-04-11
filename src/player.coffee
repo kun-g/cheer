@@ -1249,7 +1249,7 @@ class Player extends DBWrapper
               @requireMercenary(callback)
             else
               callback(null)
-          )
+        )
 
   recycleItem: (slot) ->
     recyclableEnhance = queryTable(TABLE_CONFIG, 'Global_Recyclable_Enhancement', @abIndex)
