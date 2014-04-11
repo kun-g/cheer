@@ -26,12 +26,13 @@ dbLib.initializeDB({
   // "Subscriber": { "IP": "localhost", "PORT": 6379}
 });
 
-dbLib.loadPlayer('法规规范', function (err, p) {
+dbLib.loadPlayer('符合规范', function (err, p) {
   // p.startDungeon(104, true, function (err, ret) {
   //   console.log('XXX', err, ret);
   // });
-  p.aquireItem(0);
-  console.log('FFFFFFFFFFF', p.dumpChanged());
+  console.log(p.useItem(0));
+  console.log('FFFFFFFFFFF');
+  logInfo(p.dumpChanged());
 });
 
 

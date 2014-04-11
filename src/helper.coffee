@@ -26,6 +26,7 @@ tap = (obj, key, callback, invokeFlag = false) ->
       configurable : true
     })
 
+    #console.log(key, obj[key].reactDB)
     if typeof obj[key] is 'object' then tapObject(obj[key], theCB)
   else
     obj.reactDB[key].hooks.push(callback)
@@ -49,7 +50,7 @@ tapObject = (obj, callback) ->
     writable : false,
   }
 
-  unless obj.reactDB
+  if not obj.newProperty?
     Object.defineProperty(obj, 'newProperty', config)
     if Array.isArray(obj)
       Object.defineProperty(obj, 'push', {
