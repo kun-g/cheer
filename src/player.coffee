@@ -250,7 +250,6 @@ class Player extends DBWrapper
   releaseDungeon: () ->
     delete @dungeon
     @dungeonData = {}
-    dbLib.removeDungeon(@name)
 
   getPurchasedCount: (id) -> return @purchasedCount[id] ? 0
 
@@ -394,7 +393,7 @@ class Player extends DBWrapper
       @logError('startDungeon', {reason: 'InvalidStageConfig', stage: stage, stageConfig: stageConfig?, dungeonConfig: dungeonConfig?})
       return handler(null, RET_ServerError)
     async.waterfall([
-      (cb) => if @dungeonData then cb('OK') else cb(),
+      (cb) => if @dungeonData.stage? then cb('OK') else cb(),
       (cb) => if @stageIsUnlockable(stage) then cb() else cb(RET_StageIsLocked),
       (cb) => if @costEnergy(stageConfig.cost) then cb() else cb(RET_NotEnoughEnergy),
       (cb) => @requireMercenary((team) => cb(null, team)),
