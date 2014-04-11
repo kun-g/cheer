@@ -75,7 +75,6 @@ class Serializer
   dumpChanged: () ->
     ret = null
     for key, val of @s_attr_dirtyFlag
-      console.log('Key', key, this[key])
       ret = {} unless ret?
       if this[key].dump
         ret[key] = this[key].dump()
@@ -95,7 +94,6 @@ class Serializer
 objectlize  = (data) ->
   throw 'No constructor' unless data?._constructor_?
   throw 'No constructor:'+data._constructor_ unless g_attr_constructorTable[data._constructor_]
-  console.log(data._constructor_, data.save)
   o = new g_attr_constructorTable[data._constructor_](data.save)
   #o.restore(data.save)
   o.initialize() if o.initialize?

@@ -377,7 +377,7 @@ class Player extends DBWrapper
 
       if flag then ret.push({NTF: Event_UpdateStageInfo, arg: {syn: @stageVersion, stg:[arg]}})
 
-      @log('stage', { operation: operation, stage: stage })
+      #@log('stage', { operation: operation, stage: stage })
       return ret
 
   dungeonAction: (action) ->
@@ -1234,7 +1234,7 @@ class Player extends DBWrapper
     return ret.concat(this.updateStageStatus())
 
   requireMercenary: (callback) ->
-    if !callback then return
+    if not callback then return
     if @mercenary.length >= MERCENARYLISTLEN
       callback(@mercenary.map( (h) -> new Hero(h)))
     else

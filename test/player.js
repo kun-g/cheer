@@ -12,7 +12,7 @@ var spellLib = require('../js/spell');
 //gServerName = 'UnitTest';
 //gServerID = 1;
 //dbPrefix = gServerName+'.';
-/*
+
 var dbLib = require('../js/db');
 dbPrefix = 'Develop'+'.';
 dbLib.initializeDB({
@@ -26,10 +26,11 @@ dbLib.initializeDB({
   // "Subscriber": { "IP": "localhost", "PORT": 6379}
 });
 
-dbLib.loadPlayer('关关', function (err, p) {
-  console.log(p.inventory.container);
+dbLib.loadPlayer('法规规范', function (err, p) {
+  p.startDungeon(104, true, function (err, ret) {
+    console.log('XXX', err, ret);
+  });
 });
-*/
 
 
 //var playerName = 'unitTestQ';
@@ -54,7 +55,6 @@ describe('Player', function () {
         p.createHero({name: 'K', class: 1, gender: 1, hairStyle: 1, hairColor: 1});
 
         var pChanged = p.dumpChanged();
-        console.log(pChanged)
         var x = new playerLib.Player(pChanged);
         x.initialize();
         shall(x.dump()).eql(p.dump());
@@ -67,6 +67,8 @@ describe('Player', function () {
         p.hero.xp += 10;
         p.aquireItem(0);
         p.saveDB();
+
+        //x.startDungeon(104, true, console.log);
 
         x.saveDB();
       });
