@@ -49,11 +49,12 @@ tapObject = (obj, callback) ->
     writable : false,
   }
 
-  Object.defineProperty(obj, 'newProperty', config)
-  if Array.isArray(obj)
-    Object.defineProperty(obj, 'push', {
-      value: (val) -> @newProperty(@length, val)
-    })
+  unless obj.reactDB
+    Object.defineProperty(obj, 'newProperty', config)
+    if Array.isArray(obj)
+      Object.defineProperty(obj, 'push', {
+        value: (val) -> @newProperty(@length, val)
+      })
 exports.tap = tap
 
 # Leaderboard
