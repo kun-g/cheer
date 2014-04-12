@@ -291,7 +291,7 @@ class Player extends DBWrapper
     for k, v of @heroBase[hClass]
       @hero.newProperty(k, JSON.parse(JSON.stringify(v)))
 
-    @hero.newProperty('equipment', {})
+    @hero.newProperty('equipment', [])
     @hero.newProperty('vip', @vipLevel())
 
   addMoney: (type, point) ->

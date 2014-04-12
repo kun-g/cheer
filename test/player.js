@@ -12,7 +12,7 @@ var spellLib = require('../js/spell');
 //gServerName = 'UnitTest';
 //gServerID = 1;
 //dbPrefix = gServerName+'.';
-
+/*
 var dbLib = require('../js/db');
 dbPrefix = 'Develop'+'.';
 dbLib.initializeDB({
@@ -26,14 +26,15 @@ dbLib.initializeDB({
   // "Subscriber": { "IP": "localhost", "PORT": 6379}
 });
 
-dbLib.loadPlayer('符合规范', function (err, p) {
+dbLib.loadPlayer('热乎乎狗', function (err, p) {
   // p.startDungeon(104, true, function (err, ret) {
   //   console.log('XXX', err, ret);
   // });
-  console.log(p.useItem(0));
-  console.log('FFFFFFFFFFF');
-  logInfo(p.dumpChanged());
+  p.requireMercenary(console.log);
+  // console.log('FFFFFFFFFFF');
+  // logInfo(p.dumpChanged());
 });
+*/
 
 
 //var playerName = 'unitTestQ';
@@ -57,8 +58,9 @@ describe('Player', function () {
         p.initialize();
         p.createHero({name: 'K', class: 1, gender: 1, hairStyle: 1, hairColor: 1});
 
-        var pChanged = p.dumpChanged();
-        var x = new playerLib.Player(pChanged);
+        //p.saveDB();
+        var x = new playerLib.Player(p.dump().save);
+        console.log(p.dump().save.heroVersion)
         x.initialize();
         shall(x.dump()).eql(p.dump());
         shall(x.dumpChanged()).eql(p.dumpChanged());
@@ -72,8 +74,6 @@ describe('Player', function () {
         //p.saveDB();
 
         //x.startDungeon(104, true, console.log);
-
-        x.saveDB();
       });
     });
 //

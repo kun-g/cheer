@@ -133,13 +133,15 @@ getBasicInfo = function (hero) {
   var ret = grabAndTranslate(hero, translateTable);
 
   if (hero.equipment) {
-    var item = hero.equipment.map(function (e) {
+    var item = [];
+    for (var k in hero.equipment) {
+      var e = hero.equipment[k];
       if (e.eh) {
-        return {cid:e.cid, eh:e.eh};
+        item.push({cid:e.cid, eh:e.eh});
       } else {
-        return {cid:e.cid};
+        item.push({cid:e.cid});
       }
-    });
+    }
     if (item.length > 0) ret.itm = item;
   }
 
@@ -548,87 +550,117 @@ Event_UpdateQuest = 19;
 
 exports.fileVersion = -1;
 
-  tap = function(obj, key, callback, invokeFlag) {
-    var theCB;
-    if (invokeFlag == null) {
-      invokeFlag = false;
-    }
-    if (typeof obj[key] === 'function') {
-      return false;
-    }
-    if (obj.reactDB == null) {
-      Object.defineProperty(obj, 'reactDB', {
-        enumerable: false,
-        configurable: false,
-        value: {}
-      });
-    }
-    if (obj.reactDB[key] == null) {
-      obj.reactDB[key] = {
-        value: obj[key],
-        hooks: [callback]
-      };
-      theCB = function(val) {
-        var cb, _i, _len, _ref;
-        _ref = obj.reactDB[key].hooks;
-        for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-          cb = _ref[_i];
-          if (cb != null) {
-            cb(key, val);
-          }
-        }
-        return obj.reactDB[key].value = val;
-      };
-      Object.defineProperty(obj, key, {
-        get: function() {
-          return obj.reactDB[key].value;
-        },
-        set: theCB,
-        enumerable: true,
-        configurable: true
-      });
-      if (typeof obj[key] === 'object') {
-        tapObject(obj[key], theCB);
-      }
-    } else {
-      obj.reactDB[key].hooks.push(callback);
-    }
-    if (invokeFlag) {
-      return callback(key, obj[key]);
-    }
-  };
-
-  tapObject = function(obj, callback) {
-    var config, k, tabNewProperty, theCallback, v;
-    if (obj == null) {
-      return false;
-    }
-    theCallback = function() {
-      return callback(obj);
-    };
-    tabNewProperty = function(key, val) {
-      obj[key] = val;
-      tap(obj, key, theCallback);
-      return callback(obj);
-    };
-    for (k in obj) {
-      v = obj[k];
-      tap(obj, k, theCallback);
-    }
-    config = {
-      value: tabNewProperty,
+tap = function(obj, key, callback, invokeFlag) {
+  var theCB;
+  if (invokeFlag == null) {
+    invokeFlag = false;
+  }
+  if (typeof obj[key] === 'function') {
+    return false;
+  }
+  if (obj.reactDB == null) {
+    Object.defineProperty(obj, 'reactDB', {
       enumerable: false,
       configurable: false,
-      writable: false
+      value: {}
+    });
+  }
+  if (obj.reactDB[key] == null) {
+    obj.reactDB[key] = {
+      value: obj[key],
+      hooks: [callback]
     };
-    if (obj.newProperty == null) {
-      Object.defineProperty(obj, 'newProperty', config);
-      if (Array.isArray(obj)) {
-        return Object.defineProperty(obj, 'push', {
-          value: function(val) {
-            return this.newProperty(this.length, val);
-          }
-        });
+    theCB = function(val) {
+      var cb, _i, _len, _ref;
+      _ref = obj.reactDB[key].hooks;
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        cb = _ref[_i];
+        if (cb != null) {
+          cb(key, val);
+        }
       }
+      return obj.reactDB[key].value = val;
+    };
+    Object.defineProperty(obj, key, {
+      get: function() {
+        return obj.reactDB[key].value;
+      },
+      set: theCB,
+      enumerable: true,
+      configurable: true
+    });
+    if (typeof obj[key] === 'object') {
+      tapObject(obj[key], theCB);
     }
+  } else {
+    obj.reactDB[key].hooks.push(callback);
+  }
+  if (invokeFlag) {
+    return callback(key, obj[key]);
+  }
+};
+
+tapObject = function(obj, callback) {
+  var config, k, tabNewProperty, theCallback, v;
+  if (obj == null) {
+    return false;
+  }
+  theCallback = function() {
+    return callback(obj);
   };
+  tabNewProperty = function(key, val) {
+    obj[key] = val;
+    tap(obj, key, theCallback);
+    return callback(obj);
+  };
+  for (k in obj) {
+    v = obj[k];
+    tap(obj, k, theCallback);
+  }
+  config = {
+    value: tabNewProperty,
+    enumerable: false,
+    configurable: false,
+    writable: false
+  };
+  if (obj.newProperty == null) {
+    Object.defineProperty(obj, 'newProperty', config);
+    if (Array.isArray(obj)) {
+      return Object.defineProperty(obj, 'push', {
+        value: function(val) {
+          return this.newProperty(this.length, val);
+        }
+      });
+    }
+  }
+};
+exports.tap = tap;
+exports.tapObject = tapObject;
+
+var dbLib = require('../js/db');
+dbPrefix = 'Develop'+'.';
+dbLib.initializeDB({
+  "Account": { "IP": "10.4.3.41", "PORT": 6379},
+  "Role": { "IP": "10.4.3.41", "PORT": 6379},
+  "Publisher": { "IP": "10.4.3.41", "PORT": 6379},
+  "Subscriber": { "IP": "10.4.3.41", "PORT": 6379}
+  // "Account": { "IP": "localhost", "PORT": 6379},
+  // "Role": { "IP": "localhost", "PORT": 6379},
+  // "Publisher": { "IP": "localhost", "PORT": 6379},
+  // "Subscriber": { "IP": "localhost", "PORT": 6379}
+});
+
+initGlobalConfig('../../build/', function () {
+  dbLib.loadPlayer('热乎乎狗', function (err, p) {
+    // p.startDungeon(104, true, function (err, ret) {
+    //   console.log('XXX', err, ret);
+    // });
+    p.requireMercenary(function (lst) {
+      console.log(lst.map(getBasicInfo));
+
+      dbLib.releaseDB();
+    });
+    // console.log('FFFFFFFFFFF');
+    // logInfo(p.dumpChanged());
+  });
+})
