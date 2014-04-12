@@ -59,18 +59,19 @@ describe('Player', function () {
         p.createHero({name: 'K', class: 1, gender: 1, hairStyle: 1, hairColor: 1});
 
         //p.saveDB();
-        var x = new playerLib.Player(p.dump().save);
+        var x = new playerLib.Player(p.dumpChanged());
         console.log(p.dump().save.heroVersion)
         x.initialize();
         shall(x.dump()).eql(p.dump());
         shall(x.dumpChanged()).eql(p.dumpChanged());
-        p.aquireItem(0);
-        x.aquireItem(0);
+        p.aquireItem(32);
+        x.aquireItem(32);
         shall(p.dump()).eql(x.dump());
         shall(p.dumpChanged()).eql(x.dumpChanged());
 
-        p.hero.xp += 10;
-        p.aquireItem(0);
+        //p.hero.xp += 10;
+        console.log(p.useItem(0));
+        console.log(p.dumpChanged())
         //p.saveDB();
 
         //x.startDungeon(104, true, console.log);

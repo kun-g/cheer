@@ -299,7 +299,6 @@ class Player extends DBWrapper
     return false if point + this[type] < 0
     this[type] += point
     @costedDiamond += point if type is 'diamond'
-    @inventoryVersion++
     return this[type]
 
   addDiamond: (point) -> @addMoney('diamond', point)
@@ -464,8 +463,7 @@ class Player extends DBWrapper
   acceptQuest: (qid) ->
     return [] if @quests[qid]
     quest = queryTable(TABLE_QUEST, qid, @abIndex)
-    @quests[qid] = {counters: (0 for i in quest.objects)}
-    @questsVersion++
+    @quests.newProperty(qid, {counters: (0 for i in quest.objects)})
     @onEvent('gold')
     @onEvent('diamond')
     @onEvent('item')
@@ -546,7 +544,7 @@ class Player extends DBWrapper
         when QUEST_TYPE_ITEM then ret = ret.concat(this.removeItem(obj.value, obj.count))
 
     @log('claimQuest', { id: qid })
-    @quests[qid] = {complete: true}
+    @quests.newProperty(qid, {complete: true})
     return ret.concat(@updateQuestStatus())
 
   checkQuestStatues: (qid) ->
@@ -583,7 +581,6 @@ class Player extends DBWrapper
     return { ret: RET_RoleClassNotMatch } unless isClassMatch(myClass, item.classLimit)
     @log('useItem', { slot: slot, id: item.id })
 
-    @inventoryVersion++
     switch item.category
       when ITEM_USE
         switch item.subcategory
@@ -623,7 +620,7 @@ class Player extends DBWrapper
           delete this.equipment[item.subcategory]
         else
           if equip? then ret.arg.itm.push({sid: equip, sta: 0})
-          this.equipment[item.subcategory] = slot
+          this.equipment.newProperty(item.subcategory, slot)
           tmp.sta = 1
         ret.arg.itm.push(tmp)
         delete ret.arg.itm if ret.arg.itm.length < 1
@@ -643,10 +640,8 @@ class Player extends DBWrapper
     @doAction({id: 'AquireItem', item: item, count: count, allorfail: allOrFail})
 
   removeItemById: (id, count, allorfail) ->
-    @inventoryVersion++
     @doAction({id: 'RemoveItem', item: id, count: count, allorfail: allorfail})
   removeItem: (item, count, slot) ->
-    @inventoryVersion++
     @doAction({id: 'RemoveItem', item: item, count: count, slot: slot})
 
   extendInventory: (delta) -> @inventory.size(delta)
@@ -710,7 +705,6 @@ class Player extends DBWrapper
 
     delete @equipment[k] for k, s of @equipment when s is slot
 
-    @inventoryVersion++
     this.addGold(-cost)
     ret = this.removeItem(null, 1, slot)
     newItem = new Item(item.upgradeTarget)
@@ -746,7 +740,6 @@ class Player extends DBWrapper
         minLevel = enhance.level
         minIndex = i
 
-    @inventoryVersion++
     level = 0
     enhanceID = -1
     maxLevel++

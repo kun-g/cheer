@@ -636,31 +636,3 @@ tapObject = function(obj, callback) {
 };
 exports.tap = tap;
 exports.tapObject = tapObject;
-
-var dbLib = require('../js/db');
-dbPrefix = 'Develop'+'.';
-dbLib.initializeDB({
-  "Account": { "IP": "10.4.3.41", "PORT": 6379},
-  "Role": { "IP": "10.4.3.41", "PORT": 6379},
-  "Publisher": { "IP": "10.4.3.41", "PORT": 6379},
-  "Subscriber": { "IP": "10.4.3.41", "PORT": 6379}
-  // "Account": { "IP": "localhost", "PORT": 6379},
-  // "Role": { "IP": "localhost", "PORT": 6379},
-  // "Publisher": { "IP": "localhost", "PORT": 6379},
-  // "Subscriber": { "IP": "localhost", "PORT": 6379}
-});
-
-initGlobalConfig('../../build/', function () {
-  dbLib.loadPlayer('热乎乎狗', function (err, p) {
-    // p.startDungeon(104, true, function (err, ret) {
-    //   console.log('XXX', err, ret);
-    // });
-    p.requireMercenary(function (lst) {
-      console.log(lst.map(getBasicInfo));
-
-      dbLib.releaseDB();
-    });
-    // console.log('FFFFFFFFFFF');
-    // logInfo(p.dumpChanged());
-  });
-})
