@@ -125,7 +125,7 @@ initCampaign = (me, allCampaign, abIndex) ->
 
     flag = false
     if not me[key]?
-      me.newProperty(key, {})
+      me[key] = {}
       me.attrSave(key, true)
       flag = true
     if e.daily
