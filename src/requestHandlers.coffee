@@ -253,7 +253,7 @@ exports.route = {
               else
                 status = 'Replay Failed'
                 result.RET = RET_Unknown
-                player.saveDB(() -> player.releaseDungeon())
+              player.saveDB(() -> player.releaseDungeon())
         else
           status = 'No dungeon'
           result.RET = RET_DungeonNotExist
