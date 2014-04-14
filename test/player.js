@@ -52,7 +52,9 @@ describe('Player', function () {
 //  });
 //
     describe('Player', function () {
+
       it('Creation', function () {
+       console.log(queryTable(TABLE_LEADBOARD), TABLE_LEADBOARD) 
         var p = new playerLib.Player();
         p.setName('Test');
         p.initialize();

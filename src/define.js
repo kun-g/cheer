@@ -269,7 +269,7 @@ initGlobalConfig = function (path, callback) {
       return cfg[index];
     }
   };
-  var configTable = [
+  var configTable = [{name:TABLE_LEADBOARD},
     {name:TABLE_ROLE}, {name:TABLE_LEVEL}, {name:TABLE_VERSION},
     {name:TABLE_ITEM}, {name:TABLE_CARD}, {name:TABLE_DUNGEON, func:varifyDungeonConfig},
     {name:TABLE_STAGE, func: initStageConfig}, {name:TABLE_QUEST},

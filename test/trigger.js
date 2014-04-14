@@ -39,7 +39,7 @@ describe('', function () {
       conditionCheck({"or": trues.concat(falses)}).should.equal(true);
     });
     it('Should work with variable', function (done) {
-      var formulars = [{"==": ["v_var1", "v_var2"]}, {">=": ["v_var1", "v_var2"]}, 
+      var formulars = [{"==": ["v_var1", "v_var2"]}, {">=": ["v_var1", "v_var2"]},
                        {"<=": ["v_var1", "v_var2"]}, {"<=": ["v_var1", 1]}];
       var variables = {"v_var1": 1, "v_var2": 1};
       for (var k in formulars) {
