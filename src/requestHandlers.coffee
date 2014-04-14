@@ -368,10 +368,15 @@ exports.route = {
     id: 30,
     func: (arg, player, handler, rpcID, socket) ->
       dbLib.queryLeaderboard(arg.typ, player.name, arg.src, arg.src+arg.cnt, (err, result) ->
-        ret = {REQ: rpcID, RET_OK}
-        ret.me = result.position;
-        ret.lst = result.board;
-        handler([ret])
+        ret = {REQ: rpcID, RET: RET_OK}
+        if result.position? then ret.me = result.position;
+        if result.board?
+          async.map(result.board, getPlayerHero, (err, result) ->
+            ret.lst = result.map(getBasicInfo)
+            handler([ret])
+          )
+        else
+          handler([ret])
       )
     ,
     args: [],
