@@ -15,6 +15,7 @@ async = require('async')
 
 class Player extends DBWrapper
   constructor: (data) ->
+    @type = 'player'
     now = new Date()
     cfg = {
       dbKeyName: '',

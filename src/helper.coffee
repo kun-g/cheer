@@ -77,6 +77,7 @@ exports.initLeaderboard = (config) ->
       if tmp.length
         obj = require('./trigger').doGetProperty(player, tmp.join('.')) ? player
       obj[key] = v.initialValue unless obj[key]?
+      localConfig[k].func(player.name, obj[key])
       tap(obj, key, (dummy, value) ->
         localConfig[k].func(player.name, value)
       )
