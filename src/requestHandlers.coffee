@@ -1,5 +1,6 @@
 require('./define')
 dbLib = require('./db')
+helperLib = require('./helper')
 dbWrapperLib = require('./dbWrapper')
 async = require('async')
 http = require('http')
@@ -362,6 +363,19 @@ exports.route = {
           else
             handler([{REQ: rpcID, RET: RET_OK}])
         )
+  },
+  RPC_QueryLeaderboard: {
+    id: 30,
+    func: (arg, player, handler, rpcID, socket) ->
+      dbLib.queryLeaderboard(arg.typ, player.name, arg.src, arg.src+arg.cnt, (err, result) ->
+        ret = {REQ: rpcID, RET_OK}
+        ret.me = result.position;
+        ret.lst = result.board;
+        handler([ret])
+      )
+    ,
+    args: [],
+    needPid: true
   },
   RPC_SubmitDailyQuest: {
     id: 29,
