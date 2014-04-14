@@ -66,7 +66,7 @@ exports.initLeaderboard = (config) ->
       require('./dbWrapper').updateLeaderboard(dbKey, name, value)
 
   for key, cfg of config
-    localConfig[key] = { func: generateHandler(key, cfg) }
+    localConfig[key] = { func: generateHandler(cfg.name, cfg) }
     localConfig[key][k] = v for k, v of cfg
 
   exports.assignLeaderboard = (player) ->

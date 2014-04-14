@@ -167,10 +167,10 @@ makeDBKey = (keys, prefix) ->
   return [prefix].concat(keys).join(dbSeparator)
 
 exports.updateLeaderboard = (board, member, score, callback) ->
-  dbClient.zadd(makeDBKey([LeaderboardPrefix, board]), score, member, callback)
+  dbClient.zadd(makeDBKey([board], LeaderboardPrefix), score, member, callback)
 
 exports.getPositionOnLeaderboard = (board, member, rev, callback) ->
-  key = makeDBKey([LeaderboardPrefix, board])
+  key = makeDBKey([board], LeaderboardPrefix)
   if rev
     dbClient.zrevrank(key, member, callback)
   else

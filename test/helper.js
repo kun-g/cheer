@@ -60,22 +60,24 @@ describe('Helper', function () {
       "Publisher": { "IP": "localhost", "PORT": 6379},
       "Subscriber": { "IP": "localhost", "PORT": 6379}
     });
-    var config = {
-      battleForce : {
+    var config = [
+      {
+        name: 'battleForce',
         key: 'battleForce',
         reverse: false,
         initialValue: 0,
         type: 'player',
         availableConfition: true
       },
-      goldenSlime : {
+      {
+        name: 'goldenSlime',
         key: 'scores.goldenSlime',
         reverse: true,
         initialValue: 5,
         type: 'player',
         availableConfition: true
       }
-    };
+    ];
     var players = [
       { name: 'Ken',  type: 'player', scores: {} },
       { name: 'Ken1', type: 'player', scores: {} },

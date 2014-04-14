@@ -54,7 +54,6 @@ describe('Player', function () {
     describe('Player', function () {
 
       it('Creation', function () {
-       console.log(queryTable(TABLE_LEADBOARD), TABLE_LEADBOARD) 
         var p = new playerLib.Player();
         p.setName('Test');
         p.initialize();
@@ -62,7 +61,6 @@ describe('Player', function () {
 
         //p.saveDB();
         var x = new playerLib.Player(p.dumpChanged());
-        console.log(p.dump().save.heroVersion)
         x.initialize();
         shall(x.dump()).eql(p.dump());
         shall(x.dumpChanged()).eql(p.dumpChanged());
@@ -72,8 +70,8 @@ describe('Player', function () {
         shall(p.dumpChanged()).eql(x.dumpChanged());
 
         //p.hero.xp += 10;
-        console.log(p.useItem(0));
-        console.log(p.dumpChanged())
+        //console.log(p.useItem(0));
+        //console.log(p.dumpChanged())
         //p.saveDB();
 
         //x.startDungeon(104, true, console.log);
