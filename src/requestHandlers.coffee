@@ -367,17 +367,21 @@ exports.route = {
   RPC_QueryLeaderboard: {
     id: 30,
     func: (arg, player, handler, rpcID, socket) ->
-      dbLib.queryLeaderboard(arg.typ, player.name, arg.src, arg.src+arg.cnt, (err, result) ->
-        ret = {REQ: rpcID, RET: RET_OK}
-        console.log(result)
-        if arg.me? then ret.me = result.position;
-        if result.board?
-          async.map(result.board, getPlayerHero, (err, result) ->
-            ret.lst = result.map(getBasicInfo)
+      helperLib.getPositionOnLeaderboard(arg.typ,
+        player.name,
+        arg.src,
+        arg.src+arg.cnt,
+        (err, result) ->
+          ret = {REQ: rpcID, RET: RET_OK}
+          console.log(err, result)
+          if arg.me? then ret.me = result.position;
+          if result.board?
+            async.map(result.board, getPlayerHero, (err, result) ->
+              ret.lst = result.map(getBasicInfo)
+              handler([ret])
+            )
+          else
             handler([ret])
-          )
-        else
-          handler([ret])
       )
     ,
     args: [],

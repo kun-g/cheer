@@ -141,7 +141,7 @@ lua_queryLeaderboard = " \
   local board, name, from, to = ARGV[1], ARGV[2], ARGV[3], ARGV[4]; \
   local key = prefix..board; \
   local rank = redis.call('ZRANK', key, name); \
-  local board = redis.call('zrange', key, from, to); \
+  local board = redis.call('zrevrange', key, from, to); \
   return {rank, board};";
 
 exports.updateSessionInfo = function (session, obj, handler) {

@@ -83,10 +83,9 @@ exports.initLeaderboard = (config) ->
       )
     )
 
-  exports.getPositionOnLeaderboard = (board, name, cb) ->
+  exports.getPositionOnLeaderboard = (board, name, from , to, cb) ->
     cfg = localConfig[board]
-    require('./dbWrapper')
-      .getPositionOnLeaderboard(cfg.name, name, cfg.reverse, cb)
+    require('./db').queryLeaderboard(cfg.name, name, from, to, cb)
 
 # Time util
 moment = require('moment')

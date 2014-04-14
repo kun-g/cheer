@@ -276,6 +276,7 @@ class Player extends DBWrapper
         heroData[k] = v
       heroData.equipment = equip
       heroData.vip = @vipLevel()
+      @hero.equipment = equip
       return new Hero(heroData)
     else
       throw 'NoHero'
