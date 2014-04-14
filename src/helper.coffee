@@ -26,7 +26,6 @@ tap = (obj, key, callback, invokeFlag = false) ->
       configurable : true
     })
 
-    #console.log(key, obj[key].reactDB)
     if typeof obj[key] is 'object' then tapObject(obj[key], theCB)
   else
     obj.reactDB[key].hooks.push(callback)
@@ -60,7 +59,7 @@ exports.tap = tap
 
 # Leaderboard
 exports.initLeaderboard = (config) ->
-  localConfig = {}
+  localConfig = []
   generateHandler = (dbKey, cfg) ->
     return (name, value) ->
       require('./dbWrapper').updateLeaderboard(dbKey, name, value)
@@ -70,21 +69,24 @@ exports.initLeaderboard = (config) ->
     localConfig[key][k] = v for k, v of cfg
 
   exports.assignLeaderboard = (player) ->
-    for k, v of config when player.type is v.type
+    localConfig.forEach( (v) ->
+      return false unless player.type is v.type
       tmp = v.key.split('.')
       key = tmp.pop()
       obj = player
       if tmp.length
         obj = require('./trigger').doGetProperty(player, tmp.join('.')) ? player
       obj[key] = v.initialValue unless obj[key]?
-      localConfig[k].func(player.name, obj[key])
+      v.func(player.name, obj[key])
       tap(obj, key, (dummy, value) ->
-        localConfig[k].func(player.name, value)
+        v.func(player.name, value)
       )
+    )
 
   exports.getPositionOnLeaderboard = (board, name, cb) ->
+    cfg = localConfig[board]
     require('./dbWrapper')
-      .getPositionOnLeaderboard(board, name, localConfig[board].reverse, cb)
+      .getPositionOnLeaderboard(cfg.name, name, cfg.reverse, cb)
 
 # Time util
 moment = require('moment')

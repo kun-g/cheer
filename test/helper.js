@@ -65,7 +65,7 @@ describe('Helper', function () {
         name: 'battleForce',
         key: 'battleForce',
         reverse: false,
-        initialValue: 0,
+        initialValue: 5,
         type: 'player',
         availableConfition: true
       },
@@ -90,13 +90,13 @@ describe('Helper', function () {
     players.forEach(helpLib.assignLeaderboard);
     it('monitor root values', function (done) {
       players.forEach(function (p, i) {
-        p.battleForce += i;
+        p.battleForce -= i;
         shall(p.scores.goldenSlime).equal(5);
       });
       async.map(
         players,
         function (e, cb) {
-          helpLib.getPositionOnLeaderboard('battleForce', e.name, cb);
+          helpLib.getPositionOnLeaderboard(0, e.name, cb);
         },
         function (err, result) {
           for (var i in result) {
