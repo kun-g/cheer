@@ -43,6 +43,7 @@ parse = (expr, variable, cmd) ->
       when 'Branch' then return branch(expr, variable, cmd)
       when 'Loop' then return doLoop(expr, variable, cmd)
       when 'Action' then return doAction(expr, variable, cmd)
+      when 'Time' then return moment(expr.time)
       else
         return getVar(expr, variable, cmd)
 
@@ -61,6 +62,7 @@ getTypeof = (expr) ->
       when '<', '>', '==', '>=', '<=', '!=', 'or', 'and', 'not'
         return 'Boolean'
       when '+', '-', '*', '/', '&', '|', '~' then return 'Formular'
+  return 'Time' if expr.time
 
   return 'Undefined'
 

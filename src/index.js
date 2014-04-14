@@ -68,6 +68,7 @@ if (config) {
   initiateFluentLogger();
   initServer();
   initGlobalConfig(null, function () {
+    require('./helper').initLeaderboard(queryTable(TABLE_LEADBOARD));
     domain.run(config.init);
   });
 } else {

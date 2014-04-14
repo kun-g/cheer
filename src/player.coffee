@@ -183,8 +183,9 @@ class Player extends DBWrapper
     ))
 
 
-    if @isNewPlayer
-      @isNewPlayer = false
+    if @isNewPlayer then @isNewPlayer = false
+
+    helperLib.assignLeaderboard(@)
 
     @inventory.validate()
 

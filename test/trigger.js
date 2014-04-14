@@ -2,7 +2,7 @@ var triggerLib = require('../js/trigger');
 var shall = require('should');
 describe('', function () {
   var obj = {
-    name: 'Ken', 
+    name: 'Ken',
     birth: {
       year: 1234,
       month: 3,
@@ -19,7 +19,7 @@ describe('', function () {
   describe('Conditions', function () {
     conditionCheck = triggerLib.parse;
     it('Should deal with and or not > >= < <= == !=', function () {
-      var trues = [{"==": [1, 1]}, {"!=": [0, 1]}, {">": [5, 1]}, {">=": [5, 1]}, 
+      var trues = [{"==": [1, 1]}, {"!=": [0, 1]}, {">": [5, 1]}, {">=": [5, 1]},
                    {">=": [5, 5]}, {"<=": [5, 5]}, {"<=": [5, 5.5]}, {"<": [5, 5.5]},
                   true];
       var falses = [{"==": [0, 1]}, {"!=": [1, 1]}, {">": [1, 5]}, {">=": [1, 8]},

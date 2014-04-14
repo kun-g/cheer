@@ -24,6 +24,7 @@ TABLE_CAMPAIGN = "campaign";
 TABLE_VIP = "vip";
 TABLE_TRIGGER = "triggers";
 TABLE_BROADCAST = "broadcast";
+TABLE_LEADBOARD = "leadboard";
 
 /*** GAME CONSTANTS ***/
 ItemId_RevivePotion = 540;
