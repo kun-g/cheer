@@ -23,6 +23,8 @@ class Player extends DBWrapper
       questTableVersion: -1,
       stageTableVersion: -1,
 
+      event_daily: {}, #TODO: is it ok?
+
       inventory: Bag(InitialBagSize),
       gold: 0,
       diamond: 0,
@@ -276,8 +278,9 @@ class Player extends DBWrapper
         heroData[k] = v
       heroData.equipment = equip
       heroData.vip = @vipLevel()
-      @hero.equipment = equip
-      return new Hero(heroData)
+      hero = new Hero(heroData)
+      @battleForce = hero.calculatePower()
+      return hero
     else
       throw 'NoHero'
 

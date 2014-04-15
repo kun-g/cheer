@@ -116,31 +116,27 @@ initCampaign = (me, allCampaign, abIndex) ->
   ret = []
   for key, e of allCampaign when me.getType() is e.storeType
     if e.prev? and me[e.prev]? and me[e.prev].status isnt 'Done'
-      delete me[key]
+      #delete me[key]
       return []
     if e.flag? and not me.flags[e.flag]?
-      delete me[key]
+      #delete me[key]
       return []
-    if e.daily and me[key]?.date? and diffDate(me[key].date, currentTime()) isnt 0
-      delete me[key]
+    #if e.daily and me[key]?.date? and diffDate(me[key].date, currentTime()) isnt 0
+      #delete me[key]
 
-    flag = false
-    console.log(key, me[key], me.flags)
     if not me[key]?
       me[key] = {}
       me.attrSave(key, true)
-      flag = true
     if e.daily
       if not me[key].date or diffDate(me[key].date, currentTime()) isnt 0
-        me[key].newProperty('status', 'Ready')
+        me[key].newProperty('status', 'Init')
         me[key].newProperty('date', currentTime())
-        flag = true
         if key is 'event_daily'
           me[key].newProperty('rank', me.battleForce/24 - 3)
           if me[key].rank < 1 then me[key].rank = 1
           me[key].newProperty('reward', [{type: PRIZETYPE_GOLD, count: Math.floor(me[key].rank*18)}])
 
-    if e.quest and Array.isArray(e.quest) and not me[key].quest?
+    if e.quest and Array.isArray(e.quest) and me[key].status is 'Init'
       me[key].newProperty('quest', shuffle(e.quest, Math.random()).slice(0, e.steps))
       me[key].newProperty('step', 0)
       goldCount = Math.ceil(me[key].rank*6)
@@ -170,6 +166,7 @@ initCampaign = (me, allCampaign, abIndex) ->
             quest = quest[me[key].step]
           if quest? then delete me.quests[quest]
           return ret.concat(initCampaign(me, allCampaign, abIndex))
+      when 'Init' then me[key].status = 'Ready'
       when 'Ready'
         if quest?
           if me.isQuestAchieved(quest)

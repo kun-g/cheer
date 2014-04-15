@@ -373,8 +373,7 @@ exports.route = {
         arg.src+arg.cnt,
         (err, result) ->
           ret = {REQ: rpcID, RET: RET_OK}
-          console.log(err, result)
-          if arg.me? then ret.me = result.position;
+          if arg.me? then ret.me = result.position
           if result.board?
             async.map(result.board, getPlayerHero, (err, result) ->
               ret.lst = result.map(getBasicInfo)

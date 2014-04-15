@@ -12,7 +12,7 @@ var spellLib = require('../js/spell');
 //gServerName = 'UnitTest';
 //gServerID = 1;
 //dbPrefix = gServerName+'.';
-/*
+
 var dbLib = require('../js/db');
 dbPrefix = 'Develop'+'.';
 dbLib.initializeDB({
@@ -26,15 +26,20 @@ dbLib.initializeDB({
   // "Subscriber": { "IP": "localhost", "PORT": 6379}
 });
 
-dbLib.loadPlayer('热乎乎狗', function (err, p) {
+dbLib.loadPlayer('呃呃饭否', function (err, p) {
   // p.startDungeon(104, true, function (err, ret) {
   //   console.log('XXX', err, ret);
   // });
-  p.requireMercenary(console.log);
+  //p.requireMercenary(console.log);
   // console.log('FFFFFFFFFFF');
   // logInfo(p.dumpChanged());
+  //p.submitCampaign('event_daily', console.log);
+  //logInfo(p.dumpChanged());
+  //p.quests[134].counters[0] = 3;
+  //p.submitCampaign('event_daily', console.log);
+  //p.save(console.log);
 });
-*/
+
 
 
 //var playerName = 'unitTestQ';
