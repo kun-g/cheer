@@ -96,7 +96,6 @@ getPlayerHero = (name, callback) ->
       try
         vip = playerLib.getVip(rmb)
         hero = JSON.parse(hero)
-        console.log(hero.equipment)
         hero.vipLevel = +vip.level
         hero.blueStar = +blueStar
       catch e
@@ -140,7 +139,6 @@ exports.getMercenaryMember = (names, rangeFrom, rangeTo, count, handler) ->
           cb(null, list)
         else
           selectedName = mList[rand()%mList.length]
-          console.log(selectedName, battleForce)
           getPlayerHero(selectedName, (err, hero) ->
             if hero
               cb(new Error('Done'), hero)

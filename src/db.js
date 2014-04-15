@@ -93,20 +93,6 @@ exports.getPlayerNameByID = function (id, serverName, cb)  { accountDBClient.hge
 // TODO: creation after creation
 exports.updateAccount = function (id, key, val, cb){ accountDBClient.hset(makeDBKey([accPrefix, id]), key, val, cb); };
 //////////////// Player Creation ////////////////
-lua_createNewPlayer = " \
-  local prefix, name, account = ARGV[1], ARGV[2], ARGV[3]; \
-  local PlayerNameSet = prefix..'UsedName'; \
-  local key = prefix..'player.'..name; \
-  local limitsKey = prefix..'limits.'..name; \
-  local sharedKey = prefix..'shared.'..name; \
-  if redis.call('sadd', PlayerNameSet, name)==0 then \
-    return 'NameTaken'; \
-  else \
-    local x = redis.call('hmset', key, 'accountID', account, 'name', name, 'isNewPlayer', 'true'); \
-    local y = redis.call('hset', limitsKey, 'blueStar', 8); \
-    local z = redis.call('hmset', sharedKey, 'blueStar', 0, 'contactLimit', 20); \
-    return 'OK'; \
-  end";
 
 function createNewPlayer (account, server, name, handle) {
   async.series([
@@ -127,6 +113,21 @@ exports.loadSessionInfo = function (session, handler) {
   dbClient.hgetall(makeDBKey([sessionPrefix, session]), handler);
 };
 
+lua_createNewPlayer = " \
+  local prefix, name, account = ARGV[1], ARGV[2], ARGV[3]; \
+  local PlayerNameSet = prefix..'UsedName'; \
+  local key = prefix..'player.'..name; \
+  local limitsKey = prefix..'limits.'..name; \
+  local sharedKey = prefix..'shared.'..name; \
+  if redis.call('sadd', PlayerNameSet, name)==0 then \
+    return 'NameTaken'; \
+  else \
+    local x = redis.call('hmset', key, 'accountID', account, 'name', name, 'isNewPlayer', 'true'); \
+    local y = redis.call('hset', limitsKey, 'blueStar', 8); \
+    local z = redis.call('hmset', sharedKey, 'blueStar', 0, 'contactLimit', 20); \
+    return 'OK'; \
+  end";
+
 lua_createSessionInfo = " \
   local prefix, date, bv, rv = ARGV[1], ARGV[2], ARGV[3], ARGV[4]; \
   local id = redis.call('INCR', 'SessionCounter'); \
@@ -143,6 +144,26 @@ lua_queryLeaderboard = " \
   local rank = redis.call('ZRANK', key, name); \
   local board = redis.call('zrevrange', key, from, to); \
   return {rank, board};";
+
+//   dbClient.smembers(playerMessagePrefix+name, function (err, ids) {
+//     async.map(
+//       ids, 
+//       function (id, cb) { dbClient.get(messagePrefix+id, cb); },
+//       function (err, results) {
+//         if (results) results = results.map(JSON.parse);
+//         if (handler) handler(err, results);
+//       });
+//   });
+// lua_fetchMessage = " \
+//   local dbPrefix, name = ARGV[1], ARGV[2]; \
+//   local messageKey = dbPrefix..'.message.'..name; \
+//   local playerMessagePrefix = dbPrefix..'.playerMessage.'..name; \
+//   local list = redis.call('SMEMBERS', messageKey); \
+//   for i, v in ipairs(list) do \
+//     ; \
+//   end \
+//   local board = redis.call('zrevrange', key, from, to); \
+//   return {rank, board};";
 
 exports.updateSessionInfo = function (session, obj, handler) {
   dbClient.hmset(makeDBKey([sessionPrefix, session]), obj, handler);

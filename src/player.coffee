@@ -115,7 +115,7 @@ class Player extends DBWrapper
   onLogin: () ->
     if diffDate(@lastLogin) > 0 then @purchasedCount = {}
     @lastLogin = currentTime()
-    if diffDate(@creationDate) > 0 then @tutorialStage = 1000 #TODO
+    if diffDate(@creationDate) > 7 then @tutorialStage = 1000 #TODO
 
     if not moment().isSame(@infiniteTimer, 'week')
       @infiniteTimer = currentTime()
@@ -351,7 +351,7 @@ class Player extends DBWrapper
     @stageVersion++
     if stg
       chapter = stg.chapter
-      @stage[stage] = {} unless @stage[stage]
+      @stage.newProperty(stage, {}) unless @stage[stage]?
 
       flag = false
       arg = {chp: chapter, stg:stage, sta:state}

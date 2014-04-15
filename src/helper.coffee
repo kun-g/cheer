@@ -83,7 +83,7 @@ exports.initLeaderboard = (config) ->
       )
     )
 
-  exports.getPositionOnLeaderboard = (board, name, from , to, cb) ->
+  exports.getPositionOnLeaderboard = (board, name, from, to, cb) ->
     cfg = localConfig[board]
     require('./db').queryLeaderboard(cfg.name, name, from, to, cb)
 
@@ -118,40 +118,40 @@ initCampaign = (me, allCampaign, abIndex) ->
     if e.prev? and me[e.prev]? and me[e.prev].status isnt 'Done'
       delete me[key]
       return []
-    if not me.flags? then me.flags = {}
-    if e.flag? and not me.flags[e.flag]
+    if e.flag? and not me.flags[e.flag]?
       delete me[key]
       return []
     if e.daily and me[key]?.date? and diffDate(me[key].date, currentTime()) isnt 0
       delete me[key]
 
     flag = false
+    console.log(key, me[key], me.flags)
     if not me[key]?
       me[key] = {}
       me.attrSave(key, true)
       flag = true
     if e.daily
       if not me[key].date or diffDate(me[key].date, currentTime()) isnt 0
-        me[key].status = 'Ready'
-        me[key].date = currentTime()
+        me[key].newProperty('status', 'Ready')
+        me[key].newProperty('date', currentTime())
         flag = true
         if key is 'event_daily'
-          me[key].rank = me.battleForce/24 - 3
+          me[key].newProperty('rank', me.battleForce/24 - 3)
           if me[key].rank < 1 then me[key].rank = 1
-          me[key].reward = [{type: PRIZETYPE_GOLD, count: Math.floor(me[key].rank*18)}]
+          me[key].newProperty('reward', [{type: PRIZETYPE_GOLD, count: Math.floor(me[key].rank*18)}])
 
     if e.quest and Array.isArray(e.quest) and not me[key].quest?
-      me[key].quest = shuffle(e.quest, Math.random()).slice(0, e.steps)
-      me[key].step = 0
+      me[key].newProperty('quest', shuffle(e.quest, Math.random()).slice(0, e.steps))
+      me[key].newProperty('step', 0)
       goldCount = Math.ceil(me[key].rank*6)
       diamondCount = Math.ceil(me[key].rank/10)
       goldCount = Math.floor(me[key].rank*6)
-      me[key].stepPrize = [
+      me[key].newProperty('stepPrize', [
         [{type: PRIZETYPE_GOLD, count: goldCount}, {type: PRIZETYPE_ITEM, value: 0, count: diamondCount}],
         [{type: PRIZETYPE_GOLD, count: goldCount}, {type: PRIZETYPE_ITEM, value: 0, count: diamondCount}, {type: PRIZETYPE_ITEM, value: 534, count: 5}],
         [{type: PRIZETYPE_GOLD, count: goldCount}, {type: PRIZETYPE_ITEM, value: 0, count: diamondCount}, {type: PRIZETYPE_ITEM, value: 535, count: 2}],
         [{type: PRIZETYPE_GOLD, count: goldCount}, {type: PRIZETYPE_ITEM, value: 0, count: diamondCount}, {type: PRIZETYPE_ITEM, value: 536, count: 1}]
-      ]
+      ])
     quest = me[key].quest
     if Array.isArray(quest)
       quest = quest[me[key].step]
