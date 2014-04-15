@@ -517,7 +517,7 @@ class Player extends DBWrapper
         when PRIZETYPE_FUNCTION
           switch p.func
             when "setFlag"
-              @flags[p.flag] = p.value
+              @flags.newProperty(p.flag, p.value)
               ret = ret.concat(@syncFlags(true)).concat(@syncEvent())
     return ret
 
