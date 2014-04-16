@@ -139,7 +139,7 @@ var lua_fetchMessage = " \
     local msg = redis.call('get', messagePrefix..v); \
     if msg then \
       msg = cjson.decode(msg); \
-      if msg.type == 201 then \
+      if msg.type == 201 and msg.src == 0 then \
         reward[#reward+1] = msg; \
       else \
         result[#result+1] = msg; \
@@ -179,26 +179,6 @@ var lua_fetchMessage = " \
   else \
     return '[]'; \
   end";
-
-//   dbClient.smembers(playerMessagePrefix+name, function (err, ids) {
-//     async.map(
-//       ids, 
-//       function (id, cb) { dbClient.get(messagePrefix+id, cb); },
-//       function (err, results) {
-//         if (results) results = results.map(JSON.parse);
-//         if (handler) handler(err, results);
-//       });
-//   });
-// lua_fetchMessage = " \
-//   local dbPrefix, name = ARGV[1], ARGV[2]; \
-//   local messageKey = dbPrefix..'.message.'..name; \
-//   local playerMessagePrefix = dbPrefix..'.playerMessage.'..name; \
-//   local list = redis.call('SMEMBERS', messageKey); \
-//   for i, v in ipairs(list) do \
-//     ; \
-//   end \
-//   local board = redis.call('zrevrange', key, from, to); \
-//   return {rank, board};";
 
 exports.updateSessionInfo = function (session, obj, handler) {
   dbClient.hmset(makeDBKey([sessionPrefix, session]), obj, handler);
@@ -493,7 +473,6 @@ exports.initializeDB = function (cfg) {
   dbClient.script('load', lua_fetchMessage, function (err, sha) {
     exports.fetchMessage = function (name, handler) {
       dbClient.evalsha(sha, 0, dbPrefix, name, function (err, ret) {
-        console.log(name, err, ret);
         if (handler) { handler(err, JSON.parse(ret)); }
       });
     };
@@ -535,3 +514,10 @@ exports.broadcastEvent = function (type, arg, handler) {
     arg: arg
   });
 }; 
+
+exports.getServerConfig = function (key, handler) {
+  dbClient.hget("ServerConfig", key, handler);
+};
+exports.setServerConfig = function (key, value, handler) {
+  dbClient.hset("ServerConfig", key, value, handler);
+};
