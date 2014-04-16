@@ -65,16 +65,7 @@ describe('Helper', function () {
       "Publisher": { "IP": "localhost", "PORT": 6379},
       "Subscriber": { "IP": "localhost", "PORT": 6379}
     });
-//   dbClient.smembers(playerMessagePrefix+name, function (err, ids) {
-//     async.map(
-//       ids, 
-//       function (id, cb) { dbClient.get(messagePrefix+id, cb); },
-//       function (err, results) {
-//         if (results) results = results.map(JSON.parse);
-//         if (handler) handler(err, results);
-//       });
-//   });
-// lua_fetchMessage = " \
+
     var config = [
       {
         name: 'battleForce',
@@ -126,10 +117,21 @@ describe('Helper', function () {
     });
   });
 
-  describe('Time Diff', function () {
-    var diff = helpLib.diffDate;
-    var x = diff('2014/3/16', '2014/3/12', 'second');
-    console.log('X', x);
+  describe('Time Method', function () {
+    it('Diff', function () {
+      var diff = helpLib.diffDate;
+      var x = diff('2014/3/16', '2014/3/12', 'second');
+    });
+    it('Match', function () {
+      var match = helpLib.matchDate;
+      shall(match('2014/4/16', '2014/4/17', {weekday: 10})).equal(false);
+      shall(match('2014/4/16', '2014/4/17', {weekday: 4})).equal(true);
+      shall(match('2014/4/16', '2014/4/17', {monthday: 17})).equal(true);
+      shall(match('2014/4/16', '2014/4/18', {monthday: 19})).equal(false);
+      shall(match('2014/4/16', '2014/4/18', {weekday: 7, hour: 12})).equal(false);
+      shall(match('2014/4/16', '2014/4/20', {weekday: 7, hour: 12})).equal(false);
+      shall(match('2014/4/16', '2014/4/20 13:00:00', {weekday: 7, hour: 12})).equal(true);
+    });
   });
 });
 /*

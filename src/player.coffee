@@ -56,7 +56,7 @@ class Player extends DBWrapper
       lastLogin: currentTime(),
       creationDate: now.valueOf(),
       isNewPlayer: true,
-      loginStreak: {count: 0, date: currentTime()},
+      loginStreak: {count: 0},
       accountID: -1,
       campaignState: {},
       infiniteTimer: currentTime(),

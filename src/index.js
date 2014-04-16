@@ -31,10 +31,6 @@ var config = {
   type : 'Worker',
   handler: require("./commandHandlers").route,
   init : function () {
-    gServerName = queryTable(TABLE_CONFIG, 'ServerName');
-    dbPrefix = gServerName+dbSeparator;
-    gServerID = queryTable(TABLE_CONFIG, 'ServerID');
-    dbLib.initializeDB(queryTable(TABLE_CONFIG, 'DB_Config_'+gServerName));
     gServer.startTcpServer(config);
     gServer.serverInfo.type = config.type;
     serverType = config.type;
@@ -68,6 +64,10 @@ if (config) {
   initiateFluentLogger();
   initServer();
   initGlobalConfig(null, function () {
+    gServerName = queryTable(TABLE_CONFIG, 'ServerName');
+    dbPrefix = gServerName+dbSeparator;
+    gServerID = queryTable(TABLE_CONFIG, 'ServerID');
+    dbLib.initializeDB(queryTable(TABLE_CONFIG, 'DB_Config_'+gServerName));
     require('./helper').initLeaderboard(queryTable(TABLE_LEADBOARD));
     domain.run(config.init);
   });

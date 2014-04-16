@@ -1,4 +1,5 @@
 {conditionCheck} = require('./trigger')
+moment = require('moment')
 
 # React Programming
 tap = (obj, key, callback, invokeFlag = false) ->
@@ -60,6 +61,8 @@ exports.tap = tap
 # Leaderboard
 exports.initLeaderboard = (config) ->
   localConfig = []
+  srvCfg = {}
+
   generateHandler = (dbKey, cfg) ->
     return (name, value) ->
       require('./dbWrapper').updateLeaderboard(dbKey, name, value)
@@ -67,6 +70,16 @@ exports.initLeaderboard = (config) ->
   for key, cfg of config
     localConfig[key] = { func: generateHandler(cfg.name, cfg) }
     localConfig[key][k] = v for k, v of cfg
+
+  dbLib = require('./db')
+  dbLib.getServerConfig('Leaderboard', (err, arg) ->
+    if arg then srvCfg = JSON.parse(arg)
+    
+    for key, cfg of config when not srvCfg[cfg.name]
+      srvCfg[cfg.name] = currentTime()
+
+    dbLib.setServerConfig('Leaderboard', JSON.stringify(srvCfg))
+  )
 
   exports.assignLeaderboard = (player) ->
     localConfig.forEach( (v) ->
@@ -83,12 +96,15 @@ exports.initLeaderboard = (config) ->
       )
     )
 
+  tickLeaderboard = (board) ->
+    cfg = localConfig[board]
+
   exports.getPositionOnLeaderboard = (board, name, from, to, cb) ->
+    tickLeaderboard(board)
     cfg = localConfig[board]
     require('./db').queryLeaderboard(cfg.name, name, from, to, cb)
 
 # Time util
-moment = require('moment')
 currentTime = (needObject) ->
   obj = moment().zone("+08:00")
   if needObject
@@ -110,6 +126,26 @@ diffDate = (date, today, flag = 'day') ->
     when 'month' then return duration.asMonths()
     when 'year' then return duration.asYears()
 exports.diffDate = diffDate
+
+matchDate = (date, today, rule) ->
+  return false unless date
+  date = moment(date).zone("+08:00")
+  today = moment(today).zone("+08:00")
+
+  if rule.weekday?
+    date = date.weekday(rule.weekday)
+  else if rule.monthday?
+    date = date.date(rule.monthday)
+
+  if rule.month then date = date.month(rule.month)
+  if rule.day then date = date.day(rule.day)
+  if rule.hour then date = date.hour(rule.hour)
+  if rule.minute then date = date.minute(rule.minute)
+  if rule.second then date = date.second(rule.second)
+
+  return date <= today
+  
+exports.matchDate = matchDate
 
 # campaign
 initCampaign = (me, allCampaign, abIndex) ->
