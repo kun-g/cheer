@@ -174,7 +174,11 @@ var lua_fetchMessage = " \
     end \
     result[#result+1] = msg; \
   end \
-  return cjson.encode(result);";
+  if #result > 0 then \
+    return cjson.encode(result); \
+  else \
+    return '[]'; \
+  end";
 
 //   dbClient.smembers(playerMessagePrefix+name, function (err, ids) {
 //     async.map(
@@ -489,6 +493,7 @@ exports.initializeDB = function (cfg) {
   dbClient.script('load', lua_fetchMessage, function (err, sha) {
     exports.fetchMessage = function (name, handler) {
       dbClient.evalsha(sha, 0, dbPrefix, name, function (err, ret) {
+        console.log(name, err, ret);
         if (handler) { handler(err, JSON.parse(ret)); }
       });
     };
