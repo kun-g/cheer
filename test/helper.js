@@ -56,11 +56,25 @@ describe('Helper', function () {
     gServerID = 1;
     dbPrefix = gServerName;
     dbLib.initializeDB({
+      //"Account": { "IP": "10.4.3.41", "PORT": 6379},
+      //"Role": { "IP": "10.4.3.41", "PORT": 6379},
+      //"Publisher": { "IP": "10.4.3.41", "PORT": 6379},
+      //"Subscriber": { "IP": "10.4.3.41", "PORT": 6379}
       "Account": { "IP": "localhost", "PORT": 6379},
       "Role": { "IP": "localhost", "PORT": 6379},
       "Publisher": { "IP": "localhost", "PORT": 6379},
       "Subscriber": { "IP": "localhost", "PORT": 6379}
     });
+//   dbClient.smembers(playerMessagePrefix+name, function (err, ids) {
+//     async.map(
+//       ids, 
+//       function (id, cb) { dbClient.get(messagePrefix+id, cb); },
+//       function (err, results) {
+//         if (results) results = results.map(JSON.parse);
+//         if (handler) handler(err, results);
+//       });
+//   });
+// lua_fetchMessage = " \
     var config = [
       {
         name: 'battleForce',

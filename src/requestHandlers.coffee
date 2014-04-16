@@ -370,7 +370,7 @@ exports.route = {
       helperLib.getPositionOnLeaderboard(arg.typ,
         player.name,
         arg.src,
-        arg.src+arg.cnt,
+        arg.src+arg.cnt-1,
         (err, result) ->
           ret = {REQ: rpcID, RET: RET_OK}
           if arg.me? then ret.me = result.position

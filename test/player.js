@@ -12,7 +12,7 @@ var spellLib = require('../js/spell');
 //gServerName = 'UnitTest';
 //gServerID = 1;
 //dbPrefix = gServerName+'.';
-
+/*
 var dbLib = require('../js/db');
 dbPrefix = 'Develop'+'.';
 dbLib.initializeDB({
@@ -39,6 +39,7 @@ dbLib.loadPlayer('呃呃饭否', function (err, p) {
   //p.submitCampaign('event_daily', console.log);
   //p.save(console.log);
 });
+*/
 
 
 

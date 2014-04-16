@@ -71,23 +71,6 @@ lua_createPassportWithAccount = " \
     return uid; \
   end";
 
-//function createPassportWithAccount (type, id, handler) {
-//  acc = -1;
-//  async.waterfall([
-//      function (cb) { accountDBClient.incr(CurrentAccountID, cb); },
-//      function (account, cb) {
-//        acc = account;
-//        async.parallel([
-//            function (cb) { accountDBClient.set(makeDBKey([passportPrefix, type, id, 'account']), account, cb); },
-//            function (cb) { accountDBClient.hset(makeDBKey([accPrefix, account]), 'creation_date', (new Date()).valueOf(), cb); }
-//          ], cb);
-//      }], function (err, result) {
-//        if (handler) {
-//          handler(err, acc);
-//        }
-//      });
-//}
-
 exports.loadAccount = function (id, handler) { accountDBClient.hgetall(makeDBKey([accPrefix, id]), handler); };
 exports.getPlayerNameByID = function (id, serverName, cb)  { accountDBClient.hget(makeDBKey([accPrefix, id]), serverName, cb); };
 // TODO: creation after creation
@@ -144,6 +127,54 @@ lua_queryLeaderboard = " \
   local rank = redis.call('ZRANK', key, name); \
   local board = redis.call('zrevrange', key, from, to); \
   return {rank, board};";
+
+var lua_fetchMessage = " \
+  local dbPrefix, name = ARGV[1], ARGV[2]; \
+  local messagePrefix = dbPrefix..'message.'; \
+  local playerMessage = dbPrefix..'playerMessage.'..name; \
+  local list = redis.call('SMEMBERS', playerMessage); \
+  local result = {}; \
+  local reward = {}; \
+  for i, v in ipairs(list) do \
+    local msg = redis.call('get', messagePrefix..v); \
+    if msg then \
+      msg = cjson.decode(msg); \
+      if msg.type == 201 then \
+        reward[#reward+1] = msg; \
+      else \
+        result[#result+1] = msg; \
+      end \
+    else \
+      redis.call('srem', playerMessage, v); \
+    end \
+  end \
+  if #reward > 0 then \
+    local msg = reward[1]; \
+    if #reward > 1 then \
+      local tmp = { exp=0, wxp=0, gold=0, diamond=0 }; \
+      for _, p in ipairs(reward) do \
+        for _, v in ipairs(p.prize) do \
+          if v.type == 1 then tmp.gold = tmp.gold+v.count; end \
+          if v.type == 2 then tmp.diamond = tmp.diamond+v.count; end \
+          if v.type == 3 then tmp.exp = tmp.exp+v.count; end \
+          if v.type == 4 then tmp.wxp = tmp.wxp+v.count; end \
+        end \
+        redis.call('srem', playerMessage, p.messageID); \
+        redis.call('del', messagePrefix..p.messageID); \
+      end \
+      local tmpPrize = {}; \
+      if tmp.gold>0 then table.insert(tmpPrize, {type=1, count=tmp.gold}); end\
+      if tmp.diamond>0 then table.insert(tmpPrize, {type=2, count=tmp.diamond}); end\
+      if tmp.exp>0 then table.insert(tmpPrize, {type=3, count=tmp.exp}); end\
+      if tmp.wxp>0 then table.insert(tmpPrize, {type=4, count=tmp.wxp}); end\
+      local msgID = redis.call('INCR', dbPrefix..'message.MessageID'); \
+      msg = {type=201, messageID=msgID, src=0, prize=tmpPrize}; \
+      redis.call('SADD', playerMessage, msgID); \
+      redis.call('SET', messagePrefix..msgID, cjson.encode(msg)); \
+    end \
+    result[#result+1] = msg; \
+  end \
+  return cjson.encode(result);";
 
 //   dbClient.smembers(playerMessagePrefix+name, function (err, ids) {
 //     async.map(
@@ -303,18 +334,6 @@ function removeMessage(name, id, handler) {
 }
 exports.removeMessage = removeMessage;
 
-function fetchMessage(name, handler) {
-  dbClient.smembers(playerMessagePrefix+name, function (err, ids) {
-    async.map(
-      ids, 
-      function (id, cb) { dbClient.get(messagePrefix+id, cb); },
-      function (err, results) {
-        if (results) results = results.map(JSON.parse);
-        if (handler) handler(err, results);
-      });
-  });
-}
-exports.fetchMessage = fetchMessage;
 exports.removeDungeon = function (name, handler) {
   dbClient.hdel(playerPrefix + name, 'dungeonData', handler);
 }
@@ -467,6 +486,26 @@ exports.initializeDB = function (cfg) {
       });
     };
   });
+  dbClient.script('load', lua_fetchMessage, function (err, sha) {
+    exports.fetchMessage = function (name, handler) {
+      dbClient.evalsha(sha, 0, dbPrefix, name, function (err, ret) {
+        if (handler) { handler(err, JSON.parse(ret)); }
+      });
+    };
+  });
+//function fetchMessage(name, handler) {
+//  dbClient.smembers(playerMessagePrefix+name, function (err, ids) {
+//    async.map(
+//      ids, 
+//      function (id, cb) { dbClient.get(messagePrefix+id, cb); },
+//      function (err, results) {
+//        if (results) results = results.map(JSON.parse);
+//        if (handler) handler(err, results);
+//      });
+//  });
+//}
+//exports.fetchMessage = fetchMessage;
+
 };
 
 exports.releaseDB = function () {
