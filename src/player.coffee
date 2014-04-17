@@ -204,35 +204,40 @@ class Player extends DBWrapper
       @stageTableVersion = queryTable(TABLE_VERSION, 'stage')
     @loadDungeon()
 
+  handleReceipt: (myReceipt, tunnel, cb) ->
+    productList = queryTable(TABLE_CONFIG, 'Product_List')
+    rec = unwrapReceipt(myReceipt)
+    cfg = productList[rec.productID]
+    ret = [{ NTF: Event_InventoryUpdateItem, arg: { dim : @addDiamond(cfg.diamond) }}]
+    @rmb += cfg.rmb
+    @onCampaign('RMB', cfg.rmb)
+    @log('charge', {
+      rmb: cfg.rmb,
+      diamond: cfg.diamond,
+      tunnel:tunnel,
+      action: 'charge',
+      product: rec.productID,
+      receipt : myReceipt
+    })
+    ret.push({NTF: Event_PlayerInfo, arg: { rmb: @rmb }})
+    ret.push({NTF: Event_RoleUpdate, arg: { act: {vip: @vipLevel()}}})
+    postPaymentInfo(@createHero().level, myReceipt, payment.paymentType)
+    dbWrapper.updateReceipt(myReceipt, RECEIPT_STATE_CLAIMED, (err) -> cb(err, ret))
+    @saveDB()
+
   handlePayment: (payment, handle) ->
     @log('handlePayment', {payment: payment})
     switch payment.paymentType
-      when 'AppStore' then throw 'AppStore Payment'
+      when 'AppStore' then @handleReceipt(payment.receipt, 'AppleStore', cb)
       when 'PP25', 'ND91'
         myReceipt = payment.receipt
-        switch payment.paymentType
-          when 'PP25' then myUnwrap = unwrapReceipt
-          when 'ND91' then myUnwrap = unwrapReceipt91
-
         async.waterfall([
           (cb) ->
             dbWrapper.getReceipt(myReceipt, (err, receipt) ->
-              if receipt? and receipt.state isnt  RECEIPT_STATE_DELIVERED then cb(Error(RET_Issue37)) else cb(null, receipt)
+              if receipt? and receipt.state isnt  RECEIPT_STATE_DELIVERED then cb(Error(RET_Issue37)) else cb(null, myReceipt, paymentType)
             )
           ,
-          (receipt, cb) =>
-            productList = queryTable(TABLE_CONFIG, 'Product_List')
-            rec = myUnwrap(myReceipt)
-            cfg = productList[rec.productID]
-            ret = [{ NTF: Event_InventoryUpdateItem, arg: { dim : @addDiamond(cfg.diamond) }}]
-            @rmb += cfg.rmb
-            @onCampaign('RMB', cfg.rmb)
-            @log('charge', {rmb: cfg.rmb, diamond: cfg.diamond, tunnel: 'PP', action: 'charge', product: rec.pid, receipt : myReceipt })
-            ret.push({NTF: Event_PlayerInfo, arg: { rmb: @rmb }})
-            ret.push({NTF: Event_RoleUpdate, arg: { act: {vip: @vipLevel()}}})
-            postPaymentInfo(@createHero().level, myReceipt, payment.paymentType)
-            dbWrapper.updateReceipt(myReceipt, RECEIPT_STATE_CLAIMED, (err) -> cb(err, ret))
-            @saveDB()
+          (receipt, tunnel, cb) => @handleReceipt(receipt, tunnel, cb)
         ], (error, result) =>
           if error
             logError({name: @name, receipt: myReceipt, type: 'handlePayment', error: error, result: result})

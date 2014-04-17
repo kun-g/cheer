@@ -548,8 +548,6 @@ Event_UpdateStoreInfo = 10;
 Event_Fail = 11;
 Event_UpdateQuest = 19;
 
-exports.fileVersion = -1;
-
 tap = function(obj, key, callback, invokeFlag) {
   var theCB;
   if (invokeFlag == null) {
@@ -636,3 +634,5 @@ tapObject = function(obj, callback) {
 };
 exports.tap = tap;
 exports.tapObject = tapObject;
+
+exports.fileVersion = -1;

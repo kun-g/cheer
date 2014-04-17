@@ -4,6 +4,7 @@ helperLib = require('./helper')
 {DBWrapper, getMercenaryMember, updateMercenaryMember, addMercenaryMember, getPlayerHero} = require './dbWrapper'
 async = require('async')
 http = require('http')
+https = require('https')
 moment = require('moment')
 {Player} = require('./player')
 
@@ -304,6 +305,33 @@ exports.route = {
     ,
     args: ['stg'],
     needPid: true
+  },
+  RPC_VerifyPayment: {
+    func: (arg, player, handler, rpcID, socket) ->
+      logInfo({action: 'VerifyPayment', type: 'Apple', arg: arg})
+      switch arg.type
+        when 'AppStore'
+          options = {
+            hostname: 'buy.itunes.apple.com',
+            port: 443,
+            path: '/verifyReceipt',
+            method: 'POST'
+          }
+          req = https.request(options, (res) ->
+            res.setEncoding('utf8')
+            res.on('data', (chunk) ->
+              result = JSON.parse(chunk)
+              logInfo({action: 'VerifyPayment', type: 'Apple', code: result})
+              if result.status isnt 0 or result.original_transaction_id
+                return handler([{REQ: rpcID, RET: RET_Unknown}])
+
+              receipt = arg.receipt
+              #receiptInfo = unwrapReceipt(result.transaction_id)
+              #serverName = 'Master'
+              player.handlePayment({paymentType: 'AppStore', receipt: receipt}, handler)
+            )
+          )
+          .on('error', (e) -> logError({action: 'VerifyPayment', type: 'Apple', error: e}))
   },
   RPC_BindSubAuth: {
     func: (arg, player, handler, rpcID, socket) ->

@@ -146,7 +146,7 @@ paymentServer = require('http').createServer(wrapCallback(function (request, res
     sign = md5Hash(b.toString('binary', 0, len));
     if (sign === out.Sign) {
       var receipt = out.CooOrderSerial;
-      var receiptInfo = unwrapReceipt91(receipt);
+      var receiptInfo = unwrapReceipt(receipt);
       var serverName = 'Master'; //TODO:多服的情况?
       dbWrapper.updateReceipt(receipt, RECEIPT_STATE_AUTHORIZED, function (err) {
         dbLib.getPlayerNameByID(receiptInfo.id, serverName, function (err, name) {
