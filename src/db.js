@@ -23,8 +23,12 @@ exports.verifyAuth = function (id, token, handler) {
   });
 };
 exports.bindAuth = function (account, id, pass, handler) {
-  var salt = Math.random();
-  pass = md5Hash(salt+pass);
+  var acc = { account: account };
+  if (pass) {
+    acc.salt = Math.random();
+    acc.pass = md5Hash(acc.salt+pass);
+  }
+
   async.series([
       function (cb) { nameValidation(id, cb); },
       function (cb) { 
@@ -36,15 +40,8 @@ exports.bindAuth = function (account, id, pass, handler) {
           }
         });
       },
-      function (cb) {
-        accountDBClient.hmset(makeDBKey([authPrefix, id]), 
-            {
-              account: account,
-              pass: pass,
-              salt: salt
-            },
-            cb);
-      }], handler);
+      function (cb) { accountDBClient.hmset(makeDBKey([authPrefix, id]), acc, cb); }
+    ], handler);
 };
 exports.loadPassport = function (type, id, createOnFail, handler) {
   accountDBClient.get(makeDBKey([passportPrefix, type, id, 'account']), function (err, ret) {
