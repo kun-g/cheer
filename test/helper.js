@@ -56,10 +56,6 @@ describe('Helper', function () {
     gServerID = 1;
     dbPrefix = gServerName;
     dbLib.initializeDB({
-      //"Account": { "IP": "10.4.3.41", "PORT": 6379},
-      //"Role": { "IP": "10.4.3.41", "PORT": 6379},
-      //"Publisher": { "IP": "10.4.3.41", "PORT": 6379},
-      //"Subscriber": { "IP": "10.4.3.41", "PORT": 6379}
       "Account": { "IP": "localhost", "PORT": 6379},
       "Role": { "IP": "localhost", "PORT": 6379},
       "Publisher": { "IP": "localhost", "PORT": 6379},
@@ -73,6 +69,7 @@ describe('Helper', function () {
         reverse: false,
         initialValue: 5,
         type: 'player',
+        resetTime: { weekday: 4, hour: 8 },
         availableConfition: true
       },
       {
@@ -99,6 +96,8 @@ describe('Helper', function () {
         p.battleForce -= i;
         shall(p.scores.goldenSlime).equal(5);
       });
+
+      helpLib.getPositionOnLeaderboard(0, 'Ken', 0, 10, console.log);
       done();
       /* TODO:
       async.map(
