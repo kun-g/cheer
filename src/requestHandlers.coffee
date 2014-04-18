@@ -168,9 +168,10 @@ exports.route = {
         ,
         #TODO: accelerate this
         (account, cb) -> dbLib.createNewPlayer(account, gServerName, name, cb),
-        (_, cb) ->
+        (account, cb) ->
           player = new Player()
           player.setName(name)
+          player.accountID = account
           player.initialize()
           player.createHero({ name: name, class: arg.cid, gender: arg.gen, hairStyle: arg.hst, hairColor: arg.hcl })
           logUser({ name: name, action: 'register', class: arg.cid, gender: arg.gen, hairStyle: arg.hst, hairColor: arg.hcl })
