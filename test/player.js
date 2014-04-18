@@ -12,11 +12,11 @@ var spellLib = require('../js/spell');
 //gServerName = 'UnitTest';
 //gServerID = 1;
 //dbPrefix = gServerName+'.';
-/*
+
 var dbLib = require('../js/db');
 dbPrefix = 'Develop'+'.';
 dbLib.initializeDB({
-  "Account": { "IP": "10.4.3.41", "PORT": 6379},
+  "Account": { "IP": "10.4.4.188", "PORT": 6380},
   "Role": { "IP": "10.4.3.41", "PORT": 6379},
   "Publisher": { "IP": "10.4.3.41", "PORT": 6379},
   "Subscriber": { "IP": "10.4.3.41", "PORT": 6379}
@@ -26,7 +26,8 @@ dbLib.initializeDB({
   // "Subscriber": { "IP": "localhost", "PORT": 6379}
 });
 
-dbLib.loadPlayer('呃呃饭否', function (err, p) {
+dbLib.loadPassport( LOGIN_ACCOUNT_TYPE_91, '571082474', false, console.log);
+//dbLib.loadPlayer('呃呃饭否', function (err, p) {
   // p.startDungeon(104, true, function (err, ret) {
   //   console.log('XXX', err, ret);
   // });
@@ -38,8 +39,8 @@ dbLib.loadPlayer('呃呃饭否', function (err, p) {
   //p.quests[134].counters[0] = 3;
   //p.submitCampaign('event_daily', console.log);
   //p.save(console.log);
-});
-*/
+//});
+
 
 
 
