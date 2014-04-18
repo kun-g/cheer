@@ -1,4 +1,5 @@
 require('./define')
+triggerLib = require('./trigger')
 
 getSpellConfig = (spellID) ->
   cfg = queryTable(TABLE_SKILL, spellID)

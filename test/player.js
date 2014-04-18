@@ -26,7 +26,7 @@ dbLib.initializeDB({
   // "Subscriber": { "IP": "localhost", "PORT": 6379}
 });
 
-dbLib.loadPassport( LOGIN_ACCOUNT_TYPE_91, '571082474', false, console.log);
+//dbLib.loadPassport( LOGIN_ACCOUNT_TYPE_91, '571082474', false, console.log);
 //dbLib.loadPlayer('呃呃饭否', function (err, p) {
   // p.startDungeon(104, true, function (err, ret) {
   //   console.log('XXX', err, ret);

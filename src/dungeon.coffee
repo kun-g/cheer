@@ -60,38 +60,6 @@ calcInfiniteRank = (infiniteLevel) ->
   x = calcInfiniteX(infiniteLevel)
   return Math.ceil(0.1 * x*x + 0.1*x + 1)
 
-filterObject = (objects, filters, env) ->
-  filters = [filters] unless Array.isArray(filters)
-  result = (o for o in objects)
-  for f in filters
-    switch f.type
-      when 'same-faction' then result = (o for o in result when o.faction is f.faction)
-      when 'different-faction' then result = (o for o in result when o.faction isnt f.faction)
-      when 'target-faction-with-flag' then result = (o for o in result when env.getFactionConfig(f.faction, o.faction, f.flag))
-      when 'target-faction-without-flag' then result = (o for o in result when not env.getFactionConfig(f.faction, o.faction, f.flag))
-      when 'source-faction-with-flag' then result = (o for o in result when env.getFactionConfig(o.faction, f.faction, f.flag))
-      when 'source-faction-without-flag' then result = (o for o in result when not env.getFactionConfig(o.faction, f.faction, f.flag))
-      when 'role-id' then result = (o for o in result when o.roleID is f.roleID)
-      when 'alive' then result = (p for p in result when p.health > 0)
-      when 'visible' then result = (p for p in result when p.isVisible)
-      when 'is-hero' then result = (p for p in result when p.isHero())
-      when 'is-monster' then result = (p for p in result when not p.isHero())
-      when 'same-block' then result = (p for p in result when p.pos is @pos)
-      when 'sort' then result.sort( (a, b) -> if (f.reverse) then b[f.by] - a[f.by] else a[f.by] - b[f.by] )
-      when 'count' then result = result.slice(0, f.count)
-      when 'shuffle' then result = shuffle(result, env.rand())
-      when 'anchor'
-        tmp = result
-        result = []
-        for t in tmp
-          if not t.isBlock then t = env.getBlock(t.pos)
-          x = t.pos % Dungeon_Width
-          y = (t.pos-x) / Dungeon_Width
-          for a in f.anchor when 0 <= a.x+x < Dungeon_Width and 0 <= a.y+y < Dungeon_Height
-            result.push(env.getBlock(a.x+x + (a.y+y) * Dungeon_Width ))
-
-  return result
-
 # 创建怪物的设计：
 # 指定位置 pos
 # 指定属性 property
@@ -174,7 +142,6 @@ createUnits = (rules, randFunc) ->
 
   return result
 
-exports.filterObject = filterObject
 exports.createUnits = createUnits
 
 class Dungeon

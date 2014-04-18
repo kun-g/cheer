@@ -1,3 +1,37 @@
+filterObject = (me, objects, filters, env) ->
+  filters = [filters] unless Array.isArray(filters)
+  result = (o for o in objects)
+  for f in filters
+    srcFaction = me.faction ? f.faction
+    switch f.type
+      when 'alive' then result = (p for p in result when p.health > 0)
+      when 'same-faction' then result = (o for o in result when o.faction is srcFaction)
+      when 'different-faction' then result = (o for o in result when o.faction isnt srcFaction)
+      when 'target-faction-with-flag' then result = (o for o in result when env.getFactionConfig(srcFaction, o.faction, f.flag))
+      when 'source-faction-with-flag' then result = (o for o in result when env.getFactionConfig(o.faction, srcFaction, f.flag))
+      when 'target-faction-without-flag' then result = (o for o in result when not env.getFactionConfig(srcFaction, o.faction, f.flag))
+      when 'source-faction-without-flag' then result = (o for o in result when not env.getFactionConfig(o.faction, srcFaction, f.flag))
+      when 'role-id' then result = (o for o in result when o.roleID is f.roleID)
+      when 'visible' then result = (p for p in result when p.isVisible)
+      when 'not-me' then result = (p for p in result when p.ref isnt @ref)
+      when 'same-block' then result = (p for p in result when p.pos is @pos)
+      when 'sort' then result.sort( (a, b) -> if (f.reverse) then b[f.by] - a[f.by] else a[f.by] - b[f.by] )
+      when 'count' then result = result.slice(0, f.count)
+      when 'shuffle' then result = shuffle(result, env.rand())
+      when 'anchor'
+        tmp = result
+        result = []
+        for t in tmp
+          if not t.isBlock then t = env.getBlock(t.pos)
+          x = t.pos % Dungeon_Width
+          y = (t.pos-x) / Dungeon_Width
+          for a in f.anchor when 0 <= a.x+x < Dungeon_Width and 0 <= a.y+y < Dungeon_Height
+            result.push(env.getBlock(a.x+x + (a.y+y) * Dungeon_Width ))
+
+  return result
+
+exports.filterObject = filterObject
+
 doGetProperty = (obj, key) ->
   properties = key.split('.')
   for k in properties
