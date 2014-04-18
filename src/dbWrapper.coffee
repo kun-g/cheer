@@ -46,7 +46,7 @@ class DBWrapper extends Serializer
 exports.DBWrapper = DBWrapper
 
 exports.updateReceipt = (receipt, state, handler) ->
-  dbKey = makeDBKey([ReceiptPrefix, receipt])
+  dbKey = makeDBKey([receipt], ReceiptPrefix)
   accountDBClient.hgetall(dbKey, (err, ret) ->
     if err then return handler(err)
     #if not ret?
@@ -55,7 +55,7 @@ exports.updateReceipt = (receipt, state, handler) ->
     #  newPendingReceipt(dbKey)
   )
 exports.getReceipt = (receipt, handler) ->
-  dbKey = makeDBKey([ReceiptPrefix, receipt])
+  dbKey = makeDBKey([receipt], ReceiptPrefix)
   accountDBClient.hgetall(dbKey, handler)
 
 ############################ Mercenary
