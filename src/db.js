@@ -88,7 +88,9 @@ function createNewPlayer (account, server, name, handle) {
           cb(null);
         }
       }
-    ], handle);
+    ], function (err, result) {
+      handle(err, account);
+    });
 }
 exports.createNewPlayer = createNewPlayer;
 
@@ -108,7 +110,7 @@ lua_createNewPlayer = " \
     local x = redis.call('hmset', key, 'accountID', account, 'name', name, 'isNewPlayer', 'true'); \
     local y = redis.call('hset', limitsKey, 'blueStar', 8); \
     local z = redis.call('hmset', sharedKey, 'blueStar', 0, 'contactLimit', 20); \
-    return 'OK'; \
+    return account; \
   end";
 
 lua_createSessionInfo = " \
