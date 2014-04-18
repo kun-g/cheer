@@ -1,15 +1,5 @@
 require('./define')
 {Wizard} = require('./spell')
-#中途遇见凯瑟琳，凯瑟琳加入队伍，凯瑟琳死亡，任务失败
-#win / lose condition
-#new teammate
-
-#击败凯尔后，凯瑟琳离开队伍，成为敌人
-#remove teammate
-#change team
-
-#护送/保护npc，怪物主动攻击npc，有特定卡牌可以治疗npc
-#跟随的npc
 
 flagCreation = false
 
@@ -135,7 +125,6 @@ class Monster extends Unit
   initialize: () ->
     cfg = queryTable(TABLE_ROLE, @id) if @id?
     @initWithConfig(cfg) if cfg?
-    @faction = 'monster'
 
     console.log('Monster ', JSON.stringify(@)) if flagCreation
 
@@ -155,7 +144,6 @@ class Npc extends Unit
   initialize: () ->
     cfg = queryTable(TABLE_ROLE, @id) if @id?
     @initWithConfig(cfg) if cfg?
-    @faction = 'npc'
 
 createUnit = (config) ->
   cfg = queryTable(TABLE_ROLE, config.id) if config?.id?

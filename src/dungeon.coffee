@@ -152,23 +152,7 @@ class Dungeon
     @cardStack = CardStack(5)
     @actionLog = []
     @revive = 0
-    @factionDB = {
-      hero: {
-        hero: { attackable: false, healable: true },
-        monster: { attackable: true, healable: false },
-        npc: { attackable: false, healable: false }
-      },
-      monster: {
-        hero: { attackable: true, healable: false },
-        monster: { attackable: false, healable: true },
-        npc: { attackable: false, healable: false }
-      },
-      npc: {
-        hero: { attackable: false, healable: false },
-        npc: { attackable: false, healable: true },
-        monster: { attackable: false, healable: false }
-      }
-    }
+    @factionDB = queryTable(TABLE_FACTION)
 
     @triggerManager = new TriggerManager(queryTable(TABLE_TRIGGER))
     return false unless data?
