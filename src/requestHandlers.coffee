@@ -51,7 +51,7 @@ loginBy = (passportType, passport, token, callback) ->
       req.end()
     when LOGIN_ACCOUNT_TYPE_TG
       dbLib.loadAuth(passport, token, callback)
-    when LOGIN_ACCOUNT_TYPE_AD
+    when LOGIN_ACCOUNT_TYPE_AD, LOGIN_ACCOUNT_TYPE_GAMECENTER
       callback(null)
     else
       callback(Error(RET_Issue33))
@@ -335,12 +335,10 @@ exports.route = {
           .on('error', (e) -> logError({action: 'VerifyPayment', type: 'Apple', error: e}))
   },
   RPC_BindSubAuth: {
+    id: 105,
     func: (arg, player, handler, rpcID, socket) ->
-      dbLib.bindAuth(player.accountID, arg.id, arg.pass, (err) ->
-        if err
-          handler([{REQ: rpcID, RET: err}])
-        else
-          handler([{REQ: rpcID, RET: RET_OK}])
+      dbLib.bindAuth(player.accountID, arg.typ, arg.id, arg.pass, (err, account) ->
+        handler([{REQ: rpcID, RET: RET_OK, account: account}])
       )
     ,
     args: [],
