@@ -1,4 +1,5 @@
 require('./define')
+require('./shared')
 {Wizard} = require './spell'
 {DBWrapper} = require './dbWrapper'
 {createUnit, Hero} = require './unit'
@@ -793,7 +794,8 @@ class DungeonEnvironment extends Environment
   getFactionConfig: (src, tar, flag) ->
     factionDB = @dungeon.factionDB
     return false unless factionDB? and factionDB[src]? and factionDB[src][tar]?
-    return factionDB[src][tar]
+    if flag? then return factionDB[src][tar][flag]
+    return factionDB[src][tar][flag]
 
   isEntranceExplored: () ->
     entrance = @dungeon.getEntrance()
@@ -1072,7 +1074,7 @@ dungeonCSConfig = {
       block = env.getBlock(env.variable('block'))
       if block.getType() is Block_Npc or block.getType() is Block_Enemy
         e = block.getRef(-1)
-        e.onEvent('Show', @)
+        e.onEvent('onShow', @)
         env.variable('monster', e)
         env.onEvent('onMonsterShow', @)
         if e?.isVisible isnt true

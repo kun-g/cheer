@@ -35,10 +35,6 @@ class Wizard
     @wSpellMutex = {}
     @wPreBuffState = { rs : BUFF_TYPE_NONE, ds : BUFF_TYPE_NONE, hs : BUFF_TYPE_NONE }
 
-  faction: (newFaction) ->
-    if newFaction? then @faction = newFaction
-    return @faction
-
   installSpell: (spellID, level, cmd, delay = 0) ->
     cfg = getSpellConfig(spellID)
     level = 1 unless level? > 0
@@ -228,48 +224,20 @@ class Wizard
     return [] unless cfg.targetSelection? and cfg.targetSelection.pool
     return [] unless cfg.targetSelection.pool is 'Self' or cmd?
     env = cmd.getEnvironment() if cmd?
+    pool = []
     switch cfg.targetSelection.pool
-      when 'Enemy' then pool = env.getEnemyOf(@)
-      when 'Team' then pool = env.getTeammateOf(@).concat(@)
-      when 'Teammate' then pool = env.getTeammateOf(@)
-      when 'Self' then pool = @
-      when 'Target' then pool = env.variable('tar')
-      when 'Source', 'Attacker' then pool = env.variable('src')
-      when 'SamePosition' then pool = env.getBlock(@pos).getRef()
-      when 'RoleID' then pool = (m for m in env.getObjects() when m.id is cfg.targetSelection.roleID)
-      when 'Block'
+      when 'self' then pool = [@]
+      when 'target' then pool = env.variable('tar')
+      when 'source' then pool = env.variable('src')
+      when 'objects' then pool = env.getObjects()
+      when 'blocks'
         blocks = cfg.targetSelection.blocks
         pool = if blocks? then (env.getBlock(b) for b in blocks) else env.getBlock()
 
-    pool = [] unless pool?
-    pool = [pool] unless Array.isArray(pool)
-
     if cfg.targetSelection.filter? and pool.length > 0
-      for filter in cfg.targetSelection.filter
-        switch filter
-          when 'Alive' then pool = (p for p in pool when p.health > 0)
-          when 'Visible' then pool = (p for p in pool when p.isVisible)
-          when 'Hero' then pool = (p for p in pool when p.isHero())
-          when 'Monster' then pool = (p for p in pool when not p.isHero())
-          when 'SameBlock' then pool = (p for p in pool when p.pos is @pos)
+      pool = triggerLib.filterObject(this, pool, cfg.targetSelection.filter, env)
 
-    count = cfg.targetSelection.count ? 1
-    if cfg.targetSelection.method? and pool.length > 0
-      switch cfg.targetSelection.method
-        when 'Rand'
-          pool = env.randMember(pool, count)
-          pool = [pool] unless Array.isArray(pool)
-        when 'LowHealth' then pool = [pool.sort( (a, b) -> return a.health - b.health )[0]]
-
-    if cfg.targetSelection.anchor and env?
-      tmp = pool
-      pool = []
-      for t in tmp
-        if not t.isBlock then t = env.getBlock(t.pos)
-        x = t.pos % Dungeon_Width
-        y = (t.pos-x) / Dungeon_Width
-        for a in cfg.targetSelection.anchor when 0 <= a.x+x < Dungeon_Width and 0 <= a.y+y < Dungeon_Height
-          pool.push(env.getBlock(a.x+x + (a.y+y) * Dungeon_Width ))
+    throw 'OOOO' unless Array.isArray(pool)
 
     return pool
 
@@ -347,6 +315,7 @@ class Wizard
         when 'chainBlock' then cmd.routine({id: 'ChainBlock', src: src, tar: a.target}) for src in a.source
         when 'castSpell' then @castSpell(a.spell, a.level ? 1, cmd)
         when 'newFaction' then env.newFaction(a.name)
+        when 'changeFaction' then t.faction = a.faction for t in target
         when 'factionAttack' then env.factionAttack(a.src, a.tar, a.flag)
         when 'factionHeal' then env.factionHeal(a.src, a.tar, a.flag)
         when 'heal'

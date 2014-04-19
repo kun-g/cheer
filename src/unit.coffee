@@ -37,6 +37,7 @@ class Unit extends Wizard
     @type = Unit_Boss if roleConfig.bossFlag
     @collectId = roleConfig.collectId if roleConfig.collectId?
     @modifyProperty(roleConfig.property) if roleConfig.property?
+    @faction = roleConfig.faction
     if flagCreation
       console.log('Property ', JSON.stringify(roleConfig.property))
 
