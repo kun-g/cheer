@@ -30,12 +30,12 @@ exports.bindAuth = function (account, type, id, pass, handler) {
   //}
   var key = makeDBKey([passportPrefix, type, id, 'account']);
   accountDBClient.get(key, function (err, account) {
-    if (result != null) {
+    if (account != null) {
       accountDBClient.set(key, account, function () {
         handler(null, account);
       });
     } else {
-      handler(null, result);
+      handler(null, account);
     }
   });
 };
