@@ -48,22 +48,25 @@ startTcpServer = (servers, port) ->
   appNet.createConnection = () ->
     server = appNet.aliveServers[appNet.currIndex]
     appNet.currIndex = appNet.currIndex + 1 % appNet.aliveServers.length
-    return net.connect(server)
+    return net.connect(server.port, server.ip)
 
   setInterval( (() ->
     async.map(
       appNet.backends,
       (e, cb) ->
-        s = net.connect(e, () ->
-          e.alive = true
-          s.destroy()
-          cb(null, e)
-        )
-        s.on('error', () ->
-          e.alive = false
-          s.destroy()
-          cb(null, e)
-        )
+        #check status
+        if not e.alive
+          s = net.connect(e.port, e.ip, () ->
+            e.alive = true
+            s.destroy()
+            cb(null, e)
+          )
+          s.on('error', (err) ->
+            console.log('Error', err, e)
+            e.alive = false
+            s.destroy()
+            cb(null, e)
+          )
       ,
       (err, result) ->
         appNet.aliveServers = result.filter( (e) -> e.alive )
@@ -74,4 +77,4 @@ startTcpServer = (servers, port) ->
   appNet.server.listen(port, console.log)
   appNet.server.on('error', console.log)
 
-startTcpServer([{ip: 'localhost', port: 7756}], 7757)
+startTcpServer([{ip: '10.4.4.188', port: 7756}], 7757)

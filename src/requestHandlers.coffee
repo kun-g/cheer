@@ -4,6 +4,7 @@ helperLib = require('./helper')
 {DBWrapper, getMercenaryMember, updateMercenaryMember, addMercenaryMember, getPlayerHero} = require './dbWrapper'
 async = require('async')
 http = require('http')
+https = require('https')
 moment = require('moment')
 {Player} = require('./player')
 
@@ -25,7 +26,22 @@ loginBy = (passportType, passport, token, callback) ->
             callback(Error(RET_LoginFailed))
         )
       ).on('error', (e) -> logError({action: 'login', type:  LOGIN_ACCOUNT_TYPE_91, error: e}))
-    #when LOGIN_ACCOUNT_TYPE_KY
+    when LOGIN_ACCOUNT_TYPE_KY
+      appID = '112988' #TODO
+      appKey = 'd30d9f0f53e2654274505e25c27913fe709eb1ad6265e5c5'
+      sign = md5Hash(token+appKey)
+      path = 'http://service.sj.91.com/usercenter/AP.aspx?tokenKey='+token+'&sign='+sign
+      http.get(path, (res) ->
+        res.setEncoding('utf8')
+        res.on('data', (chunk) ->
+          result = JSON.parse(chunk)
+          logInfo({action: 'login', type:  LOGIN_ACCOUNT_TYPE_91, code: result})
+          if result.code is 0
+            callback(null)
+          else
+            callback(Error(RET_LoginFailed))
+        )
+      ).on('error', (e) -> logError({action: 'login', type:  LOGIN_ACCOUNT_TYPE_91, error: e}))
     when LOGIN_ACCOUNT_TYPE_PP
       options = {
         host: 'passport_i.25pp.com',
@@ -50,7 +66,7 @@ loginBy = (passportType, passport, token, callback) ->
       req.end()
     when LOGIN_ACCOUNT_TYPE_TG
       dbLib.loadAuth(passport, token, callback)
-    when LOGIN_ACCOUNT_TYPE_AD
+    when LOGIN_ACCOUNT_TYPE_AD, LOGIN_ACCOUNT_TYPE_GAMECENTER
       callback(null)
     else
       callback(Error(RET_Issue33))
@@ -65,16 +81,6 @@ loadPlayer = (passportType, passport, callback) ->
 wrapReceipt = (name, serverID, time, productID, tunnel) -> name+'@'+serverID+'@'+time+'@'+productID+'@'+tunnel
 
 exports.route = {
-  RPC_ChargeDiamond: {
-    id: 15,
-    func: (arg, player, handle, rpcID, socket) ->
-      switch arg.stp
-        when 'AppStore' then throw Error('AppStore Payment')
-        when 'PP25' then throw Error('PP25 Payment')
-    ,
-    args: ['pid', 'string', 'rep', 'string'],
-    needPid: true
-  },
   RPC_Login: {
     id: 100,
     func: (arg, dummy, handle, rpcID, socket, registerFlag) ->
@@ -306,17 +312,71 @@ exports.route = {
     args: ['stg'],
     needPid: true
   },
-  RPC_BindSubAuth: {
-    func: (arg, player, handler, rpcID, socket) ->
-      dbLib.bindAuth(player.accountID, arg.id, arg.pass, (err) ->
-        if err
-          handler([{REQ: rpcID, RET: err}])
-        else
-          handler([{REQ: rpcID, RET: RET_OK}])
-      )
+  RPC_ChargeDiamond: {
+    id: 15,
+    func: (arg, player, handle, rpcID, socket) ->
+      switch arg.stp
+        when 'AppStore' then throw Error('AppStore Payment')
+        when 'PP25' then throw Error('PP25 Payment')
     ,
+    args: ['pid', 'string', 'rep', 'string'],
+    needPid: true
+  },
+  RPC_VerifyPayment: {
+    id: 15,
+    func: (arg, player, handler, rpcID, socket) ->
+      logInfo({action: 'VerifyPayment', type: 'Apple', arg: arg})
+      switch arg.stp
+        when 'AppStore'
+          options = {
+            #hostname: 'buy.itunes.apple.com',
+            hostname: 'sandbox.itunes.apple.com',
+            port: 443,
+            path: '/verifyReceipt',
+            method: 'POST'
+          }
+          req = https.request(options, (res) ->
+            res.setEncoding('utf8')
+            res.on('data', (chunk) ->
+              result = JSON.parse(chunk)
+              logInfo({action: 'VerifyPayment', type: 'Apple', code: result, receipt: arg.bill})
+              if result.status isnt 0 or result.original_transaction_id
+                return handler([{REQ: rpcID, RET: RET_Unknown}])
+
+              receipt = arg.bill
+              #receiptInfo = unwrapReceipt(result.transaction_id)
+              #serverName = 'Master'
+              player.handlePayment({
+                paymentType: 'AppStore',
+                productID: result.product_id,
+                receipt: receipt
+              }, (err, result) ->
+                ret = RET_OK
+                ret = err.message if err?
+                handler([{REQ: rpcID, RET: ret}].concat(result))
+              )
+            )
+          )
+          .on('error', (e) ->
+            logError({action: 'VerifyPayment', type: 'Apple', error: e, rep: arg.rep})
+            handler([{REQ: rpcID, RET: RET_InvalidPaymentInfo}])
+          )
+
+          req.write(JSON.stringify({"receipt-data": arg.rep}))
+          req.end()
     args: [],
     needPid: true
+  },
+  RPC_BindSubAuth: {
+    id: 105,
+    func: (arg, player, handler, rpcID, socket) ->
+      account = -1
+      if player then account = player.accountID
+      dbLib.bindAuth(account, arg.typ, arg.id, arg.pass, (err, account) ->
+        handler([{REQ: rpcID, RET: RET_OK, aid: account}])
+      )
+    ,
+    args: []
   },
   RPC_Reconnect: {
     id: 104,

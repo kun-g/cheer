@@ -78,6 +78,7 @@ RET_SessionOutOfDate = 44;
 RET_NeedTeammate = 45;
 RET_NeedReceipt = 46;
 RET_InsufficientIngredient = 47;
+RET_InvalidPaymentInfo = 48;
 
 ErrorMsgs = [
     "操作成功",
@@ -127,7 +128,8 @@ ErrorMsgs = [
     "与服务器断开连接",
     "Need Teammate",
     "缺少配方",
-    "缺少材料"
+    "缺少材料",
+    "付费信息错误，请联系工作人员"
 ];
 
 /*** ITEM CATEGORY ***/
@@ -202,6 +204,7 @@ LOGIN_ACCOUNT_TYPE_AD = 1;
 LOGIN_ACCOUNT_TYPE_PP =  2;
 LOGIN_ACCOUNT_TYPE_91 =  3;
 LOGIN_ACCOUNT_TYPE_KY =  4;
+LOGIN_ACCOUNT_TYPE_GAMECENTER =  5;
 
 Max_tutorialStage = 3;
 
