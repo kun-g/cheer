@@ -46,6 +46,7 @@ function dispatchCommand (routeTable, req, socket, retValHandler) {
         type : 'Handler Failed',
         error_message : err.message,
         stack : err.stack,
+        err: err,
         req : req
       });
     }

@@ -204,31 +204,44 @@ class Player extends DBWrapper
       @stageTableVersion = queryTable(TABLE_VERSION, 'stage')
     @loadDungeon()
 
-  handleReceipt: (myReceipt, tunnel, cb) ->
+  handleReceipt: (payment, tunnel, cb) ->
     productList = queryTable(TABLE_CONFIG, 'Product_List')
+    myReceipt = payment.receipt
     rec = unwrapReceipt(myReceipt)
     cfg = productList[rec.productID]
-    ret = [{ NTF: Event_InventoryUpdateItem, arg: { dim : @addDiamond(cfg.diamond) }}]
-    @rmb += cfg.rmb
-    @onCampaign('RMB', cfg.rmb)
+    flag = true
+    #flag = cfg.rmb is payment.rmb
+    #flag = payment.productID is cfg.productID if tunnel is 'AppStore'
     @log('charge', {
       rmb: cfg.rmb,
       diamond: cfg.diamond,
-      tunnel:tunnel,
+      tunnel: tunnel,
       action: 'charge',
-      product: rec.productID,
+      match: flag,
       receipt : myReceipt
     })
-    ret.push({NTF: Event_PlayerInfo, arg: { rmb: @rmb }})
-    ret.push({NTF: Event_RoleUpdate, arg: { act: {vip: @vipLevel()}}})
-    postPaymentInfo(@createHero().level, myReceipt, payment.paymentType)
-    dbWrapper.updateReceipt(myReceipt, RECEIPT_STATE_CLAIMED, (err) -> cb(err, ret))
-    @saveDB()
+    if flag
+      ret = [{ NTF: Event_InventoryUpdateItem, arg: { dim : @addDiamond(cfg.diamond) }}]
+      @rmb += cfg.rmb
+      @onCampaign('RMB', cfg.rmb)
+      ret.push({NTF: Event_PlayerInfo, arg: { rmb: @rmb }})
+      ret.push({NTF: Event_RoleUpdate, arg: { act: {vip: @vipLevel()}}})
+      postPaymentInfo(@createHero().level, myReceipt, payment.paymentType)
+      @saveDB()
+      dbWrapper.updateReceipt(myReceipt, RECEIPT_STATE_CLAIMED, (err) -> cb(err, ret))
+    else
+      cb(Error(RET_InvalidPaymentInfo))
 
   handlePayment: (payment, handle) ->
     @log('handlePayment', {payment: payment})
+    postResult = (error, result) =>
+      if error
+        logError({name: @name, receipt: myReceipt, type: 'handlePayment', error: error, result: result})
+        handle(null, [])
+      else
+        handle(null, result)
     switch payment.paymentType
-      when 'AppStore' then @handleReceipt(payment.receipt, 'AppleStore', cb)
+      when 'AppStore' then @handleReceipt(payment, 'AppStore', postResult)
       when 'PP25', 'ND91'
         myReceipt = payment.receipt
         async.waterfall([
@@ -237,14 +250,8 @@ class Player extends DBWrapper
               if receipt? and receipt.state isnt  RECEIPT_STATE_DELIVERED then cb(Error(RET_Issue37)) else cb(null, myReceipt, paymentType)
             )
           ,
-          (receipt, tunnel, cb) => @handleReceipt(receipt, tunnel, cb)
-        ], (error, result) =>
-          if error
-            logError({name: @name, receipt: myReceipt, type: 'handlePayment', error: error, result: result})
-            handle(null, [])
-          else
-            handle(null, result)
-        )
+          (receipt, tunnel, cb) => @handleReceipt(payment, tunnel, cb)
+        ], postResult)
 
   updateStageStatus: () ->
     ret = []
@@ -1026,9 +1033,9 @@ class Player extends DBWrapper
   getCampaignState: (campaignName) ->
     if not @campaignState[campaignName]?
       if campaignName is 'Charge'
-        @campaignState[campaignName] = {}
+        @campaignState.newProperty(campaignName, {})
       else
-        @campaignState[campaignName] = 0
+        @campaignState.newProperty(campaignName, 0)
     return @campaignState[campaignName]
 
   setCampaignState: (campaignName, val) ->
@@ -1038,7 +1045,7 @@ class Player extends DBWrapper
     cfg = queryTable(TABLE_CAMPAIGN, campaignName, @abIndex)
     if cfg?
       if cfg.date? and moment(cfg.date).format('YYYYMMDD') - moment().format('YYYYMMDD') < 0 then return { config: null }
-      if @getCampaignState(campaignName)? nd @getCampaignState(campaignName) is false then return { config: null }
+      if @getCampaignState(campaignName)? and @getCampaignState(campaignName) is false then return { config: null }
       if @getCampaignState(campaignName)? and cfg.level? and @getCampaignState(campaignName) >= cfg.level.length then return { config: null }
       if campaignName is 'LevelUp' and cfg.timeLimit*1000 <= moment()- @creationDate then return { config: null }
     else

@@ -23,19 +23,19 @@ exports.verifyAuth = function (id, token, handler) {
   });
 };
 exports.bindAuth = function (account, type, id, pass, handler) {
-  var acc = { account: account };
+  //var acc = { account: account };
   //if (pass) {
   //  acc.salt = Math.random();
   //  acc.pass = md5Hash(acc.salt+pass);
   //}
   var key = makeDBKey([passportPrefix, type, id, 'account']);
-  accountDBClient.get(key, function (err, account) {
-    if (account != null) {
-      accountDBClient.set(key, account, function () {
-        handler(null, account);
-      });
+  accountDBClient.get(key, function (err, acc) {
+    if (acc != null) {
+      handler(null, acc);
+    } else if (acc != -1) {
+      accountDBClient.set(key, account, function () { handler(null, account); });
     } else {
-      handler(null, account);
+     handler(null, account);
     }
   });
 };
@@ -53,17 +53,6 @@ exports.loadPassport = function (type, id, createOnFail, handler) {
     }
   });
 };
-lua_createPassportWithAccount = " \
-  local type, id, date = ARGV[1], ARGV[2], ARGV[3]; \
-  local key = 'Passport.'..type..'.'..id..'.account'; \
-  if redis.call('EXISTS', key)==1 then \
-    return {err='PassportExists'}; \
-  else \
-    local uid = redis.call('INCR', 'CurrentUID'); \
-    redis.call('set', key, uid); \
-    redis.call('hset', 'Account.'..uid, 'create_date', date); \
-    return uid; \
-  end";
 
 exports.loadAccount = function (id, handler) { accountDBClient.hgetall(makeDBKey([accPrefix, id]), handler); };
 exports.getPlayerNameByID = function (id, serverName, cb)  { accountDBClient.hget(makeDBKey([accPrefix, id]), serverName, cb); };
@@ -91,6 +80,18 @@ exports.createNewPlayer = createNewPlayer;
 exports.loadSessionInfo = function (session, handler) {
   dbClient.hgetall(makeDBKey([sessionPrefix, session]), handler);
 };
+
+lua_createPassportWithAccount = " \
+  local type, id, date = ARGV[1], ARGV[2], ARGV[3]; \
+  local key = 'Passport.'..type..'.'..id..'.account'; \
+  if redis.call('EXISTS', key)==1 then \
+    return {err='PassportExists'}; \
+  else \
+    local uid = redis.call('INCR', 'CurrentUID'); \
+    redis.call('set', key, uid); \
+    redis.call('hset', 'Account.'..uid, 'create_date', date); \
+    return uid; \
+  end";
 
 lua_createNewPlayer = " \
   local prefix, name, account = ARGV[1], ARGV[2], ARGV[3]; \
