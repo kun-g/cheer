@@ -47,45 +47,47 @@ initGlobalConfig(null, () ->
       alive: false
     } )
 
+    getAliveConnection = () ->
+      count = appNet.backends.length
+      servers = appNet.backends
+      for i in [1..count] when servers[i+appNet.currIndex % servers.length].alive
+        appNet.currIndex = appNet.currIndex + 1 % appNet.aliveServers.length
+        return servers[i+appNet.currIndex % servers.length]
+      return null
+
     appNet.createConnection = (socket) ->
-      server = appNet.aliveServers[appNet.currIndex]
-      appNet.currIndex = appNet.currIndex + 1 % appNet.aliveServers.length
+      server = getAliveConnection()
       c = net.connect(server.port, server.ip)
       c.on('error', (err) ->
         c.destroy()
         socket.destroy()
+        c = null
       )
       c.on('end', (err) ->
         c.destroy()
         socket.destroy()
+        c = null
       )
 
       return c
 
     setInterval( (() ->
-      async.map(
-        appNet.backends,
-        (e, cb) ->
-          #check status
-          if not e.alive
-            s = net.connect(e.port, e.ip, () ->
-              e.alive = true
-              s.destroy()
-              cb(null, e)
-            )
-            s.on('error', (err) ->
-              console.log('Error', err, e)
-              e.alive = false
-              s.destroy()
-              cb(null, e)
-            )
-        ,
-        (err, result) ->
-          appNet.aliveServers = result.filter( (e) -> e.alive )
-      )), 3000 )
+      appNet.backends.forEach( (e) ->
+        if not e.alive
+          s = net.connect(e.port, e.ip)
+          s.on('connect', () ->
+            console.log('Connection On', e)
+            e.alive = true
+          )
+          s.on('end', (err) ->
+            console.log('Connection Lost', e)
+            e.alive = false
+          )
+          s = null
+      )
+    ), 10000 )
 
     appNet.currIndex = 0
-    appNet.aliveConnections = []
     appNet.server.listen(port, console.log)
     appNet.server.on('error', console.log)
 
