@@ -30,12 +30,12 @@ loginBy = (passportType, passport, token, callback) ->
       appID = '112988' #TODO
       appKey = 'd30d9f0f53e2654274505e25c27913fe709eb1ad6265e5c5'
       sign = md5Hash(token+appKey)
-      path = 'http://service.sj.91.com/usercenter/AP.aspx?tokenKey='+token+'&sign='+sign
+      path = 'http://f_signin.bppstore.com/loginCheck.php?tokenKey='+token+'&sign='+sign
       http.get(path, (res) ->
         res.setEncoding('utf8')
         res.on('data', (chunk) ->
           result = JSON.parse(chunk)
-          logInfo({action: 'login', type:  LOGIN_ACCOUNT_TYPE_91, code: result})
+          logInfo({action: 'login', type:  LOGIN_ACCOUNT_TYPE_KY, code: result})
           if result.code is 0
             callback(null)
           else

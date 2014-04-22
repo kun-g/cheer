@@ -1,4 +1,8 @@
 //require('strong-agent').profile();
+require('nodetime').profile({
+  accountKey: 'c82d52d81e9ed18e8550b58bf36f49d47e50a792', 
+  appName: 'DR'
+});
 require('./define');
 dbLib = require('./db');
 dbWrapper = require('./dbWrapper');
@@ -171,7 +175,7 @@ key = '-----BEGIN PUBLIC KEY-----\n' +
       response.end('{"ErrorCode": "5", "ErrorDesc": "Fail"}');
     }
   } else if (request.url.substr(0, 5) === '/kyp?') {
-key = '-----BEGIN PUBLIC KEY-----\n' +
+var kyKey = '-----BEGIN PUBLIC KEY-----\n' +
 'MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEArjB/MQESS9k2Xejv0yN8\n'+
 't3qQ+IO8UqRTNeqgE4GoPBzmyPY4XJVcijAm7eHkUaF6yxGDh8D03R/yhrQBSdJ1\n'+
 'GHLEew3KH3VgKNigdN9LGfJuH+k6JgCHwVK+diEQCzkhF6D7qrDvLNkF5iNQr2D+\n'+
@@ -180,44 +184,35 @@ key = '-----BEGIN PUBLIC KEY-----\n' +
 'bM4NUbZfu9OcfAGMo0L2vl6x/x7WzWBRKIGO7ONELfeit3PEPxE0kBvunAMPkQb5\n'+
 'cwIDAQAB\n'+
 '-----END PUBLIC KEY-----';
-    var data = new Buffer(0);
-    request.on('data', function (chunk) { data = Buffer.concat([data, chunk]); });
-    request.on('end', function (chunk) {
-      data = 'pay?'+data.toString();
-      var out = urlLib.parse(data, true).query;
-      if (out.sign) {
-        var cipher = rsaLib.createPublicKey(key);
-        var info = cipher.publicDecrypt(new Buffer(out.sign, 'base64'), null, 'utf8');
-        info = JSON.parse(info);
-        if (out.order_id === info.order_id && out.amount === info.amount) {
-          var receipt = info.billno;
-          var receiptInfo = unwrapReceipt(receipt);
-          var serverName = 'Master'; //TODO:多服的情况?
-          dbWrapper.updateReceipt(receipt, RECEIPT_STATE_AUTHORIZED, function (err) {
-            dbLib.deliverMessage(receiptInfo.name, {
-              type: MESSAGE_TYPE_ChargeDiamond,
-              paymentType: 'PP25',
-              receipt: receipt
-            }, function (err, messageID) {
-              dbWrapper.updateReceipt(receipt, RECEIPT_STATE_DELIVERED, function () {});
-            }, serverName);
+    var out = urlLib.parse(request.url, true).query;
+    if (out.notify_data) {
+      var cipher = rsaLib.createPublicKey(kyKey);
+      var info = cipher.publicDecrypt(new Buffer(out.notify_data, 'base64'), null, 'utf8');
+      info = JSON.parse(info);
+      if (out.payresult === 0) {
+        var receipt = info.dealseq;
+        var receiptInfo = unwrapReceipt(receipt);
+        var serverName = 'Master'; //TODO:多服的情况?
+        dbWrapper.updateReceipt(receipt, RECEIPT_STATE_AUTHORIZED, function (err) {
+          dbLib.deliverMessage(receiptInfo.name, {
+            type: MESSAGE_TYPE_ChargeDiamond,
+            paymentType: 'KY',
+            receipt: receipt
+          }, function (err, messageID) {
+            dbWrapper.updateReceipt(receipt, RECEIPT_STATE_DELIVERED, function () {});
+          }, serverName);
 
-            if (err === null) {
-              logInfo({action: 'AcceptPayment', receipt: receipt, info: info});
-              return response.end('success');
-            } else {
-              logError({action: 'AcceptPayment', error:err, data: data});
-              response.end('fail');
-            }
-          });
-        }
+          if (err === null) {
+            logInfo({action: 'AcceptPayment', receipt: receipt, info: info});
+            return response.end('success');
+          } else {
+            logError({action: 'AcceptPayment', error:err, data: data});
+            response.end('failed');
+          }
+        });
       }
-      data = new Buffer(0);
-    });
-    request.on('error', function (err) {
-      logError({action: 'AcceptPayment', error:err, data: data});
-      response.end('fail');
-    });
+    }
+    response.end('failed');
   }
 }));
 paymentServer.listen(6499);
