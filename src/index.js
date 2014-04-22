@@ -31,7 +31,6 @@ function initiateFluentLogger() {
 
 var config = {
   port: 7756, 
-  //timeout: 10000,
   type : 'Worker',
   handler: require("./commandHandlers").route,
   init : function () {
@@ -155,7 +154,6 @@ function paymentHandler (request, response) {
       'lk95/RsqP0TCpKikrEySLOz9Kfzbf5VWQLRtP4ANfQZbc5K5yrN9Y5D7Ocl2m7pw\n'+
       '7g9TLkJT1Ue+Mg+kYwIDAQAB\n'+
       '-----END PUBLIC KEY-----';
-    // appKey = 'yh3SljbeMwGzu0w0wF10TYJ30r49XOxv'
     var data = new Buffer(0);
     request.on('data', function (chunk) { data = Buffer.concat([data, chunk]); });
     request.on('end', function (chunk) {
@@ -168,7 +166,12 @@ function paymentHandler (request, response) {
         if (info.payresult == 0) {
           var receipt = info.dealseq;
           var receiptInfo = unwrapReceipt(receipt);
-          var serverName = 'Master'; //TODO:多服的情况?
+          var cfg = queryTable(TABLE_CONFIG, 'ServerConfig');
+          if (!cfg[receiptInfo.serverID]) {
+            logError({action: 'AcceptPayment', error: 'InvalidServerID', receipt: receipt});
+            return response.end('failed');
+          }
+          var serverName = cfg[receiptInfo.serverID].Name;
           dbWrapper.updateReceipt(receipt, RECEIPT_STATE_AUTHORIZED, function (err) {
             dbLib.deliverMessage(receiptInfo.name, {
               type: MESSAGE_TYPE_ChargeDiamond,
@@ -206,10 +209,11 @@ if (config) {
   initiateFluentLogger();
   initServer();
   initGlobalConfig(null, function () {
-    gServerName = queryTable(TABLE_CONFIG, 'ServerName');
-    dbPrefix = gServerName+dbSeparator;
     gServerID = queryTable(TABLE_CONFIG, 'ServerID');
-    dbLib.initializeDB(queryTable(TABLE_CONFIG, 'DB_Config_'+gServerName));
+    gServerConfig = queryTable(TABLE_CONFIG, 'ServerConfig')[gServerID];
+    gServerName = gServerConfig.Name;
+    dbPrefix = gServerName+dbSeparator;
+    dbLib.initializeDB(gServerConfig.DB);
     require('./helper').initLeaderboard(queryTable(TABLE_LEADBOARD));
     domain.run(config.init);
 
