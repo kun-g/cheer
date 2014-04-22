@@ -242,12 +242,12 @@ class Player extends DBWrapper
         handle(null, result)
     switch payment.paymentType
       when 'AppStore' then @handleReceipt(payment, 'AppStore', postResult)
-      when 'PP25', 'ND91'
+      when 'PP25', 'ND91', 'KY'
         myReceipt = payment.receipt
         async.waterfall([
           (cb) ->
             dbWrapper.getReceipt(myReceipt, (err, receipt) ->
-              if receipt? and receipt.state isnt  RECEIPT_STATE_DELIVERED then cb(Error(RET_Issue37)) else cb(null, myReceipt, paymentType)
+              if receipt? and receipt.state isnt  RECEIPT_STATE_DELIVERED then cb(Error(RET_Issue37)) else cb(null, myReceipt, payment.paymentType)
             )
           ,
           (receipt, tunnel, cb) => @handleReceipt(payment, tunnel, cb)
