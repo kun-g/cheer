@@ -1,4 +1,8 @@
 //require('strong-agent').profile();
+require('nodetime').profile({
+  accountKey: 'c82d52d81e9ed18e8550b58bf36f49d47e50a792', 
+  appName: 'DR'
+});
 require('./define');
 dbLib = require('./db');
 dbWrapper = require('./dbWrapper');
