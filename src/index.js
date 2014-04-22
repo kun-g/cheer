@@ -164,43 +164,54 @@ if (config) {
           logError({action: 'AcceptPayment', error: 'SignMissmatch', info: out, sign: sign});
           response.end('{"ErrorCode": "5", "ErrorDesc": "Fail"}');
         }
-      } else if (request.url.substr(0, 5) === '/kyp?') {
-    var kyKey = '-----BEGIN PUBLIC KEY-----\n' +
-    'MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDhELQrtgj6aE81F8o74lOFg7l6\n'+
-    'bUZqe4VQe0MURr0G0zh/hY/KIIxoYfYWBQMwONy0vV23O5XKJDpAJUBHs92mJdB3\n'+
-    'lk95/RsqP0TCpKikrEySLOz9Kfzbf5VWQLRtP4ANfQZbc5K5yrN9Y5D7Ocl2m7pw\n'+
-    '7g9TLkJT1Ue+Mg+kYwIDAQAB\n'+
-    '-----END PUBLIC KEY-----';
-    // appKey = 'yh3SljbeMwGzu0w0wF10TYJ30r49XOxv'
-        var out = urlLib.parse(request.url, true).query;
-        if (out.notify_data) {
-          var cipher = rsaLib.createPublicKey(kyKey);
-          var info = cipher.publicDecrypt(new Buffer(out.notify_data, 'base64'), null, 'utf8');
-          info = JSON.parse(info);
-          if (out.payresult === 0) {
-            var receipt = info.dealseq;
-            var receiptInfo = unwrapReceipt(receipt);
-            var serverName = 'Master'; //TODO:多服的情况?
-            dbWrapper.updateReceipt(receipt, RECEIPT_STATE_AUTHORIZED, function (err) {
-              dbLib.deliverMessage(receiptInfo.name, {
-                type: MESSAGE_TYPE_ChargeDiamond,
-                paymentType: 'KY',
-                receipt: receipt
-              }, function (err, messageID) {
-                dbWrapper.updateReceipt(receipt, RECEIPT_STATE_DELIVERED, function () {});
-              }, serverName);
+      } else if (request.url.substr(0, 4) === '/kyp') {
+        var kyKey = '-----BEGIN PUBLIC KEY-----\n' +
+          'MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDhELQrtgj6aE81F8o74lOFg7l6\n'+
+          'bUZqe4VQe0MURr0G0zh/hY/KIIxoYfYWBQMwONy0vV23O5XKJDpAJUBHs92mJdB3\n'+
+          'lk95/RsqP0TCpKikrEySLOz9Kfzbf5VWQLRtP4ANfQZbc5K5yrN9Y5D7Ocl2m7pw\n'+
+          '7g9TLkJT1Ue+Mg+kYwIDAQAB\n'+
+          '-----END PUBLIC KEY-----';
+        // appKey = 'yh3SljbeMwGzu0w0wF10TYJ30r49XOxv'
+        var data = new Buffer(0);
+        request.on('data', function (chunk) { data = Buffer.concat([data, chunk]); });
+        request.on('end', function (chunk) {
+          data = 'pay?'+data.toString();
+          var out = urlLib.parse(data, true).query;
+          if (out.notify_data) {
+            var cipher = rsaLib.createPublicKey(kyKey);
+            var info = cipher.publicDecrypt(new Buffer(out.notify_data, 'base64'), null, 'utf8');
+            info = urlLib.parse('pay?'+info, true).query;
+            if (info.payresult === 0) {
+              var receipt = info.dealseq;
+              var receiptInfo = unwrapReceipt(receipt);
+              var serverName = 'Master'; //TODO:多服的情况?
+              dbWrapper.updateReceipt(receipt, RECEIPT_STATE_AUTHORIZED, function (err) {
+                dbLib.deliverMessage(receiptInfo.name, {
+                  type: MESSAGE_TYPE_ChargeDiamond,
+                  paymentType: 'KY',
+                  receipt: receipt
+                }, function (err, messageID) {
+                  dbWrapper.updateReceipt(receipt, RECEIPT_STATE_DELIVERED, function () {});
+                }, serverName);
 
-              if (err === null) {
-                logInfo({action: 'AcceptPayment', receipt: receipt, info: info});
-                return response.end('success');
-              } else {
-                logError({action: 'AcceptPayment', error:err, data: data});
-                response.end('failed');
-              }
-            });
+                if (err === null) {
+                  logInfo({action: 'AcceptPayment', receipt: receipt, info: info});
+                  return response.end('success');
+                } else {
+                  logError({action: 'AcceptPayment', error:err, data: data});
+                  response.end('failed');
+                }
+              });
+            }
           }
-        }
-        response.end('failed');
+          response.end('failed');
+          data = null;
+        });
+        request.on('error', function (err) {
+          logError({action: 'AcceptPayment', error:err, data: data});
+          data = null;
+          response.end('fail');
+        });
       }
     }));
     paymentServer.listen(6499);
