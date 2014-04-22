@@ -91,5 +91,5 @@ initGlobalConfig(null, () ->
 
   gServerID = queryTable(TABLE_CONFIG, 'ServerID')
   gServerConfig = queryTable(TABLE_CONFIG, 'ServerConfig')[gServerID]
-  startTcpServer(queryTable(TABLE_CONFIG, gServerConfig.Gate), 7757)
+  startTcpServer(gServerConfig.Gate, 7757)
 )
