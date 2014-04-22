@@ -172,22 +172,24 @@ function paymentHandler (request, response) {
             return response.end('failed');
           }
           var serverName = cfg[receiptInfo.serverID].Name;
-          dbWrapper.updateReceipt(receipt, RECEIPT_STATE_AUTHORIZED, function (err) {
-            dbLib.deliverMessage(receiptInfo.name, {
-              type: MESSAGE_TYPE_ChargeDiamond,
-              paymentType: 'KY',
-              receipt: receipt
-            }, function (err, messageID) {
-              dbWrapper.updateReceipt(receipt, RECEIPT_STATE_DELIVERED, function () {});
-            }, serverName);
+          dbWrapper.updateReceipt(receipt, RECEIPT_STATE_AUTHORIZED, function () {
+            dbLib.getPlayerNameByID(receiptInfo.id, serverName, function (err, name) {
+              dbLib.deliverMessage(name, {
+                type: MESSAGE_TYPE_ChargeDiamond,
+                paymentType: 'KY',
+                receipt: receipt
+              }, function (err, messageID) {
+                dbWrapper.updateReceipt(receipt, RECEIPT_STATE_DELIVERED, function () {});
+              }, serverName);
 
-            if (err) {
-              logError({action: 'AcceptPayment', error:err, receipt: receipt, info: info});
-              response.end('failed');
-            } else {
-              logInfo({action: 'AcceptPayment', receipt: receipt, info: info});
-              response.end('success');
-            }
+              if (err) {
+                logError({action: 'AcceptPayment', error:err, receipt: receipt, info: info});
+                response.end('failed');
+              } else {
+                logInfo({action: 'AcceptPayment', receipt: receipt, info: info});
+                response.end('success');
+              }
+            });
           });
         } else {
           response.end('failed');
