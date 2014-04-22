@@ -89,7 +89,7 @@ initGlobalConfig(null, () ->
     appNet.server.listen(port, console.log)
     appNet.server.on('error', console.log)
 
-  gServerName = queryTable(TABLE_CONFIG, 'ServerName')
   gServerID = queryTable(TABLE_CONFIG, 'ServerID')
-  startTcpServer(queryTable(TABLE_CONFIG, 'Gate_Config_'+gServerName), 7757)
+  gServerConfig = queryTable(TABLE_CONFIG, 'ServerConfig')[gServerID]
+  startTcpServer(queryTable(TABLE_CONFIG, gServerConfig.Gate), 7757)
 )
