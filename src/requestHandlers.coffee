@@ -8,7 +8,9 @@ https = require('https')
 moment = require('moment')
 {Player} = require('./player')
 
-loginBy = (passportType, passport, token, callback) ->
+loginBy = (arg, token, callback) ->
+  passportType = arg.tp
+  passport = arg.id
   switch passportType
     when LOGIN_ACCOUNT_TYPE_91
       appID = '112988'
@@ -27,8 +29,8 @@ loginBy = (passportType, passport, token, callback) ->
         )
       ).on('error', (e) -> logError({action: 'login', type:  LOGIN_ACCOUNT_TYPE_91, error: e}))
     when LOGIN_ACCOUNT_TYPE_KY
-      appID = '112988' #TODO
-      appKey = 'd30d9f0f53e2654274505e25c27913fe709eb1ad6265e5c5'
+      appID = '4032'
+      appKey = 'yh3SljbeMwGzu0w0wF10TYJ30r49XOxv'
       sign = md5Hash(token+appKey)
       path = 'http://f_signin.bppstore.com/loginCheck.php?tokenKey='+token+'&sign='+sign
       http.get(path, (res) ->
@@ -37,6 +39,7 @@ loginBy = (passportType, passport, token, callback) ->
           result = JSON.parse(chunk)
           logInfo({action: 'login', type:  LOGIN_ACCOUNT_TYPE_KY, code: result})
           if result.code is 0
+            arg.id = result.data.guid
             callback(null)
           else
             callback(Error(RET_LoginFailed))
@@ -98,7 +101,7 @@ exports.route = {
               cb(null)
         ,
         (cb) -> if +arg.rv isnt queryTable(TABLE_VERSION, 'resource_version') then cb(Error(RET_ResourceVersionNotMatch)) else cb(null),
-        (cb) -> if registerFlag then cb(null) else loginBy(arg.tp, arg.id, arg.tk, cb),
+        (cb) -> if registerFlag then cb(null) else loginBy(arg, arg.tk, cb),
         (cb) -> loadPlayer(arg.tp, arg.id, cb),
         (player, cb) ->
           if player
