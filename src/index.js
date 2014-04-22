@@ -185,7 +185,8 @@ function deliverReceipt (receipt, tunnel, cb) {
   async.waterfall([
     function (cb) { dbWrapper.updateReceipt(receipt, RECEIPT_STATE_AUTHORIZED, cb); },
     function (_, cb) { dbLib.getPlayerNameByID(receiptInfo.id, serverName, cb); },
-    function (name, cb) { dbLib.deliverMessage(name, message, function () {}, serverName); }
+    function (name, cb) { dbLib.deliverMessage(name, message, cb, serverName); },
+    function (_, cb) { dbWrapper.updateReceipt(receipt, RECEIPT_STATE_DELIVERED, cb); }
   ], cb);
 }
 
@@ -207,7 +208,7 @@ if (config) {
     rsaLib = require('ursa');
 
     paymentServer = require('http').createServer(wrapCallback(paymentHandler));
-    paymentServer.listen(6399);
+    paymentServer.listen(6499);
   });
 } else {
   throw 'No config';
