@@ -21,7 +21,7 @@ initGlobalConfig(null, () ->
       c.pipe(decoder)
       c.decoder = decoder
       c.encoder = encoder
-      c.server = appNet.createConnection()
+      c.server = appNet.createConnection(c)
       encoder.pipe(c.server)
       c.server.pipe(c)
       decoder.on('request', (request) ->
@@ -47,10 +47,20 @@ initGlobalConfig(null, () ->
       alive: false
     } )
 
-    appNet.createConnection = () ->
+    appNet.createConnection = (socket) ->
       server = appNet.aliveServers[appNet.currIndex]
       appNet.currIndex = appNet.currIndex + 1 % appNet.aliveServers.length
-      return net.connect(server.port, server.ip)
+      c = net.connect(server.port, server.ip)
+      c.on('error', (err) ->
+        c.destroy()
+        socket.destroy()
+      )
+      c.on('end', (err) ->
+        c.destroy()
+        socket.destroy()
+      )
+
+      return c
 
     setInterval( (() ->
       async.map(
@@ -81,5 +91,5 @@ initGlobalConfig(null, () ->
 
   gServerName = queryTable(TABLE_CONFIG, 'ServerName')
   gServerID = queryTable(TABLE_CONFIG, 'ServerID')
-  startTcpServer(queryTable(TABLE_CONFIG, 'GATE_Config_'+gServerName), 7757)
+  startTcpServer(queryTable(TABLE_CONFIG, 'Gate_Config_'+gServerName), 7757)
 )
