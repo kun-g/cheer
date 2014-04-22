@@ -224,9 +224,8 @@ class Wizard
     return [] unless cfg.targetSelection? and cfg.targetSelection.pool
     return [] unless cfg.targetSelection.pool is 'Self' or cmd?
     env = cmd.getEnvironment() if cmd?
-    pool = []
     switch cfg.targetSelection.pool
-      when 'self' then pool = [@]
+      when 'self' then pool = @
       when 'target' then pool = env.variable('tar')
       when 'source' then pool = env.variable('src')
       when 'objects' then pool = env.getObjects()
@@ -237,7 +236,8 @@ class Wizard
     if cfg.targetSelection.filter? and pool.length > 0
       pool = triggerLib.filterObject(this, pool, cfg.targetSelection.filter, env)
 
-    throw 'OOOO' unless Array.isArray(pool)
+    pool = [] unless pool?
+    pool = [pool] unless Array.isArray(pool)
 
     return pool
 
@@ -339,24 +339,26 @@ class Wizard
             cmd.routine?({id: 'SpellAction', motion: a.motion, ref: t.ref}) for t in target
         when 'tutorial' then cmd.routine?({id: 'Tutorial', tutorialId: a.tutorialId})
         when 'playEffect'
-          if a.pos?
-            if a.pos is 'self'
-              cmd.routine?({id: 'Effect', delay: delay, effect: a.effect, pos: @pos})
-            else if a.pos is 'target'
+          effect = getProperty(a.effect, level.effect)
+          pos = getProperty(a.pos, level.pos)
+          if pos?
+            if pos is 'self'
+              cmd.routine?({id: 'Effect', delay: delay, effect: effect, pos: @pos})
+            else if pos is 'target'
               for t in target
-                cmd.routine?({id: 'Effect', delay: delay, effect: a.effect, pos: t.pos})
-            else if typeof a.pos is 'number'
-              cmd.routine?({id: 'Effect', delay: delay, effect: a.effect, pos: a.pos})
-            else if Array.isArray(a.pos)
-              for pos in a.pos
-                cmd.routine?({id: 'Effect', delay: delay, effect: a.effect, pos: pos})
+                cmd.routine?({id: 'Effect', delay: delay, effect: effect, pos: t.pos})
+            else if typeof pos is 'number'
+              cmd.routine?({id: 'Effect', delay: delay, effect: effect, pos: pos})
+            else if Array.isArray(pos)
+              for pos in pos
+                cmd.routine?({id: 'Effect', delay: delay, effect: effect, pos: pos})
           else
             switch a.act
               when 'self'
-                cmd.routine?({id: 'Effect', delay: delay, effect: a.effect, act: @ref})
+                cmd.routine?({id: 'Effect', delay: delay, effect: effect, act: @ref})
               when 'target'
                 for t in target
-                  cmd.routine?({id: 'Effect', delay: delay, effect: a.effect, act: t.ref})
+                  cmd.routine?({id: 'Effect', delay: delay, effect: effect, act: t.ref})
         when 'delay'
           c = {id: 'Delay'}
           if a.delay? then c.delay = a.delay

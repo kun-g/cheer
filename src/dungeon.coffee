@@ -523,12 +523,12 @@ class Level
 
 
   init: (lvConfig, baseRank, heroes, quests, soldierPool, elitePool, bossPool) ->
+    @objects = @objects.concat(heroes)
     @rank = baseRank
     @rank += lvConfig.rank if lvConfig.rank?
     @generateBlockLayout(lvConfig)
     @setupEnterAndExit(lvConfig)
     @placeMapObjects(lvConfig, quests, {soldier: soldierPool, elite: elitePool, boss: bossPool})
-    @objects = @objects.concat(heroes)
 
     return @entrance
 
@@ -655,7 +655,6 @@ class Level
       @createObject(id, pos, keyed, collectId)
 
   placeMapObjects: (config, quests, pool) ->
-    @objects = []
     return false unless config?
 
     objectConfig = []
@@ -818,7 +817,11 @@ class DungeonEnvironment extends Environment
     return @dungeon.level.blocks unless id?
     return @dungeon.level.blocks[id]
 
-  initiateHeroes: (data) -> @dungeon?.initiateHeroes(data)
+  initiateHeroes: (data) ->
+    @dungeon.initiateHeroes(data)
+    heroes = @dungeon.getAliveHeroes()
+    objects = @dungeon.level.objects
+    @dungeon.level.objects = heroes.concat(objects.slice(heroes.length, objects.length))
 
   incrReviveCount: () -> @dungeon?.reviveCount++
 
@@ -1098,7 +1101,7 @@ dungeonCSConfig = {
   UnitInfo: {
     output: (env) ->
       e = env.variable('unit')
-      return [] unless e.health > 0
+      return [] if e.dead
       eEv = {id: ACT_Enemy, pos: e.pos, rid: e.id, hp: e.health, ref: e.ref, typ: e.type}
       eEv.dc = e.attack if e.attack?
       eEv.eff = e.effect if e.effect?
@@ -1272,6 +1275,7 @@ dungeonCSConfig = {
   Kill: {
     callback: (env) ->
       env.variable('tar').health = 0
+      if not env.variable('tar').isVisible then env.variable('tar').dead = true
       @routine({id:'Dead', tar: env.variable('tar')})
   },
   ShowUp: {
