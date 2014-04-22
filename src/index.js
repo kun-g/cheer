@@ -157,7 +157,6 @@ function paymentHandler (request, response) {
       '-----END PUBLIC KEY-----';
     // appKey = 'yh3SljbeMwGzu0w0wF10TYJ30r49XOxv'
     var data = new Buffer(0);
-    var result = 'failed';
     request.on('data', function (chunk) { data = Buffer.concat([data, chunk]); });
     request.on('end', function (chunk) {
       data = 'pay?'+data.toString();
@@ -179,22 +178,26 @@ function paymentHandler (request, response) {
               dbWrapper.updateReceipt(receipt, RECEIPT_STATE_DELIVERED, function () {});
             }, serverName);
 
-            if (err === null) {
-              logInfo({action: 'AcceptPayment', receipt: receipt, info: info});
-              result = 'success';
-            } else {
+            if (err) {
               logError({action: 'AcceptPayment', error:err, receipt: receipt, info: info});
+              response.end('failed');
+            } else {
+              logInfo({action: 'AcceptPayment', receipt: receipt, info: info});
+              response.end('success');
             }
           });
+        } else {
+          response.end('failed');
         }
+      } else {
+        response.end('failed');
       }
-      response.end(result);
       data = null;
     });
     request.on('error', function (err) {
       logError({action: 'AcceptPayment', error:err, data: data});
       data = null;
-      response.end('fail');
+      response.end('failed');
     });
   }
 }
