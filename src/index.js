@@ -207,7 +207,7 @@ if (config) {
     rsaLib = require('ursa');
 
     paymentServer = require('http').createServer(wrapCallback(paymentHandler));
-    paymentServer.listen(80);
+    paymentServer.listen(6399);
   });
 } else {
   throw 'No config';
