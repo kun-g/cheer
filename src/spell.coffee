@@ -233,6 +233,9 @@ class Wizard
         blocks = cfg.targetSelection.blocks
         pool = if blocks? then (env.getBlock(b) for b in blocks) else env.getBlock()
 
+    pool = [] unless pool?
+    pool = [pool] unless Array.isArray(pool)
+
     if cfg.targetSelection.filter? and pool.length > 0
       pool = triggerLib.filterObject(this, pool, cfg.targetSelection.filter, env)
 
