@@ -171,6 +171,7 @@ if (config) {
     'lk95/RsqP0TCpKikrEySLOz9Kfzbf5VWQLRtP4ANfQZbc5K5yrN9Y5D7Ocl2m7pw\n'+
     '7g9TLkJT1Ue+Mg+kYwIDAQAB\n'+
     '-----END PUBLIC KEY-----';
+    // appKey = 'yh3SljbeMwGzu0w0wF10TYJ30r49XOxv'
         var out = urlLib.parse(request.url, true).query;
         if (out.notify_data) {
           var cipher = rsaLib.createPublicKey(kyKey);
