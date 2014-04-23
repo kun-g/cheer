@@ -23,7 +23,7 @@ class Player extends DBWrapper
       questTableVersion: -1,
       stageTableVersion: -1,
 
-      event_daily: {}, #TODO: is it ok?
+      event_daily: {},
 
       inventory: Bag(InitialBagSize),
       gold: 0,
@@ -83,7 +83,10 @@ class Player extends DBWrapper
   logout: (reason) ->
     if @socket and @socket.encoder
       @socket.encoder.writeObject({NTF: Event_ExpiredPID, err: reason})
-    @socket = null
+    @onDisconnect()
+    dbLib.unsubscribe(PlayerChannelPrefix+this.name)
+    @destroy()
+    @destroied = true
 
   onReconnect: (socket) ->
     @fetchMessage(wrapCallback(this, (err, newMessage) ->
@@ -102,7 +105,11 @@ class Player extends DBWrapper
     else
       logUser(msg)
 
-  onDisconnect: () -> delete @messages
+  onDisconnect: () ->
+    gPlayerDB[@name] = null
+    @socket = null
+    gPlayerDB[@name] = null
+    delete @messages
 
   getType: () -> 'player'
 
@@ -117,6 +124,7 @@ class Player extends DBWrapper
   syncEvent: () -> return helperLib.initCampaign(@, helperLib.events)
 
   onLogin: () ->
+    return [] unless @lastLogin
     if diffDate(@lastLogin) > 0 then @purchasedCount = {}
     @lastLogin = currentTime()
     if diffDate(@creationDate) > 7 then @tutorialStage = 1000 #TODO
@@ -1033,6 +1041,7 @@ class Player extends DBWrapper
       ))
 
   getCampaignState: (campaignName) ->
+    return null unless @campaignState
     if not @campaignState[campaignName]?
       if campaignName is 'Charge'
         @campaignState.newProperty(campaignName, {})

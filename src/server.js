@@ -22,6 +22,29 @@ Server.prototype.shutDown = function () {
     });
   }
 };
+
+function destroySocket (appNet, c) {
+  delete appNet.aliveConnections[c.connectionIndex];
+  if (c.player) {
+    var name = c.playerName;
+    c.player.onDisconnect();
+    c.player.socket = null;
+
+    logUser({
+      action: 'ioSize',
+      send: c.encoder.totalBytes,
+      recv: c.decoder.totalBytes,
+      maxSend: c.encoder.maxBytes,
+      maxRecv: c.decoder.maxBytes,
+      name: name
+    });
+    c.player = null;
+    c.encoder = null;
+    c.decoder = null;
+    c = null;
+  }
+}
+
 Server.prototype.startTcpServer = function (config) {
   if (config == null || config.handler == null || config.port == null) {
     throw 'No handler';
@@ -35,28 +58,8 @@ Server.prototype.startTcpServer = function (config) {
     c.pendingRequest = new Buffer(0);
     if (config.timeout) c.setTimeout(config.timeout);
     c.on('timeout', function () { c.end(); });
-    c.on('end', function () {
-      require("./router").peerOffline(c);
-      delete appNet.aliveConnections[c.connectionIndex];
-      if (c.player) {
-        var name = c.playerName;
-        c.player.onDisconnect();
-        c.player.socket = null;
-
-        logUser({
-          action: 'ioSize',
-          send: c.encoder.totalBytes,
-          recv: c.decoder.totalBytes,
-          maxSend: c.encoder.maxBytes,
-          maxRecv: c.decoder.maxBytes,
-          name: name
-        });
-        c.player = null;
-        c.encoder = null;
-        c.decoder = null;
-        c = null;
-      }
-    });
+    c.on('end', function () { destroySocket(appNet, c); });
+    c.on('error', function () { destroySocket(appNet, c); });
     c.decoder = new parseLib.SimpleProtocolDecoder();
     c.encoder = new parseLib.SimpleProtocolEncoder();
     c.encoder.pipe(c);
@@ -72,15 +75,6 @@ Server.prototype.startTcpServer = function (config) {
       });
     });
 
-    c.on('error', function (error) {
-      logError({
-        type : 'Socket Error',
-        address : c.remoteAddress,
-        error : error
-      });
-      c.destroy();
-      c = null;
-    });
   });
   appNet.aliveConnections = [];
   appNet.listen(config.port, function () {

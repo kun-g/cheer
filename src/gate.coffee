@@ -12,31 +12,28 @@ initGlobalConfig(null, () ->
   startTcpServer = (servers, port) ->
     appNet = {}
     appNet.server = net.createServer((c) ->
-      decoder = new SimpleProtocolDecoder()
-      encoder = new SimpleProtocolEncoder()
-      encoder.setFlag('size')
-      c.pipe(decoder)
-      c.decoder = decoder
-      c.encoder = encoder
+      c.decoder = new SimpleProtocolDecoder()
+      c.encoder = new SimpleProtocolEncoder()
+      c.encoder.setFlag('size')
+      c.pipe(c.decoder)
       c.server = appNet.createConnection(c)
       if not c.server? then return
-      encoder.pipe(c.server)
+      c.encoder.pipe(c.server)
       c.server.pipe(c)
-      decoder.on('request', (request) ->
+      c.decoder.on('request', (request) ->
         if request
           if request.CMD is 101
             console.log({
               request: request,
               ip: c.remoteAddress
             })
-          encoder.writeObject(request)
+          c.encoder.writeObject(request)
         else
           c.destroy()
           c = null
       )
 
       c.on('error', (error) ->
-        console.log(error)
         c.destroy()
         c = null
       )
@@ -51,8 +48,9 @@ initGlobalConfig(null, () ->
       count = appNet.backends.length
       servers = appNet.backends
       for i in [1..count] when servers[(i+appNet.currIndex) % count].alive
+        server = servers[(i+appNet.currIndex) % count]
         appNet.currIndex = (appNet.currIndex + 1) % count
-        return servers[(i+appNet.currIndex) % count]
+        return server
       return null
 
     appNet.createConnection = (socket) ->
@@ -74,7 +72,7 @@ initGlobalConfig(null, () ->
 
       return c
 
-    setInterval( (() ->
+    updateBackendStatus = () ->
       appNet.backends.forEach( (e) ->
         if not e.alive
           s = net.connect(e.port, e.ip)
@@ -89,11 +87,12 @@ initGlobalConfig(null, () ->
           )
           s = null
       )
-    ), 10000 )
 
     appNet.currIndex = 0
     appNet.server.listen(port, console.log)
     appNet.server.on('error', console.log)
+    updateBackendStatus()
+    setInterval(updateBackendStatus, 10000)
 
   gServerID = queryTable(TABLE_CONFIG, 'ServerID')
   gServerConfig = queryTable(TABLE_CONFIG, 'ServerConfig')[gServerID]

@@ -57,6 +57,3 @@ function dispatchCommand (routeTable, req, socket, retValHandler) {
 }
 
 exports.route = route;
-exports.peerOffline = function (socket) {
-  //if (socket.playerName) gPlayerManager.delPlayer(socket.playerName);
-};

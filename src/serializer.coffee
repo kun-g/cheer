@@ -1,6 +1,7 @@
 # Provide serializing mechanism
-tap = require('./define').tap
-#tap = require('./helper').tap
+#tap = require('./define').tap
+destroyReactDB = require('./helper').destroyReactDB
+tap = require('./helper').tap
 
 generateMonitor = (obj) ->
   return (key, val) -> obj.s_attr_dirtyFlag[key] = true
@@ -26,6 +27,10 @@ class Serializer
 
     for k, v of cfg
       @attrSave(k, flags[k])
+
+  destroy: () ->
+    @s_attr_monitor = null
+    destroyReactDB(this)
 
   attrSave: (key, restoreFlag = false) ->
     return false unless @s_attr_to_save.indexOf(key) is -1
