@@ -67,7 +67,7 @@ Server.prototype.startTcpServer = function (config) {
       if (!request) c.destroy();
       require("./router").route(handler, request, c, function (ret) { 
         if (ret) {
-          encoder.writeObject(ret);
+          c.encoder.writeObject(ret);
         }
       });
     });
