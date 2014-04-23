@@ -37,8 +37,9 @@ Server.prototype.startTcpServer = function (config) {
     c.on('timeout', function () { c.end(); });
     c.on('end', function () {
       require("./router").peerOffline(c);
-      var name = c.playerName;
+      delete appNet.aliveConnections[c.connectionIndex];
       if (c.player) {
+        var name = c.playerName;
         c.player.onDisconnect();
         c.player.socket = null;
 
@@ -50,12 +51,11 @@ Server.prototype.startTcpServer = function (config) {
           maxRecv: c.decoder.maxBytes,
           name: name
         });
-        c = null;
         c.player = null;
         c.encoder = null;
         c.decoder = null;
+        c = null;
       }
-      delete appNet.aliveConnections[c.connectionIndex];
     });
     c.decoder = new parseLib.SimpleProtocolDecoder();
     c.encoder = new parseLib.SimpleProtocolEncoder();

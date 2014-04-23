@@ -81,7 +81,9 @@ class Player extends DBWrapper
     @dbKeyName = playerPrefix+@name
 
   logout: (reason) ->
-    if @socket then @socket.encoder.writeObject({NTF: Event_ExpiredPID, err: reason})
+    if @socket and @socket.encoder
+      @socket.encoder.writeObject({NTF: Event_ExpiredPID, err: reason})
+    @socket = null
 
   onReconnect: (socket) ->
     @fetchMessage(wrapCallback(this, (err, newMessage) ->
