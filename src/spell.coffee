@@ -222,7 +222,7 @@ class Wizard
   
   selectTarget: (cfg, cmd) ->
     return [] unless cfg.targetSelection? and cfg.targetSelection.pool
-    return [] unless cfg.targetSelection.pool is 'Self' or cmd?
+    return [] unless cfg.targetSelection.pool is 'self' or cmd?
     env = cmd.getEnvironment() if cmd?
     switch cfg.targetSelection.pool
       when 'self' then pool = @
