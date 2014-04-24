@@ -54,7 +54,6 @@ Server.prototype.startTcpServer = function (config) {
   var handler = config.handler;
   var appNet = net.createServer(function (c) {
     //console.log('New Connection', c.remoteAddress)
-    console.log('Connected', connectCount++);
     appNet.aliveConnections.push(c);
     c.connectionIndex = appNet.aliveConnections.length - 1;
     c.pendingRequest = new Buffer(0);
