@@ -47,7 +47,7 @@ class Wizard
     @setupTriggerCondition(spellID, cfg.triggerCondition, levelConfig, cmd)
     @setupAvailableCondition(spellID, cfg.availableCondition, levelConfig, cmd)
     @doAction(@wSpellDB[spellID], cfg.installAction, levelConfig, @selectTarget(cfg, cmd), cmd)
-    @spellStateChanged(cmd)
+    @spellStateChanged(spellID, cmd)
 
   setupAvailableCondition: (spellID, conditions, level, cmd) ->
     return false unless conditions
@@ -69,9 +69,19 @@ class Wizard
         when 'countDown' then thisSpell.cd = 0
         when 'event' then @installTrigger(spellID, limit.event)
 
-  spellStateChanged: (cmd) ->
+  calcEffectState: (spellID) ->
+    cfg = getSpellConfig(spellID)
+    if cfg.basic?.buffEffect?
+      if @wSpellDB[spellID]
+        return {id: cfg.basic.buffEffect}
+      else
+        return {id: cfg.basic.buffEffect, uninstall: true}
+    else
+      return null
+
+  spellStateChanged: (spellID, cmd) ->
     return false unless cmd?
-    cmd.routine?({id: 'SpellState', wizard:@, state: @calcBuffState()})
+    cmd.routine?({id: 'SpellState', wizard:@, state: @calcBuffState(), effect: @calcEffectState(spellID)})
 
   removeSpell: (spellID, cmd) ->
     cfg = getSpellConfig(spellID)
@@ -86,7 +96,7 @@ class Wizard
       @doAction(@wSpellDB[spellID], cfg.uninstallAction, {}, @selectTarget(cfg, cmd), cmd)
 
     delete @wSpellDB[spellID]
-    @spellStateChanged(cmd)
+    @spellStateChanged(spellID, cmd)
 
   installTrigger: (spellID, event) ->
     return false unless event?

@@ -1064,7 +1064,17 @@ dungeonCSConfig = {
   SpellState: {
     output: (env) ->
       ret =  genUnitInfo(env.variable('wizard'), false, env.variable('state'))
-      return if ret? then [ret] else []
+      if env.variable('effect')?
+        effect = env.variable('effect')
+        if ret? then ret = [ret]
+        bid = effect.id
+        actor = env.variable('wizard')
+        ev = {id:ACT_EFFECT, eff: bid}
+        if effect.uninstall then ev.rmf = true
+        ev.sid = if actor.isBlock then (actor.pos+1)*100+bid else (actor.ref+1)*1000+bid
+        if actor.isBlock then ev.pos = +actor.pos else ev.act = actor.ref
+        ret.push(ev)
+      return if ret? then ret else []
   },
   TickSpell: {
     callback: (env) -> h.tickSpell(env.variable('tickType'), @) for h in env.getHeroes().concat(env.getMonsters())
