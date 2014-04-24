@@ -96,8 +96,10 @@ exports.initLeaderboard = (config) ->
       )
     )
 
-  tickLeaderboard = (board) ->
+  tickLeaderboard = (board, cb) ->
     cfg = localConfig[board]
+    if cfg.resetTime and matchDate(srvCfg[cfg.name], currentTime(), cfg.resetTime)
+      require('./dbWrapper').removeLeaderboard(cfg.name, cb)
 
   exports.getPositionOnLeaderboard = (board, name, from, to, cb) ->
     tickLeaderboard(board)
@@ -139,9 +141,9 @@ matchDate = (date, today, rule) ->
 
   if rule.month then date = date.month(rule.month)
   if rule.day then date = date.day(rule.day)
-  if rule.hour then date = date.hour(rule.hour)
-  if rule.minute then date = date.minute(rule.minute)
-  if rule.second then date = date.second(rule.second)
+  date = date.hour(rule.hour ? 0)
+  date = date.minute(rule.minute ? 0)
+  date = date.second(rule.second ? 0)
 
   return date <= today
   

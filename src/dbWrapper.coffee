@@ -166,6 +166,8 @@ makeDBKey = (keys, prefix) ->
 
 exports.updateLeaderboard = (board, member, score, callback) ->
   dbClient.zadd(makeDBKey([board], LeaderboardPrefix), score, member, callback)
+exports.removeLeaderboard = (board, callback) ->
+  dbClient.del(makeDBKey([board], LeaderboardPrefix), callback)
 
 exports.getPositionOnLeaderboard = (board, member, rev, callback) ->
   key = makeDBKey([board], LeaderboardPrefix)
@@ -173,3 +175,4 @@ exports.getPositionOnLeaderboard = (board, member, rev, callback) ->
     dbClient.zrevrank(key, member, callback)
   else
     dbClient.zrank(key, member, callback)
+
