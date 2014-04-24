@@ -25,7 +25,6 @@ initServer = function () {
   var pid = process.pid;
   async = require('async');
   print = function (type, log) {
-    if (type != 'Warn') return ;
     if (log == null) {
       log = type;
       type = null;
