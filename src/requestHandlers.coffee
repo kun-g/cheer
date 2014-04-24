@@ -136,7 +136,6 @@ exports.route = {
               )
             ], (err, result) ->
               if player.destroied then return []
-              playerCounter++
               result = result.reduce(((r, l) -> return r.concat(l);), [])
               ev = ev.concat(result).concat(player.onLogin()).concat(player.syncCampaign()).concat(player.syncEvent())
               loginInfo = {REQ: rpcID, RET: RET_OK, arg:{pid: player.runtimeID, rid: player.name, svt: time, usr: player.name, sid: gServerID}}

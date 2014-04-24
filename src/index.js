@@ -13,7 +13,7 @@ domain.on('error', function (err) {
   console.log("UnhandledError", err.message, err.stack);
 });
 
-playerCounter = 0;
+//playerCounter = 0;
 //memwatch = require('memwatch');
 //var tmp = new memwatch.HeapDiff();
 //memwatch.on('leak', function (info) {

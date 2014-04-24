@@ -299,14 +299,22 @@ class Player extends DBWrapper
       bag = @inventory
       equip = []
       equip.push({ cid: bag.get(e).classId, eh: bag.get(e).enhancement }) for i, e of @equipment when bag.get(e)?
-      heroData = { }
-      for k, v of @hero
-        heroData[k] = v
-      heroData.equipment = equip
-      heroData.vip = @vipLevel()
-      hero = new Hero(heroData)
+      if @hero.wSpellDB #TODO: remove this
+        @hero = {
+          xp: @hero.xp,
+          name: @name,
+          class: @hero.class,
+          gender: @hero.gender,
+          hairStyle: @hero.hairStyle,
+          hairColor: @hero.hairColor,
+          equipment: equip
+        }
+        @save()
+      else
+        @hero.newProperty('equipment', equip)
+
+      hero = new Hero(@hero)
       @battleForce = hero.calculatePower()
-      @hero = hero
       return hero
     else
       throw 'NoHero'
