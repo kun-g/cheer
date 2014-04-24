@@ -23,8 +23,7 @@ Server.prototype.shutDown = function () {
   }
 };
 
-function destroySocket (appNet, c) {
-  delete appNet.aliveConnections[c.connectionIndex];
+function destroySocket (c) {
   if (c.player) {
     var name = c.playerName;
     c.player.onDisconnect();
@@ -38,10 +37,12 @@ function destroySocket (appNet, c) {
       maxRecv: c.decoder.maxBytes,
       name: name
     });
+  } else {
     c.player = null;
     c.encoder = null;
     c.decoder = null;
-    c = null;
+    c.pendingRequest = null;
+    c.destroy();
   }
 }
 
@@ -53,13 +54,21 @@ Server.prototype.startTcpServer = function (config) {
   var handler = config.handler;
   var appNet = net.createServer(function (c) {
     //console.log('New Connection', c.remoteAddress)
+    console.log('Connected', connectCount++);
     appNet.aliveConnections.push(c);
     c.connectionIndex = appNet.aliveConnections.length - 1;
     c.pendingRequest = new Buffer(0);
     if (config.timeout) c.setTimeout(config.timeout);
-    c.on('timeout', function () { c.end(); });
-    c.on('end', function () { destroySocket(appNet, c); });
-    c.on('error', function () { destroySocket(appNet, c); });
+    c.on('end', function () {
+      destroySocket(c);
+      delete appNet.aliveConnections[c.connectionIndex];
+      c = null;
+    });
+    c.on('error', function () {
+      destroySocket(c);
+      delete appNet.aliveConnections[c.connectionIndex];
+      c = null;
+    });
     c.decoder = new parseLib.SimpleProtocolDecoder();
     c.encoder = new parseLib.SimpleProtocolEncoder();
     c.encoder.pipe(c);
@@ -69,7 +78,7 @@ Server.prototype.startTcpServer = function (config) {
     c.decoder.on('request', function (request) {
       if (!request) c.destroy();
       require("./router").route(handler, request, c, function (ret) { 
-        if (ret) {
+        if (ret && c) {
           c.encoder.writeObject(ret);
         }
       });
@@ -97,7 +106,7 @@ Server.prototype.startTcpServer = function (config) {
     appNet.aliveConnections = appNet.aliveConnections
       .filter(function (c) {return c!=null;})
       .map(function (c, i) { c.connectionIndex = i; return c;});
-  }, 1000);
+  }, 100000);
   this.tcpServer = {
     net : appNet,
     tcpInterval : tcpInterval

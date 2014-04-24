@@ -1,5 +1,4 @@
 //require('strong-agent').profile();
-require('webkit-devtools-agent');
 require('v8-profiler');
 require('nodetime').profile({
   accountKey: 'c82d52d81e9ed18e8550b58bf36f49d47e50a792', 
