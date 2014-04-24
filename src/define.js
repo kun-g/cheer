@@ -25,6 +25,7 @@ initServer = function () {
   var pid = process.pid;
   async = require('async');
   print = function (type, log) {
+    if (type != 'Warn') return ;
     if (log == null) {
       log = type;
       type = null;
@@ -49,27 +50,10 @@ initServer = function () {
   };
 };
 
-logError = function(log) {
-  print('Error', log);
-};
-logInfo = function(log) {
-  if (logLevel < 1)
-    print('Info', log);
-};
-logUser = function(log) {
-  if (logLevel < 1)
-    print('User', log);
-};
-logWarn = function(log) {
-  if (logLevel < 2)
-    print('Warn', log);
-};
-logDungeon = function(log) {
-  print('DebugDungeon', log);
-};
-logCommandStream = function(log) {
-  print('DebugCommandStream', log);
-};
+logError = function(log) { print('Error', log); };
+logInfo = function(log) { print('Info', log); };
+logUser = function(log) { print('User', log); };
+logWarn = function(log) { print('Warn', log); };
 
 rand = function() {
   return Math.floor(Math.random()*1000000);

@@ -3,42 +3,39 @@ require('./define')
 async = require('async')
 net = require('net')
 
+require('nodetime').profile({
+  accountKey: 'c82d52d81e9ed18e8550b58bf36f49d47e50a792',
+  appName: 'Gate'
+})
+
 initGlobalConfig(null, () ->
   startTcpServer = (servers, port) ->
     appNet = {}
     appNet.server = net.createServer((c) ->
-      appNet.aliveConnections.push(c)
-      c.connectionIndex = appNet.aliveConnections.length - 1
-      c.pendingRequest = new Buffer(0)
-      #if (config.timeout) c.setTimeout(config.timeout)
-      #c.on('timeout', () -> c.end())
-      c.on('end', () ->
-        delete appNet.aliveConnections[c.connectionIndex]
-      )
-      decoder = new SimpleProtocolDecoder()
-      encoder = new SimpleProtocolEncoder()
-      encoder.setFlag('size')
-      c.pipe(decoder)
-      c.decoder = decoder
-      c.encoder = encoder
+      c.decoder = new SimpleProtocolDecoder()
+      c.encoder = new SimpleProtocolEncoder()
+      c.encoder.setFlag('size')
+      c.pipe(c.decoder)
       c.server = appNet.createConnection(c)
-      encoder.pipe(c.server)
+      if not c.server? then return
+      c.encoder.pipe(c.server)
       c.server.pipe(c)
-      decoder.on('request', (request) ->
+      c.decoder.on('request', (request) ->
         if request
           if request.CMD is 101
             console.log({
               request: request,
               ip: c.remoteAddress
             })
-          encoder.writeObject(request)
+          c.encoder.writeObject(request)
         else
           c.destroy()
+          c = null
       )
 
       c.on('error', (error) ->
-        console.log(error)
         c.destroy()
+        c = null
       )
     )
     appNet.backends = servers.map( (s, id) -> return {
@@ -50,46 +47,52 @@ initGlobalConfig(null, () ->
     getAliveConnection = () ->
       count = appNet.backends.length
       servers = appNet.backends
-      for i in [1..count] when servers[i+appNet.currIndex % servers.length].alive
-        appNet.currIndex = appNet.currIndex + 1 % appNet.aliveServers.length
-        return servers[i+appNet.currIndex % servers.length]
+      for i in [1..count] when servers[(i+appNet.currIndex) % count].alive
+        server = servers[(i+appNet.currIndex) % count]
+        appNet.currIndex = (appNet.currIndex + 1) % count
+        return server
       return null
 
     appNet.createConnection = (socket) ->
       server = getAliveConnection()
-      c = net.connect(server.port, server.ip)
-      c.on('error', (err) ->
-        c.destroy()
+      if server?
+        c = net.connect(server.port, server.ip)
+        c.on('error', (err) ->
+          c.destroy()
+          socket.destroy()
+          c = null
+        )
+        c.on('end', (err) ->
+          c.destroy()
+          socket.destroy()
+          c = null
+        )
+      else
         socket.destroy()
-        c = null
-      )
-      c.on('end', (err) ->
-        c.destroy()
-        socket.destroy()
-        c = null
-      )
 
       return c
 
-    setInterval( (() ->
+    updateBackendStatus = () ->
       appNet.backends.forEach( (e) ->
         if not e.alive
           s = net.connect(e.port, e.ip)
           s.on('connect', () ->
-            console.log('Connection On', e)
             e.alive = true
+            console.log('Connection On', e)
           )
+          s.on('error', (err) -> e.alive = false)
           s.on('end', (err) ->
-            console.log('Connection Lost', e)
             e.alive = false
+            console.log('Connection Lost', e)
           )
           s = null
       )
-    ), 10000 )
 
     appNet.currIndex = 0
     appNet.server.listen(port, console.log)
     appNet.server.on('error', console.log)
+    updateBackendStatus()
+    setInterval(updateBackendStatus, 10000)
 
   gServerID = queryTable(TABLE_CONFIG, 'ServerID')
   gServerConfig = queryTable(TABLE_CONFIG, 'ServerConfig')[gServerID]
