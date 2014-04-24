@@ -1,5 +1,5 @@
 //require('strong-agent').profile();
-require('v8-profiler');
+//require('v8-profiler');
 require('nodetime').profile({
   accountKey: 'c82d52d81e9ed18e8550b58bf36f49d47e50a792', 
   appName: 'DR'
@@ -14,7 +14,7 @@ domain.on('error', function (err) {
   console.log("UnhandledError", err.message, err.stack);
 });
 
-playerCounter = 0;
+//playerCounter = 0;
 //memwatch = require('memwatch');
 //var tmp = new memwatch.HeapDiff();
 //memwatch.on('leak', function (info) {
