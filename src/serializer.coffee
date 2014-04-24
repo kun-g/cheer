@@ -1,6 +1,7 @@
 # Provide serializing mechanism
-tap = require('./define').tap
-#tap = require('./helper').tap
+#tap = require('./define').tap
+destroyReactDB = require('./helper').destroyReactDB
+tap = require('./helper').tap
 
 generateMonitor = (obj) ->
   return (key, val) -> obj.s_attr_dirtyFlag[key] = true
@@ -15,14 +16,6 @@ class Serializer
     Object.defineProperty(this, 's_attr_monitor', {enumerable:false, writable: false})
 
     @restore(data)
-    # for k, v of cfg
-    #   if data and data[k]?
-    #     if data[k]._constructor_
-    #       @attrSave(k, objectlize(data[k]), true)
-    #     else
-    #       @attrSave(k, data[k], true)
-    #   else
-    #     @attrSave(k, cfg[k])
 
     flags = {}
     for k, v of cfg when not this[k]?
@@ -30,11 +23,14 @@ class Serializer
       flags[k] = true
 
     for k, v of versionCfg
-      @versionControl(k, v);
+      @versionControl(k, v)
 
     for k, v of cfg
-      #console.log(k, flags[k])
       @attrSave(k, flags[k])
+
+  destroy: () ->
+    @s_attr_monitor = null
+    destroyReactDB(this)
 
   attrSave: (key, restoreFlag = false) ->
     return false unless @s_attr_to_save.indexOf(key) is -1
@@ -65,7 +61,6 @@ class Serializer
     if typeof data is 'string' then data = JSON.parse(data)
 
     for k, v of data when v?
-      #@s_attr_to_save = @s_attr_to_save.filter((e) -> return e isnt k)
       if v._constructor_?
         this[k] = objectlize(v)
       else if Array.isArray(v)
@@ -97,7 +92,6 @@ objectlize  = (data) ->
   throw 'No constructor' unless data?._constructor_?
   throw 'No constructor:'+data._constructor_ unless g_attr_constructorTable[data._constructor_]
   o = new g_attr_constructorTable[data._constructor_](data.save)
-  #o.restore(data.save)
   o.initialize() if o.initialize?
   return o
 

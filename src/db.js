@@ -234,29 +234,13 @@ function tryToRegisterName (name, callback) {
     callback(err);
   });
 }
-/*
-function loadPlayer(name, handler) {
-  var playerLib = require('./player');
-  var p = new playerLib.Player();
-  p.setName(name);
-  p.load(function (err, result) {
-    if (result) {
-      p.initialize();
-    } else {
-      p = null;
-    }
-    if (handler) handler(err, p);
-  });
-}
-*/
 
 function loadPlayer(name, handler) {
-  var playerLib = require('./player');
   var dbKeyName = playerPrefix+name;
   dbClient.hgetall(dbKeyName, function (err, result) {
     var p = null;
     if (result) {
-      attributes = {};
+      var attributes = {};
       for (var k in result) {
         var v = result[k];
         try {
@@ -265,11 +249,12 @@ function loadPlayer(name, handler) {
           attributes[k] = v;
         }
       }
+      var playerLib = require('./player');
       p = new playerLib.Player(attributes);
-      //p.setName(name);
       p.initialize();
     }
     if (handler) handler(err, p);
+    p = null;
   });
 }
 
@@ -378,11 +363,14 @@ publishPlayerChannel = function (name, message, cb) {
 };
 exports.publishPlayerChannel = publishPlayerChannel;
 
+exports.unsubscribe = function (channel) {
+  subscriber.unsubscribe(channel);
+  channelConfig[channel] = null;
+}
 exports.subscribe = function (channel, callback) {
   if (subscriber) subscriber.subscribe(channel);
   if (channelConfig[channel] == null) channelConfig[channel] = [];
   channelConfig[channel].push(callback);
-  subscriber.subscribe(channel);
 };
 
 dbSeparator = '.';

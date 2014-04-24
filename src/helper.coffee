@@ -2,13 +2,35 @@
 moment = require('moment')
 
 # React Programming
+destroyReactDB = (obj) ->
+  return false unless obj
+  for k, v of obj when typeof v is 'object'
+    destroyReactDB(v)
+    delete obj[k]
+  if obj.destroyReactDB then obj.destroyReactDB()
+  if obj.newProperty then obj.newProperty = null
+  if obj.push then obj.push = null
+  obj.destroyReactDB = null
+
+exports.destroyReactDB = destroyReactDB
+
 tap = (obj, key, callback, invokeFlag = false) ->
   return false if typeof obj[key] is 'function'
   unless obj.reactDB?
     Object.defineProperty(obj, 'reactDB', {
       enumerable : false,
-      configurable : false,
+      configurable : true,
       value: { }
+    })
+    Object.defineProperty(obj, 'destroyReactDB', {
+      enumerable : false,
+      configurable : true,
+      value: () ->
+        for k, v of obj.reactDB
+          v.value = null
+          v.hooks = null
+        obj.reactDB = null
+        obj = null
     })
 
   unless obj.reactDB[key]?
@@ -17,6 +39,7 @@ tap = (obj, key, callback, invokeFlag = false) ->
       hooks: [callback]
     }
     theCB = (val) ->
+      return null unless obj.reactDB?[key]?.hooks?
       cb(key, val) for cb in obj.reactDB[key].hooks when cb?
       return obj.reactDB[key].value = val
 
@@ -46,7 +69,7 @@ tapObject = (obj, callback) ->
   config = {
     value: tabNewProperty,
     enumerable : false,
-    configurable : false
+    configurable : true,
     writable : false,
   }
 

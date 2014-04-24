@@ -110,7 +110,9 @@ exports.route = {
               player.socket = socket
               socket.player = player
               socket.playerName = player.name
-            if gPlayerDB[player.name] then gPlayerDB[player.name].logout(RET_LoginByAnotherDevice)
+            if gPlayerDB[player.name]
+              gPlayerDB[player.name].logout(RET_LoginByAnotherDevice)
+              delete gPlayerDB[player.name]
             gPlayerDB[player.name] = player
             time = Math.floor((new Date()).valueOf() / 1000)
             ev = []
@@ -133,12 +135,15 @@ exports.route = {
                 cb(null, [])
               )
             ], (err, result) ->
+              if player.destroied then return []
+              playerCounter++
               result = result.reduce(((r, l) -> return r.concat(l);), [])
               ev = ev.concat(result).concat(player.onLogin()).concat(player.syncCampaign()).concat(player.syncEvent())
               loginInfo = {REQ: rpcID, RET: RET_OK, arg:{pid: player.runtimeID, rid: player.name, svt: time, usr: player.name, sid: gServerID}}
               if player.tutorialStage?  then loginInfo.arg.tut = player.tutorialStage
               handle([loginInfo].concat(ev))
               player.saveDB(cb)
+              player = null
             )
           else
             dbLib.newSessionInfo((err, session) ->
