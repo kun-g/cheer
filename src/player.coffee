@@ -699,7 +699,7 @@ class Player extends DBWrapper
     recipe = @getItemAt(slot)
     return { ret: RET_NeedReceipt } unless recipe.category is ITEM_RECIPE
     return { ret: RET_NotEnoughGold } if @gold < recipe.recipeCost
-    retRM = @inventory.removeById(recipe.recipeIngredient, true)
+    retRM = @inventory.removeById(recipe.recipeIngredient, 1, true)
     return { ret: RET_InsufficientIngredient } unless retRM
     ret = @removeItem(null, 1, slot)
     ret = ret.concat(@doAction({id: 'ItemChange', ret: retRM, version: this.inventoryVersion}))
