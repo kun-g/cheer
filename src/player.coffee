@@ -296,6 +296,7 @@ class Player extends DBWrapper
       heroData.vip = @vipLevel()
       hero = new Hero(heroData)
       @battleForce = hero.calculatePower()
+      @hero = hero
       return hero
     else
       throw 'NoHero'
