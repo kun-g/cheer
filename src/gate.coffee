@@ -32,11 +32,6 @@ initGlobalConfig(null, () ->
           c.destroy()
           c = null
       )
-
-      c.on('error', (error) ->
-        c.destroy()
-        c = null
-      )
     )
     appNet.backends = servers.map( (s, id) -> return {
       ip: s.ip,
@@ -56,21 +51,20 @@ initGlobalConfig(null, () ->
     appNet.createConnection = (socket) ->
       server = getAliveConnection()
       if server?
-        c = net.connect(server.port, server.ip)
-        c.on('error', (err) ->
-          c.destroy()
-          socket.destroy()
-          c = null
-        )
-        c.on('end', (err) ->
-          c.destroy()
-          socket.destroy()
-          c = null
-        )
-      else
+        nc = net.connect(server.port, server.ip)
+      releaseSocket = () ->
+        if nc
+          nc.destroy()
+          nc = null
         socket.destroy()
 
-      return c
+      if nc
+        nc.on('end', releaseSocket)
+        nc.on('error', releaseSocket)
+      socket.on('error', releaseSocket)
+      socket.on('end', releaseSocket)
+
+      return nc
 
     updateBackendStatus = () ->
       appNet.backends.forEach( (e) ->
