@@ -336,6 +336,7 @@ class Wizard
             cmd.routine?({id: 'Heal', src: @, tar: @, hp: formularResult})
           else
             cmd.routine?({id: 'Heal', src: @, tar: t, hp: formularResult}) for t in target
+        when 'removeSpell' then t.removeSpell(a.spell, cmd) for t in target
         when 'installSpell'
           for t in target
             delay = 0
