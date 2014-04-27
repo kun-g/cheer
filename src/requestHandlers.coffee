@@ -241,7 +241,6 @@ exports.route = {
               #result.RET = RET_Issue41
               status = 'FileVersionConflict'
 
-          logInfo(player.dungeonData)
           initialData = player.dungeonData
           if result.RET is RET_OK and initialData?
             replay = arg.rep

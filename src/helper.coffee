@@ -26,6 +26,7 @@ tap = (obj, key, callback, invokeFlag = false) ->
       enumerable : false,
       configurable : true,
       value: () ->
+        return null unless obj?.reactDB
         for k, v of obj.reactDB
           v.value = null
           v.hooks = null
@@ -44,7 +45,10 @@ tap = (obj, key, callback, invokeFlag = false) ->
       return obj.reactDB[key].value = val
 
     Object.defineProperty(obj, key, {
-      get : () -> return obj.reactDB[key].value,
+      get : () ->
+        return null unless obj?.reactDB?[key]?
+        return obj.reactDB[key].value
+      ,
       set : theCB,
       enumerable : true,
       configurable : true
@@ -172,68 +176,81 @@ matchDate = (date, today, rule) ->
   
 exports.matchDate = matchDate
 
-# campaign
+genCampaignUtil = () ->
+  return {
+    sameDay: diffDate,
+    currentTime: currentTime,
+    today: moment()
+  }
+exports.genUtil = genCampaignUtil
+
 initCampaign = (me, allCampaign, abIndex) ->
   ret = []
+  util = genCampaignUtil()
   for key, e of allCampaign when me.getType() is e.storeType
-    if e.prev? and me[e.prev]? and me[e.prev].status isnt 'Done'
-      #delete me[key]
-      return []
-    if e.flag? and not me.flags[e.flag]?
-      #delete me[key]
-      return []
-    #if e.daily and me[key]?.date? and diffDate(me[key].date, currentTime()) isnt 0
-      #delete me[key]
+    if key is 'event_daily'
+      ret = ret.concat(initDailyEvent(me, 'event_daily', e))
+    else
+      if e.canReset(me, util) then e.reset(me, util)
+      unless e.canProceed(me, util) then continue
 
-    if not me[key]?
-      me[key] = {}
-      me.attrSave(key, true)
-    if e.daily
-      if not me[key].date or diffDate(me[key].date, currentTime()) isnt 0
-        me[key].newProperty('status', 'Init')
-        me[key].newProperty('date', currentTime())
-        if key is 'event_daily'
-          me[key].newProperty('rank', me.battleForce/24 - 3)
-          if me[key].rank < 1 then me[key].rank = 1
-          me[key].newProperty('reward', [{type: PRIZETYPE_GOLD, count: Math.floor(me[key].rank*18)}])
+# campaign
+initDailyEvent = (me, key, e) ->
+  ret = []
+  if e.prev? and me[e.prev]? and me[e.prev].status isnt 'Done'
+    return []
+  if e.flag? and not me.flags[e.flag]?
+    return []
 
-    if e.quest and Array.isArray(e.quest) and me[key].status is 'Init'
-      me[key].newProperty('quest', shuffle(e.quest, Math.random()).slice(0, e.steps))
-      me[key].newProperty('step', 0)
-      goldCount = Math.ceil(me[key].rank*6)
-      diamondCount = Math.ceil(me[key].rank/10)
-      goldCount = Math.floor(me[key].rank*6)
-      me[key].newProperty('stepPrize', [
-        [{type: PRIZETYPE_GOLD, count: goldCount}, {type: PRIZETYPE_ITEM, value: 0, count: diamondCount}],
-        [{type: PRIZETYPE_GOLD, count: goldCount}, {type: PRIZETYPE_ITEM, value: 0, count: diamondCount}, {type: PRIZETYPE_ITEM, value: 534, count: 5}],
-        [{type: PRIZETYPE_GOLD, count: goldCount}, {type: PRIZETYPE_ITEM, value: 0, count: diamondCount}, {type: PRIZETYPE_ITEM, value: 535, count: 2}],
-        [{type: PRIZETYPE_GOLD, count: goldCount}, {type: PRIZETYPE_ITEM, value: 0, count: diamondCount}, {type: PRIZETYPE_ITEM, value: 536, count: 1}]
-      ])
-    quest = me[key].quest
-    if Array.isArray(quest)
-      quest = quest[me[key].step]
-    switch me[key].status
-      when 'Claimed'
+  if not me[key]?
+    me[key] = {}
+    me.attrSave(key, true)
+  if e.daily
+    if not me[key].date or diffDate(me[key].date, currentTime()) isnt 0
+      me[key].newProperty('status', 'Init')
+      me[key].newProperty('date', currentTime())
+      if key is 'event_daily'
+        me[key].newProperty('rank', me.battleForce/24 - 3)
+        if me[key].rank < 1 then me[key].rank = 1
+        me[key].newProperty('reward', [{type: PRIZETYPE_GOLD, count: Math.floor(me[key].rank*18)}])
+
+  if e.quest and Array.isArray(e.quest) and me[key].status is 'Init'
+    me[key].newProperty('quest', shuffle(e.quest, Math.random()).slice(0, e.steps))
+    me[key].newProperty('step', 0)
+    goldCount = Math.ceil(me[key].rank*6)
+    diamondCount = Math.ceil(me[key].rank/10)
+    goldCount = Math.floor(me[key].rank*6)
+    me[key].newProperty('stepPrize', [
+      [{type: PRIZETYPE_GOLD, count: goldCount}, {type: PRIZETYPE_ITEM, value: 0, count: diamondCount}],
+      [{type: PRIZETYPE_GOLD, count: goldCount}, {type: PRIZETYPE_ITEM, value: 0, count: diamondCount}, {type: PRIZETYPE_ITEM, value: 534, count: 5}],
+      [{type: PRIZETYPE_GOLD, count: goldCount}, {type: PRIZETYPE_ITEM, value: 0, count: diamondCount}, {type: PRIZETYPE_ITEM, value: 535, count: 2}],
+      [{type: PRIZETYPE_GOLD, count: goldCount}, {type: PRIZETYPE_ITEM, value: 0, count: diamondCount}, {type: PRIZETYPE_ITEM, value: 536, count: 1}]
+    ])
+  quest = me[key].quest
+  if Array.isArray(quest)
+    quest = quest[me[key].step]
+  switch me[key].status
+    when 'Claimed'
+      if quest? then delete me.quests[quest]
+      me[key].step++
+      if me[key].step == e.steps
+        me[key].status = 'Complete'
+      else if me[key].step > e.steps
+        me[key].status = 'Done'
+      else
+        me[key].status = 'Ready'
+        quest = me[key].quest
+        if Array.isArray(quest)
+          quest = quest[me[key].step]
         if quest? then delete me.quests[quest]
-        me[key].step++
-        if me[key].step == e.steps
+        return ret
+    when 'Init' then me[key].status = 'Ready'
+    when 'Ready'
+      if quest?
+        if me.isQuestAchieved(quest)
           me[key].status = 'Complete'
-        else if me[key].step > e.steps
-          me[key].status = 'Done'
-        else
-          me[key].status = 'Ready'
-          quest = me[key].quest
-          if Array.isArray(quest)
-            quest = quest[me[key].step]
-          if quest? then delete me.quests[quest]
-          return ret.concat(initCampaign(me, allCampaign, abIndex))
-      when 'Init' then me[key].status = 'Ready'
-      when 'Ready'
-        if quest?
-          if me.isQuestAchieved(quest)
-            me[key].status = 'Complete'
-          else if not me.quests[quest]
-            ret = ret.concat(me.acceptQuest(quest))
+        else if not me.quests[quest]
+          ret = ret.concat(me.acceptQuest(quest))
   evt = {
     NTF: Event_UpdateDailyQuest,
     arg: { stp: me.event_daily.step, prz: me.event_daily.reward }
@@ -286,15 +303,9 @@ exports.proceedCampaign = actCampaign
 exports.events = {
   "event_daily": {
     "flag": "daily",
+    "resetTime": { hour: 8 },
     "storeType": "player",
     "daily": true,
-    "reward": [
-      { "prize":{ "type":0, "value":33, "count":1 }, "weight":1 },
-      { "prize":{ "type":0, "value":34, "count":1 }, "weight":1 },
-      { "prize":{ "type":0, "value":35, "count":1 }, "weight":1 },
-      { "prize":{ "type":0, "value":36, "count":1 }, "weight":1 },
-      { "prize":{ "type":0, "value":37, "count":1 }, "weight":1 }
-    ],
     "steps": 4,
     "quest": [
       128, 129, 130, 131, 132, 133, 134, 135, 136, 137, 138, 139, 140, 141, 142, 143,
@@ -332,7 +343,6 @@ updateLockStatus = (curStatus, target, config) ->
     if unlockable and not curStatus[id]? then ret.push(+id)
   return ret
 exports.updateLockStatus = updateLockStatus
-
 
 exports.calculateTotalItemXP = (item) ->
   return 0 unless item.xp?

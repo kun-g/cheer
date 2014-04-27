@@ -400,6 +400,7 @@ class Wizard
             thisSpell.modifications[property] = 0 unless thisSpell.modifications[property]?
             thisSpell.modifications[property] += val
         when 'resetProperty'
+          continue unless thisSpell
           for property, val of thisSpell.modifications
             @[property] -= val
           delete thisSpell.modifications

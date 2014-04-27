@@ -25,7 +25,7 @@ class Item extends Serializer
     return 1
 
   initialize: () ->
-    @restore(@getConfig()) if @id?
+    @restore(JSON.parse(JSON.stringify(@getConfig()))) if @id?
 
 class Card extends Item
   constructor: (id) -> super id

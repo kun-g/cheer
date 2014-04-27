@@ -7,7 +7,7 @@ moment = require('moment')
 {CommandStream, Environment, DungeonEnvironment, DungeonCommandStream} = require('./commandStream')
 {Dungeon} = require './dungeon'
 {Bag, CardStack} = require('./container')
-{diffDate, currentTime} = require ('./helper')
+{diffDate, currentTime, genUtil} = require ('./helper')
 helperLib = require ('./helper')
 
 dbLib = require('./db')
@@ -24,6 +24,10 @@ class Player extends DBWrapper
       stageTableVersion: -1,
 
       event_daily: {},
+
+      timestamp: {},
+      counters: {},
+      flags: {},
 
       inventory: Bag(InitialBagSize),
       gold: 0,
@@ -45,7 +49,6 @@ class Player extends DBWrapper
       energy: ENERGY_MAX,
       energyTime: now.valueOf(),
 
-      flags: {},
       mercenary: [],
       dungeonData: {},
       runtimeID: -1,
@@ -106,7 +109,6 @@ class Player extends DBWrapper
       logUser(msg)
 
   onDisconnect: () ->
-    gPlayerDB[@name] = null
     @socket = null
     gPlayerDB[@name] = null
     delete @messages
@@ -380,6 +382,7 @@ class Player extends DBWrapper
 
   stageIsUnlockable: (stage) ->
     stageConfig = queryTable(TABLE_STAGE, stage, @abIndex)
+    if stageConfig.condition then return stageConfig.condition(this, genUtil())
     if stageConfig.event
       return @[stageConfig.event]? and @[stageConfig.event].status is 'Ready'
     return @stage[stage] and @stage[stage].state != STAGE_STATE_INACTIVE
@@ -557,6 +560,9 @@ class Player extends DBWrapper
             when "setFlag"
               @flags.newProperty(p.flag, p.value)
               ret = ret.concat(@syncFlags(true)).concat(@syncEvent())
+            when "countUp"
+              @counters[p.counter]++
+              ret = ret.concat(@syncCounters(true)).concat(@syncEvent())
     return ret
 
   isQuestAchieved: (qid) ->
