@@ -214,6 +214,12 @@ varifyDungeonConfig = function (cfg) {
   return cfg;
 };
 
+function initShop (data) {
+  for (var k in data) {
+    gShop.addProduct(k, data[k]);
+  }
+}
+
 var gConfigTable = {};
 initGlobalConfig = function (path, callback) {
   queryTable = function (type, index, abIndex) {
@@ -231,7 +237,7 @@ initGlobalConfig = function (path, callback) {
       return cfg[index];
     }
   };
-  var configTable = [{name:TABLE_LEADBOARD},
+  var configTable = [{name:TABLE_LEADBOARD}, {name: TABLE_STORE, func:initShop},
     {name:TABLE_ROLE}, {name:TABLE_LEVEL}, {name:TABLE_VERSION},
     {name:TABLE_ITEM}, {name:TABLE_CARD}, {name:TABLE_DUNGEON, func:varifyDungeonConfig},
     {name:TABLE_STAGE, func: initStageConfig}, {name:TABLE_QUEST},

@@ -5,7 +5,7 @@ initServer();
 
 describe('Dungeon', function () {
   before(function (done) {
-    initGlobalConfig('../build/', done);
+    initGlobalConfig('../../build/', done);
   });
 
 //  it('Shuffle', function () {

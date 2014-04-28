@@ -16,7 +16,7 @@ var spellLib = require('../js/spell');
 var dbLib = require('../js/db');
 dbPrefix = 'Develop'+'.';
 dbLib.initializeDB({
-  "Account": { "IP": "10.4.4.188", "PORT": 6380},
+  "Account": { "IP": "10.4.3.41", "PORT": 6379},
   "Role": { "IP": "10.4.3.41", "PORT": 6379},
   "Publisher": { "IP": "10.4.3.41", "PORT": 6379},
   "Subscriber": { "IP": "10.4.3.41", "PORT": 6379}
@@ -26,7 +26,16 @@ dbLib.initializeDB({
   // "Subscriber": { "IP": "localhost", "PORT": 6379}
 });
 
-//dbLib.loadPassport( LOGIN_ACCOUNT_TYPE_91, '571082474', false, console.log);
+dbClient.set('GlobalPrize', JSON.stringify({
+  "2014/4/28": {
+    type: MESSAGE_TYPE_SystemReward,
+    src: MESSAGE_REWARD_TYPE_SYSTEM,
+    prize: [{type: PRIZETYPE_GOLD, count: 1024}],
+    tit: "Warriors",
+    txt: "Freedom Call"
+  }
+}));
+dbLib.loadPassport( LOGIN_ACCOUNT_TYPE_91, '571082474', false, console.log);
 //dbLib.loadPlayer('呃呃饭否', function (err, p) {
   // p.startDungeon(104, true, function (err, ret) {
   //   console.log('XXX', err, ret);
@@ -52,38 +61,38 @@ dbLib.initializeDB({
 
 describe('Player', function () {
   before(function (done) {
-    initGlobalConfig('../build/', done);
+    initGlobalConfig('../../build/', done);
   });
 //  after(function () {
 //    dbLib.releaseDB();
 //  });
 //
-//  describe('Player', function () {
+    describe('Player', function () {
 
-//    it('Creation', function () {
-//      var p = new playerLib.Player();
-//      p.setName('Test');
-//      p.initialize();
-//      p.createHero({name: 'K', class: 1, gender: 1, hairStyle: 1, hairColor: 1});
+      it('Creation', function () {
+        var p = new playerLib.Player();
+        p.setName('Test');
+        p.initialize();
+        p.createHero({name: 'K', class: 1, gender: 1, hairStyle: 1, hairColor: 1});
 
-//      //p.saveDB();
-//      var x = new playerLib.Player(p.dumpChanged());
-//      x.initialize();
-//      shall(x.dump()).eql(p.dump());
-//      shall(x.dumpChanged()).eql(p.dumpChanged());
-//      p.aquireItem(32);
-//      x.aquireItem(32);
-//      shall(p.dump()).eql(x.dump());
-//      shall(p.dumpChanged()).eql(x.dumpChanged());
+        //p.saveDB();
+        var x = new playerLib.Player(p.dumpChanged());
+        x.initialize();
+        shall(x.dump()).eql(p.dump());
+        shall(x.dumpChanged()).eql(p.dumpChanged());
+        p.aquireItem(32);
+        x.aquireItem(32);
+        shall(p.dump()).eql(x.dump());
+        shall(p.dumpChanged()).eql(x.dumpChanged());
 
-//      //p.hero.xp += 10;
-//      //console.log(p.useItem(0));
-//      //console.log(p.dumpChanged())
-//      //p.saveDB();
+        //p.hero.xp += 10;
+        //console.log(p.useItem(0));
+        //console.log(p.dumpChanged())
+        //p.saveDB();
 
-//      //x.startDungeon(104, true, console.log);
-//    });
-//  });
+        //x.startDungeon(104, true, console.log);
+      });
+    });
 //
 //  describe('SimpleProtocol', function () {
 //    var parseLib = require('../requestStream');
@@ -186,8 +195,14 @@ describe('Player', function () {
       // Target Selection
       me.selectTarget({targetSelection: {pool:'Self', filter: ['Visible', 'Alive']}}, cmd).should.length(0);
       me.isVisible = true;
-      var tar = me.selectTarget({targetSelection: {pool:'self', filter: ['Visible', 'Alive']}}, cmd);
+      var tar = me.selectTarget({targetSelection: {pool:'Self', filter: ['Visible', 'Alive']}}, cmd);
       tar[0].should.have.property('name').equal(me.name);
+      tar = me.selectTarget({targetSelection: {pool:'Team', method: ['Rand']}}, cmd);
+      tar[0].should.have.property('name').equal(heroes[1].name);
+      tar = me.selectTarget({targetSelection: {pool:'Enemy', filter: ['Visible']}}, cmd);
+      tar.should.length(5);
+      tar = me.selectTarget({targetSelection: {pool:'Enemy', filter: ['Visible'], method: ['LowHealth']}}, cmd);
+      tar[0].should.have.property('name').equal(monsters[1].name);
 
       // Trigger condition TODO:
       var thisSpell = {};
@@ -257,8 +272,8 @@ describe('Player', function () {
       me.removeSpell(1, cmd);
       me.wTriggers.should.not.have.property('onBeDamage');
       me.wTriggers.should.not.have.property('onBeSpellDamage');
-      //me.installSpell(6, 1, cmd);
-      //me.installSpell(12, 2, cmd);
+      me.installSpell(6, 1, cmd);
+      me.installSpell(12, 2, cmd);
 
 
       //var dcmd = new cmdStreamLib.DungeonCommandStream({id: 'Dialog', dialogId: 0});
@@ -311,48 +326,48 @@ describe('Player', function () {
 
         done();
       });
-//    it('Specific Spell test', function () {
-//      env = new dungeonLib.DungeonEnvironment(dungeon);
-//      cmd = {getEnvironment: function () { return env }};
-//      var dataField = {damage: 10};
-//      env.setVariableField(dataField);
-//      w.level.should.equal(10);
-//      // Spell 0
-//      w.castSpell(0, 1, cmd).should.equal(true);
-//      w.wSpellDB.should.have.property('0').have.property('cd').equal(10);
-//      w.castSpell(0, 1, cmd).should.equal('NotReady');
-//      // Spell 1
-//      w.wSpellDB.should.have.property('1').have.property('level').equal(3);
-//      w.onEvent('onBePhysicalDamage', cmd);
-//      dataField.damage.should.equal(0);
-//      w.wSpellDB.should.have.property('1').have.property('effectCount').equal(1);
-//      dataField.damage = 10;
-//      w.onEvent('onBePhysicalDamage', cmd);
-//      w.onEvent('onBePhysicalDamage', cmd);
-//      w.onEvent('onBePhysicalDamage', cmd);
-//      dataField.damage.should.equal(0);
-//      w.wSpellDB.should.not.have.property('1');
-//      dataField.damage = 10;
-//      w.onEvent('onBePhysicalDamage', cmd);
-//      dataField.damage.should.equal(10);
-//      // Spell 2
-//      dataField.tar = m;
-//      env.rand = function () { return 0; };
-//      w.onEvent('onTeammateBePhysicalDamage', cmd);
-//      dataField.tar.name.should.equal('W');
-//      w1.onEvent('onTeammateBePhysicalDamage', cmd);
-//      dataField.tar.name.should.equal('W');
-//      w.haveMutex('reinforce').should.equal(true);
-//      m.haveMutex('reinforce').should.equal(true);
-//      w1.wSpellDB[2].should.not.have.property('effectCount');
-//      // Spell 3
-//      dataField.hp = 10;
-//      w.strong = 1;
-//      w.onEvent('onBeHeal', cmd);
-//      dataField.hp.should.equal(26);
-//      // Spell 4
-//      w.onEvent('onTarget', cmd);
-//    });
+      it('Specific Spell test', function () {
+        env = new dungeonLib.DungeonEnvironment(dungeon);
+        cmd = {getEnvironment: function () { return env }};
+        var dataField = {damage: 10};
+        env.setVariableField(dataField);
+        w.level.should.equal(10);
+        // Spell 0
+        w.castSpell(0, 1, cmd).should.equal(true);
+        w.wSpellDB.should.have.property('0').have.property('cd').equal(10);
+        w.castSpell(0, 1, cmd).should.equal('NotReady');
+        // Spell 1
+        w.wSpellDB.should.have.property('1').have.property('level').equal(3);
+        w.onEvent('onBePhysicalDamage', cmd);
+        dataField.damage.should.equal(0);
+        w.wSpellDB.should.have.property('1').have.property('effectCount').equal(1);
+        dataField.damage = 10;
+        w.onEvent('onBePhysicalDamage', cmd);
+        w.onEvent('onBePhysicalDamage', cmd);
+        w.onEvent('onBePhysicalDamage', cmd);
+        dataField.damage.should.equal(0);
+        w.wSpellDB.should.not.have.property('1');
+        dataField.damage = 10;
+        w.onEvent('onBePhysicalDamage', cmd);
+        dataField.damage.should.equal(10);
+        // Spell 2
+        dataField.tar = m;
+        env.rand = function () { return 0; };
+        w.onEvent('onTeammateBePhysicalDamage', cmd);
+        dataField.tar.name.should.equal('W');
+        w1.onEvent('onTeammateBePhysicalDamage', cmd);
+        dataField.tar.name.should.equal('W');
+        w.haveMutex('reinforce').should.equal(true);
+        m.haveMutex('reinforce').should.equal(true);
+        w1.wSpellDB[2].should.not.have.property('effectCount');
+        // Spell 3
+        dataField.hp = 10;
+        w.strong = 1;
+        w.onEvent('onBeHeal', cmd);
+        dataField.hp.should.equal(26);
+        // Spell 4
+        w.onEvent('onTarget', cmd);
+      });
 
     });
   });

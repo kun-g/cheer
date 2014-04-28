@@ -263,7 +263,7 @@ describe('Campaign', function () {
   var helperLib = require('../js/helper');
 
   before(function (done) {
-    initGlobalConfig('../build/', done);
+    initGlobalConfig('../../build/', done);
   });
 
   describe('ChainEvent', function () {
