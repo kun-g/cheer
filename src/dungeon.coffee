@@ -1417,7 +1417,8 @@ dungeonCSConfig = {
       onEvent('Heal', @, env.variable('src'), env.variable('tar'))
       env.variable('tar').health += env.variable('hp')
     ,
-    output: (env) -> [{act: env.variable('tar').ref, id: ACT_POPHP, num: env.variable('hp'), flg: HP_RESULT_TYPE_HEAL, dey: 0.3}]
+    output: (env) ->
+      [{act: env.variable('tar').ref, id: ACT_POPHP, num: env.variable('hp'), flg: HP_RESULT_TYPE_HEAL, dey: env.variable('delay') ? 0.3}]
   },
   Damage: {
     callback: (env) ->

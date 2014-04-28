@@ -333,9 +333,9 @@ class Wizard
         when 'factionHeal' then env.factionHeal(a.src, a.tar, a.flag)
         when 'heal'
           if a.self
-            cmd.routine?({id: 'Heal', src: @, tar: @, hp: formularResult})
+            cmd.routine?({id: 'Heal', src: @, tar: @, hp: formularResult, delay: delay})
           else
-            cmd.routine?({id: 'Heal', src: @, tar: t, hp: formularResult}) for t in target
+            cmd.routine?({id: 'Heal', src: @, tar: t, hp: formularResult, delay: delay}) for t in target
         when 'removeSpell' then t.removeSpell(a.spell, cmd) for t in target
         when 'installSpell'
           for t in target
