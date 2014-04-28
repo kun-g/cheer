@@ -103,7 +103,7 @@ Shop.prototype.dump = function (player) {
 
 gShop = new Shop();
 var fs = require('fs');
-var data = require('./stores').data;
+var data = require('./store').data;
 for (var k in data) {
   gShop.addProduct(k, data[k]);
 }
