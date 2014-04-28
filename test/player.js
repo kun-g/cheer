@@ -16,7 +16,7 @@ var spellLib = require('../js/spell');
 var dbLib = require('../js/db');
 dbPrefix = 'Develop'+'.';
 dbLib.initializeDB({
-  "Account": { "IP": "10.4.4.188", "PORT": 6380},
+  "Account": { "IP": "10.4.3.41", "PORT": 6379},
   "Role": { "IP": "10.4.3.41", "PORT": 6379},
   "Publisher": { "IP": "10.4.3.41", "PORT": 6379},
   "Subscriber": { "IP": "10.4.3.41", "PORT": 6379}
@@ -26,6 +26,15 @@ dbLib.initializeDB({
   // "Subscriber": { "IP": "localhost", "PORT": 6379}
 });
 
+dbClient.set('GlobalPrize', JSON.stringify({
+  "2014/4/28": {
+    type: MESSAGE_TYPE_SystemReward,
+    src: MESSAGE_REWARD_TYPE_SYSTEM,
+    prize: [{type: PRIZETYPE_GOLD, count: 1024}],
+    tit: "Warriors",
+    txt: "Freedom Call"
+  }
+}));
 dbLib.loadPassport( LOGIN_ACCOUNT_TYPE_91, '571082474', false, console.log);
 //dbLib.loadPlayer('呃呃饭否', function (err, p) {
   // p.startDungeon(104, true, function (err, ret) {
