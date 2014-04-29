@@ -33,7 +33,7 @@ class Unit extends Wizard
       console.log('LevelUp ', JSON.stringify(data.property)) if flagCreation
 
   initWithConfig: (roleConfig) ->
-    @roleID = roleConfig.id ? roleConfig.class
+    @roleID = roleConfig.classId
     return false unless roleConfig?
     @type = Unit_Boss if roleConfig.bossFlag
     @collectId = roleConfig.collectId if roleConfig.collectId?
