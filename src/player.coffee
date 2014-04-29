@@ -85,7 +85,7 @@ class Player extends DBWrapper
       @socket.encoder.writeObject({NTF: Event_ExpiredPID, err: reason})
     @onDisconnect()
     dbLib.unsubscribe(PlayerChannelPrefix+this.name)
-    @destroy()
+    #@destroy()
     @destroied = true
 
   onReconnect: (socket) ->
