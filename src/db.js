@@ -500,6 +500,8 @@ exports.broadcastEvent = function (type, arg, handler) {
   });
 }; 
 
+exports.getGlobalPrize = function (handler) { dbClient.get("GlobalPrize", handler); };
+
 exports.getServerConfig = function (key, handler) {
   dbClient.hget("ServerConfig", key, handler);
 };
