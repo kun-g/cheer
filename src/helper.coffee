@@ -192,7 +192,11 @@ initCampaign = (me, allCampaign, abIndex) ->
       ret = ret.concat(initDailyEvent(me, 'event_daily', e))
     else
       if e.canReset(me, util) then e.reset(me, util)
-      unless e.canProceed(me, util) then continue
+      ret.push({
+        NTF: Event_BountyUpdate,
+        arg: { bid: e.id, sta: e.actived, cnt: e.count}
+      })
+  return ret
 
 # campaign
 initDailyEvent = (me, key, e) ->
@@ -301,17 +305,67 @@ actCampaign = (me, key, config, handler) ->
 exports.proceedCampaign = actCampaign
 
 exports.events = {
-  "event_daily": {
-    "flag": "daily",
-    "resetTime": { hour: 8 },
-    "storeType": "player",
-    "daily": true,
-    "steps": 4,
-    "quest": [
-      128, 129, 130, 131, 132, 133, 134, 135, 136, 137, 138, 139, 140, 141, 142, 143,
-      144, 145, 146, 147, 148, 149, 150, 151
-    ]
-  },
+    "event_daily": {
+      "flag": "daily",
+      "resetTime": { hour: 8 },
+      "storeType": "player",
+      "daily": true,
+      "reward": [
+        { "prize":{ "type":0, "value":33, "count":1 }, "weight":1 },
+        { "prize":{ "type":0, "value":34, "count":1 }, "weight":1 },
+        { "prize":{ "type":0, "value":35, "count":1 }, "weight":1 },
+        { "prize":{ "type":0, "value":36, "count":1 }, "weight":1 },
+        { "prize":{ "type":0, "value":37, "count":1 }, "weight":1 }
+      ],
+      "steps": 4,
+      "quest": [
+        128, 129, 130, 131, 132, 133, 134, 135,
+        136, 137, 138, 139, 140, 141, 142, 143,
+        144, 145, 146, 147, 148, 149, 150, 151
+      ]
+
+    },
+    event_robbers: {
+      storeType: "player",
+      id: 0,
+      actived: 1,
+      count: 5,
+      canReset: (obj, util) ->
+        return (!util.sameDay(obj.timestamp.robbers, util.today) &&
+          util.today.hour() >= 8)
+      ,
+      reset: (obj, util) ->
+        obj.timestamp.robbers = util.currentTime()
+        obj.counters.robbers = 0
+    },
+    event_weapon: {
+      storeType: "player",
+      id: 1,
+      actived: 1,
+      count: 5,
+      canReset: (obj, util) ->
+        return !util.sameDay(obj.timestamp.weapon, util.today)
+      ,
+      reset: (obj, util) ->
+        obj.timestamp.weapon = util.currentTime()
+        obj.counters.weapon = 0
+      ,
+      stageID: 1024
+    },
+    event_enhance: {
+      id: 2,
+      storeType: "player",
+      actived: 1,
+      count: 5,
+      canReset: (obj, util) ->
+        return !util.sameDay(obj.timestamp.enhance, util.today)
+      ,
+      reset: (obj, util) ->
+        obj.timestamp.enhance = util.currentTime()
+        obj.counters.enhance = 0
+      ,
+      stageID: 1024
+    }
 #  "event_energy": {
 #    "type": "func",
 #    "storeType": "player",

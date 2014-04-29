@@ -199,6 +199,8 @@ describe('Campaign', function () {
     },
     event_robbers: {
       storeType: "player",
+      actived: 1,
+      count: 5,
       canProceed: function (obj, util) {
         return (
             obj.counters.robbers < 2 &&
@@ -218,6 +220,8 @@ describe('Campaign', function () {
     },
     event_weapon: {
       storeType: "player",
+      actived: 1,
+      count: 5,
       canProceed: function (obj, util) {
         return ( obj.counters.weapon < 2 ) &&
             ( util.today.weekday() === 2 ||
@@ -236,6 +240,8 @@ describe('Campaign', function () {
     },
     event_enhance: {
       storeType: "player",
+      actived: 1,
+      count: 5,
       canProceed: function (obj, util) {
         return ( obj.counters.enhance < 2 ) &&
             ( util.today.weekday() === 1 ||
