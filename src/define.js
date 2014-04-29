@@ -249,7 +249,7 @@ initGlobalConfig = function (path, callback) {
     if (index == null) {
       return cfg;
     } else {
-      return cfg[index];
+      return JSON.parse(JSON.stringify(cfg[index])); //TODO: hotfix
     }
   };
   var configTable = [{name:TABLE_LEADBOARD},
