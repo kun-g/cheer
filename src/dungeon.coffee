@@ -480,13 +480,16 @@ class Dungeon
       soldierPool = if cfg.soldierPool? then cfg.soldierPool else null
       elitePool = if cfg.elitePool? then cfg.elitePool else null
       bossPool = if cfg.bossPool? then cfg.bossPool else null
+      goodPool = if cfg.goodPool? then cfg.goodPool else null
+      badPool = if cfg.badPool? then cfg.badPool else null
+      normalPool = if cfg.normalPool? then cfg.normalPool else null
       @level = new Level()
       @level.rand = (r) => @rand(r)
       @level.random = (r) => @random(r)
       Object.defineProperty(@level, 'random', {enumerable:false})
       Object.defineProperty(@level, 'rand', {enumerable:false})
       quest = if @quests? then @quests else []
-      @level.init(lvConfig, @baseRank, @getHeroes(), quest, soldierPool, elitePool, bossPool)
+      @level.init(lvConfig, @baseRank, @getHeroes(), quest, {soldier: soldierPool, elite: elitePool, boss: bossPool, good: goodPool, bad: badPool, normal: normalPool})
 
 exports.Dungeon = Dungeon
 #////////////////////// Block
@@ -522,13 +525,13 @@ class Level
     @ref =  HEROTAG
 
 
-  init: (lvConfig, baseRank, heroes, quests, soldierPool, elitePool, bossPool) ->
+  init: (lvConfig, baseRank, heroes, quests, pool) ->
     @objects = @objects.concat(heroes)
     @rank = baseRank
     @rank += lvConfig.rank if lvConfig.rank?
     @generateBlockLayout(lvConfig)
     @setupEnterAndExit(lvConfig)
-    @placeMapObjects(lvConfig, quests, {soldier: soldierPool, elite: elitePool, boss: bossPool})
+    @placeMapObjects(lvConfig, quests, pool)
 
     return @entrance
 
@@ -670,14 +673,14 @@ class Level
         else
           return true
       )
-
     monsterCount = objectConfig.reduce( ((r, l) ->
       count = 1
       count = l.count if l.count?
       r.boss += count if l.boss?
       r.elite += count if l.elite?
       r.soldier += count if l.soldier?
-      return r), {soldier: 0, elite: 0, boss: 0})
+      r.normal += count if l.normal?
+      return r), {soldier: 0, elite: 0, boss: 0, normal: 0})
 
     that = this
     fillupMonster = (cfg) ->
@@ -689,9 +692,13 @@ class Level
 
     monsterConfig = [
       {counter: 'soldier', targetCounter: 'soldierCount', pool: 'soldier', keyed: false},
+      {counter: 'good', targetCounter: 'goodCount', pool: 'good', keyed: false},
+      {counter: 'bad', targetCounter: 'badCount', pool: 'bad', keyed: false},
+      {counter: 'normal', targetCounter: 'normalCount', pool: 'normal', keyed: false},
       {counter: 'elite', targetCounter: 'eliteCount', pool: 'elite', keyed: true},
       {counter: 'boss', targetCounter: 'bossCount', pool: 'boss', keyed: true}
     ]
+    #createUnits 
 
     fillupMonster(c) for c in monsterConfig
 

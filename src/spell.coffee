@@ -353,6 +353,7 @@ class Wizard
             cmd.routine?({id: 'SpellAction', motion: a.motion, ref: t.ref}) for t in target
         when 'tutorial' then cmd.routine?({id: 'Tutorial', tutorialId: a.tutorialId})
         when 'playEffect'
+          continue unless env?
           effect = getProperty(a.effect, level.effect)
           pos = getProperty(a.pos, level.pos)
           if pos?
