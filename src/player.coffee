@@ -24,6 +24,7 @@ class Player extends DBWrapper
       stageTableVersion: -1,
 
       event_daily: {},
+      globalPrizeFlag: {},
 
       inventory: Bag(InitialBagSize),
       gold: 0,
@@ -131,7 +132,7 @@ class Player extends DBWrapper
     if gGlobalPrize
       for key, prize of gGlobalPrize when not @globalPrizeFlag[key]
         dbLib.deliverMessage(@name, prize)
-        @globalPrizeFlag[key] = true
+        @globalPrizeFlag.newProperty(key, true)
 
     if not moment().isSame(@infiniteTimer, 'week')
       @infiniteTimer = currentTime()
