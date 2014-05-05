@@ -543,7 +543,7 @@ class Player extends DBWrapper
       switch p.type
         when PRIZETYPE_ITEM
           ret = @aquireItem(p.value, p.count, allOrFail)
-          return false unless ret and ret.length > 0
+          return [] unless ret and ret.length > 0
         when PRIZETYPE_GOLD then ret.push({NTF: Event_InventoryUpdateItem, arg: {syn: @inventoryVersion, god: @addGold(p.count)}})
         when PRIZETYPE_DIAMOND then ret.push({NTF: Event_InventoryUpdateItem, arg: {syn: @inventoryVersion, dim: @addDiamond(p.count)}})
         when PRIZETYPE_EXP then ret.push({NTF: Event_RoleUpdate, arg: {syn: @heroVersion, act: {exp: @addHeroExp(p.count)}}})

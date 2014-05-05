@@ -16,7 +16,7 @@ Server.prototype.shutDown = function () {
   clearInterval(this.publishInterval);
   if (this.tcpServer) {
     this.tcpServer.net.close();
-    clearInterval(this.tcpServer.tcpInterval);
+    //clearInterval(this.tcpServer.tcpInterval);
     this.tcpServer.net.aliveConnections.forEach(function (c) {
       if (c.pendingRequest.length == 0) c.end();
     });
@@ -103,7 +103,7 @@ Server.prototype.startTcpServer = function (config) {
   });
   this.tcpServer = {
     net : appNet,
-    tcpInterval : tcpInterval
+    //tcpInterval : tcpInterval
   };
   this.serverInfo.port = config.port;
 

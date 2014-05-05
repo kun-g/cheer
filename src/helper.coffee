@@ -247,7 +247,7 @@ initDailyEvent = (me, key, e) ->
         if Array.isArray(quest)
           quest = quest[me[key].step]
         if quest? then delete me.quests[quest]
-        return ret
+        return ret.concat(initDailyEvent(me, key, e))
     when 'Init' then me[key].status = 'Ready'
     when 'Ready'
       if quest?
@@ -255,16 +255,17 @@ initDailyEvent = (me, key, e) ->
           me[key].status = 'Complete'
         else if not me.quests[quest]
           ret = ret.concat(me.acceptQuest(quest))
-  evt = {
-    NTF: Event_UpdateDailyQuest,
-    arg: { stp: me.event_daily.step, prz: me.event_daily.reward }
-  }
-  if me.event_daily.quest[me.event_daily.step]?
-    evt.arg.qst = me.event_daily.quest[me.event_daily.step]
-  if me.event_daily.stepPrize[me.event_daily.step]?
-    evt.arg.cpz = me.event_daily.stepPrize[me.event_daily.step]
 
-  ret.push(evt)
+          evt = {
+            NTF: Event_UpdateDailyQuest,
+            arg: { stp: me.event_daily.step, prz: me.event_daily.reward }
+          }
+          if me.event_daily.quest[me.event_daily.step]?
+            evt.arg.qst = me.event_daily.quest[me.event_daily.step]
+          if me.event_daily.stepPrize[me.event_daily.step]?
+            evt.arg.cpz = me.event_daily.stepPrize[me.event_daily.step]
+
+          ret.push(evt)
   return ret
 exports.initCampaign = initCampaign
 
@@ -295,7 +296,7 @@ actCampaign = (me, key, config, handler) ->
       ret = me.claimPrize(prize)
       me[key].status = 'Claimed'
       ret = ret.concat(initCampaign(me, config))
-    when 'Done' then ret = []
+    when 'Done' then ret = [].concat(ret)
     else throw Error('WrongCampainStatus'+me[key].status)
   if handler
     handler(null, ret)
