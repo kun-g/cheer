@@ -8,60 +8,13 @@ describe('Dungeon', function () {
     initGlobalConfig('../build/', done);
   });
 
-//  it('Shuffle', function () {
-//    shuffle([1,2,3,4], 0).should.eql([1,2,3,4]);
-//    shuffle([1,2,3,4], 1).should.eql([1,2,4,3]);
-//    shuffle([1,2,3,4], 2).should.eql([1,3,2,4]);
-//    shuffle([1,2,3,4], 3).should.eql([1,3,4,2]);
-//  });
-//
-//  describe('Filter object', function () {
-//    var objects = [
-//      {name: 'o1', roleID: 1, health: 10, faction: 0},
-//      {name: 'o2', roleID: 2, health: 11, faction: 1},
-//      {name: 'o3', roleID: 3, health: 12, faction: 2},
-//      {name: 'o4', roleID: 4, health: 13, faction: 3}
-//    ];
-//    var factionDB = {
-//      0: {
-//           1: {attackable: true},
-//           3: {attackable: true},
-//         }
-//    };
-//    var fo = dungeonLib.filterObject;
-//    var env = {
-//      getFactionConfig: function (src, tar, flag) {
-//                          if (factionDB[src] == null || factionDB[src][tar] == null) return false;
-//                          return factionDB[src][tar];
-//                        }
-//    };
-//    var testThis = function (filters, names) {
-//      fo(objects, filters, env).map(function (e) { return e.name; }).should.eql(names);
-//    };
-//    it('same-faction', function () {
-//      testThis({type: 'same-faction', faction: 0}, ['o1']);
-//    });
-//    it('different-faction', function () {
-//      testThis({type: 'different-faction', faction: 0}, ['o2', 'o3', 'o4']); 
-//    });
-//    it('target-faction-with-flag', function () {
-//      testThis({type: 'target-faction-with-flag', faction: 0, flag: "attackable"}, ['o2', 'o4']); 
-//    });
-//    it('target-faction-without-flag', function () {
-//      testThis({type: 'target-faction-without-flag', faction: 0, flag: "attackable"}, ['o1', 'o3']); 
-//    });
-//    it('source-faction-with-flag', function () {
-//      testThis({type: 'source-faction-with-flag', faction: 3, flag: "attackable"}, ['o1']); 
-//    });
-//    it('source-faction-without-flag', function () {
-//      testThis({type: 'source-faction-without-flag', faction: 3, flag: "attackable"}, ['o2', 'o3', 'o4']); 
-//    });
-//    it('role-id', function () { testThis({type: 'role-id', roleID: 1}, ['o1']); });
-//    it('alive', function () { testThis({type: 'alive'}, ['o1', 'o2', 'o3', 'o4']); });
-//    it('sort', function () { testThis({type: 'sort', by: 'health', reverse: true}, ['o4', 'o3', 'o2', 'o1']); });
-//    it('count', function () { testThis({type: 'count', count: 3}, ['o1', 'o2', 'o3']); });
-//  });
-//
+  it('Shuffle', function () {
+    shuffle([1,2,3,4], 0).should.eql([1,2,3,4]);
+    shuffle([1,2,3,4], 1).should.eql([1,2,4,3]);
+    shuffle([1,2,3,4], 2).should.eql([1,3,2,4]);
+    shuffle([1,2,3,4], 3).should.eql([1,3,4,2]);
+  });
+
 //  describe('Create units', function () {
 //    it('case 1', function () {
 //      var r = dungeonLib.createUnits({

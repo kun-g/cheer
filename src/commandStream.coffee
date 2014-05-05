@@ -1,7 +1,7 @@
 require('./define')
 splLib = require('./spell')
 
-debug = false
+debug = true
 
 class CommandStream
   constructor: (@cmd, @parent, @config, @environment) ->

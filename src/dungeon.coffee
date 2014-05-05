@@ -1,4 +1,5 @@
 require('./define')
+require('./shared')
 {Wizard} = require './spell'
 {DBWrapper} = require './dbWrapper'
 {createUnit, Hero} = require './unit'
@@ -59,38 +60,6 @@ calcInfiniteX = (infiniteLevel) ->
 calcInfiniteRank = (infiniteLevel) ->
   x = calcInfiniteX(infiniteLevel)
   return Math.ceil(0.1 * x*x + 0.1*x + 1)
-
-filterObject = (objects, filters, env) ->
-  filters = [filters] unless Array.isArray(filters)
-  result = (o for o in objects)
-  for f in filters
-    switch f.type
-      when 'same-faction' then result = (o for o in result when o.faction is f.faction)
-      when 'different-faction' then result = (o for o in result when o.faction isnt f.faction)
-      when 'target-faction-with-flag' then result = (o for o in result when env.getFactionConfig(f.faction, o.faction, f.flag))
-      when 'target-faction-without-flag' then result = (o for o in result when not env.getFactionConfig(f.faction, o.faction, f.flag))
-      when 'source-faction-with-flag' then result = (o for o in result when env.getFactionConfig(o.faction, f.faction, f.flag))
-      when 'source-faction-without-flag' then result = (o for o in result when not env.getFactionConfig(o.faction, f.faction, f.flag))
-      when 'role-id' then result = (o for o in result when o.roleID is f.roleID)
-      when 'alive' then result = (p for p in result when p.health > 0)
-      when 'visible' then result = (p for p in result when p.isVisible)
-      when 'is-hero' then result = (p for p in result when p.isHero())
-      when 'is-monster' then result = (p for p in result when not p.isHero())
-      when 'same-block' then result = (p for p in result when p.pos is @pos)
-      when 'sort' then result.sort( (a, b) -> if (f.reverse) then b[f.by] - a[f.by] else a[f.by] - b[f.by] )
-      when 'count' then result = result.slice(0, f.count)
-      when 'shuffle' then result = shuffle(result, env.rand())
-      when 'anchor'
-        tmp = result
-        result = []
-        for t in tmp
-          if not t.isBlock then t = env.getBlock(t.pos)
-          x = t.pos % Dungeon_Width
-          y = (t.pos-x) / Dungeon_Width
-          for a in f.anchor when 0 <= a.x+x < Dungeon_Width and 0 <= a.y+y < Dungeon_Height
-            result.push(env.getBlock(a.x+x + (a.y+y) * Dungeon_Width ))
-
-  return result
 
 # 创建怪物的设计：
 # 指定位置 pos
@@ -174,7 +143,6 @@ createUnits = (rules, randFunc) ->
 
   return result
 
-exports.filterObject = filterObject
 exports.createUnits = createUnits
 
 class Dungeon
@@ -185,23 +153,7 @@ class Dungeon
     @cardStack = CardStack(5)
     @actionLog = []
     @revive = 0
-    @factionDB = {
-      hero: {
-        hero: { attackable: false, healable: true },
-        monster: { attackable: true, healable: false },
-        npc: { attackable: false, healable: false }
-      },
-      monster: {
-        hero: { attackable: true, healable: false },
-        monster: { attackable: false, healable: true },
-        npc: { attackable: false, healable: false }
-      },
-      npc: {
-        hero: { attackable: false, healable: false },
-        npc: { attackable: false, healable: true },
-        monster: { attackable: false, healable: false }
-      }
-    }
+    @factionDB = queryTable(TABLE_FACTION)
 
     @triggerManager = new TriggerManager(queryTable(TABLE_TRIGGER))
     return false unless data?
@@ -528,13 +480,16 @@ class Dungeon
       soldierPool = if cfg.soldierPool? then cfg.soldierPool else null
       elitePool = if cfg.elitePool? then cfg.elitePool else null
       bossPool = if cfg.bossPool? then cfg.bossPool else null
+      goodPool = if cfg.goodPool? then cfg.goodPool else null
+      badPool = if cfg.badPool? then cfg.badPool else null
+      normalPool = if cfg.normalPool? then cfg.normalPool else null
       @level = new Level()
       @level.rand = (r) => @rand(r)
       @level.random = (r) => @random(r)
       Object.defineProperty(@level, 'random', {enumerable:false})
       Object.defineProperty(@level, 'rand', {enumerable:false})
       quest = if @quests? then @quests else []
-      @level.init(lvConfig, @baseRank, @getHeroes(), quest, soldierPool, elitePool, bossPool)
+      @level.init(lvConfig, @baseRank, @getHeroes(), quest, {soldier: soldierPool, elite: elitePool, boss: bossPool, good: goodPool, bad: badPool, normal: normalPool})
 
 exports.Dungeon = Dungeon
 #////////////////////// Block
@@ -570,13 +525,13 @@ class Level
     @ref =  HEROTAG
 
 
-  init: (lvConfig, baseRank, heroes, quests, soldierPool, elitePool, bossPool) ->
+  init: (lvConfig, baseRank, heroes, quests, pool) ->
+    @objects = @objects.concat(heroes)
     @rank = baseRank
     @rank += lvConfig.rank if lvConfig.rank?
     @generateBlockLayout(lvConfig)
     @setupEnterAndExit(lvConfig)
-    @placeMapObjects(lvConfig, quests, {soldier: soldierPool, elite: elitePool, boss: bossPool})
-    @objects = @objects.concat(heroes)
+    @placeMapObjects(lvConfig, quests, pool)
 
     return @entrance
 
@@ -703,7 +658,6 @@ class Level
       @createObject(id, pos, keyed, collectId)
 
   placeMapObjects: (config, quests, pool) ->
-    @objects = []
     return false unless config?
 
     objectConfig = []
@@ -719,14 +673,14 @@ class Level
         else
           return true
       )
-
     monsterCount = objectConfig.reduce( ((r, l) ->
       count = 1
       count = l.count if l.count?
       r.boss += count if l.boss?
       r.elite += count if l.elite?
       r.soldier += count if l.soldier?
-      return r), {soldier: 0, elite: 0, boss: 0})
+      r.normal += count if l.normal?
+      return r), {soldier: 0, elite: 0, boss: 0, normal: 0})
 
     that = this
     fillupMonster = (cfg) ->
@@ -738,9 +692,13 @@ class Level
 
     monsterConfig = [
       {counter: 'soldier', targetCounter: 'soldierCount', pool: 'soldier', keyed: false},
+      {counter: 'good', targetCounter: 'goodCount', pool: 'good', keyed: false},
+      {counter: 'bad', targetCounter: 'badCount', pool: 'bad', keyed: false},
+      {counter: 'normal', targetCounter: 'normalCount', pool: 'normal', keyed: false},
       {counter: 'elite', targetCounter: 'eliteCount', pool: 'elite', keyed: true},
       {counter: 'boss', targetCounter: 'bossCount', pool: 'boss', keyed: true}
     ]
+    #createUnits 
 
     fillupMonster(c) for c in monsterConfig
 
@@ -842,7 +800,8 @@ class DungeonEnvironment extends Environment
   getFactionConfig: (src, tar, flag) ->
     factionDB = @dungeon.factionDB
     return false unless factionDB? and factionDB[src]? and factionDB[src][tar]?
-    return factionDB[src][tar]
+    if flag? then return factionDB[src][tar][flag]
+    return factionDB[src][tar][flag]
 
   isEntranceExplored: () ->
     entrance = @dungeon.getEntrance()
@@ -865,7 +824,11 @@ class DungeonEnvironment extends Environment
     return @dungeon.level.blocks unless id?
     return @dungeon.level.blocks[id]
 
-  initiateHeroes: (data) -> @dungeon?.initiateHeroes(data)
+  initiateHeroes: (data) ->
+    @dungeon.initiateHeroes(data)
+    heroes = @dungeon.getAliveHeroes()
+    objects = @dungeon.level.objects
+    @dungeon.level.objects = heroes.concat(objects.slice(heroes.length, objects.length))
 
   incrReviveCount: () -> @dungeon?.reviveCount++
 
@@ -1108,7 +1071,17 @@ dungeonCSConfig = {
   SpellState: {
     output: (env) ->
       ret =  genUnitInfo(env.variable('wizard'), false, env.variable('state'))
-      return if ret? then [ret] else []
+      if env.variable('effect')?
+        effect = env.variable('effect')
+        if ret? then ret = [ret]
+        bid = effect.id
+        actor = env.variable('wizard')
+        ev = {id:ACT_EFFECT, eff: bid}
+        if effect.uninstall then ev.rmf = true
+        ev.sid = if actor.isBlock then (actor.pos+1)*100+bid else (actor.ref+1)*1000+bid
+        if actor.isBlock then ev.pos = +actor.pos else ev.act = actor.ref
+        ret.push(ev)
+      return if ret? then ret else []
   },
   TickSpell: {
     callback: (env) -> h.tickSpell(env.variable('tickType'), @) for h in env.getHeroes().concat(env.getMonsters())
@@ -1121,12 +1094,12 @@ dungeonCSConfig = {
       block = env.getBlock(env.variable('block'))
       if block.getType() is Block_Npc or block.getType() is Block_Enemy
         e = block.getRef(-1)
-        e.onEvent('Show', @)
+        @routine({id: 'UnitInfo', unit: e})
+        e.onEvent('onShow', @)
         env.variable('monster', e)
         env.onEvent('onMonsterShow', @)
         if e?.isVisible isnt true
           e.isVisible = true
-        @routine({id: 'UnitInfo', unit: e})
   },
   BlockInfo: {
     output: (env) ->
@@ -1145,7 +1118,7 @@ dungeonCSConfig = {
   UnitInfo: {
     output: (env) ->
       e = env.variable('unit')
-      return [] unless e.health > 0
+      return [] if e.dead
       eEv = {id: ACT_Enemy, pos: e.pos, rid: e.id, hp: e.health, ref: e.ref, typ: e.type}
       eEv.dc = e.attack if e.attack?
       eEv.eff = e.effect if e.effect?
@@ -1319,6 +1292,7 @@ dungeonCSConfig = {
   Kill: {
     callback: (env) ->
       env.variable('tar').health = 0
+      if not env.variable('tar').isVisible then env.variable('tar').dead = true
       @routine({id:'Dead', tar: env.variable('tar')})
   },
   ShowUp: {
@@ -1450,7 +1424,8 @@ dungeonCSConfig = {
       onEvent('Heal', @, env.variable('src'), env.variable('tar'))
       env.variable('tar').health += env.variable('hp')
     ,
-    output: (env) -> [{act: env.variable('tar').ref, id: ACT_POPHP, num: env.variable('hp'), flg: HP_RESULT_TYPE_HEAL, dey: 0.3}]
+    output: (env) ->
+      [{act: env.variable('tar').ref, id: ACT_POPHP, num: env.variable('hp'), flg: HP_RESULT_TYPE_HEAL, dey: env.variable('delay') ? 0.3}]
   },
   Damage: {
     callback: (env) ->

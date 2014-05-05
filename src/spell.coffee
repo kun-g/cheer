@@ -1,4 +1,5 @@
 require('./define')
+triggerLib = require('./trigger')
 
 getSpellConfig = (spellID) ->
   cfg = queryTable(TABLE_SKILL, spellID)
@@ -34,10 +35,6 @@ class Wizard
     @wSpellMutex = {}
     @wPreBuffState = { rs : BUFF_TYPE_NONE, ds : BUFF_TYPE_NONE, hs : BUFF_TYPE_NONE }
 
-  faction: (newFaction) ->
-    if newFaction? then @faction = newFaction
-    return @faction
-
   installSpell: (spellID, level, cmd, delay = 0) ->
     cfg = getSpellConfig(spellID)
     level = 1 unless level? > 0
@@ -50,7 +47,7 @@ class Wizard
     @setupTriggerCondition(spellID, cfg.triggerCondition, levelConfig, cmd)
     @setupAvailableCondition(spellID, cfg.availableCondition, levelConfig, cmd)
     @doAction(@wSpellDB[spellID], cfg.installAction, levelConfig, @selectTarget(cfg, cmd), cmd)
-    @spellStateChanged(cmd)
+    @spellStateChanged(spellID, cmd)
 
   setupAvailableCondition: (spellID, conditions, level, cmd) ->
     return false unless conditions
@@ -72,9 +69,19 @@ class Wizard
         when 'countDown' then thisSpell.cd = 0
         when 'event' then @installTrigger(spellID, limit.event)
 
-  spellStateChanged: (cmd) ->
+  calcEffectState: (spellID) ->
+    cfg = getSpellConfig(spellID)
+    if cfg.basic?.buffEffect?
+      if @wSpellDB[spellID]
+        return {id: cfg.basic.buffEffect}
+      else
+        return {id: cfg.basic.buffEffect, uninstall: true}
+    else
+      return null
+
+  spellStateChanged: (spellID, cmd) ->
     return false unless cmd?
-    cmd.routine?({id: 'SpellState', wizard:@, state: @calcBuffState()})
+    cmd.routine?({id: 'SpellState', wizard:@, state: @calcBuffState(), effect: @calcEffectState(spellID)})
 
   removeSpell: (spellID, cmd) ->
     cfg = getSpellConfig(spellID)
@@ -89,7 +96,7 @@ class Wizard
       @doAction(@wSpellDB[spellID], cfg.uninstallAction, {}, @selectTarget(cfg, cmd), cmd)
 
     delete @wSpellDB[spellID]
-    @spellStateChanged(cmd)
+    @spellStateChanged(spellID, cmd)
 
   installTrigger: (spellID, event) ->
     return false unless event?
@@ -225,18 +232,14 @@ class Wizard
   
   selectTarget: (cfg, cmd) ->
     return [] unless cfg.targetSelection? and cfg.targetSelection.pool
-    return [] unless cfg.targetSelection.pool is 'Self' or cmd?
+    return [] unless cfg.targetSelection.pool is 'self' or cmd?
     env = cmd.getEnvironment() if cmd?
     switch cfg.targetSelection.pool
-      when 'Enemy' then pool = env.getEnemyOf(@)
-      when 'Team' then pool = env.getTeammateOf(@).concat(@)
-      when 'Teammate' then pool = env.getTeammateOf(@)
-      when 'Self' then pool = @
-      when 'Target' then pool = env.variable('tar')
-      when 'Source', 'Attacker' then pool = env.variable('src')
-      when 'SamePosition' then pool = env.getBlock(@pos).getRef()
-      when 'RoleID' then pool = (m for m in env.getObjects() when m.id is cfg.targetSelection.roleID)
-      when 'Block'
+      when 'self' then pool = @
+      when 'target' then pool = env.variable('tar')
+      when 'source' then pool = env.variable('src')
+      when 'objects' then pool = env.getObjects()
+      when 'blocks'
         blocks = cfg.targetSelection.blocks
         pool = if blocks? then (env.getBlock(b) for b in blocks) else env.getBlock()
 
@@ -244,31 +247,10 @@ class Wizard
     pool = [pool] unless Array.isArray(pool)
 
     if cfg.targetSelection.filter? and pool.length > 0
-      for filter in cfg.targetSelection.filter
-        switch filter
-          when 'Alive' then pool = (p for p in pool when p.health > 0)
-          when 'Visible' then pool = (p for p in pool when p.isVisible)
-          when 'Hero' then pool = (p for p in pool when p.isHero())
-          when 'Monster' then pool = (p for p in pool when not p.isHero())
-          when 'SameBlock' then pool = (p for p in pool when p.pos is @pos)
+      pool = triggerLib.filterObject(this, pool, cfg.targetSelection.filter, env)
 
-    count = cfg.targetSelection.count ? 1
-    if cfg.targetSelection.method? and pool.length > 0
-      switch cfg.targetSelection.method
-        when 'Rand'
-          pool = env.randMember(pool, count)
-          pool = [pool] unless Array.isArray(pool)
-        when 'LowHealth' then pool = [pool.sort( (a, b) -> return a.health - b.health )[0]]
-
-    if cfg.targetSelection.anchor and env?
-      tmp = pool
-      pool = []
-      for t in tmp
-        if not t.isBlock then t = env.getBlock(t.pos)
-        x = t.pos % Dungeon_Width
-        y = (t.pos-x) / Dungeon_Width
-        for a in cfg.targetSelection.anchor when 0 <= a.x+x < Dungeon_Width and 0 <= a.y+y < Dungeon_Height
-          pool.push(env.getBlock(a.x+x + (a.y+y) * Dungeon_Width ))
+    pool = [] unless pool?
+    pool = [pool] unless Array.isArray(pool)
 
     return pool
 
@@ -346,13 +328,15 @@ class Wizard
         when 'chainBlock' then cmd.routine({id: 'ChainBlock', src: src, tar: a.target}) for src in a.source
         when 'castSpell' then @castSpell(a.spell, a.level ? 1, cmd)
         when 'newFaction' then env.newFaction(a.name)
+        when 'changeFaction' then t.faction = a.faction for t in target
         when 'factionAttack' then env.factionAttack(a.src, a.tar, a.flag)
         when 'factionHeal' then env.factionHeal(a.src, a.tar, a.flag)
         when 'heal'
           if a.self
-            cmd.routine?({id: 'Heal', src: @, tar: @, hp: formularResult})
+            cmd.routine?({id: 'Heal', src: @, tar: @, hp: formularResult, delay: delay})
           else
-            cmd.routine?({id: 'Heal', src: @, tar: t, hp: formularResult}) for t in target
+            cmd.routine?({id: 'Heal', src: @, tar: t, hp: formularResult, delay: delay}) for t in target
+        when 'removeSpell' then t.removeSpell(a.spell, cmd) for t in target
         when 'installSpell'
           for t in target
             delay = 0
@@ -369,24 +353,27 @@ class Wizard
             cmd.routine?({id: 'SpellAction', motion: a.motion, ref: t.ref}) for t in target
         when 'tutorial' then cmd.routine?({id: 'Tutorial', tutorialId: a.tutorialId})
         when 'playEffect'
-          if a.pos?
-            if a.pos is 'self'
-              cmd.routine?({id: 'Effect', delay: delay, effect: a.effect, pos: @pos})
-            else if a.pos is 'target'
+          continue unless env?
+          effect = getProperty(a.effect, level.effect)
+          pos = getProperty(a.pos, level.pos)
+          if pos?
+            if pos is 'self'
+              cmd.routine?({id: 'Effect', delay: delay, effect: effect, pos: @pos})
+            else if pos is 'target'
               for t in target
-                cmd.routine?({id: 'Effect', delay: delay, effect: a.effect, pos: t.pos})
-            else if typeof a.pos is 'number'
-              cmd.routine?({id: 'Effect', delay: delay, effect: a.effect, pos: a.pos})
-            else if Array.isArray(a.pos)
-              for pos in a.pos
-                cmd.routine?({id: 'Effect', delay: delay, effect: a.effect, pos: pos})
+                cmd.routine?({id: 'Effect', delay: delay, effect: effect, pos: t.pos})
+            else if typeof pos is 'number'
+              cmd.routine?({id: 'Effect', delay: delay, effect: effect, pos: pos})
+            else if Array.isArray(pos)
+              for pos in pos
+                cmd.routine?({id: 'Effect', delay: delay, effect: effect, pos: pos})
           else
             switch a.act
               when 'self'
-                cmd.routine?({id: 'Effect', delay: delay, effect: a.effect, act: @ref})
+                cmd.routine?({id: 'Effect', delay: delay, effect: effect, act: @ref})
               when 'target'
                 for t in target
-                  cmd.routine?({id: 'Effect', delay: delay, effect: a.effect, act: t.ref})
+                  cmd.routine?({id: 'Effect', delay: delay, effect: effect, act: t.ref})
         when 'delay'
           c = {id: 'Delay'}
           if a.delay? then c.delay = a.delay

@@ -152,7 +152,7 @@ class Player extends DBWrapper
     @onCampaign('RMB')
 
     ret = [{NTF:Event_CampaignLoginStreak, day: @loginStreak.count, claim: flag}]
-    #ret = ret.concat(helperLib.initCampaign(@, helperLib.events))
+    ret = ret.concat(helperLib.initCampaign(@, helperLib.events))
     return ret
 
   claimLoginReward: () ->

@@ -1,7 +1,8 @@
 # Provide serializing mechanism
-#tap = require('./define').tap
-destroyReactDB = require('./helper').destroyReactDB
-tap = require('./helper').tap
+tap = require('./define').tap
+destroyReactDB = require('./define').destroyReactDB
+#destroyReactDB = require('./helper').destroyReactDB
+#tap = require('./helper').tap
 
 generateMonitor = (obj) ->
   return (key, val) -> obj.s_attr_dirtyFlag[key] = true
