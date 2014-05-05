@@ -3,7 +3,6 @@ var helpLib = require('../js/helper');
 var dbWrapper = require('../js/dbWrapper');
 var playerLib = require('../js/player');
 var async = require('async');
-events = helpLib.events;
 
 describe('Helper', function () {
   describe('React programming', function () {
@@ -97,7 +96,7 @@ describe('Helper', function () {
         shall(p.scores.goldenSlime).equal(5);
       });
 
-      helpLib.getPositionOnLeaderboard(0, 'Ken', 0, 10, console.log);
+      //helpLib.getPositionOnLeaderboard(0, 'Ken', 0, 10, console.log);
       done();
       /* TODO:
       async.map(
@@ -130,10 +129,20 @@ describe('Helper', function () {
       shall(match('2014/4/16', '2014/4/18', {weekday: 7, hour: 12})).equal(false);
       shall(match('2014/4/16', '2014/4/20', {weekday: 7, hour: 12})).equal(false);
       shall(match('2014/4/16', '2014/4/20 13:00:00', {weekday: 7, hour: 12})).equal(true);
+      shall(match('2014/4/16', '2014/4/16 13:00:00', { hour: 18})).equal(false);
+      shall(match('2014/4/16', '2014/4/16 13:00:00', { hour: 12})).equal(true);
+    });
+    it('Diff Date', function () {
+      var diffDate = helpLib.diffDate;
+      diffDate(1393171200000, '2014/02/24').should.equal(0);
+      diffDate(1393171200000, '2014/02/25').should.equal(1);
+      diffDate('2014/02/24', '2014/02/25').should.equal(1);
+      diffDate('2014/02/23', '2014/02/25').should.equal(2);
+      diffDate('2014/01/01', '2014/02/25').should.equal(55);
     });
   });
 });
-/*
+
 describe('Unlock', function () {
   var updateLockStatus = helpLib.updateLockStatus;
   var me = {
@@ -154,6 +163,7 @@ describe('Unlock', function () {
     shall(updateLockStatus(me.stage, me, config)).eql([0, 1]);
   });
 });
+/*
 describe('calculateTotalItemXP', function () {
   var calculate = helpLib.calculateTotalItemXP;
   shall(calculate({xp: 0, quality: 0, rank: 0})).equal(0);
@@ -164,64 +174,128 @@ describe('calculateTotalItemXP', function () {
 });
 */
 
+
 describe('Campaign', function () {
+  var events = {
+    "event_daily": {
+      "flag": "daily",
+      "resetTime": { hour: 8 },
+      "storeType": "player",
+      "daily": true,
+      "reward": [
+        { "prize":{ "type":0, "value":33, "count":1 }, "weight":1 },
+        { "prize":{ "type":0, "value":34, "count":1 }, "weight":1 },
+        { "prize":{ "type":0, "value":35, "count":1 }, "weight":1 },
+        { "prize":{ "type":0, "value":36, "count":1 }, "weight":1 },
+        { "prize":{ "type":0, "value":37, "count":1 }, "weight":1 }
+      ],
+      "steps": 4,
+      "quest": [
+        128, 129, 130, 131, 132, 133, 134, 135,
+        136, 137, 138, 139, 140, 141, 142, 143,
+        144, 145, 146, 147, 148, 149, 150, 151
+      ]
+
+    },
+    event_robbers: {
+      storeType: "player",
+      actived: 1,
+      count: 5,
+      canProceed: function (obj, util) {
+        return (
+            obj.counters.robbers < 2 &&
+            obj.battleForce >= 75 &&
+            util.today.hour() >= 6 &&
+            util.today.hour() <= 10
+          );
+      },
+      canReset: function (obj, util) {
+        return (!util.sameDay(obj.timestamp.robbers, util.today) &&
+          util.today.hour() >= 8);
+      },
+      reset: function (obj, util) {
+        obj.timestamp.robbers = util.currentTime();
+        obj.counters.robbers = 0;
+      }
+    },
+    event_weapon: {
+      storeType: "player",
+      actived: 1,
+      count: 5,
+      canProceed: function (obj, util) {
+        return ( obj.counters.weapon < 2 ) &&
+            ( util.today.weekday() === 2 ||
+              util.today.weekday() === 4 ||
+              util.today.weekday() === 5 ||
+              util.today.weekday() === 0 );
+      },
+      canReset: function (obj, util) {
+        return !util.sameDay(obj.timestamp.weapon, util.today);
+      },
+      reset: function (obj, util) {
+        obj.timestamp.weapon = util.currentTime();
+        obj.counters.weapon = 0;
+      },
+      stageID: 1024
+    },
+    event_enhance: {
+      storeType: "player",
+      actived: 1,
+      count: 5,
+      canProceed: function (obj, util) {
+        return ( obj.counters.enhance < 2 ) &&
+            ( util.today.weekday() === 1 ||
+              util.today.weekday() === 3 ||
+              util.today.weekday() === 6 ||
+              util.today.weekday() === 0 );
+      },
+      canReset: function (obj, util) {
+        return !util.sameDay(obj.timestamp.enhance, util.today);
+      },
+      reset: function (obj, util) {
+        obj.timestamp.enhance = util.currentTime();
+        obj.counters.enhance = 0;
+      },
+      stageID: 1024
+    },
+    //event_unlock_class: {
+    //  storeType: "server",
+    //  canProceed: function (obj, util) {
+    //    return obj.flags.energy && ( obj.counters.energy < 2 )
+    //      && util.timeMatch(obj.event_energy.date, null, { hour: 8} );
+    //  },
+    //}
+  };
   var helperLib = require('../js/helper');
-  describe('#Helper Lib', function () {
-    it('C', function () {
-      helperLib.calculateTotalItemXP({xp: 0, quality: 0, rank: 0}).should.equal(0);
-      helperLib.calculateTotalItemXP({xp: 100, quality: 0, rank: 0}).should.equal(100);
-      helperLib.calculateTotalItemXP({xp: 100, quality: 1, rank: 1}).should.equal(100);
-      helperLib.calculateTotalItemXP({xp: 100, quality: 1, rank: 2}).should.equal(200);
-      helperLib.calculateTotalItemXP({xp: 100, quality: 2, rank: 2}).should.equal(100);
-    });
-  });
-  describe('#moment', function () {
-    moment = require('moment');
-    it('helper of time', function () {
-      helperLib.diffDate(1393171200000, '2014/02/24').should.equal(0);
-      helperLib.diffDate(1393171200000, '2014/02/25').should.equal(1);
-      helperLib.diffDate('2014/02/24', '2014/02/25').should.equal(1);
-      helperLib.diffDate('2014/02/23', '2014/02/25').should.equal(2);
-      helperLib.diffDate('2014/01/01', '2014/02/25').should.equal(55);
-    });
-  });
 
   before(function (done) {
-    initGlobalConfig('../build/', done);
+    initGlobalConfig('../../build/', done);
   });
+
   describe('ChainEvent', function () {
     it('Should be ok~', function () {
+      // TODO:
       var me = new playerLib.Player({name: 'T'});
       me.createHero({name: 'T', class: 1, gender: 1, hairStyle: 1, hairColor: 1});
-      //var me = { 
-      //  battleForce: 75,
-      //  flags: {},
-      //  quests: [],
-      //  attrSave: function (key, value) { this[key] = value; },
-      //  getType: function () { return 'player'; },
-      //  acceptQuest: function (qid) { this.quests[ qid ] = { counters:[0] }; },
-      //  isQuestAchieved: function (qid) {
-      //  if (this.quests[qid] == null) return false;
-      //  return this.quests[qid].counters[0] >= 2;
-      //},
-      //startDungeon: function () {
-      //  var quest = this.event_daily.quest;
-      //  quest = quest[this.event_daily.step];
-      //  this.quests[quest].counters[0]++;
-      //},
-      //claimPrize: function (prize) { return []; }
-      //};
       me.startDungeon = function () {
         var quest = this.event_daily.quest;
         quest = quest[this.event_daily.step];
         this.quests[quest].counters[0] = 20;
       };
       helpLib.initCampaign(me, events);
+
+      // event_robbers
+      shall(me.counters).have.property('robbers').equal(0);
+      shall(me.timestamp).have.property('robbers');
+      shall(me.counters).have.property('weapon').equal(0);
+      shall(me.timestamp).have.property('weapon');
+      shall(me.counters).have.property('enhance').equal(0);
+      shall(me.timestamp).have.property('enhance');
+
       helpLib.initCampaign(me, events);
       // initial event
       //shall(me).not.have.property('event_daily');
       me.flags.daily = true;
-      me.dumpChanged();
       helpLib.initCampaign(me, events);
       shall(me).have.property('event_daily');
       shall(me.event_daily).have.property('status').equal('Ready');

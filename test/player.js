@@ -52,7 +52,7 @@ dbLib.initializeDB({
 
 describe('Player', function () {
   before(function (done) {
-    initGlobalConfig('../build/', done);
+    initGlobalConfig('../../build/', done);
   });
 //  after(function () {
 //    dbLib.releaseDB();

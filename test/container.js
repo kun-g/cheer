@@ -1,7 +1,7 @@
 var shall = require('should');
 describe('Container', function () {
   before(function (done) {
-    initGlobalConfig('../build/', done);
+    initGlobalConfig('../../build/', done);
   });
   var container = require('../js/container');
   var itemLib = require('../js/item');

@@ -102,15 +102,3 @@ Shop.prototype.dump = function (player) {
 };
 
 gShop = new Shop();
-var fs = require('fs');
-fs.readFile(TABLE_STORE+'.json', function (err, data) {
-  try {
-    var tmp = JSON.parse(String(data));
-    for (var k in tmp) {
-      gShop.addProduct(k, tmp[k]);
-    }
-  } catch (err) {
-    console.log('Shop table error', err.message);
-  }
-});
-// 限购数量

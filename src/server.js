@@ -26,8 +26,8 @@ Server.prototype.shutDown = function () {
 function destroySocket (c) {
   if (c.player) {
     var name = c.playerName;
-    c.player.onDisconnect();
     c.player.socket = null;
+    c.player.logout();
 
     logUser({
       action: 'ioSize',

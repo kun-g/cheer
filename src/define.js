@@ -131,28 +131,6 @@ getBasicInfo = function (hero) {
   return ret;
 };
 
-var gConfigTable = {};
-function readHandlerGenerator(path, item) {
-  return function (cb) {
-    var fs = require('fs');
-    if (!path) { path = ''; }
-    fs.readFile(path+item.name+'.json', function (err, data) {
-      if (err) return cb(err);
-      try {
-        var tmp = JSON.parse(String(data));
-        if (item.func) tmp = item.func(tmp);
-        tmp = prepareForABtest(tmp);
-        gConfigTable[item.name] = tmp;
-        return cb(null);
-      } catch (error) {
-        console.log('Table Error(' + item.name +'):', error.message);
-        console.log(error.stack);
-        return cb(error);
-      }
-    });
-  };
-}
-
 initStageConfig = function (cfg) {
   var ret = [];
   cfg.forEach(function (c) {
@@ -236,6 +214,13 @@ varifyDungeonConfig = function (cfg) {
   return cfg;
 };
 
+function initShop (data) {
+  for (var k in data) {
+    gShop.addProduct(k, data[k]);
+  }
+}
+
+var gConfigTable = {};
 initGlobalConfig = function (path, callback) {
   queryTable = function (type, index, abIndex) {
     var cfg = gConfigTable[type];
@@ -252,16 +237,20 @@ initGlobalConfig = function (path, callback) {
       return JSON.parse(JSON.stringify(cfg[index])); //TODO: hotfix
     }
   };
-  var configTable = [{name:TABLE_LEADBOARD},
+  var configTable = [{name:TABLE_LEADBOARD}, {name: TABLE_STORE, func:initShop},
     {name:TABLE_ROLE}, {name:TABLE_LEVEL}, {name:TABLE_VERSION}, {name:TABLE_FACTION},
     {name:TABLE_ITEM}, {name:TABLE_CARD}, {name:TABLE_DUNGEON, func:varifyDungeonConfig},
     {name:TABLE_STAGE, func: initStageConfig}, {name:TABLE_QUEST},
     {name:TABLE_UPGRADE}, {name:TABLE_ENHANCE}, {name: TABLE_CONFIG}, {name: TABLE_VIP},
     {name:TABLE_SKILL}, {name:TABLE_CAMPAIGN}, {name: TABLE_DROP}, {name: TABLE_TRIGGER}
   ];
-  var jobs = configTable.map(function (j) { return readHandlerGenerator(path, j); });
-  var async = require('async');
-  async.parallel(jobs, callback);
+  if (!path) path = "./";
+  configTable.forEach(function (e) {
+    gConfigTable[e.name] = require(path+e.name).data;
+    if (e.func) gConfigTable[e.name] = e.func(gConfigTable[e.name]);
+    gConfigTable[e.name] = prepareForABtest(gConfigTable[e.name]);
+  });
+  callback();
 };
 
 showMeTheStack = function () {try {a = b;} catch (err) {console.log(err.stack);}};
@@ -660,7 +649,7 @@ tapObject = function(obj, callback) {
     }
   }
 };
-
 exports.tap = tap;
+exports.tapObject = tapObject;
 
 exports.fileVersion = -1;

@@ -27,6 +27,7 @@ Event_Broadcast = 25;
 Event_ABIndex = 26;
 Event_UpdateDailyQuest = 27;
 Event_UpdateFlags = 28;
+Event_BountyUpdate = 30;
 
 Event_ExpiredPID = 100;
 Event_Echo = 101;
