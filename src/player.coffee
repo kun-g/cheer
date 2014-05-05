@@ -130,7 +130,6 @@ class Player extends DBWrapper
     return [] unless @lastLogin
     if diffDate(@lastLogin) > 0 then @purchasedCount = {}
     @lastLogin = currentTime()
-    if diffDate(@creationDate) > 7 then @tutorialStage = 1000 #TODO
     if gGlobalPrize?
       for key, prize of gGlobalPrize when not @globalPrizeFlag[key]
         dbLib.deliverMessage(@name, prize)
@@ -430,7 +429,7 @@ class Player extends DBWrapper
   dungeonAction: (action) ->
     return [{NTF: Event_Fail, arg: 'Dungeon not exist.'}] unless @dungeon?
     ret = [].concat(@dungeon.doAction(action))
-    ret = ret.concat(@claimDungeonAward(@dungeon.reward)) if @dungeon.reward?
+    ret = ret.concat(@claimDungeonAward()) if @dungeon.result?
     return ret
 
   startDungeon: (stage, startInfoOnly, handler) ->
@@ -880,101 +879,99 @@ class Player extends DBWrapper
       return false
 
   generateDungeonAward: (reward) ->
-    items = []
+    result = @dungeon.result
+    cfg = @dungeon.getConfig()
+    if result is DUNGEON_RESULT_DONE or not cfg? then return []
   
-    if reward.result is DUNGEON_RESULT_DONE then return []
-    if reward.result is DUNGEON_RESULT_WIN
+    dropInfo = @dungeon.killingInfo.reduce( ((r, e) ->
+      if e and e.dropInfo then return r.concate(e.dropInfo)
+      return r
+    ), [])
+
+    percentage = 1
+    if result is DUNGEON_RESULT_WIN
       dbLib.incrBluestarBy(this.name, 1)
-      items = []
-      if reward.prize
-        items = reward.prize
-          .filter((p) -> Math.random() < p.rate )
-          .map(wrapCallback(this, (g) ->
-            dropTable = queryTable(TABLE_CONFIG, "Global_Item_Drop_Table", @abIndex) ? []
-            g.items =  g.items.concat(dropTable).filter( (i) =>
-              itemConfig = queryTable(TABLE_ITEM, i.item, @abIndex)
-              if not itemConfig then return false
-              if itemConfig.singleton then return !@haveItem(i.item)
-              return true
-            )
-            return g
-          ))
-          .map((g) ->
-            e = selectElementFromWeightArray(g.items, Math.random())
-            # TODO: quick fix
-            if e
-              return {type:PRIZETYPE_ITEM, value:e.item, count:1}
-            else
-              logError({type: 'QuickFix', group: g, reward: reward})
-              return {type:PRIZETYPE_ITEM, value:g[0], count:1}
-          )
-  
-    if reward.infinityPrize and reward.result is DUNGEON_RESULT_WIN
-      if reward.infinityPrize.type is PRIZETYPE_GOLD
-        reward.gold += reward.infinityPrize.count
+      dropInfo = dropInfo.concat(cfg.dropInfo)
+      percentage = (@dungeon.currentLevel / cfg.levelCount) * 0.5
+
+    gr = (cfg.goldRate ? 1) * percentage
+    xr = (cfg.xpRate ? 1) * percentage
+    wr = (cfg.wxpRate ? 1) * percentage
+
+    prize = helperLib.generatePrize(queryTable(TABLE_DROP), dropInfo)
+
+    prize.push({type:PRIZETYPE_GOLD, count:Math.floor(gr*cfg.prizeGold)}) if cfg.prizeGold
+    prize.push({type:PRIZETYPE_EXP, count: Math.floor(xr*cfg.prizeXp)}) if cfg.prizeXp
+    prize.push({type:PRIZETYPE_WXP, count: Math.floor(wr*cfg.prizeWxp)}) if cfg.prizeWxp
+
+    infiniteLevel = @dungeon.infiniteLevel
+    if infiniteLevel? and cfg.infinityPrize and reward.result is DUNGEON_RESULT_WIN
+      iPrize = p for p in cfg.infinityPrize when p.level is infiniteLevel
+      if iPrize?
+        iPrize = { type: iPrize.type, value: iPrize.value, count: iPrize.count }
+
+      if iPrize.type is PRIZETYPE_GOLD
+        prize.push({type: PRIZETYPE_GOLD, count: iPrize.count})
       else
-        items.push(reward.infinityPrize)
+        prize.push(iPrize)
   
-    reward.gold += reward.gold*@goldAdjust()
-    reward.exp += reward.exp*@expAdjust()
-    reward.wxp += reward.wxp*@wxpAdjust()
-    reward.gold = Math.ceil(reward.gold)
-    reward.exp = Math.ceil(reward.exp)
-    reward.wxp = Math.ceil(reward.wxp)
-    reward.item = items
-  
-    return [
-      {type:PRIZETYPE_EXP, count : reward.exp},
-      {type:PRIZETYPE_GOLD, count : reward.gold},
-      {type:PRIZETYPE_WXP, count : reward.wxp}
-    ].concat(items)
+    return prize
 
-  claimDungeonAward: (reward) ->
-    unless reward? and @dungeon?
-      player.saveDB(() -> player.releaseDungeon())
-      return []
-
+  claimDungeonAward: () ->
+    return [] unless @dungeon?
     ret = []
-    if reward.reviveCount > 0
-      ret = @inventory.removeById(ItemId_RevivePotion, reward.reviveCount, true)
+
+    if @dungeon.revive > 0
+      ret = @inventory.removeById(ItemId_RevivePotion, @dungeon.revive, true)
       if not ret or ret.length is 0
-        return { NTF: Event_DungeonReward, arg : { prize : prize, res : 0 } }
-      ret = this.doAction({id: 'ItemChange', ret: ret, version: this.inventoryVersion})
+        return { NTF: Event_DungeonReward, arg : { res : DUNGEON_RESULT_FAIL } }
+      ret = this.doAction({id: 'ItemChange', ret: ret, version: @inventoryVersion})
   
-    if reward.quests
-      for qid, qst of reward.quests
+    quests = @dungeon.quests
+    if quests
+      for qid, qst of quests
         continue unless qst?.counters? and @quests[qid]
         quest = queryTable(TABLE_QUEST, qid, @abIndex)
         for k, objective of quest.objects when objective.type is QUEST_TYPE_NPC and qst.counters[k]? and @quests[qid].counters?
           @quests[qid].counters[k] = qst.counters[k]
-      @questVersion++
   
-    prize = this.generateDungeonAward(reward)
-    prize = prize.filter( (e) ->
-      if e.count? and e.count is 0 then return false
-      return true
-    )
-    rewardMessage = { NTF : Event_DungeonReward, arg : { res : reward.result } }
+    prize = @generateDungeonAward()
+    {goldPrize, xpPrize, wxPrize, otherPrize} = helperLib.splicePrize(prize)
+
+    rewardMessage = { NTF: Event_DungeonReward, arg: { res: @dungeon.result } }
     if prize.length > 0 then rewardMessage.arg.prize = prize
   
     ret = ret.concat([rewardMessage])
-    if reward.result isnt DUNGEON_RESULT_FAIL then ret = ret.concat(this.completeStage(this.dungeon.stage))
+    if @dungeon.result isnt DUNGEON_RESULT_FAIL then ret = ret.concat(this.completeStage(this.dungeon.stage))
     ret = ret.concat(this.claimPrize(prize, false))
   
-    offlineReward = []
-    offlineReward.push({type:PRIZETYPE_EXP, count:Math.ceil(TEAMMATE_REWARD_RATIO * reward.exp)}) if reward.exp > 0
-    offlineReward.push({type:PRIZETYPE_GOLD, count:Math.ceil(TEAMMATE_REWARD_RATIO * reward.gold)}) if reward.gold > 0
-    offlineReward.push({type:PRIZETYPE_WXP, count:Math.ceil(TEAMMATE_REWARD_RATIO * reward.wxp)}) if reward.wxp > 0
+    offlineReward = [
+      { type: PRIZETYPE_EXP, count: xpPrize.count* TEAMMATE_REWARD_RATIO },
+      { type: PRIZETYPE_GOLD, count: goldPrize.count* TEAMMATE_REWARD_RATIO },
+      { type: PRIZETYPE_WXP, count: wxPrize.count* TEAMMATE_REWARD_RATIO }
+    ].filter( (e) -> e.count > 0)
+
     if offlineReward.length > 0
-      teammateRewardMessage = { type: MESSAGE_TYPE_SystemReward, src : MESSAGE_REWARD_TYPE_OFFLINE, prize : offlineReward }
-      reward.team.forEach((name) -> if name then dbLib.deliverMessage(name, teammateRewardMessage) )
+      teammateRewardMessage = {
+        type: MESSAGE_TYPE_SystemReward,
+        src : MESSAGE_REWARD_TYPE_OFFLINE,
+        prize : offlineReward
+      }
+      @dungeon.team.forEach((name) ->
+        if name then dbLib.deliverMessage(name, teammateRewardMessage)
+      )
   
     result = 'Lost'
-    result = 'Win' if reward.result is DUNGEON_RESULT_WIN
+    result = 'Win' if @dungeon.result is DUNGEON_RESULT_WIN
 
-    @log('finishDungeon', { stage : this.dungeon.getInitialData().stage, result : result, reward : prize })
-  
-    @saveDB(() => @releaseDungeon())
+    otherPrize.push(goldPrize)
+    otherPrize.push(xpPrize)
+    otherPrize.push(wxPrize)
+    prize = otherPrize.filter( (e) -> return not ( e.count? and e.count is 0 ) )
+
+    @log('finishDungeon', { stage: @dungeon.getInitialData().stage, result: result, reward :prize })
+
+    @releaseDungeon()
     return ret
 
   whisper: (name, message, callback) ->

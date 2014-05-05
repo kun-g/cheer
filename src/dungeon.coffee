@@ -251,55 +251,6 @@ class Dungeon
 
   getCard: (slot) -> @cardStack.get(slot)
 
-  generateReward: (result) ->
-    return false if @reward?
-    reward = {
-      gold: 0,
-      exp: 0,
-      wxp: 0,
-      reviveCount: @revive
-    }
-
-    @killingInfo.forEach( (l) ->
-      reward.gold += l.gold if l.gold?
-      reward.exp += l.exp if l.exp?
-      reward.wxp += l.wxp if l.wxp?
-    )
-
-    cfg = @getConfig()
-
-    # Generate reward according to levels passed
-    if result is DUNGEON_RESULT_WIN
-      percentage = 1
-    else
-      percentage = (@currentLevel / cfg.levelCount) * 0.5
-
-    reward.gold += Math.floor(percentage*cfg.prizeGold) if cfg.prizeGold?
-    reward.exp += Math.floor(percentage*cfg.prizeXp) if cfg.prizeXp?
-    reward.wxp += Math.floor(percentage*cfg.prizeWxp) if cfg.prizeWxp?
-
-    # adjust final rewards according to modifiers
-    reward.gold *= @goldRate if @goldRate?
-    reward.exp *= @xpRate if @xpRate?
-    reward.wxp *= @wxpRate if @wxpRate?
-
-    reward.prize = cfg.prize
-    reward.result = result
-    reward.prizegold = cfg.prizeGold
-    reward.prizexp = cfg.prizeXp
-    reward.prizewxp = cfg.prizeWxp
-    reward.blueStar = @blueStar if @blueStar?
-    reward.team = @heroes.slice(1, this.heroes.length-1).map((h) -> h.name)
-    reward.quests = @quests
-
-    if @infiniteLevel? and cfg.infinityPrize
-      iPrize = p for p in cfg.infinityPrize when p.level is @infiniteLevel
-      if iPrize?
-        iPrize = { type: iPrize.type, value: iPrize.value, count: iPrize.count }
-      reward.infinityPrize = iPrize
-
-    @reward = reward
-
   getInitialInfo: () -> {syn: 0, pat: @team, stg: @stage}
 
   getHeroes: (all) -> if all then @heroes else @heroes.slice(0, @heroes.length-1)
@@ -867,7 +818,6 @@ class DungeonEnvironment extends Environment
   isDungeonFinished: () -> return @dungeon.currentLevel >= @dungeon.getConfig().levelCount
   createObject: (classID, pos, withkey, collectId, effect) -> @dungeon?.level?.createObject(classID, pos, withkey, collectId, effect)
   useItem: (spell, level, cmd) -> @dungeon.getDummyHero().castSpell(spell, level, cmd)
-  generateReward: (win) -> @dungeon?.generateReward(win)
   getReviveCount: () -> @dungeon?.revive
   createSpellMsg: (actor, spell, delay) ->
     return [] unless actor? and spell?
@@ -1214,7 +1164,7 @@ dungeonCSConfig = {
   ClaimResult: {
     callback: (env) ->
       env.onEvent('onClaimResult', @)
-      env.generateReward(env.variable('win'))
+      env.dungeon.result = env.variable('win')
     ,
     output: (env) -> [{id: ACT_DungeonResult, win: env.variable('win')}]
   },

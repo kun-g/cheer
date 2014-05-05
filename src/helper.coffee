@@ -391,6 +391,34 @@ exports.events = {
 #  }
 }
 
+exports.splicePrize = (prize) ->
+  goldPrize = { type: PRIZETYPE_GOLD, count: 0 }
+  xpPrize = { type: PRIZETYPE_EXP, count: 0 }
+  wxPrize = { type: PRIZETYPE_WXP, count: 0 }
+  otherPrize = []
+  prize.forEach( (p) ->
+    switch p.type
+      when PRIZETYPE_WXP then wxPrize.count += p.count
+      when PRIZETYPE_EXP then xpPrize.count += p.count
+      when PRIZETYPE_GOLD then goldPrize.count += p.count
+      else otherPrize.push(p)
+  )
+  return {
+    goldPrize: goldPrize,
+    xpPrize: xpPrize,
+    wxPrize: wxPrize,
+    otherPrize: otherPrize
+  }
+
+exports.generatePrize = (cfg) ->
+  return [] unless cfg?
+  reward = cfg
+    .filter((p) -> Math.random() < p.rate )
+    .map((g) ->
+      e = selectElementFromWeightArray(g.prize, Math.random())
+      return e
+    )
+
 updateLockStatus = (curStatus, target, config) ->
   return [] unless curStatus
   ret = []
