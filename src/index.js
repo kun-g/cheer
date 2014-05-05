@@ -3,7 +3,7 @@ require('nodetime').profile({
   accountKey: 'c82d52d81e9ed18e8550b58bf36f49d47e50a792', 
   appName: 'DR'
 });
-var agent = require('webkit-devtools-agent');
+//var agent = require('webkit-devtools-agent');
 require('./define');
 dbLib = require('./db');
 dbWrapper = require('./dbWrapper');
