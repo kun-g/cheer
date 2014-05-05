@@ -247,6 +247,7 @@ initGlobalConfig = function (path, callback) {
   if (!path) path = "./";
   configTable.forEach(function (e) {
     gConfigTable[e.name] = require(path+e.name).data;
+    if (!gConfigTable[e.name]) throw Error("Table not found"+e.name);
     if (e.func) gConfigTable[e.name] = e.func(gConfigTable[e.name]);
     gConfigTable[e.name] = prepareForABtest(gConfigTable[e.name]);
   });
