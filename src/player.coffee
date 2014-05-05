@@ -31,7 +31,6 @@ class Player extends DBWrapper
       diamond: 0,
       equipment: {},
       inventoryVersion: 0,
-
       heroBase: {},
       heroIndex: -1,
       #TODO: hero is duplicated
@@ -129,7 +128,7 @@ class Player extends DBWrapper
     if diffDate(@lastLogin) > 0 then @purchasedCount = {}
     @lastLogin = currentTime()
     if diffDate(@creationDate) > 7 then @tutorialStage = 1000 #TODO
-    if gGlobalPrize
+    if gGlobalPrize?
       for key, prize of gGlobalPrize when not @globalPrizeFlag[key]
         dbLib.deliverMessage(@name, prize)
         @globalPrizeFlag.newProperty(key, true)
