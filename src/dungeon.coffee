@@ -415,12 +415,8 @@ class Dungeon
   nextLevel: () ->
     if @level?
       @killingInfo[@currentLevel] = @level.getMonsters()
-        .filter( (m) -> m?.health <= 0 )
-        .reduce( ((r, m) ->
-          r.gold += m.gold if m.gold?
-          r.wxp += m.wxp if m.wxp?
-          r.exp += m.exp if m.exp?
-          return r), {gold: 0, exp: 0, wxp: 0})
+        .filter( (m) -> m?.health <= 0 and not m?.cod? )
+        .map( (m) -> return {dropInfo: e.dropInfo} )
 
     @currentLevel++
 
@@ -1243,7 +1239,7 @@ dungeonCSConfig = {
     callback: (env) ->
       env.variable('tar').health = 0
       if not env.variable('tar').isVisible then env.variable('tar').dead = true
-      @routine({id:'Dead', tar: env.variable('tar')})
+      @routine({id:'Dead', tar: env.variable('tar'), cod: env.variable('cod')})
   },
   ShowUp: {
     callback: (env) ->
@@ -1452,6 +1448,7 @@ dungeonCSConfig = {
 
       onEvent('Kill', @, killer, src)
       env.getBlock(src.pos).removeRef(src) if env.getBlock(src.pos) and src.health <= 0
+      env.variable('tar').cod = env.variable('cod') if env.variable('tar').health <= 0
       @routine({id: 'BlockInfo', block: src.pos}) if src.isVisible
     ,
     output: (env) ->
