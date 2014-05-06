@@ -413,11 +413,6 @@ class Dungeon
   getActionLog: (level) -> if level? then @actionLog[level] else @actionLog
 
   nextLevel: () ->
-    if @level?
-      @killingInfo[@currentLevel] = @level.getMonsters()
-        .filter( (m) -> m?.health <= 0 and not m?.cod? )
-        .map( (m) -> return {dropInfo: e.dropInfo} )
-
     @currentLevel++
 
     cfg = @getConfig()
@@ -430,7 +425,7 @@ class Dungeon
       goodPool = if cfg.goodPool? then cfg.goodPool else null
       badPool = if cfg.badPool? then cfg.badPool else null
       normalPool = if cfg.normalPool? then cfg.normalPool else null
-      @level = new Level()
+      @level = new Level(@killingInfo)
       @level.rand = (r) => @rand(r)
       @level.random = (r) => @random(r)
       Object.defineProperty(@level, 'random', {enumerable:false})
@@ -467,10 +462,10 @@ class Block extends Wizard
 
 #///////////////////// Level
 class Level
-  constructor: () ->
+  constructor: (killingInfo) ->
     @objects = []
     @ref =  HEROTAG
-
+    @killingInfo = killingInfo
 
   init: (lvConfig, baseRank, heroes, quests, pool) ->
     @objects = @objects.concat(heroes)
@@ -1448,7 +1443,10 @@ dungeonCSConfig = {
 
       onEvent('Kill', @, killer, src)
       env.getBlock(src.pos).removeRef(src) if env.getBlock(src.pos) and src.health <= 0
-      env.variable('tar').cod = env.variable('cod') if env.variable('tar').health <= 0
+
+      if env.variable('tar').health <= 0 and not env.variable('cod')? and env.variable('tar').dropInfo
+        env.dungeon.killingInfo.push( { dropInfo: env.variable('tar').dropInfo } )
+
       @routine({id: 'BlockInfo', block: src.pos}) if src.isVisible
     ,
     output: (env) ->

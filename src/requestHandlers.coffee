@@ -255,22 +255,9 @@ exports.route = {
               dungeon.replayActionLog(replay)
             catch err
               status = 'Replay Failed'
-              dungeon.reward = null
+              dungeon.result = DUNGEON_RESULT_FAIL
             finally
-              reward = dungeon.reward
-              if dungeon.stage is 0
-                fakeReward = {
-                  gold: 0, exp: 0, wxp: 0, reviveCount: 0, result: 2, prizegold: 0, prizexp: 0, prizewxp: 0, blueStar: 0, team: [], quests: { '0': { counters: [ 1 ] } }
-                }
-                rewardMsg = player.claimDungeonAward(fakeReward)
-                evt = evt.concat(rewardMsg)
-                status = 'Faked'
-              else if reward
-                rewardMsg = player.claimDungeonAward(reward)
-                evt = evt.concat(rewardMsg)
-              else
-                status = 'Replay Failed'
-                result.RET = RET_Unknown
+              evt = evt.concat(player.claimDungeonAward(dungeon))
               player.releaseDungeon()
               player.saveDB()
         else

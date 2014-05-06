@@ -410,10 +410,11 @@ exports.splicePrize = (prize) ->
     otherPrize: otherPrize
   }
 
-exports.generatePrize = (cfg) ->
+exports.generatePrize = (cfg, dropInfo) ->
   return [] unless cfg?
-  reward = cfg
-    .filter((p) -> Math.random() < p.rate )
+  reward = dropInfo
+    .reduce( ((r, p) -> return r.concat(cfg[p]) ), [])
+    .filter((p) -> p and Math.random() < p.rate )
     .map((g) ->
       e = selectElementFromWeightArray(g.prize, Math.random())
       return e
