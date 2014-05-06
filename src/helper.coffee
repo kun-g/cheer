@@ -251,23 +251,23 @@ initDailyEvent = (me, key, e) ->
     when 'Init'
       me[key].status = 'Ready'
       return ret.concat(initDailyEvent(me, key, e))
-    when 'Ready'
+    when 'Ready', 'Complete', 'Done'
       if quest?
         if me.isQuestAchieved(quest)
           me[key].status = 'Complete'
         else if not me.quests[quest]
           ret = ret.concat(me.acceptQuest(quest))
 
-        evt = {
-          NTF: Event_UpdateDailyQuest,
-          arg: { stp: me.event_daily.step, prz: me.event_daily.reward }
-        }
-        if me.event_daily.quest[me.event_daily.step]?
-          evt.arg.qst = me.event_daily.quest[me.event_daily.step]
-        if me.event_daily.stepPrize[me.event_daily.step]?
-          evt.arg.cpz = me.event_daily.stepPrize[me.event_daily.step]
+      evt = {
+        NTF: Event_UpdateDailyQuest,
+        arg: { stp: me.event_daily.step, prz: me.event_daily.reward }
+      }
+      if me.event_daily.quest[me.event_daily.step]?
+        evt.arg.qst = me.event_daily.quest[me.event_daily.step]
+      if me.event_daily.stepPrize[me.event_daily.step]?
+        evt.arg.cpz = me.event_daily.stepPrize[me.event_daily.step]
 
-        ret.push(evt)
+      ret.push(evt)
   return ret
 exports.initCampaign = initCampaign
 
