@@ -425,7 +425,7 @@ class Dungeon
       goodPool = if cfg.goodPool? then cfg.goodPool else null
       badPool = if cfg.badPool? then cfg.badPool else null
       normalPool = if cfg.normalPool? then cfg.normalPool else null
-      @level = new Level(@killingInfo)
+      @level = new Level()
       @level.rand = (r) => @rand(r)
       @level.random = (r) => @random(r)
       Object.defineProperty(@level, 'random', {enumerable:false})
@@ -462,10 +462,9 @@ class Block extends Wizard
 
 #///////////////////// Level
 class Level
-  constructor: (killingInfo) ->
+  constructor: () ->
     @objects = []
     @ref =  HEROTAG
-    @killingInfo = killingInfo
 
   init: (lvConfig, baseRank, heroes, quests, pool) ->
     @objects = @objects.concat(heroes)

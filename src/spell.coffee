@@ -315,9 +315,9 @@ class Wizard
         when 'randTeleport' then cmd.routine?({id: 'TeleportObject', obj: @})
         when 'kill'
           if a.self
-            cmd.routine?({id: 'Kill', tar: @})
+            cmd.routine?({id: 'Kill', tar: @, cod: a.cod})
           else
-            cmd.routine?({id: 'Kill', tar: t}) for t in target
+            cmd.routine?({id: 'Kill', tar: t, cod: a.cod}) for t in target
         when 'shock' then cmd?.routine?({id: 'Shock', time: a.time, delay: a.delay, range: a.range})
         when 'blink' then cmd.routine?({id: 'Blink', time: a.time, delay: a.delay, color: a.color})
         when 'changeBGM' then cmd.routine({id: 'ChangeBGM', music: a.music, repeat: a.repeat})

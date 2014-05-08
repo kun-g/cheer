@@ -178,7 +178,7 @@ exports.matchDate = matchDate
 
 genCampaignUtil = () ->
   return {
-    sameDay: diffDate,
+    diffDay: (date, today) -> return not date? or diffDate(date, null, 'day') isnt 0,
     currentTime: currentTime,
     today: moment()
   }
@@ -192,9 +192,10 @@ initCampaign = (me, allCampaign, abIndex) ->
       ret = ret.concat(initDailyEvent(me, 'event_daily', e))
     else
       if e.canReset(me, util) then e.reset(me, util)
+      count = me.counters[key] ? 0
       ret.push({
         NTF: Event_BountyUpdate,
-        arg: { bid: e.id, sta: e.actived, cnt: e.count}
+        arg: { bid: e.id, sta: e.actived, cnt: e.count - count}
       })
   return ret
 
@@ -328,47 +329,59 @@ exports.events = {
       ]
 
     },
-    event_robbers: {
+    goblin: {
       storeType: "player",
       id: 0,
       actived: 1,
-      count: 5,
+      count: 3,
       canReset: (obj, util) ->
-        return (!util.sameDay(obj.timestamp.robbers, util.today) &&
-          util.today.hour() >= 8)
+        return (util.diffDay(obj.timestamp.goblin, util.today) && util.today.hour() >= 8)
       ,
       reset: (obj, util) ->
-        obj.timestamp.robbers = util.currentTime()
-        obj.counters.robbers = 0
+        obj.timestamp.newProperty('goblin', util.currentTime())
+        obj.counters.newProperty('goblin', 0)
     },
-    event_weapon: {
-      storeType: "player",
-      id: 1,
-      actived: 1,
-      count: 5,
-      canReset: (obj, util) ->
-        return !util.sameDay(obj.timestamp.weapon, util.today)
-      ,
-      reset: (obj, util) ->
-        obj.timestamp.weapon = util.currentTime()
-        obj.counters.weapon = 0
-      ,
-      stageID: 1024
-    },
-    event_enhance: {
-      id: 2,
-      storeType: "player",
-      actived: 1,
-      count: 5,
-      canReset: (obj, util) ->
-        return !util.sameDay(obj.timestamp.enhance, util.today)
-      ,
-      reset: (obj, util) ->
-        obj.timestamp.enhance = util.currentTime()
-        obj.counters.enhance = 0
-      ,
-      stageID: 1024
-    }
+#   event_robbers: {
+#     storeType: "player",
+#     id: 0,
+#     actived: 1,
+#     count: 5,
+#     canReset: (obj, util) ->
+#       return (!util.diffDay(obj.timestamp.robbers, util.today) &&
+#         util.today.hour() >= 8)
+#     ,
+#     reset: (obj, util) ->
+#       obj.timestamp.robbers = util.currentTime()
+#       obj.counters.robbers = 0
+#   },
+#   event_weapon: {
+#     storeType: "player",
+#     id: 1,
+#     actived: 1,
+#     count: 5,
+#     canReset: (obj, util) ->
+#       return !util.diffDay(obj.timestamp.weapon, util.today)
+#     ,
+#     reset: (obj, util) ->
+#       obj.timestamp.weapon = util.currentTime()
+#       obj.counters.weapon = 0
+#     ,
+#     stageID: 1024
+#   },
+#   event_enhance: {
+#     id: 2,
+#     storeType: "player",
+#     actived: 1,
+#     count: 5,
+#     canReset: (obj, util) ->
+#       return !util.diffDay(obj.timestamp.enhance, util.today)
+#     ,
+#     reset: (obj, util) ->
+#       obj.timestamp.enhance = util.currentTime()
+#       obj.counters.enhance = 0
+#     ,
+#     stageID: 1024
+#   }
 #  "event_energy": {
 #    "type": "func",
 #    "storeType": "player",

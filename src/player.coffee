@@ -492,6 +492,9 @@ class Player extends DBWrapper
         @dungeonData.baseRank = helperLib.initCalcDungeonBaseRank(@) if stageConfig.event is 'event_daily'
         cb('OK')
       ], (err) =>
+        msg = []
+        if stageConfig.initialAction then stageConfig.initialAction(@,  genUtil)
+        if stageConfig.eventName then msg = @syncEvent()
         @loadDungeon()
         @log('startDungeon', {dungeonData: @dungeonData, err: err})
         if err isnt 'OK'
@@ -504,7 +507,7 @@ class Player extends DBWrapper
           @releaseDungeon()
           err = new Error(RET_Unknown)
           ret = RET_Unknown
-        handler(err, ret) if handler?
+        handler(err, ret, msg) if handler?
       )
 
   acceptQuest: (qid) ->

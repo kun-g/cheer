@@ -294,15 +294,16 @@ exports.route = {
   RPC_GameStartDungeon: {
     id: 1,
     func: (arg, player, handler, rpcID, socket) ->
-      player.startDungeon(+arg.stg, arg.initialDataOnly, (err, evEnter) ->
+      player.startDungeon(+arg.stg, arg.initialDataOnly, (err, evEnter, extraMsg) ->
+        extraMsg = (extraMsg ? []).concat(player.syncEnergy())
         if typeof evEnter is 'number'
-          handler([{REQ: rpcID, RET: evEnter}])
+          handler([{REQ: rpcID, RET: evEnter}].concat(extraMsg))
         else if arg.initialDataOnly
-          handler([{REQ: rpcID, RET: RET_OK, arg : evEnter}].concat(player.syncEnergy()))
+          handler([{REQ: rpcID, RET: RET_OK, arg : evEnter}].concat(extraMsg))
         else if evEnter
-          handler([{REQ: rpcID, RET: RET_OK}].concat(evEnter.concat(player.syncEnergy())))
+          handler([{REQ: rpcID, RET: RET_OK}].concat(evEnter.concat(extraMsg)))
         else
-          handler([{REQ: rpcID, RET: RET_OK}])
+          handler([{REQ: rpcID, RET: RET_OK}].concat(extraMsg))
         player.saveDB()
       )
     ,

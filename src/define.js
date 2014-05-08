@@ -237,7 +237,14 @@ initGlobalConfig = function (path, callback) {
       return cfg;
     } else {
       if (cfg[index]) {
-        return JSON.parse(JSON.stringify(cfg[index])); //TODO: hotfix
+        switch (type) {
+          case TABLE_ITEM:
+          case TABLE_ROLE: 
+            return JSON.parse(JSON.stringify(cfg[index])); //TODO: hotfix
+            break;
+          default:
+            return cfg[index]
+        }
       } else {
         return null;
       }
