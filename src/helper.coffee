@@ -178,7 +178,7 @@ exports.matchDate = matchDate
 
 genCampaignUtil = () ->
   return {
-    diffDay: (date, today) -> return not date? or diffDate(date, null, 'day') isnt 0,
+    diffDay: (date, today) -> return not date? or diffDate(date, today, 'day') isnt 0,
     currentTime: currentTime,
     today: moment()
   }
@@ -248,7 +248,7 @@ initDailyEvent = (me, key, e) ->
         if Array.isArray(quest)
           quest = quest[me[key].step]
         if quest? then delete me.quests[quest]
-        return ret.concat(initDailyEvent(me, key, e))
+      return ret.concat(initDailyEvent(me, key, e))
     when 'Init'
       me[key].status = 'Ready'
       return ret.concat(initDailyEvent(me, key, e))

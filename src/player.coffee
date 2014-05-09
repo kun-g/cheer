@@ -956,7 +956,6 @@ class Player extends DBWrapper
   
     ret = ret.concat([rewardMessage])
     if dungeon.result isnt DUNGEON_RESULT_FAIL then ret = ret.concat(this.completeStage(dungeon.stage))
-    ret = ret.concat(this.claimPrize(prize, false))
   
     offlineReward = [
       { type: PRIZETYPE_EXP, count: xpPrize.count* TEAMMATE_REWARD_RATIO },
@@ -982,8 +981,9 @@ class Player extends DBWrapper
     otherPrize.push(wxPrize)
     prize = otherPrize.filter( (e) -> return not ( e.count? and e.count is 0 ) )
     if prize.length > 0 then rewardMessage.arg.prize = prize
+    ret = ret.concat(this.claimPrize(prize, false))
 
-    @log('finishDungeon', { stage: dungeon.getInitialData().stage, result: result, reward :prize })
+    @log('finishDungeon', { stage: dungeon.getInitialData().stage, result: result, reward: prize })
 
     @releaseDungeon()
     return ret
