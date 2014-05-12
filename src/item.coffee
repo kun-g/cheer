@@ -11,7 +11,7 @@ class Item extends Serializer
     }
 
     @id = data.id
-    if @getConfig().category is ITEM_EQUIPMENT 
+    if @getConfig().category is ITEM_EQUIPMENT
       cfg.xp = 0
       cfg. enhancement = []
 

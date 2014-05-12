@@ -26,6 +26,7 @@ TABLE_TRIGGER = "triggers";
 TABLE_BROADCAST = "broadcast";
 TABLE_LEADBOARD = "leadboard";
 TABLE_FACTION = "faction";
+TABLE_COSTS = "costs";
 
 /*** GAME CONSTANTS ***/
 ItemId_RevivePotion = 540;
