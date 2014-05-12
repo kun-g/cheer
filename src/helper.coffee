@@ -410,6 +410,7 @@ exports.splicePrize = (prize) ->
   wxPrize = { type: PRIZETYPE_WXP, count: 0 }
   otherPrize = []
   prize.forEach( (p) ->
+    return [] unless p?
     switch p.type
       when PRIZETYPE_WXP then wxPrize.count += p.count
       when PRIZETYPE_EXP then xpPrize.count += p.count
