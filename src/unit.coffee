@@ -39,6 +39,7 @@ class Unit extends Wizard
     @collectId = roleConfig.collectId if roleConfig.collectId?
     @modifyProperty(roleConfig.property) if roleConfig.property?
     @faction = roleConfig.faction
+    @dropInfo = roleConfig.dropInfo
     if flagCreation
       console.log('Property ', JSON.stringify(roleConfig.property))
 

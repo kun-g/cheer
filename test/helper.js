@@ -175,6 +175,15 @@ describe('calculateTotalItemXP', function () {
 */
 
 
+describe('Prize', function () {
+  it('Basic', function () {
+    var prize = [
+      { rate: 0, prize: [] },
+      { rate: 1, prize: [] }
+    ];
+  });
+});
+
 describe('Campaign', function () {
   var events = {
     "event_daily": {

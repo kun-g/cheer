@@ -251,55 +251,6 @@ class Dungeon
 
   getCard: (slot) -> @cardStack.get(slot)
 
-  generateReward: (result) ->
-    return false if @reward?
-    reward = {
-      gold: 0,
-      exp: 0,
-      wxp: 0,
-      reviveCount: @revive
-    }
-
-    @killingInfo.forEach( (l) ->
-      reward.gold += l.gold if l.gold?
-      reward.exp += l.exp if l.exp?
-      reward.wxp += l.wxp if l.wxp?
-    )
-
-    cfg = @getConfig()
-
-    # Generate reward according to levels passed
-    if result is DUNGEON_RESULT_WIN
-      percentage = 1
-    else
-      percentage = (@currentLevel / cfg.levelCount) * 0.5
-
-    reward.gold += Math.floor(percentage*cfg.prizeGold) if cfg.prizeGold?
-    reward.exp += Math.floor(percentage*cfg.prizeXp) if cfg.prizeXp?
-    reward.wxp += Math.floor(percentage*cfg.prizeWxp) if cfg.prizeWxp?
-
-    # adjust final rewards according to modifiers
-    reward.gold *= @goldRate if @goldRate?
-    reward.exp *= @xpRate if @xpRate?
-    reward.wxp *= @wxpRate if @wxpRate?
-
-    reward.prize = cfg.prize
-    reward.result = result
-    reward.prizegold = cfg.prizeGold
-    reward.prizexp = cfg.prizeXp
-    reward.prizewxp = cfg.prizeWxp
-    reward.blueStar = @blueStar if @blueStar?
-    reward.team = @heroes.slice(1, this.heroes.length-1).map((h) -> h.name)
-    reward.quests = @quests
-
-    if @infiniteLevel? and cfg.infinityPrize
-      iPrize = p for p in cfg.infinityPrize when p.level is @infiniteLevel
-      if iPrize?
-        iPrize = { type: iPrize.type, value: iPrize.value, count: iPrize.count }
-      reward.infinityPrize = iPrize
-
-    @reward = reward
-
   getInitialInfo: () -> {syn: 0, pat: @team, stg: @stage}
 
   getHeroes: (all) -> if all then @heroes else @heroes.slice(0, @heroes.length-1)
@@ -462,15 +413,6 @@ class Dungeon
   getActionLog: (level) -> if level? then @actionLog[level] else @actionLog
 
   nextLevel: () ->
-    if @level?
-      @killingInfo[@currentLevel] = @level.getMonsters()
-        .filter( (m) -> m?.health <= 0 )
-        .reduce( ((r, m) ->
-          r.gold += m.gold if m.gold?
-          r.wxp += m.wxp if m.wxp?
-          r.exp += m.exp if m.exp?
-          return r), {gold: 0, exp: 0, wxp: 0})
-
     @currentLevel++
 
     cfg = @getConfig()
@@ -523,7 +465,6 @@ class Level
   constructor: () ->
     @objects = []
     @ref =  HEROTAG
-
 
   init: (lvConfig, baseRank, heroes, quests, pool) ->
     @objects = @objects.concat(heroes)
@@ -867,7 +808,6 @@ class DungeonEnvironment extends Environment
   isDungeonFinished: () -> return @dungeon.currentLevel >= @dungeon.getConfig().levelCount
   createObject: (classID, pos, withkey, collectId, effect) -> @dungeon?.level?.createObject(classID, pos, withkey, collectId, effect)
   useItem: (spell, level, cmd) -> @dungeon.getDummyHero().castSpell(spell, level, cmd)
-  generateReward: (win) -> @dungeon?.generateReward(win)
   getReviveCount: () -> @dungeon?.revive
   createSpellMsg: (actor, spell, delay) ->
     return [] unless actor? and spell?
@@ -1214,7 +1154,7 @@ dungeonCSConfig = {
   ClaimResult: {
     callback: (env) ->
       env.onEvent('onClaimResult', @)
-      env.generateReward(env.variable('win'))
+      env.dungeon.result = env.variable('win')
     ,
     output: (env) -> [{id: ACT_DungeonResult, win: env.variable('win')}]
   },
@@ -1293,7 +1233,7 @@ dungeonCSConfig = {
     callback: (env) ->
       env.variable('tar').health = 0
       if not env.variable('tar').isVisible then env.variable('tar').dead = true
-      @routine({id:'Dead', tar: env.variable('tar')})
+      @routine({id:'Dead', tar: env.variable('tar'), cod: env.variable('cod')})
   },
   ShowUp: {
     callback: (env) ->
@@ -1502,6 +1442,10 @@ dungeonCSConfig = {
 
       onEvent('Kill', @, killer, src)
       env.getBlock(src.pos).removeRef(src) if env.getBlock(src.pos) and src.health <= 0
+
+      if env.variable('tar').health <= 0 and not env.variable('cod')? and env.variable('tar').dropInfo
+        env.dungeon.killingInfo.push( { dropInfo: env.variable('tar').dropInfo } )
+
       @routine({id: 'BlockInfo', block: src.pos}) if src.isVisible
     ,
     output: (env) ->

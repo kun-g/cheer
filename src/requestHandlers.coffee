@@ -255,22 +255,9 @@ exports.route = {
               dungeon.replayActionLog(replay)
             catch err
               status = 'Replay Failed'
-              dungeon.reward = null
+              dungeon.result = DUNGEON_RESULT_FAIL
             finally
-              reward = dungeon.reward
-              if dungeon.stage is 0
-                fakeReward = {
-                  gold: 0, exp: 0, wxp: 0, reviveCount: 0, result: 2, prizegold: 0, prizexp: 0, prizewxp: 0, blueStar: 0, team: [], quests: { '0': { counters: [ 1 ] } }
-                }
-                rewardMsg = player.claimDungeonAward(fakeReward)
-                evt = evt.concat(rewardMsg)
-                status = 'Faked'
-              else if reward
-                rewardMsg = player.claimDungeonAward(reward)
-                evt = evt.concat(rewardMsg)
-              else
-                status = 'Replay Failed'
-                result.RET = RET_Unknown
+              evt = evt.concat(player.claimDungeonAward(dungeon))
               player.releaseDungeon()
               player.saveDB()
         else
@@ -307,15 +294,16 @@ exports.route = {
   RPC_GameStartDungeon: {
     id: 1,
     func: (arg, player, handler, rpcID, socket) ->
-      player.startDungeon(+arg.stg, arg.initialDataOnly, (err, evEnter) ->
+      player.startDungeon(+arg.stg, arg.initialDataOnly, (err, evEnter, extraMsg) ->
+        extraMsg = (extraMsg ? []).concat(player.syncEnergy())
         if typeof evEnter is 'number'
-          handler([{REQ: rpcID, RET: evEnter}])
+          handler([{REQ: rpcID, RET: evEnter}].concat(extraMsg))
         else if arg.initialDataOnly
-          handler([{REQ: rpcID, RET: RET_OK, arg : evEnter}].concat(player.syncEnergy()))
+          handler([{REQ: rpcID, RET: RET_OK, arg : evEnter}].concat(extraMsg))
         else if evEnter
-          handler([{REQ: rpcID, RET: RET_OK}].concat(evEnter.concat(player.syncEnergy())))
+          handler([{REQ: rpcID, RET: RET_OK}].concat(evEnter.concat(extraMsg)))
         else
-          handler([{REQ: rpcID, RET: RET_OK}])
+          handler([{REQ: rpcID, RET: RET_OK}].concat(extraMsg))
         player.saveDB()
       )
     ,
