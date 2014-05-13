@@ -85,6 +85,7 @@ tapObject = (obj, callback) ->
       })
 exports.tap = tap
 
+dbLib = require('./db')
 # Leaderboard
 exports.initLeaderboard = (config) ->
   localConfig = []
@@ -98,7 +99,6 @@ exports.initLeaderboard = (config) ->
     localConfig[key] = { func: generateHandler(cfg.name, cfg) }
     localConfig[key][k] = v for k, v of cfg
 
-  dbLib = require('./db')
   dbLib.getServerConfig('Leaderboard', (err, arg) ->
     if arg then srvCfg = JSON.parse(arg)
     
@@ -452,3 +452,22 @@ exports.calculateTotalItemXP = (item) ->
   for i, cfg of upgrade when levelTable[item.quality] <= i < item.rank
     xp += cfg.xp
   return xp
+
+# Observer
+exports.observers = {
+  heroxpChanged: (obj, arg) ->
+    if arg.prevLevel isnt arg.currentLevel
+      if arg.currentLevel is 10
+        dbLib.broadcastEvent(BROADCAST_PLAYER_LEVEL, {
+          who: obj.name,
+          what: obj.hero.class
+        })
+}
+
+exports.initObserveration = (obj) ->
+  obj.observers = {}
+  obj.installObserver = (event) -> obj.observers[event] = exports.observers[event]
+  obj.removeObserver = (event) -> obj.observers[event] = null
+  obj.notify = (event, arg) ->
+    ob = obj.observers[event]
+    if ob then ob(obj, arg)

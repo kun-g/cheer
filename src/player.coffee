@@ -200,7 +200,9 @@ class Player extends DBWrapper
           logError({type: 'Subscribe', err: err, msg: msg})
     ))
 
-
+    helperLib.initObserveration(this)
+    @installObserver('heroxpChanged')
+    
     if @isNewPlayer then @isNewPlayer = false
 
     helperLib.assignLeaderboard(@)
@@ -356,11 +358,16 @@ class Player extends DBWrapper
       prevLevel = @createHero().level
       @hero.xp += point
       currentLevel = @createHero().level
-      @onEvent('experience')
-      if prevLevel isnt currentLevel
-        if currentLevel is 10 then dbLib.broadcastEvent(BROADCAST_PLAYER_LEVEL, {who: @name, what: @hero.class})
-        @onEvent('level')
-        @log('levelChange', {prevLevel: prevLevel, newLevel: currentLevel})
+      @notify('heroxpChanged', {
+        xp: @hero.xp,
+        delta: point,
+        prevLevel: prevLevel,
+        currentLevel: currentLevel
+      })
+      #if prevLevel isnt currentLevel
+      #  if currentLevel is 10 then dbLib.broadcastEvent(BROADCAST_PLAYER_LEVEL, {who: @name, what: @hero.class})
+      #  @onEvent('level')
+      #  @log('levelChange', {prevLevel: prevLevel, newLevel: currentLevel})
 
     return @hero.xp
 
@@ -706,7 +713,7 @@ class Player extends DBWrapper
         delete ret.arg.itm if ret.arg.itm.length < 1
 
         this.onEvent('Equipment')
-        return { ret: RET_OK, ntf: ret }
+        return { ret: RET_OK, ntf: [ret] }
 
     logError({action: 'useItem', reason: 'unknow', catogory: item.category, subcategory: item.subcategory, id: item.id})
     return {ret: RET_Unknown}
@@ -1573,7 +1580,9 @@ playerCSConfig = {
 
       ret = env.player.inventory.add(item, count, env.variable('allorfail'))
       @routine({id: 'ItemChange', ret: ret, version: env.player.inventoryVersion})
-      if ret then @next({id: 'UseItem', slot: e.slot}) for e in ret
+      if ret
+        for e in ret when env.player.getItemAt(e.slot).autoUse
+          @next({id: 'UseItem', slot: e.slot})
   },
   RemoveItem: {
     callback: (env) ->
