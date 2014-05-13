@@ -759,8 +759,8 @@ class Player extends DBWrapper
     return { ret: RET_EquipCantUpgrade } unless item.upgradeTarget? and @createHero().level > item.rank
     upConfig = queryTable(TABLE_UPGRADE, item.rank, @abIndex)
     return { ret: RET_EquipCantUpgrade } unless upConfig
-    exp = item.upgradeXp ? upConfig.xp
-    cost = item.upgradeCost ? upConfig.cost
+    exp = upConfig.xp
+    cost = upConfig.cost
     return { ret: RET_EquipCantUpgrade } unless exp? and cost?
     return { ret: RET_InsufficientEquipXp } if item.xp < exp
     return { ret: RET_NotEnoughGold } if this.gold < cost
@@ -1529,24 +1529,19 @@ itemLib = require('./item')
 class PlayerEnvironment extends Environment
   constructor: (@player) ->
 
-  aquireItem: (item, count, allOrFail) ->
-    count = count ? 1
-    item = createItem(item)
-    showMeTheStack() unless item?
-    return [] unless item?
-
-    return {version: @player.inventoryVersion, ret: @player?.inventory.add(item, count, allOrFail)}
-
   removeItem: (item, count, slot, allorfail) ->
     return {ret: @player?.inventory.remove(item, count, slot, allorfail), version: @player.inventoryVersion}
 
   translateAction: (cmd) ->
     return [] unless cmd?
+    cmd.print()
     ret = []
-    ret = cmd.output() if cmd.output()?
+    out = cmd.output()
+    ret = out if out
 
     for i, routine of cmd.cmdRoutine
-      ret = ret.concat(routine.output()) if routine?.output()?
+      out = routine?.output()
+      ret = ret.concat(out) if out?
 
     return ret.concat(@translateAction(cmd.nextCMD))
 
@@ -1567,10 +1562,18 @@ playerCSConfig = {
       arg.itm = items
       return [{NTF: Event_InventoryUpdateItem, arg: arg}]
   },
+  UseItem: {
+    output: (env) -> return env.player.useItem(env.variable('slot')).ntf
+  },
   AquireItem: {
     callback: (env) ->
-      {ret, version} = env.aquireItem(env.variable('item'), env.variable('count'), env.variable('allorfail'))
-      @routine({id: 'ItemChange', ret: ret, version: version})
+      count = env.variable('count') ? 1
+      item = createItem(env.variable('item'))
+      return showMeTheStack() unless item?
+
+      ret = env.player.inventory.add(item, count, env.variable('allorfail'))
+      @routine({id: 'ItemChange', ret: ret, version: env.player.inventoryVersion})
+      if ret then @next({id: 'UseItem', slot: e.slot}) for e in ret
   },
   RemoveItem: {
     callback: (env) ->
