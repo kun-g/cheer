@@ -958,9 +958,9 @@ class Player extends DBWrapper
     if dungeon.result isnt DUNGEON_RESULT_FAIL then ret = ret.concat(this.completeStage(dungeon.stage))
   
     offlineReward = [
-      { type: PRIZETYPE_EXP, count: xpPrize.count* TEAMMATE_REWARD_RATIO },
-      { type: PRIZETYPE_GOLD, count: goldPrize.count* TEAMMATE_REWARD_RATIO },
-      { type: PRIZETYPE_WXP, count: wxPrize.count* TEAMMATE_REWARD_RATIO }
+      { type: PRIZETYPE_EXP,  count: Math.ceil(xpPrize.count* TEAMMATE_REWARD_RATIO) },
+      { type: PRIZETYPE_GOLD, count: Math.ceil(goldPrize.count* TEAMMATE_REWARD_RATIO) },
+      { type: PRIZETYPE_WXP,  count: Math.ceil(wxPrize.count* TEAMMATE_REWARD_RATIO) }
     ].filter( (e) -> e.count > 0)
 
     if offlineReward.length > 0
