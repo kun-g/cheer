@@ -532,7 +532,7 @@ class Player extends DBWrapper
     prize = [prize] unless Array.isArray(prize)
     itemPrize = []
     otherPrize = []
-    for p in prize
+    for p in prize when p?
       if p.type is PRIZETYPE_ITEM
         if p.count > 0 then itemPrize.push(p)
       else
@@ -799,15 +799,15 @@ class Player extends DBWrapper
     if newItem
       ret.newItem.enhancement = enhance
       eh = newItem.enhancement.map((e) -> {id:e.id, lv:e.level})
-      ret = ret.concat({NTF: Event_InventoryUpdateItem, arg: {syn:this.inventoryVersion, itm:[{sid: @queryItemSlot(newItem), eh:eh}]}})
+      ret.res.push({NTF: Event_InventoryUpdateItem, arg: {syn:this.inventoryVersion, itm:[{sid: @queryItemSlot(newItem), eh:eh}]}})
     return ret
 
   craftItem: (slot) ->
     recipe = @getItemAt(slot)
     return { ret: RET_NeedReceipt } unless recipe?
-    ret = @claimCost(recipe.recipeCost)
+    ret = @claimCost(recipe.forgeID)
     if not ret? then return { ret: RET_InsufficientIngredient }
-    newItem = new Item(recipe.recipeTarget)
+    newItem = new Item(recipe.forgeTarget)
     ret = ret.concat(@aquireItem(newItem))
     ret = ret.concat({NTF: Event_InventoryUpdateItem, arg:{syn: @inventoryVersion, god: @gold }})
     @log('craftItem', { slot: slot, id: recipe.id })
@@ -823,7 +823,7 @@ class Player extends DBWrapper
     return { ret: RET_EquipCantUpgrade } unless level < 40 and equip.enhanceID?
 
     enhance = queryTable(TABLE_ENHANCE, equip.enhanceID)
-    ret = @claimCost(enhance.cost[level+1])
+    ret = @claimCost(enhance.costList[level+1])
     if not ret? then return { ret: RET_Unknown }
 
     equip.enhancement[0].level = level
