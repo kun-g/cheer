@@ -126,6 +126,23 @@ class Player extends DBWrapper
 
   syncEvent: () -> return helperLib.initCampaign(@, helperLib.events)
 
+  migrate: () ->
+    for slot, item of @inventory.container when item?
+      if @equipment.indexOf(slot) is -1
+        # 1. 未装备的装备直接出售
+        if item.category is ITEM_EQUIPMENT
+          @sellItem(slot)
+      else
+        # 2. 已装备的装备保留强化等级
+        lv = item.enhancement.reduce( ((r, i) -> return r+i.level), 0 )
+        item.enhancement = { id: item.enhanceID, level: lv }
+        # 3. 已装备的饰品转换成对应的饰品
+        cfg = require('./transfer').data
+        @sellItem(slot)
+        if cfg[item.id]
+          @claimPrize(cfg[item.id].filter((e) => isClassMatch(@hero.class, e.classLimit)))
+    return @syncBag(true)
+
   onLogin: () ->
     return [] unless @lastLogin
     if diffDate(@lastLogin) > 0 then @purchasedCount = {}
@@ -152,6 +169,9 @@ class Player extends DBWrapper
 
     @log('onLogin', {loginStreak: @loginStreak, date: @lastLogin})
     @onCampaign('RMB')
+
+    #TODO
+    @migrate()
 
     ret = [{NTF:Event_CampaignLoginStreak, day: @loginStreak.count, claim: flag}]
     return ret
@@ -840,17 +860,22 @@ class Player extends DBWrapper
     return { out: {cid: equip.id, sid: itemSlot, stc: 1, eh: eh, xp: equip.xp}, res: ret }
 
   sellItem: (slot) ->
-    item = @getItemAt(slot)
-    return { ret: RET_Unknown } for k, s of @equipment when s is slot
+    return { ret: RET_Unknown } if @equipment.indexOf(slot) isnt -1
 
-    if item?.sellprice
-      @addGold(item.sellprice*item.count)
-      ret = this.removeItem(null, null, slot)
-  
+    item = @getItemAt(slot)
+    if item?.transPrize or item?.sellprice
+      ret = @removeItem(null, null, slot)
+
+      if item?.transPrize
+        ret = ret.concat(@claimPrize(item.transPrize))
+      else if item?.sellprice
+        @addGold(item.sellprice*item.count)
+    
       @log('sellItem', { itemId: item.id, price: item.sellprice, count: item.count, slot: slot })
       return { ret: RET_OK, ntf: [{ NTF: Event_InventoryUpdateItem, arg: {syn:this.inventoryVersion, 'god': this.gold} }].concat(ret)}
     else
       return { ret: RET_Unknown }
+
 
   haveItem: (itemID) ->
     itemConfig = queryTable(TABLE_ITEM, itemID, @abIndex)
