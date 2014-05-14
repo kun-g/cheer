@@ -969,8 +969,8 @@ class Player extends DBWrapper
         src : MESSAGE_REWARD_TYPE_OFFLINE,
         prize : offlineReward
       }
-      dungeon.team.forEach((name) ->
-        if name then dbLib.deliverMessage(name, teammateRewardMessage)
+      dungeon.team.forEach((m) ->
+        if m then dbLib.deliverMessage(m.nam, teammateRewardMessage)
       )
   
     result = 'Lost'
