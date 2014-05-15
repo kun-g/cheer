@@ -107,7 +107,30 @@ class Player extends DBWrapper
     if type and type is 'error'
       logError(msg)
     else
-      logUser(msg)
+      #TODO:logUser(msg)
+
+  isEquiped: (slot) ->
+    equipment = (e for i, e of @equipment)
+    return equipment.indexOf(+slot) != -1
+
+  migrate: () ->
+    for slot, item of @inventory.container when item?
+      if item.transPrize?
+        if @isEquiped(slot)
+          # 2. 已装备的装备保留强化等级
+          lv = -1
+          if item.enhancement and item.enhancement.length > 0
+            lv = item.enhancement.reduce( ((r, i) -> return r+i.level), 0 )
+          # 3. 已装备的饰品转换成对应的饰品
+          cfg = require('./transfer').data
+          if cfg[item.id]
+            p = cfg[item.id].filter((e) => isClassMatch(@hero.class, e.classLimit))
+            item.id = p[0].value
+          enhanceID = queryTable(TABLE_ITEM, item.id).enhanceID
+          if enhanceID? and lv >= 0 then item.enhancement = [{id: enhanceID, level: lv}]
+          continue
+        @sellItem(slot)
+    return @syncBag(true)
 
   onDisconnect: () ->
     @socket = null
@@ -779,7 +802,6 @@ class Player extends DBWrapper
     newItem = new Item(item.upgradeTarget)
     newItem.enhancement = item.enhancement
     ret = ret.concat(this.aquireItem(newItem))
-    ret = ret.concat(this.useItem(this.queryItemSlot(newItem)).ntf)
     eh = newItem.enhancement.map((e) -> {id:e.id, lv:e.level})
     ret = ret.concat({NTF: Event_InventoryUpdateItem, arg:{syn:this.inventoryVersion, god:this.gold, itm:[{sid: this.queryItemSlot(newItem), stc: 1, eh:eh}]}})
   
@@ -840,13 +862,17 @@ class Player extends DBWrapper
     return { out: {cid: equip.id, sid: itemSlot, stc: 1, eh: eh, xp: equip.xp}, res: ret }
 
   sellItem: (slot) ->
-    item = @getItemAt(slot)
-    return { ret: RET_Unknown } for k, s of @equipment when s is slot
+    if @isEquiped(slot) then return { ret: RET_Unknown }
 
-    if item?.sellprice
-      @addGold(item.sellprice*item.count)
-      ret = this.removeItem(null, null, slot)
-  
+    item = @getItemAt(slot)
+    if item?.transPrize or item?.sellprice
+      ret = @removeItem(null, null, slot)
+
+      if item?.transPrize
+        ret = ret.concat(@claimPrize(item.transPrize))
+      else if item?.sellprice
+        @addGold(item.sellprice*item.count)
+    
       @log('sellItem', { itemId: item.id, price: item.sellprice, count: item.count, slot: slot })
       return { ret: RET_OK, ntf: [{ NTF: Event_InventoryUpdateItem, arg: {syn:this.inventoryVersion, 'god': this.gold} }].concat(ret)}
     else
@@ -877,17 +903,17 @@ class Player extends DBWrapper
     percentage = 1
     if result is DUNGEON_RESULT_WIN
       dbLib.incrBluestarBy(this.name, 1)
-      #dropInfo = dropInfo.concat(cfg.dropInfo)
-      if cfg.prize
-        items = cfg.prize
-          .filter((p) -> Math.random() < p.rate )
-          .map( (g) ->
-            e = selectElementFromWeightArray(g.items, Math.random())
-            if e
-              return {type:PRIZETYPE_ITEM, value:e.item, count:1}
-            else
-              return {type:PRIZETYPE_ITEM, value:g[0], count:1}
-          )
+      dropInfo = dropInfo.concat(cfg.dropID)
+      #if cfg.prize
+      #  items = cfg.prize
+      #    .filter((p) -> Math.random() < p.rate )
+      #    .map( (g) ->
+      #      e = selectElementFromWeightArray(g.items, Math.random())
+      #      if e
+      #        return {type:PRIZETYPE_ITEM, value:e.item, count:1}
+      #      else
+      #        return {type:PRIZETYPE_ITEM, value:g[0], count:1}
+      #    )
     else
       percentage = (dungeon.currentLevel / cfg.levelCount) * 0.5
 
@@ -1541,7 +1567,6 @@ class PlayerEnvironment extends Environment
 
   translateAction: (cmd) ->
     return [] unless cmd?
-    cmd.print()
     ret = []
     out = cmd.output()
     ret = out if out

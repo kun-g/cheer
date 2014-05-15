@@ -24,6 +24,9 @@ class Bag extends Serializer
       if @queryItemSlot(item) isnt index
         logInfo({action: 'fixSlot', index: index, origin: @queryItemSlot(item)})
         item.slot[@type] = index
+      if not item.id?
+        logInfo({action: 'clearSlot', index: index})
+        @removeItemAt(index)
       return item
     )
   getMaxLength: () -> @container.reduce( ((r, l) ->

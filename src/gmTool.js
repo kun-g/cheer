@@ -5,10 +5,10 @@ require('./globals');
 
 //players = ['天走卢克', '埃及傲', '萌成喵', '鲍哥', '江湖飘', '飛扬', 
 //        'Doyle', '豆豆同学丶', '震北冥', '888666', '蛋町' ];
-players = ['基金会'];
+players = ['jvf'];
 
-serverName = 'Develop';
-//serverName = 'Master';
+//serverName = 'Develop';
+serverName = 'Master';
 
 var config = {
   Develop: {
@@ -61,12 +61,11 @@ var rewardMessage = {
     //{type: PRIZETYPE_EXP, count: 10000},
     //{type: PRIZETYPE_DIAMOND, count: 150}
     //{type: PRIZETYPE_WXP, count: 10000},
-    {type: PRIZETYPE_ITEM, value: 805, count: 100},
-    {type: PRIZETYPE_ITEM, value: 806, count: 100},
-    {type: PRIZETYPE_ITEM, value: 807, count: 100},
-    {type: PRIZETYPE_ITEM, value: 808, count: 100},
-    {type: PRIZETYPE_ITEM, value: 809, count: 100},
-    {type: PRIZETYPE_ITEM, value: 810, count: 100},
+    //{type: PRIZETYPE_GOLD, count: 100000},
+    //{type: PRIZETYPE_DIAMOND, count: 10000},
+    //{type: PRIZETYPE_ITEM, value: 533, count: 20}//至尊礼包
+    //{type: PRIZETYPE_ITEM, value: 553, count: 1},//至尊礼包
+    {type: PRIZETYPE_ITEM, value: 0, count: 1000},//至尊礼包
     //{type: PRIZETYPE_EXP, count: 1000000},
   ]
 };
@@ -76,12 +75,37 @@ dbLib.initializeDB({
   "Publisher": { "IP": ip, "PORT": port},
   "Subscriber": { "IP": ip, "PORT": port}
 });
-async.map(players, function (playerName, cb) {
-  dbLib.deliverMessage(playerName, rewardMessage, cb);
-}, function (err, result) {
-  console.log('Done');
-  dbLib.releaseDB();
+initGlobalConfig(null, function () {
+  require('./helper').initLeaderboard(queryTable(TABLE_LEADBOARD));
+  initServer();
+  gServerID = -1;
+  //dbLib.loadPlayer('Doge', function (err, player) {
+  dbLib.loadPlayer('天走卢克', function (err, player) {
+    function showInventory() {
+      var bag = player.inventory.map(
+                                  function (e, i) { 
+                                    if (!e) return null;
+                                    var ret = { id: e.id, name: e.label, slot: i };
+                                    if (e.enhancement) {
+                                      ret.enhancement = JSON.parse(JSON.stringify(e.enhancement));
+                                    }
+                                    if (player.isEquiped(i)) ret.equip = true;
+                                    return ret;
+                                })
+                                .filter( function (e) { return e; } );
+      logInfo({ diamond: player.diamond, bag: bag});
+    }
+    showInventory();
+    player.migrate();
+    showInventory();
+  });
 });
+//async.map(players, function (playerName, cb) {
+//  dbLib.deliverMessage(playerName, rewardMessage, cb);
+//}, function (err, result) {
+//  console.log('Done');
+//  dbLib.releaseDB();
+//});
 
 /*
 receipt = 'qqd@1@1393082131@3@APP111';
