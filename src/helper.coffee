@@ -217,19 +217,18 @@ initDailyEvent = (me, key, e) ->
       if key is 'event_daily'
         me[key].newProperty('rank', me.battleForce/24 - 3)
         if me[key].rank < 1 then me[key].rank = 1
-        me[key].newProperty('reward', [{type: PRIZETYPE_GOLD, count: Math.floor(me[key].rank*18)}])
+        me[key].newProperty('reward', [{type: PRIZETYPE_DIAMOND, count: 50}])
 
   if e.quest and Array.isArray(e.quest) and me[key].status is 'Init'
     me[key].newProperty('quest', shuffle(e.quest, Math.random()).slice(0, e.steps))
     me[key].newProperty('step', 0)
-    goldCount = Math.ceil(me[key].rank*6)
+    goldCount = Math.ceil(me.battleForce)
     diamondCount = Math.ceil(me[key].rank/10)
-    goldCount = Math.floor(me[key].rank*6)
     me[key].newProperty('stepPrize', [
-      [{type: PRIZETYPE_GOLD, count: goldCount}, {type: PRIZETYPE_ITEM, value: 0, count: diamondCount}],
-      [{type: PRIZETYPE_GOLD, count: goldCount}, {type: PRIZETYPE_ITEM, value: 0, count: diamondCount}, {type: PRIZETYPE_ITEM, value: 534, count: 5}],
-      [{type: PRIZETYPE_GOLD, count: goldCount}, {type: PRIZETYPE_ITEM, value: 0, count: diamondCount}, {type: PRIZETYPE_ITEM, value: 535, count: 2}],
-      [{type: PRIZETYPE_GOLD, count: goldCount}, {type: PRIZETYPE_ITEM, value: 0, count: diamondCount}, {type: PRIZETYPE_ITEM, value: 536, count: 1}]
+      [{type: PRIZETYPE_ITEM, value: 538, count: 1}],
+      [{type: PRIZETYPE_GOLD, count: goldCount}],
+      [{type: PRIZETYPE_ITEM, value: 540, count: 1}],
+      [{type: PRIZETYPE_DIAMOND, count: 10}]
     ])
   quest = me[key].quest
   if Array.isArray(quest)
