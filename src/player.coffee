@@ -486,7 +486,7 @@ class Player extends DBWrapper
         if teamCount > team.length
           if mercenary.length >= teamCount-team.length
             team = team.concat(mercenary.splice(0, teamCount-team.length))
-            @mercenary.splice(0, teamCount-team.length)
+            @mercenary = []
           else
             @costEnergy(-stageConfig.cost)
             return cb(RET_NeedTeammate)
@@ -903,17 +903,7 @@ class Player extends DBWrapper
     percentage = 1
     if result is DUNGEON_RESULT_WIN
       dbLib.incrBluestarBy(this.name, 1)
-      dropInfo = dropInfo.concat(cfg.dropID)
-      #if cfg.prize
-      #  items = cfg.prize
-      #    .filter((p) -> Math.random() < p.rate )
-      #    .map( (g) ->
-      #      e = selectElementFromWeightArray(g.items, Math.random())
-      #      if e
-      #        return {type:PRIZETYPE_ITEM, value:e.item, count:1}
-      #      else
-      #        return {type:PRIZETYPE_ITEM, value:g[0], count:1}
-      #    )
+      dropInfo = dropInfo.concat(cfg.dropID) if cfg.dropID
     else
       percentage = (dungeon.currentLevel / cfg.levelCount) * 0.5
 
@@ -1056,7 +1046,7 @@ class Player extends DBWrapper
     return false unless handler?
     return handler(RET_Unknown) if this.contactBook.book.indexOf(name) is -1
 
-    myIndex = this.mercenary.reduce((r, e, index) ->
+    myIndex = @mercenary.reduce((r, e, index) ->
       return index if e.name is name
       return r
     , -1)
@@ -1065,7 +1055,7 @@ class Player extends DBWrapper
 
     if myIndex != -1
       dbLib.incrBluestarBy(name, @getBlueStarCost(), wrapCallback(this,(err, left) ->
-        this.mercenary.splice(myIndex, 1)
+        @mercenary.splice(myIndex, 1)
         this.requireMercenary(handler)
       ))
     else
@@ -1074,7 +1064,7 @@ class Player extends DBWrapper
           hero = new Hero(heroData)
           hero.isFriend = true
           hero.leftBlueStar = left
-          this.mercenary.splice(0, 0, hero)
+          @mercenary.splice(0, 0, hero)
           this.requireMercenary(handler)
         ))
       ))
