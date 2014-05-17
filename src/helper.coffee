@@ -215,7 +215,7 @@ initDailyEvent = (me, key, e) ->
       me[key].newProperty('status', 'Init')
       me[key].newProperty('date', currentTime())
       if key is 'event_daily'
-        me[key].newProperty('rank', me.battleForce/24 - 3)
+        me[key].newProperty('rank', Math.ceil(me.battleForce*0.04))
         if me[key].rank < 1 then me[key].rank = 1
         me[key].newProperty('reward', [{type: PRIZETYPE_DIAMOND, count: 50}])
 

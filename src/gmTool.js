@@ -7,8 +7,8 @@ require('./globals');
 //        'Doyle', '豆豆同学丶', '震北冥', '888666', '蛋町' ];
 players = ['jvf'];
 
-//serverName = 'Develop';
-serverName = 'Master';
+serverName = 'Develop';
+//serverName = 'Master';
 
 var config = {
   Develop: {
@@ -80,24 +80,30 @@ initGlobalConfig(null, function () {
   initServer();
   gServerID = -1;
   //dbLib.loadPlayer('Doge', function (err, player) {
-  dbLib.loadPlayer('天走卢克', function (err, player) {
-    function showInventory() {
-      var bag = player.inventory.map(
-                                  function (e, i) { 
-                                    if (!e) return null;
-                                    var ret = { id: e.id, name: e.label, slot: i };
-                                    if (e.enhancement) {
-                                      ret.enhancement = JSON.parse(JSON.stringify(e.enhancement));
-                                    }
-                                    if (player.isEquiped(i)) ret.equip = true;
-                                    return ret;
-                                })
-                                .filter( function (e) { return e; } );
-      logInfo({ diamond: player.diamond, bag: bag});
-    }
-    showInventory();
-    player.migrate();
-    showInventory();
+  dbClient.keys("Develop.player.*", function (err, list) {
+    list = list.map( function (e) { return e.slice('Develop.player.'.length); } );
+    list.forEach( function (name) {
+      dbLib.loadPlayer(name, function (err, player) {
+        function showInventory() {
+          var bag = player.inventory.map(
+            function (e, i) { 
+              if (!e) return null;
+              var ret = { id: e.id, name: e.label, slot: i };
+              if (e.enhancement) {
+                ret.enhancement = JSON.parse(JSON.stringify(e.enhancement));
+              }
+              if (player.isEquiped(i)) ret.equip = true;
+              return ret;
+            })
+          .filter( function (e) { return e; } );
+          logInfo({ diamond: player.diamond, bag: bag});
+        }
+        //showInventory();
+        player.migrate();
+        //showInventory();
+        player.save();
+      });
+    });
   });
 });
 //async.map(players, function (playerName, cb) {

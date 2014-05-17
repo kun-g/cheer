@@ -199,18 +199,6 @@ prepareForABtest = function (cfg) {
 };
 
 varifyDungeonConfig = function (cfg) {
-  cfg.forEach(function (dungeon, dungeonID) {
-    if (dungeon.prize) {
-      dungeon.prize.forEach(function (prize, prizeID) {
-        if (!prize.rate) { console.log('Missing rate', dungeonID); }
-        if (!prize.items) { console.log('Missing items', dungeonID); }
-        prize.items.forEach( function (item, itemID) {
-          if (item.weight == null) { console.log('Missing weight', dungeonID, prizeID, itemID); }
-          if (queryTable(TABLE_ITEM) && queryTable(TABLE_ITEM, item.id) == null) {  console.log('Item not exist', dungeonID, prizeID, itemID, item.id); }
-        });
-      });
-    }
-  });
   return cfg;
 };
 

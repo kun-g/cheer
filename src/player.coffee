@@ -845,7 +845,7 @@ class Player extends DBWrapper
     return { ret: RET_EquipCantUpgrade } unless level < 40 and equip.enhanceID?
 
     enhance = queryTable(TABLE_ENHANCE, equip.enhanceID)
-    ret = @claimCost(enhance.costList[level+1])
+    ret = @claimCost(enhance.costList[level])
     if not ret? then return { ret: RET_Unknown }
 
     equip.enhancement[0].level = level
@@ -928,7 +928,7 @@ class Player extends DBWrapper
         else
           prize.push(iPrize)
   
-    return prize.concat(items)
+    return prize.concat()
 
   claimDungeonAward: (dungeon) ->
     return [] unless dungeon?
