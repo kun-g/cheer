@@ -85,6 +85,7 @@ tapObject = (obj, callback) ->
       })
 exports.tap = tap
 
+dbLib = require('./db')
 # Leaderboard
 exports.initLeaderboard = (config) ->
   localConfig = []
@@ -98,7 +99,6 @@ exports.initLeaderboard = (config) ->
     localConfig[key] = { func: generateHandler(cfg.name, cfg) }
     localConfig[key][k] = v for k, v of cfg
 
-  dbLib = require('./db')
   dbLib.getServerConfig('Leaderboard', (err, arg) ->
     if arg then srvCfg = JSON.parse(arg)
     
@@ -215,21 +215,20 @@ initDailyEvent = (me, key, e) ->
       me[key].newProperty('status', 'Init')
       me[key].newProperty('date', currentTime())
       if key is 'event_daily'
-        me[key].newProperty('rank', me.battleForce/24 - 3)
+        me[key].newProperty('rank', Math.ceil(me.battleForce*0.04))
         if me[key].rank < 1 then me[key].rank = 1
-        me[key].newProperty('reward', [{type: PRIZETYPE_GOLD, count: Math.floor(me[key].rank*18)}])
+        me[key].newProperty('reward', [{type: PRIZETYPE_DIAMOND, count: 50}])
 
   if e.quest and Array.isArray(e.quest) and me[key].status is 'Init'
     me[key].newProperty('quest', shuffle(e.quest, Math.random()).slice(0, e.steps))
     me[key].newProperty('step', 0)
-    goldCount = Math.ceil(me[key].rank*6)
+    goldCount = Math.ceil(me.battleForce)
     diamondCount = Math.ceil(me[key].rank/10)
-    goldCount = Math.floor(me[key].rank*6)
     me[key].newProperty('stepPrize', [
-      [{type: PRIZETYPE_GOLD, count: goldCount}, {type: PRIZETYPE_ITEM, value: 0, count: diamondCount}],
-      [{type: PRIZETYPE_GOLD, count: goldCount}, {type: PRIZETYPE_ITEM, value: 0, count: diamondCount}, {type: PRIZETYPE_ITEM, value: 534, count: 5}],
-      [{type: PRIZETYPE_GOLD, count: goldCount}, {type: PRIZETYPE_ITEM, value: 0, count: diamondCount}, {type: PRIZETYPE_ITEM, value: 535, count: 2}],
-      [{type: PRIZETYPE_GOLD, count: goldCount}, {type: PRIZETYPE_ITEM, value: 0, count: diamondCount}, {type: PRIZETYPE_ITEM, value: 536, count: 1}]
+      [{type: PRIZETYPE_ITEM, value: 538, count: 1}],
+      [{type: PRIZETYPE_GOLD, count: goldCount}],
+      [{type: PRIZETYPE_ITEM, value: 540, count: 1}],
+      [{type: PRIZETYPE_DIAMOND, count: 10}]
     ])
   quest = me[key].quest
   if Array.isArray(quest)
@@ -452,3 +451,22 @@ exports.calculateTotalItemXP = (item) ->
   for i, cfg of upgrade when levelTable[item.quality] <= i < item.rank
     xp += cfg.xp
   return xp
+
+# Observer
+exports.observers = {
+  heroxpChanged: (obj, arg) ->
+    if arg.prevLevel isnt arg.currentLevel
+      if arg.currentLevel is 10
+        dbLib.broadcastEvent(BROADCAST_PLAYER_LEVEL, {
+          who: obj.name,
+          what: obj.hero.class
+        })
+}
+
+exports.initObserveration = (obj) ->
+  obj.observers = {}
+  obj.installObserver = (event) -> obj.observers[event] = exports.observers[event]
+  obj.removeObserver = (event) -> obj.observers[event] = null
+  obj.notify = (event, arg) ->
+    ob = obj.observers[event]
+    if ob then ob(obj, arg)

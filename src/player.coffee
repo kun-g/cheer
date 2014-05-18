@@ -107,7 +107,30 @@ class Player extends DBWrapper
     if type and type is 'error'
       logError(msg)
     else
-      logUser(msg)
+      #TODO:logUser(msg)
+
+  isEquiped: (slot) ->
+    equipment = (e for i, e of @equipment)
+    return equipment.indexOf(+slot) != -1
+
+  migrate: () ->
+    for slot, item of @inventory.container when item?
+      if item.transPrize?
+        if @isEquiped(slot)
+          # 2. 已装备的装备保留强化等级
+          lv = -1
+          if item.enhancement and item.enhancement.length > 0
+            lv = item.enhancement.reduce( ((r, i) -> return r+i.level), 0 )
+          # 3. 已装备的饰品转换成对应的饰品
+          cfg = require('./transfer').data
+          if cfg[item.id]
+            p = cfg[item.id].filter((e) => isClassMatch(@hero.class, e.classLimit))
+            item.id = p[0].value
+          enhanceID = queryTable(TABLE_ITEM, item.id).enhanceID
+          if enhanceID? and lv >= 0 then item.enhancement = [{id: enhanceID, level: lv}]
+          continue
+        @sellItem(slot)
+    return @syncBag(true)
 
   onDisconnect: () ->
     @socket = null
@@ -200,7 +223,9 @@ class Player extends DBWrapper
           logError({type: 'Subscribe', err: err, msg: msg})
     ))
 
-
+    helperLib.initObserveration(this)
+    @installObserver('heroxpChanged')
+    
     if @isNewPlayer then @isNewPlayer = false
 
     helperLib.assignLeaderboard(@)
@@ -356,11 +381,16 @@ class Player extends DBWrapper
       prevLevel = @createHero().level
       @hero.xp += point
       currentLevel = @createHero().level
-      @onEvent('experience')
-      if prevLevel isnt currentLevel
-        if currentLevel is 10 then dbLib.broadcastEvent(BROADCAST_PLAYER_LEVEL, {who: @name, what: @hero.class})
-        @onEvent('level')
-        @log('levelChange', {prevLevel: prevLevel, newLevel: currentLevel})
+      @notify('heroxpChanged', {
+        xp: @hero.xp,
+        delta: point,
+        prevLevel: prevLevel,
+        currentLevel: currentLevel
+      })
+      #if prevLevel isnt currentLevel
+      #  if currentLevel is 10 then dbLib.broadcastEvent(BROADCAST_PLAYER_LEVEL, {who: @name, what: @hero.class})
+      #  @onEvent('level')
+      #  @log('levelChange', {prevLevel: prevLevel, newLevel: currentLevel})
 
     return @hero.xp
 
@@ -456,7 +486,7 @@ class Player extends DBWrapper
         if teamCount > team.length
           if mercenary.length >= teamCount-team.length
             team = team.concat(mercenary.splice(0, teamCount-team.length))
-            @mercenary.splice(0, teamCount-team.length)
+            @mercenary = []
           else
             @costEnergy(-stageConfig.cost)
             return cb(RET_NeedTeammate)
@@ -520,12 +550,12 @@ class Player extends DBWrapper
 
     return packQuestEvent(@quests, qid, @questVersion)
 
-  claimPrize: (prize, allOrFail = true) ->
-    return [] unless prize?
+
+  rearragenPrize: (prize) ->
     prize = [prize] unless Array.isArray(prize)
     itemPrize = []
     otherPrize = []
-    for p in prize
+    for p in prize when p?
       if p.type is PRIZETYPE_ITEM
         if p.count > 0 then itemPrize.push(p)
       else
@@ -536,7 +566,34 @@ class Player extends DBWrapper
         value: itemPrize.map((e) -> return {item: e.value, count: e.count}),
         count: 0
       }]
-    prize = itemPrize.concat(otherPrize)
+
+    return itemPrize.concat(otherPrize)
+
+  claimCost: (cost) ->
+    cfg = queryTable(TABLE_COSTS, cost)
+    return null unless cfg?
+    prize = @rearragenPrize(cfg.material)
+    haveEnoughtMoney = prize.reduce( (r, l) =>
+      if l.type is PRIZETYPE_GOLD and @gold < l.count then return false
+      if l.type is PRIZETYPE_DIAMOND and @diamond < l.count then return false
+      return r
+    , true)
+    return null unless haveEnoughtMoney
+    ret = []
+    for p in prize when p?
+      switch p.type
+        when PRIZETYPE_ITEM
+          retRM = @inventory.remove(p.value, p.count, null, true)
+          return null unless retRM and retRM.length > 0
+          ret = @doAction({id: 'ItemChange', ret: retRM, version: @inventoryVersion})
+        when PRIZETYPE_GOLD then ret.push({NTF: Event_InventoryUpdateItem, arg: {syn: @inventoryVersion, god: @addGold(p.count)}})
+        when PRIZETYPE_DIAMOND then ret.push({NTF: Event_InventoryUpdateItem, arg: {syn: @inventoryVersion, dim: @addDiamond(p.count)}})
+
+    return ret
+
+  claimPrize: (prize, allOrFail = true) ->
+    return [] unless prize?
+    prize = @rearragenPrize(prize)
 
     ret = []
 
@@ -679,7 +736,7 @@ class Player extends DBWrapper
         delete ret.arg.itm if ret.arg.itm.length < 1
 
         this.onEvent('Equipment')
-        return { ret: RET_OK, ntf: ret }
+        return { ret: RET_OK, ntf: [ret] }
 
     logError({action: 'useItem', reason: 'unknow', catogory: item.category, subcategory: item.subcategory, id: item.id})
     return {ret: RET_Unknown}
@@ -726,32 +783,14 @@ class Player extends DBWrapper
       @inventory.reverseOpration(retRM)
       return { ret: RET_InventoryFull }
 
-  craftItem: (slot) ->
-    recipe = @getItemAt(slot)
-    return { ret: RET_NeedReceipt } unless recipe.category is ITEM_RECIPE
-    return { ret: RET_NotEnoughGold } if @gold < recipe.recipeCost
-    retRM = @inventory.removeById(recipe.recipeIngredient, 1, true)
-    return { ret: RET_InsufficientIngredient } unless retRM
-    ret = @removeItem(null, 1, slot)
-    ret = ret.concat(@doAction({id: 'ItemChange', ret: retRM, version: this.inventoryVersion}))
-    @addGold(-recipe.recipeCost)
-    newItem = new Item(recipe.recipeTarget)
-    ret = ret.concat(@aquireItem(newItem))
-    ret = ret.concat({NTF: Event_InventoryUpdateItem, arg:{syn: @inventoryVersion, god: @gold }})
-    @log('craftItem', { slot: slot, id: recipe.id })
-
-    if newItem.rank >= 8
-      dbLib.broadcastEvent(BROADCAST_CRAFT, {who: @name, what: newItem.id})
-    return { out: { type: PRIZETYPE_ITEM, value: newItem.id, count: 1}, res: ret }
-
   levelUpItem: (slot) ->
     item = @getItemAt(slot)
     return { ret: RET_ItemNotExist } unless item?
     return { ret: RET_EquipCantUpgrade } unless item.upgradeTarget? and @createHero().level > item.rank
     upConfig = queryTable(TABLE_UPGRADE, item.rank, @abIndex)
     return { ret: RET_EquipCantUpgrade } unless upConfig
-    exp = item.upgradeXp ? upConfig.xp
-    cost = item.upgradeCost ? upConfig.cost
+    exp = upConfig.xp
+    cost = upConfig.cost
     return { ret: RET_EquipCantUpgrade } unless exp? and cost?
     return { ret: RET_InsufficientEquipXp } if item.xp < exp
     return { ret: RET_NotEnoughGold } if this.gold < cost
@@ -763,7 +802,6 @@ class Player extends DBWrapper
     newItem = new Item(item.upgradeTarget)
     newItem.enhancement = item.enhancement
     ret = ret.concat(this.aquireItem(newItem))
-    ret = ret.concat(this.useItem(this.queryItemSlot(newItem)).ntf)
     eh = newItem.enhancement.map((e) -> {id:e.id, lv:e.level})
     ret = ret.concat({NTF: Event_InventoryUpdateItem, arg:{syn:this.inventoryVersion, god:this.gold, itm:[{sid: this.queryItemSlot(newItem), stc: 1, eh:eh}]}})
   
@@ -775,81 +813,48 @@ class Player extends DBWrapper
     @onEvent('Equipment')
     return { out: {cid: newItem.id, sid: @queryItemSlot(newItem), stc: 1, sta: 1, eh: eh, xp: newItem.xp}, res: ret }
 
-  enhanceItem: (itemSlot, gemSlot) ->
+  upgradeItemQuality: (slot) ->
+    item = @getItemAt(slot)
+    enhance = item.enhancement
+    ret = @craftItem(slot)
+    newItem = ret.newItem
+    if newItem
+      ret.newItem.enhancement = enhance
+      eh = newItem.enhancement.map((e) -> {id:e.id, lv:e.level})
+      ret.res.push({NTF: Event_InventoryUpdateItem, arg: {syn:this.inventoryVersion, itm:[{sid: @queryItemSlot(newItem), eh:eh}]}})
+    return ret
+
+  craftItem: (slot) ->
+    recipe = @getItemAt(slot)
+    return { ret: RET_NeedReceipt } unless recipe?
+    ret = @claimCost(recipe.forgeID)
+    if not ret? then return { ret: RET_InsufficientIngredient }
+    newItem = new Item(recipe.forgeTarget)
+    ret = ret.concat(@aquireItem(newItem))
+    ret = ret.concat({NTF: Event_InventoryUpdateItem, arg:{syn: @inventoryVersion, god: @gold }})
+    @log('craftItem', { slot: slot, id: recipe.id })
+
+    if newItem.rank >= 8 then dbLib.broadcastEvent(BROADCAST_CRAFT, {who: @name, what: newItem.id})
+    return { out: { type: PRIZETYPE_ITEM, value: newItem.id, count: 1}, res: ret, newItem: newItem }
+
+  enhanceItem: (itemSlot) ->
     equip = @getItemAt(itemSlot)
-    gem = @getItemAt(gemSlot)
-    return { ret: RET_ItemNotExist } unless equip and gem
-    return { ret: RET_EquipCantUpgrade } unless equip.category is ITEM_EQUIPMENT and equip.subcategory <= EquipSlot_Neck
-    return { ret: RET_NoEnhanceStone } unless gem.category is ITEM_GEM
-    maxLevel = -1
-    minLevel = 1000000
-    maxIndex = -1
-    minIndex = 0
-    for i, enhance of equip.enhancement
-      if enhance.level > maxLevel
-        maxLevel = enhance.level
-        maxIndex = i
-      if enhance.level < minLevel
-        minLevel = enhance.level
-        minIndex = i
+    equip.enhancement[0] = { id: equip.enhanceID, level: -1 } unless equip.enhancement[0]?
+    level = equip.enhancement[0].level + 1
+    return { ret: RET_ItemNotExist } unless equip
+    return { ret: RET_EquipCantUpgrade } unless level < 40 and equip.enhanceID?
 
-    level = 0
-    enhanceID = -1
-    maxLevel++
-    cost = maxLevel*2
-    if cost < 1 then cost = 1
-    gold = cost*200
-    return { ret: RET_NotEnoughGold } if @addGold(-gold) is false
-    retRM = @inventory.remove(gem.id, cost, gemSlot, true)
-    if not retRM
-      @addGold(gold)
-      return { ret: RET_NoEnhanceStone }
+    enhance = queryTable(TABLE_ENHANCE, equip.enhanceID)
+    ret = @claimCost(enhance.costList[level])
+    if not ret? then return { ret: RET_Unknown }
 
-    if gem.subcategory is ENHANCE_VOID
-      if maxIndex is -1 then return { ret: RET_CantUseVoidStone }
-      leftEnhancement = [RES_ATTACK, RES_HEALTH, RES_SPEED, RES_CRITICAL, RES_STRONG, RES_ACCURACY, RES_REACTIVITY]
-      equip.enhancement.forEach( (e) -> leftEnhancement = leftEnhancement.filter( (l) -> l isnt e.id ) )
-      enhance = leftEnhancement[ rand()%leftEnhancement.length ]
-      equip.enhancement[maxIndex].id = enhance
-      equip.enhancement.push(equip.enhancement.shift())
-    else
-      myEnhancements = equip.enhancement.map((e) -> e.id )
-      enhance7 = [RES_ATTACK, RES_HEALTH, RES_SPEED, RES_CRITICAL, RES_STRONG, RES_ACCURACY, RES_REACTIVITY]
-      #enhance7 = enhance7.filter( (e) -> myEnhancements.indexOf(e) == -1 )
-      enhance7 = enhance7[rand()%enhance7.length]
-      enhanceTable = [enhance7, 0, 0, RES_ATTACK, RES_HEALTH, RES_SPEED, RES_CRITICAL, RES_STRONG, RES_ACCURACY, RES_REACTIVITY]
-      enhanceID = enhanceTable[gem.subcategory]
-      index = i for i, enhance of equip.enhancement when enhance.id is enhanceID
-      if index < equip.enhancement.length
-        level = equip.enhancement[index].level+1
-      else if equip.enhancement.length < ENHANCE_LIMIT
-        index = equip.enhancement.length
-      else
-        index = minIndex
+    equip.enhancement[0].level = level
 
-      rate = queryTable(TABLE_CONFIG, "Enhance_Rate", @abIndex)[level]
-
-      if level >= equip.rank
-        if gem.subcategory isnt ENHANCE_SEVEN
-          return { ret: RET_ExceedMaxEnhanceLevel }
-        else
-          rate = -1
-
-      if Math.random() < rate
-        equip.enhancement[index] = { id: enhanceID, level: level }
-        result = 'Success'
-      else
-        result = 'Fail'
+    @log('enhanceItem', { itemId: equip.id, level: level, itemSlot: itemSlot })
   
-    ret = [{NTF: Event_InventoryUpdateItem, arg: {syn:this.inventoryVersion, 'god': @gold}}]
-    ret = ret.concat(@doAction({id: 'ItemChange', ret: retRM, version: this.inventoryVersion}))
-    @log('enhanceItem', { itemId: equip.id, gemId: gem.subcategory, result: result, enhance: enhanceID, level: level, itemSlot: itemSlot, gemSlot: gemSlot })
-  
-    return { ret: RET_EnhanceFailed, ntf: ret} if result is 'Fail'
-
     @onEvent('Equipment')
 
-    if level >= 5
+    if level >= 20
       dbLib.broadcastEvent(BROADCAST_ENHANCE, {who: @name, what: equip.id, many: level})
   
     eh = equip.enhancement.map((e) -> {id:e.id, lv:e.level})
@@ -857,13 +862,17 @@ class Player extends DBWrapper
     return { out: {cid: equip.id, sid: itemSlot, stc: 1, eh: eh, xp: equip.xp}, res: ret }
 
   sellItem: (slot) ->
-    item = @getItemAt(slot)
-    return { ret: RET_Unknown } for k, s of @equipment when s is slot
+    if @isEquiped(slot) then return { ret: RET_Unknown }
 
-    if item?.sellprice
-      @addGold(item.sellprice*item.count)
-      ret = this.removeItem(null, null, slot)
-  
+    item = @getItemAt(slot)
+    if item?.transPrize or item?.sellprice
+      ret = @removeItem(null, null, slot)
+
+      if item?.transPrize
+        ret = ret.concat(@claimPrize(item.transPrize))
+      else if item?.sellprice
+        @addGold(item.sellprice*item.count)
+    
       @log('sellItem', { itemId: item.id, price: item.sellprice, count: item.count, slot: slot })
       return { ret: RET_OK, ntf: [{ NTF: Event_InventoryUpdateItem, arg: {syn:this.inventoryVersion, 'god': this.gold} }].concat(ret)}
     else
@@ -894,17 +903,7 @@ class Player extends DBWrapper
     percentage = 1
     if result is DUNGEON_RESULT_WIN
       dbLib.incrBluestarBy(this.name, 1)
-      #dropInfo = dropInfo.concat(cfg.dropInfo)
-      if cfg.prize
-        items = cfg.prize
-          .filter((p) -> Math.random() < p.rate )
-          .map( (g) ->
-            e = selectElementFromWeightArray(g.items, Math.random())
-            if e
-              return {type:PRIZETYPE_ITEM, value:e.item, count:1}
-            else
-              return {type:PRIZETYPE_ITEM, value:g[0], count:1}
-          )
+      dropInfo = dropInfo.concat(cfg.dropID) if cfg.dropID
     else
       percentage = (dungeon.currentLevel / cfg.levelCount) * 0.5
 
@@ -924,12 +923,12 @@ class Player extends DBWrapper
       if iPrize?
         iPrize = { type: iPrize.type, value: iPrize.value, count: iPrize.count }
 
-      if iPrize.type is PRIZETYPE_GOLD
-        prize.push({type: PRIZETYPE_GOLD, count: iPrize.count})
-      else
-        prize.push(iPrize)
+        if iPrize.type is PRIZETYPE_GOLD
+          prize.push({type: PRIZETYPE_GOLD, count: iPrize.count})
+        else
+          prize.push(iPrize)
   
-    return prize.concat(items)
+    return prize.concat()
 
   claimDungeonAward: (dungeon) ->
     return [] unless dungeon?
@@ -1047,7 +1046,7 @@ class Player extends DBWrapper
     return false unless handler?
     return handler(RET_Unknown) if this.contactBook.book.indexOf(name) is -1
 
-    myIndex = this.mercenary.reduce((r, e, index) ->
+    myIndex = @mercenary.reduce((r, e, index) ->
       return index if e.name is name
       return r
     , -1)
@@ -1056,7 +1055,7 @@ class Player extends DBWrapper
 
     if myIndex != -1
       dbLib.incrBluestarBy(name, @getBlueStarCost(), wrapCallback(this,(err, left) ->
-        this.mercenary.splice(myIndex, 1)
+        @mercenary.splice(myIndex, 1)
         this.requireMercenary(handler)
       ))
     else
@@ -1065,7 +1064,7 @@ class Player extends DBWrapper
           hero = new Hero(heroData)
           hero.isFriend = true
           hero.leftBlueStar = left
-          this.mercenary.splice(0, 0, hero)
+          @mercenary.splice(0, 0, hero)
           this.requireMercenary(handler)
         ))
       ))
@@ -1553,24 +1552,18 @@ itemLib = require('./item')
 class PlayerEnvironment extends Environment
   constructor: (@player) ->
 
-  aquireItem: (item, count, allOrFail) ->
-    count = count ? 1
-    item = createItem(item)
-    showMeTheStack() unless item?
-    return [] unless item?
-
-    return {version: @player.inventoryVersion, ret: @player?.inventory.add(item, count, allOrFail)}
-
   removeItem: (item, count, slot, allorfail) ->
     return {ret: @player?.inventory.remove(item, count, slot, allorfail), version: @player.inventoryVersion}
 
   translateAction: (cmd) ->
     return [] unless cmd?
     ret = []
-    ret = cmd.output() if cmd.output()?
+    out = cmd.output()
+    ret = out if out
 
     for i, routine of cmd.cmdRoutine
-      ret = ret.concat(routine.output()) if routine?.output()?
+      out = routine?.output()
+      ret = ret.concat(out) if out?
 
     return ret.concat(@translateAction(cmd.nextCMD))
 
@@ -1591,10 +1584,20 @@ playerCSConfig = {
       arg.itm = items
       return [{NTF: Event_InventoryUpdateItem, arg: arg}]
   },
+  UseItem: {
+    output: (env) -> return env.player.useItem(env.variable('slot')).ntf
+  },
   AquireItem: {
     callback: (env) ->
-      {ret, version} = env.aquireItem(env.variable('item'), env.variable('count'), env.variable('allorfail'))
-      @routine({id: 'ItemChange', ret: ret, version: version})
+      count = env.variable('count') ? 1
+      item = createItem(env.variable('item'))
+      return showMeTheStack() unless item?
+
+      ret = env.player.inventory.add(item, count, env.variable('allorfail'))
+      @routine({id: 'ItemChange', ret: ret, version: env.player.inventoryVersion})
+      if ret
+        for e in ret when env.player.getItemAt(e.slot).autoUse
+          @next({id: 'UseItem', slot: e.slot})
   },
   RemoveItem: {
     callback: (env) ->

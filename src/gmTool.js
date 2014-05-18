@@ -75,12 +75,43 @@ dbLib.initializeDB({
   "Publisher": { "IP": ip, "PORT": port},
   "Subscriber": { "IP": ip, "PORT": port}
 });
-async.map(players, function (playerName, cb) {
-  dbLib.deliverMessage(playerName, rewardMessage, cb);
-}, function (err, result) {
-  console.log('Done');
-  dbLib.releaseDB();
+initGlobalConfig(null, function () {
+  require('./helper').initLeaderboard(queryTable(TABLE_LEADBOARD));
+  initServer();
+  gServerID = -1;
+  //dbLib.loadPlayer('Doge', function (err, player) {
+  dbClient.keys("Develop.player.*", function (err, list) {
+    list = list.map( function (e) { return e.slice('Develop.player.'.length); } );
+    list.forEach( function (name) {
+      dbLib.loadPlayer(name, function (err, player) {
+        function showInventory() {
+          var bag = player.inventory.map(
+            function (e, i) { 
+              if (!e) return null;
+              var ret = { id: e.id, name: e.label, slot: i };
+              if (e.enhancement) {
+                ret.enhancement = JSON.parse(JSON.stringify(e.enhancement));
+              }
+              if (player.isEquiped(i)) ret.equip = true;
+              return ret;
+            })
+          .filter( function (e) { return e; } );
+          logInfo({ diamond: player.diamond, bag: bag});
+        }
+        //showInventory();
+        player.migrate();
+        //showInventory();
+        player.save();
+      });
+    });
+  });
 });
+//async.map(players, function (playerName, cb) {
+//  dbLib.deliverMessage(playerName, rewardMessage, cb);
+//}, function (err, result) {
+//  console.log('Done');
+//  dbLib.releaseDB();
+//});
 
 /*
 receipt = 'qqd@1@1393082131@3@APP111';

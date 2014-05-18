@@ -199,18 +199,6 @@ prepareForABtest = function (cfg) {
 };
 
 varifyDungeonConfig = function (cfg) {
-  cfg.forEach(function (dungeon, dungeonID) {
-    if (dungeon.prize) {
-      dungeon.prize.forEach(function (prize, prizeID) {
-        if (!prize.rate) { console.log('Missing rate', dungeonID); }
-        if (!prize.items) { console.log('Missing items', dungeonID); }
-        prize.items.forEach( function (item, itemID) {
-          if (item.weight == null) { console.log('Missing weight', dungeonID, prizeID, itemID); }
-          if (queryTable(TABLE_ITEM) && queryTable(TABLE_ITEM, item.id) == null) {  console.log('Item not exist', dungeonID, prizeID, itemID, item.id); }
-        });
-      });
-    }
-  });
   return cfg;
 };
 
@@ -253,7 +241,7 @@ initGlobalConfig = function (path, callback) {
   var configTable = [{name:TABLE_LEADBOARD}, {name: TABLE_STORE, func:initShop},
     {name:TABLE_ROLE}, {name:TABLE_LEVEL}, {name:TABLE_VERSION}, {name:TABLE_FACTION},
     {name:TABLE_ITEM}, {name:TABLE_CARD}, {name:TABLE_DUNGEON, func:varifyDungeonConfig},
-    {name:TABLE_STAGE, func: initStageConfig}, {name:TABLE_QUEST},
+    {name:TABLE_STAGE, func: initStageConfig}, {name:TABLE_QUEST}, {name: TABLE_COSTS},
     {name:TABLE_UPGRADE}, {name:TABLE_ENHANCE}, {name: TABLE_CONFIG}, {name: TABLE_VIP},
     {name:TABLE_SKILL}, {name:TABLE_CAMPAIGN}, {name: TABLE_DROP}, {name: TABLE_TRIGGER}
   ];

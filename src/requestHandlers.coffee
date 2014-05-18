@@ -67,8 +67,8 @@ loginBy = (arg, token, callback) ->
       req.on('error', (e) -> logError({action: 'login', type:  LOGIN_ACCOUNT_TYPE_PP, error: e}))
       req.write(token)
       req.end()
-    when LOGIN_ACCOUNT_TYPE_TG
-      dbLib.loadAuth(passport, token, callback)
+    #when LOGIN_ACCOUNT_TYPE_TG
+    #  dbLib.loadAuth(passport, token, callback)
     when LOGIN_ACCOUNT_TYPE_AD, LOGIN_ACCOUNT_TYPE_GAMECENTER
       callback(null)
     else

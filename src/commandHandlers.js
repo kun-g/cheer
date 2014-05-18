@@ -118,7 +118,7 @@ function handler_doUseItem(arg, player, handler, rpcID) {
       ret = player.levelUpItem(slot, arg.sho);
       break;
     case USE_ITEM_OPT_ENHANCE:
-      ret = player.enhanceItem(slot, arg.sto, arg.sho);
+      ret = player.enhanceItem(slot);
       break;
     case USE_ITEM_OPT_RECYCLE:
       ret = player.recycleItem(slot);
@@ -127,7 +127,7 @@ function handler_doUseItem(arg, player, handler, rpcID) {
       ret = player.transformGem(arg.opc);
       break;
     case USE_ITEM_OPT_CRAFT:
-      ret = player.craftItem(slot);
+      ret = player.upgradeItemQuality(slot);
       break;
     default:
       ret = player.useItem(slot, arg.sho);
