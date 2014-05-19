@@ -107,10 +107,11 @@ createUnits = (rules, randFunc) ->
     if pos.length > 0 then return pos[rand()%pos.length]
     return -1
 
-  placeUnit = (lRule, lConfig) ->
+  placeUnit = (lRule, lConfig, single) ->
     result = []
     for r in lRule when r.id? or r.pool?
       count = r.count ? 1
+      if single then count = 1
       if count + lConfig.total > lConfig.limit
         count = lConfig.total-lConfig.limit + count
       break if count <= 0
@@ -123,6 +124,7 @@ createUnits = (rules, randFunc) ->
         if r.pos
           if typeof r.pos is 'number' then u.pos = r.pos
           if Array.isArray(r.pos) then u.pos = selectPos(r.pos, lConfig)
+          lConfig.takenPos[r.pos] = true
         u.property[k] = v for k, v of lConfig.property
         if r.property then u.property[k] = v for k, v of r.property
         lConfig.total += count
@@ -134,12 +136,19 @@ createUnits = (rules, randFunc) ->
   result.push(placeUnit(l, levelConfig[i])) for i, l of levelRule
 
   for rule in globalRule
-    cfg = levelConfig.filter( (c) -> c.total < c.limit )
-    if rule.levels?.from? then cfg = cfg.filter( (c) -> c.id > rule.levels.from )
-    if rule.levels?.to? then cfg = cfg.filter( (c) -> c.id < rule.levels.to )
-    if cfg.length <= 0 then continue
-    cfg = cfg[rand()%cfg.length]
-    result[cfg.id] = result[cfg.id].concat(placeUnit([rule], cfg))
+    i = 0
+    filterLevels = () ->
+      cfg = levelConfig.filter( (c) -> c.total < c.limit )
+      if rule.levels?.from? then cfg = cfg.filter( (c) -> c.id > rule.levels.from )
+      if rule.levels?.to? then cfg = cfg.filter( (c) -> c.id < rule.levels.to )
+      return cfg
+
+    while i < rule.count
+      cfg = filterLevels()
+      if cfg.length <= 0 then break
+      cfg = cfg[rand()%cfg.length]
+      result[cfg.id] = result[cfg.id].concat(placeUnit([rule], cfg, true))
+      i++
 
   return result
 
@@ -598,6 +607,31 @@ class Level
       pos = indexes.splice(@rand() % indexes.length, 1)[0]
       @createObject(id, pos, keyed, collectId)
 
+  placeMapObjects_: (config, quests, pool) ->
+    return false unless config?
+    cfg = createUnits(config, () => @rand)
+    arrCollectID = []
+    for qid, qst of quests
+      q = queryTable(TABLE_QUEST, qid, @abIndex)
+      arrCollectID.push(o.collectId) for o in q.objects
+    cfg = cfg.map(
+      (level) ->
+        return level.filter(
+          (e) ->
+            if e.property.questOnly
+              arrCollectID.indexOf(e.property.collectId)
+            else
+              return true
+        )
+    )
+
+    for o in cfg when o.property?.pos?
+      c = o.property
+      @createObject(o.id, c.pos, c.keyed, c.collectId)
+    for o in cfg when not o.property? or not property.pos?
+      c = o.property ? {count: 1}
+      @placeObjects(o.id, c.count, c.keyed, c.collectId)
+
   placeMapObjects: (config, quests, pool) ->
     return false unless config?
 
@@ -639,7 +673,6 @@ class Level
       {counter: 'elite', targetCounter: 'eliteCount', pool: 'elite', keyed: true},
       {counter: 'boss', targetCounter: 'bossCount', pool: 'boss', keyed: true}
     ]
-    #createUnits 
 
     fillupMonster(c) for c in monsterConfig
 
