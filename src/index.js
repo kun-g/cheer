@@ -87,6 +87,13 @@ var config = {
 //  }
 //});
 
+function isRMBMatch(amount, receipt) {
+  productList = queryTable(TABLE_CONFIG, 'Product_List');
+  rec = unwrapReceipt(myReceipt);
+  cfg = productList[rec.productID];
+  return cfg && cfg.rmb == amount;
+}
+
 function paymentHandler (request, response) {
   if (request.url.substr(0, 5) === '/pay?') {
     var ppKey = '-----BEGIN PUBLIC KEY-----\n' +
@@ -107,7 +114,7 @@ function paymentHandler (request, response) {
         var cipher = rsaLib.createPublicKey(ppKey);
         var info = cipher.publicDecrypt(new Buffer(out.sign, 'base64'), null, 'utf8');
         info = JSON.parse(info);
-        if (out.order_id === info.order_id && out.amount === info.amount) {
+        if (out.order_id === info.order_id && out.amount === info.amount && isRMBMatch(info.amount, receipt)) {
           var receipt = info.billno;
           deliverReceipt(receipt, 'PP25', function (err) {
             if (err === null) {
@@ -135,7 +142,7 @@ function paymentHandler (request, response) {
     var b = new Buffer(1024);
     var len = b.write(sign);
     sign = md5Hash(b.toString('binary', 0, len));
-    if (sign === out.Sign) {
+    if (sign === out.Sign && isRMBMatch(out.OrderMoney, receipt)) {
       var receipt = out.CooOrderSerial;
       deliverReceipt(receipt, 'ND91', function (err) {
         if (err === null) {
@@ -167,7 +174,7 @@ function paymentHandler (request, response) {
         var cipher = rsaLib.createPublicKey(kyKey);
         var info = cipher.publicDecrypt(new Buffer(out.notify_data, 'base64'), null, 'utf8');
         info = urlLib.parse('pay?'+info, true).query;
-        if (info.payresult == 0) {
+        if (info.payresult == 0 && isRMBMatch(info.fee, receipt)) {
           var receipt = info.dealseq;
           deliverReceipt(receipt, 'KY', function (err) {
             if (err) {

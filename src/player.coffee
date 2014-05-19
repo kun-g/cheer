@@ -250,28 +250,21 @@ class Player extends DBWrapper
     myReceipt = payment.receipt
     rec = unwrapReceipt(myReceipt)
     cfg = productList[rec.productID]
-    flag = true
-    #flag = cfg.rmb is payment.rmb
-    #flag = payment.productID is cfg.productID if tunnel is 'AppStore'
     @log('charge', {
       rmb: cfg.rmb,
       diamond: cfg.diamond,
       tunnel: tunnel,
       action: 'charge',
-      match: flag,
       receipt : myReceipt
     })
-    if flag
-      ret = [{ NTF: Event_InventoryUpdateItem, arg: { dim : @addDiamond(cfg.diamond) }}]
-      @rmb += cfg.rmb
-      @onCampaign('RMB', cfg.rmb)
-      ret.push({NTF: Event_PlayerInfo, arg: { rmb: @rmb }})
-      ret.push({NTF: Event_RoleUpdate, arg: { act: {vip: @vipLevel()}}})
-      postPaymentInfo(@createHero().level, myReceipt, payment.paymentType)
-      @saveDB()
-      dbWrapper.updateReceipt(myReceipt, RECEIPT_STATE_CLAIMED, (err) -> cb(err, ret))
-    else
-      cb(Error(RET_InvalidPaymentInfo))
+    ret = [{ NTF: Event_InventoryUpdateItem, arg: { dim : @addDiamond(cfg.diamond) }}]
+    @rmb += cfg.rmb
+    @onCampaign('RMB', cfg.rmb)
+    ret.push({NTF: Event_PlayerInfo, arg: { rmb: @rmb }})
+    ret.push({NTF: Event_RoleUpdate, arg: { act: {vip: @vipLevel()}}})
+    postPaymentInfo(@createHero().level, myReceipt, payment.paymentType)
+    @saveDB()
+    dbWrapper.updateReceipt(myReceipt, RECEIPT_STATE_CLAIMED, (err) -> cb(err, ret))
 
   handlePayment: (payment, handle) ->
     @log('handlePayment', {payment: payment})
