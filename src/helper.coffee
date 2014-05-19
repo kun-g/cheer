@@ -193,10 +193,11 @@ initCampaign = (me, allCampaign, abIndex) ->
     else
       if e.canReset(me, util) then e.reset(me, util)
       count = me.counters[key] ? 0
-      ret.push({
-        NTF: Event_BountyUpdate,
-        arg: { bid: e.id, sta: e.actived, cnt: e.count - count}
-      })
+      if e.id?
+        ret.push({
+          NTF: Event_BountyUpdate,
+          arg: { bid: e.id, sta: e.actived, cnt: e.count - count}
+        })
   return ret
 
 # campaign
@@ -326,7 +327,6 @@ exports.events = {
         136, 137, 138, 139, 140, 141, 142, 143,
         144, 145, 146, 147, 148, 149, 150, 151
       ]
-
     },
     goblin: {
       storeType: "player",
@@ -334,11 +334,22 @@ exports.events = {
       actived: 1,
       count: 3,
       canReset: (obj, util) ->
-        return (util.diffDay(obj.timestamp.goblin, util.today) && util.today.hour() >= 8)
+        return util.diffDay(obj.timestamp.goblin, util.today) && util.today.hour() >= 8
       ,
       reset: (obj, util) ->
         obj.timestamp.newProperty('goblin', util.currentTime())
         obj.counters.newProperty('goblin', 0)
+    },
+    monthCard: {
+      storeType: "player",
+      actived: (obj, util) -> return obj.flags.monthCard, #TODO:count control
+      count: 1,
+      canReset: (obj, util) ->
+        return util.diffDay(obj.timestamp.monthCard, util.today) && util.today.hour() >= 8
+      ,
+      reset: (obj, util) ->
+        obj.timestamp.newProperty('monthCard', util.currentTime())
+        obj.counters.newProperty('monthCard', 0)
     },
 #   event_robbers: {
 #     storeType: "player",

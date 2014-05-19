@@ -163,20 +163,15 @@ class Player extends DBWrapper
       for s in @stage when s and s.level?
         s.level = 0
 
-    flag = true
-    if @loginStreak.date
-      dis = diffDate(@loginStreak.date)
-      if dis is 0
-        flag = false
-      else if dis > 1
-        @loginStreak.count = 0
-    else
+    if @loginStreak.date and diffDate(@loginStreak.date, 'month') isnt 0
       @loginStreak.count = 0
+
+    flag = @loginStreak.date and diffDate(@loginStreak.date) is 0
 
     @log('onLogin', {loginStreak: @loginStreak, date: @lastLogin})
     @onCampaign('RMB')
 
-    ret = [{NTF:Event_CampaignLoginStreak, day: @loginStreak.count, claim: flag}]
+    ret = [{NTF:Event_CampaignLoginStreak, day: @loginStreak.count, claim: not flag}]
     return ret
 
   claimLoginReward: () ->
@@ -189,10 +184,13 @@ class Player extends DBWrapper
     @log('claimLoginReward', {loginStreak: @loginStreak.count, date: currentTime()})
 
     reward = queryTable(TABLE_CAMPAIGN, 'LoginStreak', @abIndex).level[@loginStreak.count].award
-    ret = @claimPrize(reward)
-    @loginStreak.count +=   1
-    # TODO: 这个会导致重新登录之后玩家今日奖励变第一天
-    @loginStreak.count = 0 if @loginStreak.count >= queryTable(TABLE_CAMPAIGN, 'LoginStreak').level.length
+
+    reward = [reward] unless Array.isArray(reward)
+    ret = @claimPrize(reward.filter((e) =>
+      return true unless e.vipLimit?
+      return @vipLevel() >= @.vipLimit
+    ))
+    @loginStreak.count += 1
  
     return {ret: RET_OK, res: ret}
 
@@ -226,7 +224,10 @@ class Player extends DBWrapper
     helperLib.initObserveration(this)
     @installObserver('heroxpChanged')
     
-    if @isNewPlayer then @isNewPlayer = false
+    if @isNewPlayer
+      @isNewPlayer = false
+      prize = queryTable(TABLE_CONFIG, 'InitialEquipment')
+      @claimPrize(prize.filter((e) => isClassMatch(@hero.class, e.classLimit)))
 
     helperLib.assignLeaderboard(@)
 
@@ -839,7 +840,7 @@ class Player extends DBWrapper
 
   enhanceItem: (itemSlot) ->
     equip = @getItemAt(itemSlot)
-    equip.enhancement[0] = { id: equip.enhanceID, level: -1 } unless equip.enhancement[0]?
+    equip.enhancement[0] = {id: equip.enhanceID, level: -1} unless equip.enhancement?[0]?
     level = equip.enhancement[0].level + 1
     return { ret: RET_ItemNotExist } unless equip
     return { ret: RET_EquipCantUpgrade } unless level < 40 and equip.enhanceID?
