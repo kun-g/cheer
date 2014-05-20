@@ -348,6 +348,9 @@ class Dungeon
       @actionLog[@currentLevel].push({a: action, g: arg, r: @rand()})
     ret = []
 
+    aliveHeroes = @getAliveHeroes().filter( (h) -> return h? ).sort( (a,b) -> return a.order - b.order )
+    hero = aliveHeroes[0] if aliveHeroes?.length > 0
+
     switch action
       when DUNGEON_ACTION_ENTER_DUNGEON
         ret.push({NTF:Event_DungeonEnter, arg:this.getInitialInfo()})
@@ -384,7 +387,7 @@ class Dungeon
         cmd.process()
       when DUNGEON_ACTION_EXPLOREBLOCK
         cmd = DungeonCommandStream({id: 'BeginTurn', type: 'Move', src: hero}, this)
-        cmd.next({id: 'ExploreBlock', block: arg.b, positions: arg.p})
+        cmd.next({id: 'ExploreBlock', block: arg.b, positions: arg.p, src: hero})
            .next({id: 'EndTurn', type: 'Move', src: hero})
            .next({id: 'ResultCheck'})
         cmd.process()
@@ -1035,8 +1038,9 @@ dungeonCSConfig = {
       if block.getType() is Block_Npc or block.getType() is Block_Enemy
         e = block.getRef(-1)
         @routine({id: 'UnitInfo', unit: e})
-        e.onEvent('onShow', @)
         env.variable('monster', e)
+        env.variable('tar', e)
+        e.onEvent('onShow', @)
         env.onEvent('onMonsterShow', @)
         if e?.isVisible isnt true
           e.isVisible = true
