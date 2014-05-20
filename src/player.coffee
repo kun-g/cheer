@@ -226,8 +226,6 @@ class Player extends DBWrapper
     
     if @isNewPlayer
       @isNewPlayer = false
-      prize = queryTable(TABLE_CONFIG, 'InitialEquipment')
-      @claimPrize(prize.filter((e) => isClassMatch(@hero.class, e.classLimit)))
 
     helperLib.assignLeaderboard(@)
 
