@@ -29,11 +29,11 @@ describe('Dungeon', function () {
           {pool: 'p2', count: 2, levels:{ from: 3, to: 5}} 
         ],
         levels: [
-          [ {id: 4, from: 2, to: 5} ],
-          [ {property: {tag: 1}}, {id: 1, count: 1}, {count: 2} ],
-          [ {count: 4} ],
-          [ {pool: 'p1', count: 1} ],
-          []
+          { objects: [ {id: 4, from: 2, to: 5} ] },
+          { objects: [ {property: {tag: 1}}, {id: 1, count: 1}, {count: 2} ] },
+          { objects: [ {count: 4} ] },
+          { objects: [ {pool: 'p1', count: 1} ] },
+          { objects: [] }
         ]
       }, function () { return 1; });
       r.should.eql([
@@ -51,12 +51,7 @@ describe('Dungeon', function () {
       ]);
     });
   });
-//
-//  // TODO:Trigger command - create_unit_dungeon, create_unit_level
-//  it('Faction', function (done) {
-//    done();
-//  });
-//
+
 //  describe('Dungeon', function () {
 //    it('Test mergeFirstPace', function () {
 //      var cmdStreamLib = require('../commandStream');
@@ -74,33 +69,33 @@ describe('Dungeon', function () {
 //      //console.log(cmd.getEnvironment().mergeFirstPace([1,2,3,4, [5,6,7,8]], [2,4,5]));
 //    });
 
-    it('Should be ok', function (done) {
-      cmdStreamLib = require('../js/commandStream');
-      d = new dungeonLib.Dungeon({
-        stage: 104,
-        randSeed: 1,
-        abIndex: 0,
-        //initialQuests: { '20': { counters: [ 0 ] },  
-        //    '21': { counters: [ 0 ] } },
-        team : [
-          {nam: 'W', cid: 0, gen: 0, hst:0, hcl: 0, exp: 100000},
-          {nam: 'M', cid: 1, gen: 0, hst:0, hcl: 0, exp: 100000},
-          {nam: 'P', cid: 2, gen: 0, hst:0, hcl: 0, exp: 100000},
-          //{nam: 'W1', cid: 0, gen: 0, hst:0, hcl: 0, exp:100000}
-        ]
-      });
-      done();
+  it('Should be ok', function (done) {
+    cmdStreamLib = require('../js/commandStream');
+    d = new dungeonLib.Dungeon({
+      stage: 104,
+      randSeed: 1,
+      abIndex: 0,
+      //initialQuests: { '20': { counters: [ 0 ] },  
+      //    '21': { counters: [ 0 ] } },
+      team : [
+        {nam: 'W', cid: 0, gen: 0, hst:0, hcl: 0, exp: 100000},
+        {nam: 'M', cid: 1, gen: 0, hst:0, hcl: 0, exp: 100000},
+        {nam: 'P', cid: 2, gen: 0, hst:0, hcl: 0, exp: 100000},
+        //{nam: 'W1', cid: 0, gen: 0, hst:0, hcl: 0, exp:100000}
+      ]
+    });
+    done();
 
-      d.initialize();
-//      //d.aquireCard(6);
-//      //d.getHeroes()[0].attack = 10000;
-      var actions = [
-        {CMD:RPC_GameStartDungeon},
-        {CMD:Request_DungeonExplore, arg: {tar: 11, pos:10, pos1:10, pos2:10}},
-        {CMD:Request_DungeonExplore, arg: {tar: 16, pos:10, pos1:10, pos2:10}},
-        {CMD:Request_DungeonExplore, arg: {tar: 21, pos:10, pos1:10, pos2:10}},
-        {CMD:Request_DungeonExplore, arg: {tar: 22, pos:10, pos1:10, pos2:10}},
-        {CMD:Request_DungeonExplore, arg: {tar: 23, pos:10, pos1:10, pos2:10}},
+    d.initialize();
+      //d.aquireCard(6);
+      //d.getHeroes()[0].attack = 10000;
+    var actions = [
+      {CMD:RPC_GameStartDungeon},
+      {CMD:Request_DungeonExplore, arg: {tar: 11, pos:10, pos1:10, pos2:10}},
+      {CMD:Request_DungeonExplore, arg: {tar: 16, pos:10, pos1:10, pos2:10}},
+      {CMD:Request_DungeonExplore, arg: {tar: 21, pos:10, pos1:10, pos2:10}},
+      {CMD:Request_DungeonExplore, arg: {tar: 22, pos:10, pos1:10, pos2:10}},
+      {CMD:Request_DungeonExplore, arg: {tar: 23, pos:10, pos1:10, pos2:10}},
 //        {CMD:REQUEST_CancelDungeon, arg: {}},
 //
 //        //{CMD:Request_DungeonCard, arg: {slt: 0}},
@@ -165,12 +160,12 @@ describe('Dungeon', function () {
 //      //{CMD:Request_DungeonAttack, arg: {tar: 12, pos: 17, pos1:18, pos2:19}},
 //
 //      //{CMD:Request_DungeonCard, arg: {slt: 0}},
-      ]; 
-      for (var k = 0; k < actions.length-1; k++) {
-        d.doAction(actions[k]);
-      }
-      print(d.doAction(actions[actions.length-1]));
-      d.level.print();
+    ]; 
+//    for (var k = 0; k < actions.length-1; k++) {
+//      d.doAction(actions[k]);
+//    }
+//    print(d.doAction(actions[actions.length-1]));
+//    d.level.print();
 //
 //
 //    x = d;

@@ -74,6 +74,7 @@ createUnits = (rules, randFunc) ->
     return r
   
   translateRule = (cRule) ->
+    return [] unless cRule
     return cRule.map( (r) ->
       return r unless r.from? or r.to?
       currentRule = {}
@@ -85,7 +86,8 @@ createUnits = (rules, randFunc) ->
     )
 
   levelRule = []
-  levelRule.push(translateRule(l)) for l in rules.levels
+  console.log(rules.levels, rules, 'X')
+  levelRule.push(translateRule(l.objects)) for l in rules.levels
   globalRule = translateRule(rules.global)
 
   levelConfig = []
@@ -225,6 +227,23 @@ class Dungeon
       else
         @goldRate = 1.1
         @xpRate *= 1.1
+
+    creation = createUnits(cfg, () => @rand)
+    arrCollectID = []
+    quests = if @quests? then @quests else []
+    for qid, qst of quests
+      q = queryTable(TABLE_QUEST, qid, @abIndex)
+      arrCollectID.push(o.collectId) for o in q.objects
+    @unitCreation = creation.map(
+      (level) ->
+        return level.filter(
+          (e) ->
+            if e.property.questOnly
+              arrCollectID.indexOf(e.property.collectId)
+            else
+              return true
+        )
+    )
 
     @initiateHeroes(@team)
     @nextLevel()
@@ -427,20 +446,12 @@ class Dungeon
     cfg = @getConfig()
     if @currentLevel < cfg.levelCount
       lvConfig = cfg.levels[@currentLevel]
-
-      soldierPool = if cfg.soldierPool? then cfg.soldierPool else null
-      elitePool = if cfg.elitePool? then cfg.elitePool else null
-      bossPool = if cfg.bossPool? then cfg.bossPool else null
-      goodPool = if cfg.goodPool? then cfg.goodPool else null
-      badPool = if cfg.badPool? then cfg.badPool else null
-      normalPool = if cfg.normalPool? then cfg.normalPool else null
       @level = new Level()
       @level.rand = (r) => @rand(r)
       @level.random = (r) => @random(r)
       Object.defineProperty(@level, 'random', {enumerable:false})
       Object.defineProperty(@level, 'rand', {enumerable:false})
-      quest = if @quests? then @quests else []
-      @level.init(lvConfig, @baseRank, @getHeroes(), quest, {soldier: soldierPool, elite: elitePool, boss: bossPool, good: goodPool, bad: badPool, normal: normalPool})
+      @level.init(lvConfig, @baseRank, @getHeroes(), @unitCreation[@currentLevel])
 
 exports.Dungeon = Dungeon
 #////////////////////// Block
@@ -475,13 +486,13 @@ class Level
     @objects = []
     @ref =  HEROTAG
 
-  init: (lvConfig, baseRank, heroes, quests, pool) ->
+  init: (lvConfig, baseRank, heroes, objectConfig) ->
     @objects = @objects.concat(heroes)
     @rank = baseRank
     @rank += lvConfig.rank if lvConfig.rank?
     @generateBlockLayout(lvConfig)
     @setupEnterAndExit(lvConfig)
-    @placeMapObjects(lvConfig, quests, pool)
+    @placeMapObjects(objectConfig)
 
     return @entrance
 
@@ -607,81 +618,14 @@ class Level
       pos = indexes.splice(@rand() % indexes.length, 1)[0]
       @createObject(id, pos, keyed, collectId)
 
-  placeMapObjects_: (config, quests, pool) ->
-    return false unless config?
-    cfg = createUnits(config, () => @rand)
-    arrCollectID = []
-    for qid, qst of quests
-      q = queryTable(TABLE_QUEST, qid, @abIndex)
-      arrCollectID.push(o.collectId) for o in q.objects
-    cfg = cfg.map(
-      (level) ->
-        return level.filter(
-          (e) ->
-            if e.property.questOnly
-              arrCollectID.indexOf(e.property.collectId)
-            else
-              return true
-        )
-    )
-
+  placeMapObjects: (cfg) ->
+    return false unless cfg?
     for o in cfg when o.property?.pos?
       c = o.property
       @createObject(o.id, c.pos, c.keyed, c.collectId)
-    for o in cfg when not o.property? or not property.pos?
+    for o in cfg when not o.property? or not o.property.pos?
       c = o.property ? {count: 1}
       @placeObjects(o.id, c.count, c.keyed, c.collectId)
-
-  placeMapObjects: (config, quests, pool) ->
-    return false unless config?
-
-    objectConfig = []
-    if config.objects?
-      objectConfig = config.objects.filter( (o) ->
-        if o.questOnly
-          ret = false
-          for qid, qst of quests
-            q = queryTable(TABLE_QUEST, qid, @abIndex)
-            ret = q.objects.reduce( ((r, l) -> r or l.collect is o.collectId), false )
-            if ret then return ret
-          return false
-        else
-          return true
-      )
-    monsterCount = objectConfig.reduce( ((r, l) ->
-      count = 1
-      count = l.count if l.count?
-      r.boss += count if l.boss?
-      r.elite += count if l.elite?
-      r.soldier += count if l.soldier?
-      r.normal += count if l.normal?
-      return r), {soldier: 0, elite: 0, boss: 0, normal: 0})
-
-    that = this
-    fillupMonster = (cfg) ->
-      if config[cfg.targetCounter] and monsterCount[cfg.counter] < config[cfg.targetCounter]
-        for i in [monsterCount[cfg.counter]..config[cfg.targetCounter]]
-          m = selectElementFromWeightArray(pool[cfg.pool], that.rand())
-          objectConfig.push({id:m.id, count:1, collectId:m.collectId, keyed: cfg.keyed})
-          monsterCount[cfg.counter] += 1
-
-    monsterConfig = [
-      {counter: 'soldier', targetCounter: 'soldierCount', pool: 'soldier', keyed: false},
-      {counter: 'good', targetCounter: 'goodCount', pool: 'good', keyed: false},
-      {counter: 'bad', targetCounter: 'badCount', pool: 'bad', keyed: false},
-      {counter: 'normal', targetCounter: 'normalCount', pool: 'normal', keyed: false},
-      {counter: 'elite', targetCounter: 'eliteCount', pool: 'elite', keyed: true},
-      {counter: 'boss', targetCounter: 'bossCount', pool: 'boss', keyed: true}
-    ]
-
-    fillupMonster(c) for c in monsterConfig
-
-    for o in objectConfig
-      if o.pos?
-        @createObject(o.id, o.pos, o.keyed, o.collectId)
-    for o in objectConfig
-      if not o.pos?
-        @placeObjects(o.id, o.count ? 1, o.keyed, o.collectId)
 
   getMonsters: () -> @objects.filter( (e) -> e.isMonster() )
 
