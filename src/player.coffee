@@ -338,6 +338,7 @@ class Player extends DBWrapper
           hairStyle: @hero.hairStyle,
           hairColor: @hero.hairColor,
           equipment: equip
+          equipSlot: @equipment
         }
         @save()
       else
@@ -352,18 +353,12 @@ class Player extends DBWrapper
   switchHero: (hClass) ->
     return false unless @heroBase[hClass]?
 
-    #if @hero?
-      #TODO: update heroBase autoMate
-      #@heroBase[@hero.class] = @hero
-      #@hero = @heroBase[hClass]
-    #else
-      #@hero = @heroBase[hClass]
+    if @hero?
+      for k, v of @hero
+        @heroBase[@hero.class].newProperty(k, JSON.parse(JSON.stringify(v)))
 
     for k, v of @heroBase[hClass]
       @hero.newProperty(k, JSON.parse(JSON.stringify(v)))
-
-    @hero.newProperty('equipment', [])
-    @hero.newProperty('vip', @vipLevel())
 
   addMoney: (type, point) ->
     return this[type] unless point
