@@ -222,6 +222,7 @@ function handler_doBuyEnergy(arg, player, handler, rpcID) {
       if (x > 5) x = 5;
       diamondCost = 30*x + 50;
       break;
+    case FEATURE_FRIEND_GOLD: diamondCost = +arg.tar; break;
   }
   var evt = [];
   var product = '';
@@ -246,6 +247,12 @@ function handler_doBuyEnergy(arg, player, handler, rpcID) {
       dbLib.extendFriendLimit(player.name);
       evt.push({NTF: Event_FriendInfo, arg: { cap : player.contactBook.limit } });
       evt.push({NTF: Event_InventoryUpdateItem, arg: { dim : player.diamond } });
+    } else if (+arg.typ === FEATURE_FRIEND_GOLD) {
+      player.addGold(diamondCost*10);
+      evt.push({NTF: Event_InventoryUpdateItem, arg: {
+        dim: player.diamond,
+        god: player.gold
+      } });
     }
     player.saveDB();
   } else {
