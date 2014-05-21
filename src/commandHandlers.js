@@ -96,13 +96,12 @@ addHandler(Request_DungeonCard, handler_doCardSpell, ['slt', 'number'], 'do Card
   * sid 位置
   * opn 操作
  */
-USE_ITEM_OPT_USE = 0;
 USE_ITEM_OPT_EQUIP = 1;
 USE_ITEM_OPT_ENHANCE = 2;
 USE_ITEM_OPT_LEVELUP = 3;
 USE_ITEM_OPT_CRAFT = 4;
 USE_ITEM_OPT_DECOMPOSE = 5;
-USE_ITEM_OPT_Dummy = 6; // 合成材料
+USE_ITEM_OPT_INJECTWXP = 6;
 USE_ITEM_OPT_RECYCLE = 7; // 分解装备
 USE_ITEM_OPT_SELL = 8; // 出售
 function handler_doUseItem(arg, player, handler, rpcID) {
@@ -111,6 +110,9 @@ function handler_doUseItem(arg, player, handler, rpcID) {
 
   var ret = null;
   switch (opn) {
+    case USE_ITEM_OPT_INJECTWXP:
+      ret = player.injectWXP(arg.opd, slot);
+      break;
     case USE_ITEM_OPT_SELL:
       ret = player.sellItem(slot, arg.sho);
       break;

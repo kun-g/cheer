@@ -163,15 +163,20 @@ class Player extends DBWrapper
       for s in @stage when s and s.level?
         s.level = 0
 
-    if @loginStreak.date and diffDate(@loginStreak.date, 'month') isnt 0
+    flag = true
+    if @loginStreak.date
+      dis = diffDate(@loginStreak.date)
+      if dis is 0
+        flag = false
+      else if dis > 1
+        @loginStreak.count = 0
+    else
       @loginStreak.count = 0
-
-    flag = @loginStreak.date and diffDate(@loginStreak.date) is 0
 
     @log('onLogin', {loginStreak: @loginStreak, date: @lastLogin})
     @onCampaign('RMB')
 
-    ret = [{NTF:Event_CampaignLoginStreak, day: @loginStreak.count, claim: not flag}]
+    ret = [{NTF:Event_CampaignLoginStreak, day: @loginStreak.count, claim: flag}]
     return ret
 
   claimLoginReward: () ->
@@ -184,13 +189,10 @@ class Player extends DBWrapper
     @log('claimLoginReward', {loginStreak: @loginStreak.count, date: currentTime()})
 
     reward = queryTable(TABLE_CAMPAIGN, 'LoginStreak', @abIndex).level[@loginStreak.count].award
-
-    reward = [reward] unless Array.isArray(reward)
-    ret = @claimPrize(reward.filter((e) =>
-      return true unless e.vipLimit?
-      return @vipLevel() >= @.vipLimit
-    ))
-    @loginStreak.count += 1
+    ret = @claimPrize(reward)
+    @loginStreak.count +=   1
+    # TODO: 这个会导致重新登录之后玩家今日奖励变第一天
+    @loginStreak.count = 0 if @loginStreak.count >= queryTable(TABLE_CAMPAIGN, 'LoginStreak').level.length
  
     return {ret: RET_OK, res: ret}
 
@@ -224,8 +226,7 @@ class Player extends DBWrapper
     helperLib.initObserveration(this)
     @installObserver('heroxpChanged')
     
-    if @isNewPlayer
-      @isNewPlayer = false
+    if @isNewPlayer then @isNewPlayer = false
 
     helperLib.assignLeaderboard(@)
 
@@ -248,21 +249,28 @@ class Player extends DBWrapper
     myReceipt = payment.receipt
     rec = unwrapReceipt(myReceipt)
     cfg = productList[rec.productID]
+    flag = true
+    #flag = cfg.rmb is payment.rmb
+    #flag = payment.productID is cfg.productID if tunnel is 'AppStore'
     @log('charge', {
       rmb: cfg.rmb,
       diamond: cfg.diamond,
       tunnel: tunnel,
       action: 'charge',
+      match: flag,
       receipt : myReceipt
     })
-    ret = [{ NTF: Event_InventoryUpdateItem, arg: { dim : @addDiamond(cfg.diamond) }}]
-    @rmb += cfg.rmb
-    @onCampaign('RMB', cfg.rmb)
-    ret.push({NTF: Event_PlayerInfo, arg: { rmb: @rmb }})
-    ret.push({NTF: Event_RoleUpdate, arg: { act: {vip: @vipLevel()}}})
-    postPaymentInfo(@createHero().level, myReceipt, payment.paymentType)
-    @saveDB()
-    dbWrapper.updateReceipt(myReceipt, RECEIPT_STATE_CLAIMED, (err) -> cb(err, ret))
+    if flag
+      ret = [{ NTF: Event_InventoryUpdateItem, arg: { dim : @addDiamond(cfg.diamond) }}]
+      @rmb += cfg.rmb
+      @onCampaign('RMB', cfg.rmb)
+      ret.push({NTF: Event_PlayerInfo, arg: { rmb: @rmb }})
+      ret.push({NTF: Event_RoleUpdate, arg: { act: {vip: @vipLevel()}}})
+      postPaymentInfo(@createHero().level, myReceipt, payment.paymentType)
+      @saveDB()
+      dbWrapper.updateReceipt(myReceipt, RECEIPT_STATE_CLAIMED, (err) -> cb(err, ret))
+    else
+      cb(Error(RET_InvalidPaymentInfo))
 
   handlePayment: (payment, handle) ->
     @log('handlePayment', {payment: payment})
@@ -330,6 +338,7 @@ class Player extends DBWrapper
           hairStyle: @hero.hairStyle,
           hairColor: @hero.hairColor,
           equipment: equip
+          equipSlot: @equipment
         }
         @save()
       else
@@ -344,18 +353,13 @@ class Player extends DBWrapper
   switchHero: (hClass) ->
     return false unless @heroBase[hClass]?
 
-    #if @hero?
-      #TODO: update heroBase autoMate
-      #@heroBase[@hero.class] = @hero
-      #@hero = @heroBase[hClass]
-    #else
-      #@hero = @heroBase[hClass]
+    if @hero?
+      @heroBase.newProperty(@hero.class, {})
+      for k, v of @hero
+        @heroBase[@hero.class].newProperty(k, JSON.parse(JSON.stringify(v)))
 
     for k, v of @heroBase[hClass]
       @hero.newProperty(k, JSON.parse(JSON.stringify(v)))
-
-    @hero.newProperty('equipment', [])
-    @hero.newProperty('vip', @vipLevel())
 
   addMoney: (type, point) ->
     return this[type] unless point
@@ -831,9 +835,9 @@ class Player extends DBWrapper
 
   enhanceItem: (itemSlot) ->
     equip = @getItemAt(itemSlot)
-    equip.enhancement[0] = {id: equip.enhanceID, level: -1} unless equip.enhancement?[0]?
-    level = equip.enhancement[0].level + 1
     return { ret: RET_ItemNotExist } unless equip
+    equip.enhancement[0] = { id: equip.enhanceID, level: -1 } unless equip.enhancement[0]?
+    level = equip.enhancement[0].level + 1
     return { ret: RET_EquipCantUpgrade } unless level < 40 and equip.enhanceID?
 
     enhance = queryTable(TABLE_ENHANCE, equip.enhanceID)
@@ -949,9 +953,9 @@ class Player extends DBWrapper
     if dungeon.result isnt DUNGEON_RESULT_FAIL then ret = ret.concat(this.completeStage(dungeon.stage))
   
     offlineReward = [
-      { type: PRIZETYPE_EXP, count: xpPrize.count* TEAMMATE_REWARD_RATIO },
-      { type: PRIZETYPE_GOLD, count: goldPrize.count* TEAMMATE_REWARD_RATIO },
-      { type: PRIZETYPE_WXP, count: wxPrize.count* TEAMMATE_REWARD_RATIO }
+      { type: PRIZETYPE_EXP,  count: Math.ceil(xpPrize.count* TEAMMATE_REWARD_RATIO) },
+      { type: PRIZETYPE_GOLD, count: Math.ceil(goldPrize.count* TEAMMATE_REWARD_RATIO) },
+      { type: PRIZETYPE_WXP,  count: Math.ceil(wxPrize.count* TEAMMATE_REWARD_RATIO) }
     ].filter( (e) -> e.count > 0)
 
     if offlineReward.length > 0
@@ -960,8 +964,8 @@ class Player extends DBWrapper
         src : MESSAGE_REWARD_TYPE_OFFLINE,
         prize : offlineReward
       }
-      dungeon.team.forEach((name) ->
-        if name then dbLib.deliverMessage(name, teammateRewardMessage)
+      dungeon.team.forEach((m) ->
+        if m then dbLib.deliverMessage(m.nam, teammateRewardMessage)
       )
   
     result = 'Lost'
@@ -1340,20 +1344,17 @@ class Player extends DBWrapper
 
     return {out: reward, res: ret}
 
-  injectWXP: (slot) ->
+  injectWXP: (slot, bookSlot) ->
     equip = @getItemAt(slot)
-    return { ret: RET_ItemNotExist } unless equip
-    upgrade = queryTable(TABLE_UPGRADE, equip.rank)
-    xpNeeded = upgrade.xp - equip.xp
-    bookNeeded = Math.ceil(xpNeeded/100)
-    retRM = @inventory.remove(queryTable(TABLE_CONFIG, 'Global_WXP_BOOK'), bookNeeded, null, true)
+    book = @getItemAt(bookSlot)
+    return { ret: RET_ItemNotExist } unless equip and book
+    retRM = @inventory.removeItemAt(bookSlot, 1, true)
     if retRM
-      equip.xp = upgrade.xp
+      equip.xp += book.wxp
       ret = @doAction({id: 'ItemChange', ret: retRM, version: this.inventoryVersion})
       return { out: {cid: equip.id, sid: @queryItemSlot(equip), stc: 1, xp: equip.xp}, res: ret }
     else
       return { ret: RET_NoEnhanceStone }
-
 
   replaceMercenary: (id, handler) ->
     me = this
