@@ -565,13 +565,13 @@ class Player extends DBWrapper
 
     return itemPrize.concat(otherPrize)
 
-  claimCost: (cost) ->
+  claimCost: (cost, count = 1) ->
     cfg = queryTable(TABLE_COSTS, cost)
     return null unless cfg?
     prize = @rearragenPrize(cfg.material)
     haveEnoughtMoney = prize.reduce( (r, l) =>
-      if l.type is PRIZETYPE_GOLD and @gold < l.count then return false
-      if l.type is PRIZETYPE_DIAMOND and @diamond < l.count then return false
+      if l.type is PRIZETYPE_GOLD and @gold < l.count*count then return false
+      if l.type is PRIZETYPE_DIAMOND and @diamond < l.count*count then return false
       return r
     , true)
     return null unless haveEnoughtMoney
@@ -579,11 +579,11 @@ class Player extends DBWrapper
     for p in prize when p?
       switch p.type
         when PRIZETYPE_ITEM
-          retRM = @inventory.remove(p.value, p.count, null, true)
+          retRM = @inventory.remove(p.value, p.count*count, null, true)
           return null unless retRM and retRM.length > 0
           ret = @doAction({id: 'ItemChange', ret: retRM, version: @inventoryVersion})
-        when PRIZETYPE_GOLD then ret.push({NTF: Event_InventoryUpdateItem, arg: {syn: @inventoryVersion, god: @addGold(p.count)}})
-        when PRIZETYPE_DIAMOND then ret.push({NTF: Event_InventoryUpdateItem, arg: {syn: @inventoryVersion, dim: @addDiamond(p.count)}})
+        when PRIZETYPE_GOLD then ret.push({NTF: Event_InventoryUpdateItem, arg: {syn: @inventoryVersion, god: @addGold(-p.count*count)}})
+        when PRIZETYPE_DIAMOND then ret.push({NTF: Event_InventoryUpdateItem, arg: {syn: @inventoryVersion, dim: @addDiamond(-p.count*count)}})
 
     return ret
 
@@ -752,32 +752,15 @@ class Player extends DBWrapper
 
   extendInventory: (delta) -> @inventory.size(delta)
 
-  transformGem: (count) ->
-    gem7 = 0
-    goldCost = count*50
-    return { ret: RET_NotEnoughGold } unless goldCost <= @gold
-    retRM = @inventory.removeById(gem7, count, true)
-    return { ret: RET_NoEnhanceStone } unless retRM
-    @addGold(-goldCost)
-    gems = {}
-    gemIndex = queryTable(TABLE_CONFIG, 'Global_Enhancement_GEM_Index', @abIndex)
-    prize = []
-    for i in [1..Math.floor(count*0.5)]
-      r = rand() % gemIndex.length
-      unless gems[r]?
-        gems[r] = { type : PRIZETYPE_ITEM, value: gemIndex[r], count: 0}
-        prize.push(gems[r])
-      gems[r].count++
+  transformGem: (tarID, count) ->
+    cfg = queryTable(TABLE_ITEM, tarID)
+    return { ret: RET_Unknown } unless cfg?
 
-    retPrize = @claimPrize(prize)
-    if retPrize
-      ret = @doAction({id: 'ItemChange', ret: retRM, version: @inventoryVersion})
-      ret = ret.concat(retPrize)
-      ret = ret.concat({NTF: Event_InventoryUpdateItem, arg:{syn: @inventoryVersion, god: @gold }})
-      return { out: prize, res: ret }
-    else
-      @inventory.reverseOpration(retRM)
-      return { ret: RET_InventoryFull }
+    ret = @claimCost(cfg.synthesizeID, count)
+    if not ret? then return { ret: RET_InsufficientIngredient }
+    ret = ret.concat(@aquireItem(tarID, count))
+
+    return { res: ret }
 
   levelUpItem: (slot) ->
     item = @getItemAt(slot)
@@ -1352,7 +1335,9 @@ class Player extends DBWrapper
     if retRM
       equip.xp += book.wxp
       ret = @doAction({id: 'ItemChange', ret: retRM, version: this.inventoryVersion})
-      return { out: {cid: equip.id, sid: @queryItemSlot(equip), stc: 1, xp: equip.xp}, res: ret }
+      ev = {NTF: Event_InventoryUpdateItem, arg: { itm: [{ cid: equip.id, sid: @queryItemSlot(equip), stc: 1, xp: equip.xp }] } }
+      ret.push(ev)
+      return { res: ret }
     else
       return { ret: RET_NoEnhanceStone }
 

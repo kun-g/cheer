@@ -126,7 +126,7 @@ function handler_doUseItem(arg, player, handler, rpcID) {
       ret = player.recycleItem(slot);
       break;
     case USE_ITEM_OPT_DECOMPOSE:
-      ret = player.transformGem(arg.opc);
+      ret = player.transformGem(arg.cid, arg.opc);
       break;
     case USE_ITEM_OPT_CRAFT:
       ret = player.upgradeItemQuality(slot);
