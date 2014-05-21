@@ -130,6 +130,10 @@ class Player extends DBWrapper
           if enhanceID? and lv >= 0 then item.enhancement = [{id: enhanceID, level: lv}]
           continue
         @sellItem(slot)
+    prize = queryTable(TABLE_CONFIG, 'InitialEquipment')
+    for slot in [0..5] when not @equipment[slot]?
+      console.log('Equip', slot, @equipment[slot])
+      @claimPrize(prize[slot].filter((e) => isClassMatch(@hero.class, e.classLimit)))
     return @syncBag(true)
 
   onDisconnect: () ->
@@ -364,7 +368,7 @@ class Player extends DBWrapper
   addMoney: (type, point) ->
     return this[type] unless point
     return false if point + this[type] < 0
-    this[type] += point
+    this[type] = Math.floor(this[type]+point)
     @costedDiamond += point if type is 'diamond'
     return this[type]
 
@@ -808,6 +812,7 @@ class Player extends DBWrapper
     return { ret: RET_NeedReceipt } unless recipe?
     ret = @claimCost(recipe.forgeID)
     if not ret? then return { ret: RET_InsufficientIngredient }
+    return { ret: RET_Unknown } unless recipe.forgeTarget?
     newItem = new Item(recipe.forgeTarget)
     ret = ret.concat(@aquireItem(newItem))
     ret = ret.concat({NTF: Event_InventoryUpdateItem, arg:{syn: @inventoryVersion, god: @gold }})
