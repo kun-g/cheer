@@ -130,6 +130,10 @@ class Player extends DBWrapper
           if enhanceID? and lv >= 0 then item.enhancement = [{id: enhanceID, level: lv}]
           continue
         @sellItem(slot)
+    prize = queryTable(TABLE_CONFIG, 'InitialEquipment')
+    for slot in [0..5] when not @equipment[slot]?
+      console.log('Equip', slot, @equipment[slot])
+      @claimPrize(prize[slot].filter((e) => isClassMatch(@hero.class, e.classLimit)))
     return @syncBag(true)
 
   onDisconnect: () ->
@@ -338,6 +342,7 @@ class Player extends DBWrapper
           hairStyle: @hero.hairStyle,
           hairColor: @hero.hairColor,
           equipment: equip
+          equipSlot: @equipment
         }
         @save()
       else
@@ -352,23 +357,18 @@ class Player extends DBWrapper
   switchHero: (hClass) ->
     return false unless @heroBase[hClass]?
 
-    #if @hero?
-      #TODO: update heroBase autoMate
-      #@heroBase[@hero.class] = @hero
-      #@hero = @heroBase[hClass]
-    #else
-      #@hero = @heroBase[hClass]
+    if @hero?
+      @heroBase.newProperty(@hero.class, {})
+      for k, v of @hero
+        @heroBase[@hero.class].newProperty(k, JSON.parse(JSON.stringify(v)))
 
     for k, v of @heroBase[hClass]
       @hero.newProperty(k, JSON.parse(JSON.stringify(v)))
 
-    @hero.newProperty('equipment', [])
-    @hero.newProperty('vip', @vipLevel())
-
   addMoney: (type, point) ->
     return this[type] unless point
     return false if point + this[type] < 0
-    this[type] += point
+    this[type] = Math.floor(this[type]+point)
     @costedDiamond += point if type is 'diamond'
     return this[type]
 
@@ -569,13 +569,13 @@ class Player extends DBWrapper
 
     return itemPrize.concat(otherPrize)
 
-  claimCost: (cost) ->
+  claimCost: (cost, count = 1) ->
     cfg = queryTable(TABLE_COSTS, cost)
     return null unless cfg?
     prize = @rearragenPrize(cfg.material)
     haveEnoughtMoney = prize.reduce( (r, l) =>
-      if l.type is PRIZETYPE_GOLD and @gold < l.count then return false
-      if l.type is PRIZETYPE_DIAMOND and @diamond < l.count then return false
+      if l.type is PRIZETYPE_GOLD and @gold < l.count*count then return false
+      if l.type is PRIZETYPE_DIAMOND and @diamond < l.count*count then return false
       return r
     , true)
     return null unless haveEnoughtMoney
@@ -583,11 +583,11 @@ class Player extends DBWrapper
     for p in prize when p?
       switch p.type
         when PRIZETYPE_ITEM
-          retRM = @inventory.remove(p.value, p.count, null, true)
+          retRM = @inventory.remove(p.value, p.count*count, null, true)
           return null unless retRM and retRM.length > 0
           ret = @doAction({id: 'ItemChange', ret: retRM, version: @inventoryVersion})
-        when PRIZETYPE_GOLD then ret.push({NTF: Event_InventoryUpdateItem, arg: {syn: @inventoryVersion, god: @addGold(p.count)}})
-        when PRIZETYPE_DIAMOND then ret.push({NTF: Event_InventoryUpdateItem, arg: {syn: @inventoryVersion, dim: @addDiamond(p.count)}})
+        when PRIZETYPE_GOLD then ret.push({NTF: Event_InventoryUpdateItem, arg: {syn: @inventoryVersion, god: @addGold(-p.count*count)}})
+        when PRIZETYPE_DIAMOND then ret.push({NTF: Event_InventoryUpdateItem, arg: {syn: @inventoryVersion, dim: @addDiamond(-p.count*count)}})
 
     return ret
 
@@ -756,32 +756,15 @@ class Player extends DBWrapper
 
   extendInventory: (delta) -> @inventory.size(delta)
 
-  transformGem: (count) ->
-    gem7 = 0
-    goldCost = count*50
-    return { ret: RET_NotEnoughGold } unless goldCost <= @gold
-    retRM = @inventory.removeById(gem7, count, true)
-    return { ret: RET_NoEnhanceStone } unless retRM
-    @addGold(-goldCost)
-    gems = {}
-    gemIndex = queryTable(TABLE_CONFIG, 'Global_Enhancement_GEM_Index', @abIndex)
-    prize = []
-    for i in [1..Math.floor(count*0.5)]
-      r = rand() % gemIndex.length
-      unless gems[r]?
-        gems[r] = { type : PRIZETYPE_ITEM, value: gemIndex[r], count: 0}
-        prize.push(gems[r])
-      gems[r].count++
+  transformGem: (tarID, count) ->
+    cfg = queryTable(TABLE_ITEM, tarID)
+    return { ret: RET_Unknown } unless cfg?
 
-    retPrize = @claimPrize(prize)
-    if retPrize
-      ret = @doAction({id: 'ItemChange', ret: retRM, version: @inventoryVersion})
-      ret = ret.concat(retPrize)
-      ret = ret.concat({NTF: Event_InventoryUpdateItem, arg:{syn: @inventoryVersion, god: @gold }})
-      return { out: prize, res: ret }
-    else
-      @inventory.reverseOpration(retRM)
-      return { ret: RET_InventoryFull }
+    ret = @claimCost(cfg.synthesizeID, count)
+    if not ret? then return { ret: RET_InsufficientIngredient }
+    ret = ret.concat(@aquireItem(tarID, count))
+
+    return { res: ret }
 
   levelUpItem: (slot) ->
     item = @getItemAt(slot)
@@ -829,6 +812,7 @@ class Player extends DBWrapper
     return { ret: RET_NeedReceipt } unless recipe?
     ret = @claimCost(recipe.forgeID)
     if not ret? then return { ret: RET_InsufficientIngredient }
+    return { ret: RET_Unknown } unless recipe.forgeTarget?
     newItem = new Item(recipe.forgeTarget)
     ret = ret.concat(@aquireItem(newItem))
     ret = ret.concat({NTF: Event_InventoryUpdateItem, arg:{syn: @inventoryVersion, god: @gold }})
@@ -839,9 +823,9 @@ class Player extends DBWrapper
 
   enhanceItem: (itemSlot) ->
     equip = @getItemAt(itemSlot)
+    return { ret: RET_ItemNotExist } unless equip
     equip.enhancement[0] = { id: equip.enhanceID, level: -1 } unless equip.enhancement[0]?
     level = equip.enhancement[0].level + 1
-    return { ret: RET_ItemNotExist } unless equip
     return { ret: RET_EquipCantUpgrade } unless level < 40 and equip.enhanceID?
 
     enhance = queryTable(TABLE_ENHANCE, equip.enhanceID)
@@ -1348,20 +1332,19 @@ class Player extends DBWrapper
 
     return {out: reward, res: ret}
 
-  injectWXP: (slot) ->
+  injectWXP: (slot, bookSlot) ->
     equip = @getItemAt(slot)
-    return { ret: RET_ItemNotExist } unless equip
-    upgrade = queryTable(TABLE_UPGRADE, equip.rank)
-    xpNeeded = upgrade.xp - equip.xp
-    bookNeeded = Math.ceil(xpNeeded/100)
-    retRM = @inventory.remove(queryTable(TABLE_CONFIG, 'Global_WXP_BOOK'), bookNeeded, null, true)
+    book = @getItemAt(bookSlot)
+    return { ret: RET_ItemNotExist } unless equip and book
+    retRM = @inventory.removeItemAt(bookSlot, 1, true)
     if retRM
-      equip.xp = upgrade.xp
+      equip.xp += book.wxp
       ret = @doAction({id: 'ItemChange', ret: retRM, version: this.inventoryVersion})
-      return { out: {cid: equip.id, sid: @queryItemSlot(equip), stc: 1, xp: equip.xp}, res: ret }
+      ev = {NTF: Event_InventoryUpdateItem, arg: { itm: [{ cid: equip.id, sid: @queryItemSlot(equip), stc: 1, xp: equip.xp }] } }
+      ret.push(ev)
+      return { res: ret }
     else
       return { ret: RET_NoEnhanceStone }
-
 
   replaceMercenary: (id, handler) ->
     me = this

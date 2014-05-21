@@ -290,7 +290,11 @@ class Wizard
     env = cmd?.getEnvironment() # some action can't be triggerred when levelup
     for a in actions
       variables = {}
-      variables = env.variable() if env?
+      if env?
+        variables = env.variable()
+        variables.heroCount = env.getAliveHeroes().length
+        variables.totalMonsterCount = env.getMonsters().length
+        variables.visibleMonsterCount = env.getMonsters().filter( (m) -> m.isVisible ).length
       formularResult = calcFormular(variables, @, target, getProperty(a.formular, level.formular)) if getProperty(a.formular, level.formular)?
 
       delay = 0
