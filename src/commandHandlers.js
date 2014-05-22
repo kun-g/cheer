@@ -96,13 +96,12 @@ addHandler(Request_DungeonCard, handler_doCardSpell, ['slt', 'number'], 'do Card
   * sid 位置
   * opn 操作
  */
-USE_ITEM_OPT_USE = 0;
 USE_ITEM_OPT_EQUIP = 1;
 USE_ITEM_OPT_ENHANCE = 2;
 USE_ITEM_OPT_LEVELUP = 3;
 USE_ITEM_OPT_CRAFT = 4;
 USE_ITEM_OPT_DECOMPOSE = 5;
-USE_ITEM_OPT_Dummy = 6; // 合成材料
+USE_ITEM_OPT_INJECTWXP = 6;
 USE_ITEM_OPT_RECYCLE = 7; // 分解装备
 USE_ITEM_OPT_SELL = 8; // 出售
 function handler_doUseItem(arg, player, handler, rpcID) {
@@ -111,6 +110,9 @@ function handler_doUseItem(arg, player, handler, rpcID) {
 
   var ret = null;
   switch (opn) {
+    case USE_ITEM_OPT_INJECTWXP:
+      ret = player.injectWXP(arg.opd, slot);
+      break;
     case USE_ITEM_OPT_SELL:
       ret = player.sellItem(slot, arg.sho);
       break;
@@ -124,7 +126,7 @@ function handler_doUseItem(arg, player, handler, rpcID) {
       ret = player.recycleItem(slot);
       break;
     case USE_ITEM_OPT_DECOMPOSE:
-      ret = player.transformGem(arg.opc);
+      ret = player.transformGem(arg.cid, arg.opc);
       break;
     case USE_ITEM_OPT_CRAFT:
       ret = player.upgradeItemQuality(slot);
@@ -222,6 +224,7 @@ function handler_doBuyEnergy(arg, player, handler, rpcID) {
       if (x > 5) x = 5;
       diamondCost = 30*x + 50;
       break;
+    case FEATURE_FRIEND_GOLD: diamondCost = +arg.tar; break;
   }
   var evt = [];
   var product = '';
@@ -246,6 +249,12 @@ function handler_doBuyEnergy(arg, player, handler, rpcID) {
       dbLib.extendFriendLimit(player.name);
       evt.push({NTF: Event_FriendInfo, arg: { cap : player.contactBook.limit } });
       evt.push({NTF: Event_InventoryUpdateItem, arg: { dim : player.diamond } });
+    } else if (+arg.typ === FEATURE_FRIEND_GOLD) {
+      player.addGold(diamondCost*10);
+      evt.push({NTF: Event_InventoryUpdateItem, arg: {
+        dim: player.diamond,
+        god: player.gold
+      } });
     }
     player.saveDB();
   } else {
