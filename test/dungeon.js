@@ -32,7 +32,7 @@ describe('Dungeon', function () {
           { objects: [ {id: 4, from: 2, to: 5} ] },
           { objects: [ {property: {tag: 1}}, {id: 1, count: 1}, {count: 2} ] },
           { objects: [ {count: 4} ] },
-          { objects: [ {pool: 'p1', count: 1} ] },
+          { objects: [ {pool: 'p1', from:0, to: 2} ] },
           { objects: [] }
         ]
       }, function () { return 1; });

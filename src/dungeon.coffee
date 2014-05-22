@@ -86,16 +86,14 @@ createUnits = (rules, randFunc) ->
     )
 
   levelRule = []
-  console.log(rules.levels, rules, 'X')
   levelRule.push(translateRule(l.objects)) for l in rules.levels
   globalRule = translateRule(rules.global)
 
   levelConfig = []
   for i, l of levelRule
-    cfg = {id: i, total: 0, limit: Infinity, property: {}, takenPos:{}}
-    for r in l when not r.id?
+    cfg = {id: i, total: 0, limit: Infinity, takenPos:{}}
+    for r in l when not (r.id? or r.pool?)
       if r.count? then cfg.limit = r.count
-      if r.property then cfg.property = r.property
     levelConfig.push(cfg)
 
   selectFromPool = (poolID, count) ->
@@ -116,19 +114,18 @@ createUnits = (rules, randFunc) ->
       if single then count = 1
       if count + lConfig.total > lConfig.limit
         count = lConfig.total-lConfig.limit + count
-      break if count <= 0
+      continue if count <= 0
       if r.id? then idList = [r]
       if r.pool?
         idList = selectFromPool(r.pool, count)
         count = 1
       idList.forEach( (c) ->
-        u = {id: c.id, property: {}, count: count}
+        u = {}
+        u[k] = v for k, v of c
         if r.pos
           if typeof r.pos is 'number' then u.pos = r.pos
           if Array.isArray(r.pos) then u.pos = selectPos(r.pos, lConfig)
           lConfig.takenPos[r.pos] = true
-        u.property[k] = v for k, v of lConfig.property
-        if r.property then u.property[k] = v for k, v of r.property
         lConfig.total += count
         result.push(u)
       )
@@ -228,7 +225,7 @@ class Dungeon
         @goldRate = 1.1
         @xpRate *= 1.1
 
-    creation = createUnits(cfg, () => @rand)
+    creation = createUnits(cfg, () => @rand())
     arrCollectID = []
     quests = if @quests? then @quests else []
     for qid, qst of quests
@@ -238,8 +235,8 @@ class Dungeon
       (level) ->
         return level.filter(
           (e) ->
-            if e.property.questOnly
-              arrCollectID.indexOf(e.property.collectId)
+            if e.questOnly
+              arrCollectID.indexOf(e.collectId)
             else
               return true
         )
@@ -623,12 +620,10 @@ class Level
 
   placeMapObjects: (cfg) ->
     return false unless cfg?
-    for o in cfg when o.property?.pos?
-      c = o.property
-      @createObject(o.id, c.pos, c.keyed, c.collectId)
-    for o in cfg when not o.property? or not o.property.pos?
-      c = o.property ? {count: 1}
-      @placeObjects(o.id, c.count, c.keyed, c.collectId)
+    for o in cfg when o.pos?
+      @createObject(o.id, o.pos, o.keyed, o.collectId)
+    for o in cfg when not o.pos?
+      @placeObjects(o.id, o.count ? 1, o.keyed, o.collectId)
 
   getMonsters: () -> @objects.filter( (e) -> e.isMonster() )
 
