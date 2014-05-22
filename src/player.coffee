@@ -382,7 +382,7 @@ class Player extends DBWrapper
   addHeroExp: (point) ->
     if point
       prevLevel = @createHero().level
-      @hero.xp += point
+      @hero.xp = Math.floor(@hero.xp+point)
       currentLevel = @createHero().level
       @notify('heroxpChanged', {
         xp: @hero.xp,
