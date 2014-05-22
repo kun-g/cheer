@@ -114,11 +114,12 @@ class Player extends DBWrapper
     return equipment.indexOf(+slot) != -1
 
   migrate: () ->
+    flag = false
     for slot, item of @inventory.container when item?
       if item.transPrize?
         if @isEquiped(slot)
           # 2. 已装备的装备保留强化等级
-          lv = -1
+          lv = 0
           if item.enhancement and item.enhancement.length > 0
             lv = item.enhancement.reduce( ((r, i) -> return r+i.level), 0 )
           # 3. 已装备的饰品转换成对应的饰品
@@ -126,15 +127,17 @@ class Player extends DBWrapper
           if cfg[item.id]
             p = cfg[item.id].filter((e) => isClassMatch(@hero.class, e.classLimit))
             item.id = p[0].value
+            console.log(item.id)
           enhanceID = queryTable(TABLE_ITEM, item.id).enhanceID
           if enhanceID? and lv >= 0 then item.enhancement = [{id: enhanceID, level: lv}]
           continue
+        flag = true
         @sellItem(slot)
     prize = queryTable(TABLE_CONFIG, 'InitialEquipment')
     for slot in [0..5] when not @equipment[slot]?
-      console.log('Equip', slot, @equipment[slot])
+      flag = true
       @claimPrize(prize[slot].filter((e) => isClassMatch(@hero.class, e.classLimit)))
-    return @syncBag(true)
+    return flag
 
   onDisconnect: () ->
     @socket = null
