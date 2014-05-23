@@ -89,7 +89,7 @@ var config = {
 
 function isRMBMatch(amount, receipt) {
   productList = queryTable(TABLE_CONFIG, 'Product_List');
-  rec = unwrapReceipt(myReceipt);
+  rec = unwrapReceipt(receipt);
   cfg = productList[rec.productID];
   return cfg && cfg.rmb == amount;
 }
