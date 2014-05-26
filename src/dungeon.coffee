@@ -719,6 +719,8 @@ class DungeonEnvironment extends Environment
     if flag? then return factionDB[src][tar][flag]
     return factionDB[src][tar][flag]
 
+  isLevelInitialized: () -> @dungeon.level.initialized
+  levelInitialized: () -> @dungeon.level.initialized = true
   isEntranceExplored: () ->
     entrance = @dungeon.getEntrance()
     if Array.isArray(entrance)
@@ -920,13 +922,20 @@ dungeonCSConfig = {
     callback: (env) ->
       entrance = env.getEntrance()
       env.onEvent('onEnterLevel', @)
-      if env.isEntranceExplored()
+      if env.isLevelInitialized()
         @routine({id: 'OpenBlock', block: e}) for e in [0..DG_BLOCKCOUNT-1] when env.getBlock(e).explored
       else
+        env.levelInitialized()
         if Array.isArray(entrance)
-          @routine({id: 'ExploreBlock', block: e, positions: entrance}) for e in entrance
+          if not env.isEntranceExplored()
+            @routine({id: 'ExploreBlock', block: e, positions: entrance}) for e in entrance
+          else
+            @routine({id: 'OpenBlock', block: e}) for e in entrance
         else
-          @routine({id: 'ExploreBlock', block: entrance})
+          if not env.isEntranceExplored()
+            @routine({id: 'ExploreBlock', block: entrance})
+          else
+            @routine({id: 'OpenBlock', block: entrance})
 
         if Array.isArray(entrance)
           newPosition = entrance
