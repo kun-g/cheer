@@ -195,11 +195,10 @@ class Player extends DBWrapper
     @loginStreak.date = currentTime(true).valueOf()
     @log('claimLoginReward', {loginStreak: @loginStreak.count, date: currentTime()})
 
-    reward = queryTable(TABLE_CAMPAIGN, 'LoginStreak', @abIndex).level[@loginStreak.count].award
-    ret = @claimPrize(reward)
+    reward = queryTable(TABLE_DP)[@loginStreak.count].prize
+    ret = @claimPrize(reward.filter((e) => not e.vip or @vipLevel() > e.vip ))
     @loginStreak.count +=   1
-    # TODO: 这个会导致重新登录之后玩家今日奖励变第一天
-    @loginStreak.count = 0 if @loginStreak.count >= queryTable(TABLE_CAMPAIGN, 'LoginStreak').level.length
+    @loginStreak.count = 0 if @loginStreak.count >= queryTable(TABLE_DP).length
  
     return {ret: RET_OK, res: ret}
 
@@ -841,7 +840,7 @@ class Player extends DBWrapper
   
     @onEvent('Equipment')
 
-    if level >= 20
+    if level >= 32
       dbLib.broadcastEvent(BROADCAST_ENHANCE, {who: @name, what: equip.id, many: level})
   
     eh = equip.enhancement.map((e) -> {id:e.id, lv:e.level})

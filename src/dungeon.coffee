@@ -920,12 +920,6 @@ dungeonCSConfig = {
     callback: (env) ->
       entrance = env.getEntrance()
       env.onEvent('onEnterLevel', @)
-      if Array.isArray(entrance)
-        newPosition = entrance
-        for i in [newPosition.length..env.getHeroes().length-1]
-          newPosition.push( entrance[0] )
-      else
-        newPosition = [entrance, entrance, entrance]
       if env.isEntranceExplored()
         @routine({id: 'OpenBlock', block: e}) for e in [0..DG_BLOCKCOUNT-1] when env.getBlock(e).explored
       else
@@ -933,9 +927,16 @@ dungeonCSConfig = {
           @routine({id: 'ExploreBlock', block: e, positions: entrance}) for e in entrance
         else
           @routine({id: 'ExploreBlock', block: entrance})
-      env.moveHeroes(newPosition)
 
-      monster.onEvent('onEnterLevel', @) for monster in env.getMonsters()
+        if Array.isArray(entrance)
+          newPosition = entrance
+          for i in [newPosition.length..env.getHeroes().length-1]
+            newPosition.push( entrance[0] )
+        else
+          newPosition = [entrance, entrance, entrance]
+        env.moveHeroes(newPosition)
+
+        monster.onEvent('onEnterLevel', @) for monster in env.getMonsters()
 
       @routine({id: 'TickSpell'})
     ,
