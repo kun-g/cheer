@@ -213,6 +213,7 @@ initDailyEvent = (me, key, e) ->
     me.attrSave(key, true)
   if e.daily
     if not me[key].date or diffDate(me[key].date, currentTime()) isnt 0
+      e.quest.forEach( (q) -> delete me.quests[q])
       me[key].newProperty('status', 'Init')
       me[key].newProperty('date', currentTime())
       if key is 'event_daily'

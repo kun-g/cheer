@@ -175,8 +175,8 @@ class Player extends DBWrapper
       dis = diffDate(@loginStreak.date)
       if dis is 0
         flag = false
-      else if dis > 1
-        @loginStreak.count = 0
+      else
+        @loginStreak.count += 1
     else
       @loginStreak.count = 0
 
@@ -192,13 +192,13 @@ class Player extends DBWrapper
       if dis is 0
         @logError('claimLoginReward', {prev: @loginStreak.date, today: currentTime()})
         return {ret: RET_Unknown}
-    @loginStreak.date = currentTime(true).valueOf()
+    @loginStreak.newProperty('date', currentTime(true).valueOf())
     @log('claimLoginReward', {loginStreak: @loginStreak.count, date: currentTime()})
 
     reward = queryTable(TABLE_DP)[@loginStreak.count].prize
     ret = @claimPrize(reward.filter((e) => not e.vip or @vipLevel() > e.vip ))
-    @loginStreak.count +=   1
     @loginStreak.count = 0 if @loginStreak.count >= queryTable(TABLE_DP).length
+    console.log(queryTable(TABLE_DP).length)
  
     return {ret: RET_OK, res: ret}
 

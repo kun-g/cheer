@@ -243,7 +243,8 @@ initGlobalConfig = function (path, callback) {
     {name:TABLE_ITEM}, {name:TABLE_CARD}, {name:TABLE_DUNGEON, func:varifyDungeonConfig},
     {name:TABLE_STAGE, func: initStageConfig}, {name:TABLE_QUEST}, {name: TABLE_COSTS},
     {name:TABLE_UPGRADE}, {name:TABLE_ENHANCE}, {name: TABLE_CONFIG}, {name: TABLE_VIP},
-    {name:TABLE_SKILL}, {name:TABLE_CAMPAIGN}, {name: TABLE_DROP}, {name: TABLE_TRIGGER}
+    {name:TABLE_SKILL}, {name:TABLE_CAMPAIGN}, {name: TABLE_DROP}, {name: TABLE_TRIGGER},
+    {name:TABLE_DP}
   ];
   if (!path) path = "./";
   configTable.forEach(function (e) {
