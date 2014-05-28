@@ -236,7 +236,7 @@ class Dungeon
         return level.filter(
           (e) ->
             if e.questOnly
-              arrCollectID.indexOf(e.collectId)
+              return arrCollectID.indexOf(e.collectId) != -1
             else
               return true
         )

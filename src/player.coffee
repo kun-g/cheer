@@ -127,7 +127,6 @@ class Player extends DBWrapper
           if cfg[item.id]
             p = cfg[item.id].filter((e) => isClassMatch(@hero.class, e.classLimit))
             item.id = p[0].value
-            console.log(item.id)
           enhanceID = queryTable(TABLE_ITEM, item.id).enhanceID
           if enhanceID? and lv >= 0 then item.enhancement = [{id: enhanceID, level: lv}]
           continue
@@ -171,7 +170,7 @@ class Player extends DBWrapper
         s.level = 0
 
     flag = true
-    if @loginStreak.date
+    if @loginStreak.date and diffDate(@loginStreak.date, 'month') is 0
       dis = diffDate(@loginStreak.date)
       if dis is 0
         flag = false
@@ -184,6 +183,19 @@ class Player extends DBWrapper
     @onCampaign('RMB')
 
     ret = [{NTF:Event_CampaignLoginStreak, day: @loginStreak.count, claim: flag}]
+
+    itemsNeedRemove = @inventory.filter(
+      (item) ->
+        return false unless item?.expiration?
+        return true unless item.date?
+        return helperLib.currentTime(true).valueOf() > item.date + item.expiration.day * 24*60*60
+    )
+    rmMSG = itemsNeedRemove.map( (e) =>
+      return @removeItem(null, null, @queryItemSlot(e))
+    )
+
+    ret = ret.concat(rmMSG)
+
     return ret
 
   claimLoginReward: () ->
@@ -198,7 +210,6 @@ class Player extends DBWrapper
     reward = queryTable(TABLE_DP)[@loginStreak.count].prize
     ret = @claimPrize(reward.filter((e) => not e.vip or @vipLevel() > e.vip ))
     @loginStreak.count = 0 if @loginStreak.count >= queryTable(TABLE_DP).length
-    console.log(queryTable(TABLE_DP).length)
  
     return {ret: RET_OK, res: ret}
 
@@ -1576,6 +1587,9 @@ playerCSConfig = {
     callback: (env) ->
       count = env.variable('count') ? 1
       item = createItem(env.variable('item'))
+      if item.expiration
+        item.date = helperLib.currentTime(true).valueOf()
+        item.attrSave('date')
       return showMeTheStack() unless item?
 
       ret = env.player.inventory.add(item, count, env.variable('allorfail'))
