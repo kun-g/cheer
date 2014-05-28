@@ -230,7 +230,7 @@ class Dungeon
     quests = if @quests? then @quests else []
     for qid, qst of quests
       q = queryTable(TABLE_QUEST, qid, @abIndex)
-      arrCollectID.push(o.collectId) for o in q.objects
+      arrCollectID.push(o.collect) for o in q.objects
     @unitCreation = creation.map(
       (level) ->
         return level.filter(
