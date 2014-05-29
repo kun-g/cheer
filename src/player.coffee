@@ -856,15 +856,16 @@ class Player extends DBWrapper
     if @isEquiped(slot) then return { ret: RET_Unknown }
 
     item = @getItemAt(slot)
+    count = item.count
     if item?.transPrize or item?.sellprice
       ret = @removeItem(null, null, slot)
 
       if item?.transPrize
         ret = ret.concat(@claimPrize(item.transPrize))
       else if item?.sellprice
-        @addGold(item.sellprice*item.count)
+        @addGold(item.sellprice*count)
     
-      @log('sellItem', { itemId: item.id, price: item.sellprice, count: item.count, slot: slot })
+      @log('sellItem', { itemId: item.id, price: item.sellprice, count: count, slot: slot })
       return { ret: RET_OK, ntf: [{ NTF: Event_InventoryUpdateItem, arg: {syn:this.inventoryVersion, 'god': this.gold} }].concat(ret)}
     else
       return { ret: RET_Unknown }
