@@ -113,8 +113,8 @@ exports.getMercenaryMember = (names, rangeFrom, rangeTo, count, handler) ->
     trys = 30
     while selector.length <= 0 and trys > 0
       selector = list.filter( (e) -> return e <= rangeTo and e >= rangeFrom; )
-      rangeFrom -= 30
-      rangeTo += 30
+      rangeFrom -= 300
+      rangeTo += 300
       trys -= 1
     return selector
   doFindMercenary = (list, cb) ->

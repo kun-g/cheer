@@ -714,19 +714,13 @@ class Player extends DBWrapper
             return { ret: RET_OK, ntf: ret.concat(prize) }
           when ItemUse_TreasureChest
             return { ret: RET_NoKey } if item.dropKey? and not @haveItem(item.dropKey)
-            dropData = queryTable(TABLE_DROP, item.dropId, @abIndex)
-            unless dropData? and dropData.dropList
-              logError({'action': 'useItem', type: 'TreasureChest', reason: 'invalidDropData', id: item.id})
-              return { ret: RET_Unknown }
-            e = selectElementFromWeightArray(dropData.dropList, Math.random())
-            prize = @claimPrize(e.drop)
+            prz = helperLib.generatePrize(queryTable(TABLE_DROP), [item.dropId])
+            prize = @claimPrize(prz)
             return { ret: RET_InventoryFull } unless prize
             @log('openTreasureChest', {type: 'TreasureChest', id: item.id, prize: prize, drop: e.drop})
             ret = prize.concat(@removeItem(null, 1, slot))
             ret = ret.concat(this.removeItemById(item.dropKey, 1, true)) if item.dropKey?
-            if e.drop.type is PRIZETYPE_ITEM and queryTable(TABLE_ITEM, e.drop.value, @abIndex)?.quality >= 2
-              dbLib.broadcastEvent(BROADCAST_TREASURE_CHEST, {who: @name, src: item.id, out: e.drop.value})
-            return {prize: [e.drop], res: ret}
+            return {prize: [prz], res: ret}
           when ItemUse_Function
             ret = @removeItem(null, 1, slot)
             switch item.function
