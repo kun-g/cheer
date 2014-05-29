@@ -122,6 +122,7 @@ createUnits = (rules, randFunc) ->
       idList.forEach( (c) ->
         u = {}
         u[k] = v for k, v of c
+        u.count = count
         if r.pos
           if typeof r.pos is 'number' then u.pos = r.pos
           if Array.isArray(r.pos) then u.pos = selectPos(r.pos, lConfig)

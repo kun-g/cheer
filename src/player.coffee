@@ -1069,7 +1069,7 @@ class Player extends DBWrapper
   getCampaignState: (campaignName) ->
     return null unless @campaignState
     if not @campaignState[campaignName]?
-      if campaignName is 'Charge'
+      if campaignName is 'Charge' or campaignName is 'DuanwuCharge'
         @campaignState.newProperty(campaignName, {})
       else
         @campaignState.newProperty(campaignName, 0)
@@ -1110,6 +1110,16 @@ class Player extends DBWrapper
             reward.push({cfg: config, lv: o})
             state[rmb] = true
             @setCampaignState('Charge', state)
+
+        { config, level } = @getCampaignConfig('DuanwuCharge')
+        if config? and level?
+          rmb = data
+          state = @getCampaignState('DuanwuCharge')
+          o = level[rmb]
+          if not state[rmb] and o?
+            reward.push({cfg: config, lv: o})
+            state[rmb] = true
+            @setCampaignState('DuanwuCharge', state)
 
         { config, level } = @getCampaignConfig('TotalCharge')
         if config? and level? and @rmb >= level.count
