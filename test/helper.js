@@ -219,7 +219,7 @@ describe('Campaign', function () {
           );
       },
       canReset: function (obj, util) {
-        return (!util.sameDay(obj.timestamp.robbers, util.today) &&
+        return (util.diffDay(obj.timestamp.robbers, util.today) &&
           util.today.hour() >= 8);
       },
       reset: function (obj, util) {
@@ -239,7 +239,7 @@ describe('Campaign', function () {
               util.today.weekday() === 0 );
       },
       canReset: function (obj, util) {
-        return !util.sameDay(obj.timestamp.weapon, util.today);
+        return util.diffDay(obj.timestamp.weapon, util.today);
       },
       reset: function (obj, util) {
         obj.timestamp.weapon = util.currentTime();
@@ -259,7 +259,7 @@ describe('Campaign', function () {
               util.today.weekday() === 0 );
       },
       canReset: function (obj, util) {
-        return !util.sameDay(obj.timestamp.enhance, util.today);
+        return util.diffDay(obj.timestamp.enhance, util.today);
       },
       reset: function (obj, util) {
         obj.timestamp.enhance = util.currentTime();

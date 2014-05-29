@@ -213,6 +213,7 @@ initDailyEvent = (me, key, e) ->
     me.attrSave(key, true)
   if e.daily
     if not me[key].date or diffDate(me[key].date, currentTime()) isnt 0
+      e.quest.forEach( (q) -> delete me.quests[q])
       me[key].newProperty('status', 'Init')
       me[key].newProperty('date', currentTime())
       if key is 'event_daily'
@@ -340,6 +341,42 @@ exports.events = {
         obj.timestamp.newProperty('goblin', util.currentTime())
         obj.counters.newProperty('goblin', 0)
     },
+
+    weapon: {
+      storeType: "player",
+      id: 1,
+      actived: 1,
+      count: 3,
+      canReset: (obj, util) ->
+        return (util.today.hour() >= 8) and (
+          util.today.weekday is 1 or
+          util.today.weekday is 3 or
+          util.today.weekday is 5 or
+          util.today.weekday is 0
+        )
+      ,
+      reset: (obj, util) ->
+        obj.timestamp.newProperty('weapon', util.currentTime())
+        obj.counters.newProperty('weapon', 0)
+    },
+    enhance: {
+      storeType: "player",
+      id: 2,
+      actived: 1,
+      count: 3,
+      canReset: (obj, util) ->
+        return (util.today.hour() >= 8) and (
+          util.today.weekday is 2 or
+          util.today.weekday is 4 or
+          util.today.weekday is 6 or
+          util.today.weekday is 0
+        )
+      ,
+      reset: (obj, util) ->
+        obj.timestamp.newProperty('enhance', util.currentTime())
+        obj.counters.newProperty('enhance', 0)
+    },
+
     monthCard: {
       storeType: "player",
       actived: (obj, util) -> return obj.flags.monthCard, #TODO:count control
@@ -349,7 +386,6 @@ exports.events = {
       ,
       reset: (obj, util) ->
         obj.timestamp.newProperty('monthCard', util.currentTime())
-        obj.counters.newProperty('monthCard', 0)
     },
 #   event_robbers: {
 #     storeType: "player",

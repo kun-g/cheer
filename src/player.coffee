@@ -127,7 +127,6 @@ class Player extends DBWrapper
           if cfg[item.id]
             p = cfg[item.id].filter((e) => isClassMatch(@hero.class, e.classLimit))
             item.id = p[0].value
-            console.log(item.id)
           enhanceID = queryTable(TABLE_ITEM, item.id).enhanceID
           if enhanceID? and lv >= 0 then item.enhancement = [{id: enhanceID, level: lv}]
           continue
@@ -171,12 +170,12 @@ class Player extends DBWrapper
         s.level = 0
 
     flag = true
-    if @loginStreak.date
+    if @loginStreak.date and diffDate(@loginStreak.date, 'month') is 0
       dis = diffDate(@loginStreak.date)
       if dis is 0
         flag = false
-      else if dis > 1
-        @loginStreak.count = 0
+      else
+        @loginStreak.count += 1
     else
       @loginStreak.count = 0
 
@@ -184,6 +183,19 @@ class Player extends DBWrapper
     @onCampaign('RMB')
 
     ret = [{NTF:Event_CampaignLoginStreak, day: @loginStreak.count, claim: flag}]
+
+    itemsNeedRemove = @inventory.filter(
+      (item) ->
+        return false unless item?.expiration?
+        return true unless item.date?
+        return helperLib.currentTime(true).valueOf() > item.date + item.expiration.day * 24*60*60
+    )
+    rmMSG = itemsNeedRemove.map( (e) =>
+      return @removeItem(null, null, @queryItemSlot(e))
+    )
+
+    ret = ret.concat(rmMSG)
+
     return ret
 
   claimLoginReward: () ->
@@ -192,14 +204,12 @@ class Player extends DBWrapper
       if dis is 0
         @logError('claimLoginReward', {prev: @loginStreak.date, today: currentTime()})
         return {ret: RET_Unknown}
-    @loginStreak.date = currentTime(true).valueOf()
+    @loginStreak.newProperty('date', currentTime(true).valueOf())
     @log('claimLoginReward', {loginStreak: @loginStreak.count, date: currentTime()})
 
-    reward = queryTable(TABLE_CAMPAIGN, 'LoginStreak', @abIndex).level[@loginStreak.count].award
-    ret = @claimPrize(reward)
-    @loginStreak.count +=   1
-    # TODO: 这个会导致重新登录之后玩家今日奖励变第一天
-    @loginStreak.count = 0 if @loginStreak.count >= queryTable(TABLE_CAMPAIGN, 'LoginStreak').level.length
+    reward = queryTable(TABLE_DP)[@loginStreak.count].prize
+    ret = @claimPrize(reward.filter((e) => not e.vip or @vipLevel() > e.vip ))
+    @loginStreak.count = 0 if @loginStreak.count >= queryTable(TABLE_DP).length
  
     return {ret: RET_OK, res: ret}
 
@@ -382,7 +392,7 @@ class Player extends DBWrapper
   addHeroExp: (point) ->
     if point
       prevLevel = @createHero().level
-      @hero.xp += point
+      @hero.xp = Math.floor(@hero.xp+point)
       currentLevel = @createHero().level
       @notify('heroxpChanged', {
         xp: @hero.xp,
@@ -841,7 +851,7 @@ class Player extends DBWrapper
   
     @onEvent('Equipment')
 
-    if level >= 20
+    if level >= 32
       dbLib.broadcastEvent(BROADCAST_ENHANCE, {who: @name, what: equip.id, many: level})
   
     eh = equip.enhancement.map((e) -> {id:e.id, lv:e.level})
@@ -956,7 +966,7 @@ class Player extends DBWrapper
         src : MESSAGE_REWARD_TYPE_OFFLINE,
         prize : offlineReward
       }
-      dungeon.team.forEach((m) ->
+      dungeon.team.filter((m) => m.nam != @name).forEach((m) ->
         if m then dbLib.deliverMessage(m.nam, teammateRewardMessage)
       )
   
@@ -1578,6 +1588,9 @@ playerCSConfig = {
     callback: (env) ->
       count = env.variable('count') ? 1
       item = createItem(env.variable('item'))
+      if item.expiration
+        item.date = helperLib.currentTime(true).valueOf()
+        item.attrSave('date')
       return showMeTheStack() unless item?
 
       ret = env.player.inventory.add(item, count, env.variable('allorfail'))

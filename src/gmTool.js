@@ -75,7 +75,8 @@ dbLib.initializeDB({
   "Publisher": { "IP": ip, "PORT": port},
   "Subscriber": { "IP": ip, "PORT": port}
 });
-initGlobalConfig(null, function () {
+
+function syncItem() {
   require('./helper').initLeaderboard(queryTable(TABLE_LEADBOARD));
   initServer();
   gServerID = -1;
@@ -116,6 +117,74 @@ initGlobalConfig(null, function () {
         }
       }, function(err) {console.log('Done', err);});
   });
+}
+
+xwrapReceipt = function(receipt) {
+  var x = receipt.split('@');
+  var id = x[0];
+      productID = x[1];
+      serverID = x[2];
+      time = x[3];
+      tunnel = x[4];
+  return {
+    id: id,
+    serverID: +serverID,
+    time: +time,
+    productID: +productID,
+    tunnel: tunnel
+  };
+};
+
+function loadReceipt () {
+  require('./globals');
+  list = [
+  ];
+  moment = require('moment');
+  var paymentDB = {};
+  function pushPayment(db, month, pay) {
+    if (!db[month]) db[month] = [];
+    db[month].push(pay);
+  }
+  function wrapReceipt(id, productID, server, time, tunnel) {
+    function pad (num, n) { while (num.length < n) num = '0'+num; return num; }
+    id = pad(id.toString(), 8);
+    productID = pad(productID.toString(), 2);
+    server = pad(server.toString(), 2);
+    return id+productID+server+time+tunnel;
+  }
+  list.forEach( function (e) {
+    var x = unwrapReceipt(e);
+    if (x.productID < 10) {
+    } else {
+      x = xwrapReceipt(e);
+      if (x.tunnel == null) x.tunnel = 'APP111';
+      dbClient.hget('Master.player.'+x.id, 'accountID', function (err, id) { console.log(wrapReceipt(id, x.productID, x.serverID, x.time, x.tunnel)); });
+    }
+    var time = moment(x.time*1000);
+    var rmb = queryTable(TABLE_CONFIG, 'Product_List')[x.productID].rmb;
+    pushPayment(paymentDB, time.format('MM'), {rmb: rmb, tunnel: x.tunnel});
+    //if (time.format('MM') < 8) console.log(x.time, rmb, e, x.tunnel);
+  });
+  for (var k in paymentDB) {
+    paymentDB[k] =
+      paymentDB[k].reduce(
+          function (r, e) {
+            if (!r[e.tunnel]) r[e.tunnel] = 0;
+            r[e.tunnel] += e.rmb;
+            return r;
+          },
+          {}
+        );
+      }
+  //console.log(paymentDB);
+  //accountDBClient.keys('Receipt.*', function (err, list) {
+  //  console.log(list);
+  //  //list.forEach( function (e) { console.log(unwrapReceipt(e)); } );
+  //});
+}
+
+initGlobalConfig(null, function () {
+  loadReceipt ();
 });
 //async.map(players, function (playerName, cb) {
 //  dbLib.deliverMessage(playerName, rewardMessage, cb);

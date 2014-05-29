@@ -74,6 +74,7 @@ createUnits = (rules, randFunc) ->
     return r
   
   translateRule = (cRule) ->
+    return [] unless cRule
     return cRule.map( (r) ->
       return r unless r.from? or r.to?
       currentRule = {}
@@ -85,15 +86,14 @@ createUnits = (rules, randFunc) ->
     )
 
   levelRule = []
-  levelRule.push(translateRule(l)) for l in rules.levels
+  levelRule.push(translateRule(l.objects)) for l in rules.levels
   globalRule = translateRule(rules.global)
 
   levelConfig = []
   for i, l of levelRule
-    cfg = {id: i, total: 0, limit: Infinity, property: {}, takenPos:{}}
-    for r in l when not r.id?
+    cfg = {id: i, total: 0, limit: Infinity, takenPos:{}}
+    for r in l when not (r.id? or r.pool?)
       if r.count? then cfg.limit = r.count
-      if r.property then cfg.property = r.property
     levelConfig.push(cfg)
 
   selectFromPool = (poolID, count) ->
@@ -107,24 +107,25 @@ createUnits = (rules, randFunc) ->
     if pos.length > 0 then return pos[rand()%pos.length]
     return -1
 
-  placeUnit = (lRule, lConfig) ->
+  placeUnit = (lRule, lConfig, single) ->
     result = []
     for r in lRule when r.id? or r.pool?
       count = r.count ? 1
+      if single then count = 1
       if count + lConfig.total > lConfig.limit
         count = lConfig.total-lConfig.limit + count
-      break if count <= 0
+      continue if count <= 0
       if r.id? then idList = [r]
       if r.pool?
         idList = selectFromPool(r.pool, count)
         count = 1
       idList.forEach( (c) ->
-        u = {id: c.id, property: {}, count: count}
+        u = {}
+        u[k] = v for k, v of c
         if r.pos
           if typeof r.pos is 'number' then u.pos = r.pos
           if Array.isArray(r.pos) then u.pos = selectPos(r.pos, lConfig)
-        u.property[k] = v for k, v of lConfig.property
-        if r.property then u.property[k] = v for k, v of r.property
+          lConfig.takenPos[r.pos] = true
         lConfig.total += count
         result.push(u)
       )
@@ -134,12 +135,19 @@ createUnits = (rules, randFunc) ->
   result.push(placeUnit(l, levelConfig[i])) for i, l of levelRule
 
   for rule in globalRule
-    cfg = levelConfig.filter( (c) -> c.total < c.limit )
-    if rule.levels?.from? then cfg = cfg.filter( (c) -> c.id > rule.levels.from )
-    if rule.levels?.to? then cfg = cfg.filter( (c) -> c.id < rule.levels.to )
-    if cfg.length <= 0 then continue
-    cfg = cfg[rand()%cfg.length]
-    result[cfg.id] = result[cfg.id].concat(placeUnit([rule], cfg))
+    i = 0
+    filterLevels = () ->
+      cfg = levelConfig.filter( (c) -> c.total < c.limit )
+      if rule.levels?.from? then cfg = cfg.filter( (c) -> c.id > rule.levels.from )
+      if rule.levels?.to? then cfg = cfg.filter( (c) -> c.id < rule.levels.to )
+      return cfg
+
+    while i < rule.count
+      cfg = filterLevels()
+      if cfg.length <= 0 then break
+      cfg = cfg[rand()%cfg.length]
+      result[cfg.id] = result[cfg.id].concat(placeUnit([rule], cfg, true))
+      i++
 
   return result
 
@@ -216,6 +224,23 @@ class Dungeon
       else
         @goldRate = 1.1
         @xpRate *= 1.1
+
+    creation = createUnits(cfg, () => @rand())
+    arrCollectID = []
+    quests = if @quests? then @quests else []
+    for qid, qst of quests
+      q = queryTable(TABLE_QUEST, qid, @abIndex)
+      arrCollectID.push(o.collect) for o in q.objects
+    @unitCreation = creation.map(
+      (level) ->
+        return level.filter(
+          (e) ->
+            if e.questOnly
+              return arrCollectID.indexOf(e.collectId) != -1
+            else
+              return true
+        )
+    )
 
     @initiateHeroes(@team)
     @nextLevel()
@@ -421,20 +446,12 @@ class Dungeon
     cfg = @getConfig()
     if @currentLevel < cfg.levelCount
       lvConfig = cfg.levels[@currentLevel]
-
-      soldierPool = if cfg.soldierPool? then cfg.soldierPool else null
-      elitePool = if cfg.elitePool? then cfg.elitePool else null
-      bossPool = if cfg.bossPool? then cfg.bossPool else null
-      goodPool = if cfg.goodPool? then cfg.goodPool else null
-      badPool = if cfg.badPool? then cfg.badPool else null
-      normalPool = if cfg.normalPool? then cfg.normalPool else null
       @level = new Level()
       @level.rand = (r) => @rand(r)
       @level.random = (r) => @random(r)
       Object.defineProperty(@level, 'random', {enumerable:false})
       Object.defineProperty(@level, 'rand', {enumerable:false})
-      quest = if @quests? then @quests else []
-      @level.init(lvConfig, @baseRank, @getHeroes(), quest, {soldier: soldierPool, elite: elitePool, boss: bossPool, good: goodPool, bad: badPool, normal: normalPool})
+      @level.init(lvConfig, @baseRank, @getHeroes(), @unitCreation[@currentLevel])
 
 exports.Dungeon = Dungeon
 #////////////////////// Block
@@ -469,13 +486,13 @@ class Level
     @objects = []
     @ref =  HEROTAG
 
-  init: (lvConfig, baseRank, heroes, quests, pool) ->
+  init: (lvConfig, baseRank, heroes, objectConfig) ->
     @objects = @objects.concat(heroes)
     @rank = baseRank
     @rank += lvConfig.rank if lvConfig.rank?
     @generateBlockLayout(lvConfig)
     @setupEnterAndExit(lvConfig)
-    @placeMapObjects(lvConfig, quests, pool)
+    @placeMapObjects(objectConfig)
 
     return @entrance
 
@@ -601,57 +618,12 @@ class Level
       pos = indexes.splice(@rand() % indexes.length, 1)[0]
       @createObject(id, pos, keyed, collectId)
 
-  placeMapObjects: (config, quests, pool) ->
-    return false unless config?
-
-    objectConfig = []
-    if config.objects?
-      objectConfig = config.objects.filter( (o) ->
-        if o.questOnly
-          ret = false
-          for qid, qst of quests
-            q = queryTable(TABLE_QUEST, qid, @abIndex)
-            ret = q.objects.reduce( ((r, l) -> r or l.collect is o.collectId), false )
-            if ret then return ret
-          return false
-        else
-          return true
-      )
-    monsterCount = objectConfig.reduce( ((r, l) ->
-      count = 1
-      count = l.count if l.count?
-      r.boss += count if l.boss?
-      r.elite += count if l.elite?
-      r.soldier += count if l.soldier?
-      r.normal += count if l.normal?
-      return r), {soldier: 0, elite: 0, boss: 0, normal: 0})
-
-    that = this
-    fillupMonster = (cfg) ->
-      if config[cfg.targetCounter] and monsterCount[cfg.counter] < config[cfg.targetCounter]
-        for i in [monsterCount[cfg.counter]..config[cfg.targetCounter]]
-          m = selectElementFromWeightArray(pool[cfg.pool], that.rand())
-          objectConfig.push({id:m.id, count:1, collectId:m.collectId, keyed: cfg.keyed})
-          monsterCount[cfg.counter] += 1
-
-    monsterConfig = [
-      {counter: 'soldier', targetCounter: 'soldierCount', pool: 'soldier', keyed: false},
-      {counter: 'good', targetCounter: 'goodCount', pool: 'good', keyed: false},
-      {counter: 'bad', targetCounter: 'badCount', pool: 'bad', keyed: false},
-      {counter: 'normal', targetCounter: 'normalCount', pool: 'normal', keyed: false},
-      {counter: 'elite', targetCounter: 'eliteCount', pool: 'elite', keyed: true},
-      {counter: 'boss', targetCounter: 'bossCount', pool: 'boss', keyed: true}
-    ]
-    #createUnits 
-
-    fillupMonster(c) for c in monsterConfig
-
-    for o in objectConfig
-      if o.pos?
-        @createObject(o.id, o.pos, o.keyed, o.collectId)
-    for o in objectConfig
-      if not o.pos?
-        @placeObjects(o.id, o.count ? 1, o.keyed, o.collectId)
+  placeMapObjects: (cfg) ->
+    return false unless cfg?
+    for o in cfg when o.pos?
+      @createObject(o.id, o.pos, o.keyed, o.collectId)
+    for o in cfg when not o.pos?
+      @placeObjects(o.id, o.count ? 1, o.keyed, o.collectId)
 
   getMonsters: () -> @objects.filter( (e) -> e.isMonster() )
 
@@ -747,6 +719,8 @@ class DungeonEnvironment extends Environment
     if flag? then return factionDB[src][tar][flag]
     return factionDB[src][tar][flag]
 
+  isLevelInitialized: () -> @dungeon.level.initialized
+  levelInitialized: () -> @dungeon.level.initialized = true
   isEntranceExplored: () ->
     entrance = @dungeon.getEntrance()
     if Array.isArray(entrance)
@@ -948,22 +922,30 @@ dungeonCSConfig = {
     callback: (env) ->
       entrance = env.getEntrance()
       env.onEvent('onEnterLevel', @)
-      if Array.isArray(entrance)
-        newPosition = entrance
-        for i in [newPosition.length..env.getHeroes().length-1]
-          newPosition.push( entrance[0] )
-      else
-        newPosition = [entrance, entrance, entrance]
-      if env.isEntranceExplored()
+      if env.isLevelInitialized()
         @routine({id: 'OpenBlock', block: e}) for e in [0..DG_BLOCKCOUNT-1] when env.getBlock(e).explored
       else
+        env.levelInitialized()
         if Array.isArray(entrance)
-          @routine({id: 'ExploreBlock', block: e, positions: entrance}) for e in entrance
+          if not env.isEntranceExplored()
+            @routine({id: 'ExploreBlock', block: e, positions: entrance}) for e in entrance
+          else
+            @routine({id: 'OpenBlock', block: e}) for e in entrance
         else
-          @routine({id: 'ExploreBlock', block: entrance})
-      env.moveHeroes(newPosition)
+          if not env.isEntranceExplored()
+            @routine({id: 'ExploreBlock', block: entrance})
+          else
+            @routine({id: 'OpenBlock', block: entrance})
 
-      monster.onEvent('onEnterLevel', @) for monster in env.getMonsters()
+        if Array.isArray(entrance)
+          newPosition = entrance
+          for i in [newPosition.length..env.getHeroes().length-1]
+            newPosition.push( entrance[0] )
+        else
+          newPosition = [entrance, entrance, entrance]
+        env.moveHeroes(newPosition)
+
+        monster.onEvent('onEnterLevel', @) for monster in env.getMonsters()
 
       @routine({id: 'TickSpell'})
     ,
