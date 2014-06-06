@@ -80,8 +80,13 @@ createUnits = (rules, randFunc) ->
       currentRule = {}
       for k, v of r when k isnt 'from' and k isnt 'to'
         currentRule[k] = v
-      if r.from? then currentRule.count = r.from + rand()
-      if r.to? then currentRule.count %= r.to
+      if r.from? or r.to?
+        if r.from? and r.to?
+          currentRule.count = r.from + rand() % (r.to - r.from+1)
+        else if r.from?
+          currentRule.count = r.from + rand()
+        else
+          currentRule.count %= r.to+1
       return currentRule
     )
 

@@ -920,7 +920,7 @@ class Player extends DBWrapper
         else
           prize.push(iPrize)
   
-    return prize.concat()
+    return prize
 
   claimDungeonAward: (dungeon) ->
     return [] unless dungeon?
