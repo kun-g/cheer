@@ -342,39 +342,40 @@ exports.events = {
         obj.counters.newProperty('goblin', 0)
     },
 
-    weapon: {
+    enhance: {
       storeType: "player",
       id: 1,
       actived: 1,
       count: 3,
       canReset: (obj, util) ->
-        return (util.today.hour() >= 8) and (
-          util.today.weekday is 1 or
-          util.today.weekday is 3 or
-          util.today.weekday is 5 or
-          util.today.weekday is 0
-        )
-      ,
-      reset: (obj, util) ->
-        obj.timestamp.newProperty('weapon', util.currentTime())
-        obj.counters.newProperty('weapon', 0)
-    },
-    enhance: {
-      storeType: "player",
-      id: 2,
-      actived: 1,
-      count: 3,
-      canReset: (obj, util) ->
-        return (util.today.hour() >= 8) and (
-          util.today.weekday is 2 or
-          util.today.weekday is 4 or
-          util.today.weekday is 6 or
-          util.today.weekday is 0
+        return (util.today.hour() >= 8 and util.diffDay(obj.timestamp.enhance, util.today)) and (
+          util.today.weekday() is 2 or
+          util.today.weekday() is 4 or
+          util.today.weekday() is 6 or
+          util.today.weekday() is 0
         )
       ,
       reset: (obj, util) ->
         obj.timestamp.newProperty('enhance', util.currentTime())
         obj.counters.newProperty('enhance', 0)
+    },
+
+    weapon: {
+      storeType: "player",
+      id: 2,
+      actived: 1,
+      count: 3,
+      canReset: (obj, util) ->
+        return (util.today.hour() >= 8 && util.diffDay(obj.timestamp.weapon, util.today)) and (
+          util.today.weekday() is 1 or
+          util.today.weekday() is 3 or
+          util.today.weekday() is 5 or
+          util.today.weekday() is 0
+        )
+      ,
+      reset: (obj, util) ->
+        obj.timestamp.newProperty('weapon', util.currentTime())
+        obj.counters.newProperty('weapon', 0)
     },
 
     monthCard: {

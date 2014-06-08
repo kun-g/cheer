@@ -720,7 +720,7 @@ class Player extends DBWrapper
             @log('openTreasureChest', {type: 'TreasureChest', id: item.id, prize: prize, drop: e.drop})
             ret = prize.concat(@removeItem(null, 1, slot))
             ret = ret.concat(this.removeItemById(item.dropKey, 1, true)) if item.dropKey?
-            return {prize: [prz], res: ret}
+            return {prize: prz, res: ret}
           when ItemUse_Function
             ret = @removeItem(null, 1, slot)
             switch item.function
@@ -1495,6 +1495,9 @@ class Player extends DBWrapper
       NTF: Event_UpdateFlags,
       arg: arg
     }
+
+  syncCounters: (forceUpdate) ->
+    return []
 
   syncQuest: (forceUpdate) ->
     ret = packQuestEvent(@quests, null, this.questVersion)

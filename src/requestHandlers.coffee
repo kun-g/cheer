@@ -297,6 +297,7 @@ exports.route = {
   RPC_GameStartDungeon: {
     id: 1,
     func: (arg, player, handler, rpcID, socket) ->
+      player.dungeonData = {}
       player.startDungeon(+arg.stg, arg.initialDataOnly, (err, evEnter, extraMsg) ->
         extraMsg = (extraMsg ? []).concat(player.syncEnergy())
         if typeof evEnter is 'number'

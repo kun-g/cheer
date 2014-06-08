@@ -24,30 +24,30 @@ describe('Dungeon', function () {
         },
         global: [
           {id: 1, pos: [1,2,3], from: 0, to: 5},
-          {id: 2, property: {keyed: true}, count: 3},
+          {id: 2, /*property: {keyed: true}, */count: 3},
           {id: 3, count: 3, levels: [0, 1, 3]},
           {pool: 'p2', count: 2, levels:{ from: 3, to: 5}} 
         ],
         levels: [
           { objects: [ {id: 4, from: 2, to: 5} ] },
-          { objects: [ {property: {tag: 1}}, {id: 1, count: 1}, {count: 2} ] },
+          { objects: [ /*{property: {tag: 1}}*/, {id: 1, count: 1}, {count: 2} ] },
           { objects: [ {count: 4} ] },
           { objects: [ {pool: 'p1', from:0, to: 2} ] },
           { objects: [] }
         ]
       }, function () { return 1; });
       r.should.eql([
-        [ { id: 4, property: {}, count: 3 } ],
-        [ { id: 1, property: {tag: 1}, count: 1 },
-          { id: 1, property: {tag: 1}, count: 1, pos: 2 } ],
-        [ { id: 2, property: {keyed: true}, count: 1 },
-          { id: 2, property: {keyed: true}, count: 1 },
-          { id: 2, property: {keyed: true}, count: 1 },
-          { id: 3, property: {}, count: 1 } ],
-        [ { id: 7, property: {}, count: 1 } ],
-        [ { id: 3, property: {}, count: 1 },
-          { id: 3, property: {}, count: 1 },
-          { id: 5, property: {}, count: 1 } ]
+        [ { id: 4, count: 3 } ],
+        [ { id: 1, count: 1 },
+          { id: 1, pos: 2, count: 1 } ],
+        [ { id: 2, count: 1 },
+          { id: 2, count: 1 },
+          { id: 2, count: 1 },
+          { id: 3, count: 1 } ],
+        [ { id: 7, count: 1 } ],
+        [ { id: 3, count: 1 },
+          { id: 3, count: 1 },
+          { id: 5, count: 1 } ]
       ]);
     });
   });
