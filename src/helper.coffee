@@ -191,11 +191,13 @@ initCampaign = (me, allCampaign, abIndex) ->
     if key is 'event_daily'
       ret = ret.concat(initDailyEvent(me, 'event_daily', e))
     else
-      if e.canReset(me, util) then e.reset(me, util)
+      if e.canReset?(me, util) then e.reset(me, util)
       if e.id?
+        actived = e.actived
+        if typeof actived is 'function' then actived = actived(me, util)
         evt = {
           NTF: Event_BountyUpdate,
-          arg: { bid: e.id, sta: e.actived}
+          arg: { bid: e.id, sta: actived}
         }
         count = me.counters[key] ? 0
         if e.count then evt.arg.cnt = e.count - count
@@ -407,75 +409,8 @@ exports.events = {
 
     monthCard: {
       storeType: "player",
-      actived: (obj, util) -> return obj.flags.monthCard, #TODO:count control
-      count: 1,
-      canReset: (obj, util) ->
-        return util.diffDay(obj.timestamp.monthCard, util.today) && util.today.hour() >= 8
-      ,
-      reset: (obj, util) ->
-        obj.timestamp.newProperty('monthCard', util.currentTime())
+      actived: (obj, util) -> return util.diffDay(obj.timestamp.monthCard, util.today)?1:0
     },
-#   event_robbers: {
-#     storeType: "player",
-#     id: 0,
-#     actived: 1,
-#     count: 5,
-#     canReset: (obj, util) ->
-#       return (!util.diffDay(obj.timestamp.robbers, util.today) &&
-#         util.today.hour() >= 8)
-#     ,
-#     reset: (obj, util) ->
-#       obj.timestamp.robbers = util.currentTime()
-#       obj.counters.robbers = 0
-#   },
-#   event_weapon: {
-#     storeType: "player",
-#     id: 1,
-#     actived: 1,
-#     count: 5,
-#     canReset: (obj, util) ->
-#       return !util.diffDay(obj.timestamp.weapon, util.today)
-#     ,
-#     reset: (obj, util) ->
-#       obj.timestamp.weapon = util.currentTime()
-#       obj.counters.weapon = 0
-#     ,
-#     stageID: 1024
-#   },
-#   event_enhance: {
-#     id: 2,
-#     storeType: "player",
-#     actived: 1,
-#     count: 5,
-#     canReset: (obj, util) ->
-#       return !util.diffDay(obj.timestamp.enhance, util.today)
-#     ,
-#     reset: (obj, util) ->
-#       obj.timestamp.enhance = util.currentTime()
-#       obj.counters.enhance = 0
-#     ,
-#     stageID: 1024
-#   }
-#  "event_energy": {
-#    "type": "func",
-#    "storeType": "player",
-#    "condition": { "cdType": "daily", "time": ["0800", "1200", "1800"], "duration": 60 },
-#    "action": {"type": "restoreEnergy"}
-#  },
-#  "event_goldenSlime": {
-#    "type": "randomDungeon",
-#    "storeType": "player",
-#    "accessCount": 5,
-#    "condition": { "cdType": "daily" },
-#    "dungeon": [{"weight": 1, "dungeon": 1}]
-#  },
-#  "globalEvent_classHall": {
-#    "type": "dungeon",
-#    "completeCount": 1000,
-#    "storeType": "global",
-#    "condition": { "cdType": "daily" },
-#    "action": { "type": "setGlobalFlag", "key": "classHall", "value": true}
-#  }
 }
 
 exports.splicePrize = (prize) ->

@@ -211,6 +211,8 @@ LOGIN_ACCOUNT_TYPE_GAMECENTER =  5;
 
 Max_tutorialStage = 3;
 
+MonthCardID = 8;
+
 /*** Quest Status ***/
 QUESTSTATUS_ONGOING = 0;
 QUESTSTATUS_COMPLETE = 1;

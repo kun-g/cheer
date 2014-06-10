@@ -278,6 +278,7 @@ class Player extends DBWrapper
       receipt : myReceipt
     })
     if flag
+      if rec.productID is MonthCardID then @counters.newProperty('monthCard', 30)
       ret = [{ NTF: Event_InventoryUpdateItem, arg: { dim : @addDiamond(cfg.diamond) }}]
       @rmb += cfg.rmb
       @onCampaign('RMB', cfg.rmb)
