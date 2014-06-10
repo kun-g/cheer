@@ -192,12 +192,15 @@ initCampaign = (me, allCampaign, abIndex) ->
       ret = ret.concat(initDailyEvent(me, 'event_daily', e))
     else
       if e.canReset(me, util) then e.reset(me, util)
-      count = me.counters[key] ? 0
       if e.id?
-        ret.push({
+        evt = {
           NTF: Event_BountyUpdate,
-          arg: { bid: e.id, sta: e.actived, cnt: e.count - count}
-        })
+          arg: { bid: e.id, sta: e.actived}
+        }
+        count = me.counters[key] ? 0
+        if e.count then evt.arg.cnt = e.count - count
+        if key is 'hunting' then evt.arg.stg = e.stages[e.stages.length%rand()]
+        ret.push(evt)
   return ret
 
 # campaign
@@ -378,6 +381,30 @@ exports.events = {
         obj.counters.newProperty('weapon', 0)
     },
 
+    infinite: {
+      storeType: "player",
+      id: 3,
+      actived: 1,
+      canReset: (obj, util) ->
+        return (util.today.hour() >= 8 && util.diffDay(obj.timestamp.infinite, util.today))
+      ,
+      reset: (obj, util) ->
+        obj.timestamp.newProperty('infinite', util.currentTime())
+    },
+
+    hunting: {
+      storeType: "player",
+      id: 4,
+      actived: 1,
+      stages: [114, 115, 116],
+      canReset: (obj, util) ->
+        return (util.today.hour() >= 8 && util.diffDay(obj.timestamp.hunting, util.today))
+      ,
+      reset: (obj, util) ->
+        obj.timestamp.newProperty('hunting', util.currentTime())
+        obj.counters.newProperty('monster', 0)
+    },
+
     monthCard: {
       storeType: "player",
       actived: (obj, util) -> return obj.flags.monthCard, #TODO:count control
@@ -455,6 +482,7 @@ exports.splicePrize = (prize) ->
   goldPrize = { type: PRIZETYPE_GOLD, count: 0 }
   xpPrize = { type: PRIZETYPE_EXP, count: 0 }
   wxPrize = { type: PRIZETYPE_WXP, count: 0 }
+  itemFlag = {}
   otherPrize = []
   prize.forEach( (p) ->
     return [] unless p?
@@ -462,6 +490,9 @@ exports.splicePrize = (prize) ->
       when PRIZETYPE_WXP then wxPrize.count += p.count
       when PRIZETYPE_EXP then xpPrize.count += p.count
       when PRIZETYPE_GOLD then goldPrize.count += p.count
+      when PRIZETYPE_ITEM
+        if not itemFlag[p.value] then itemFlag[p.value] = 0
+        itemFlag[p.value] += p.count
       else otherPrize.push(p)
   )
   return {

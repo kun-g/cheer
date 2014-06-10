@@ -122,7 +122,7 @@ lua_queryLeaderboard = " \
   local board, name, from, to = ARGV[1], ARGV[2], ARGV[3], ARGV[4]; \
   local key = prefix..board; \
   local rank = redis.call('ZREVRANK', key, name); \
-  local board = redis.call('zrevrange', key, from, to); \
+  local board = redis.call('zrevrange', key, from, to, 'WITHSCORES'); \
   return {rank, board};";
 
 var lua_fetchMessage = " \

@@ -108,7 +108,6 @@ getBasicInfo = function (hero) {
     hairStyle : 'hst',
     hairColor : 'hcl',
     xp : 'exp',
-    blueStar : 'bst',
     isFriend: 'ifn',
     vipLevel: 'vip'
   };

@@ -438,8 +438,19 @@ exports.route = {
           ret = {REQ: rpcID, RET: RET_OK}
           if arg.me? then ret.me = result.position
           if result.board?
-            async.map(result.board, getPlayerHero, (err, result) ->
-              ret.lst = result.map(getBasicInfo)
+            board = result.board.reduce( ( (r, l, i) ->
+              if i%2 is 0
+                r.name.push(l)
+              else
+                r.score.push(l)
+              return r
+            ), {name: [], score: []})
+            async.map(board.name, getPlayerHero, (err, result) ->
+              ret.lst = result.map( (e, i) ->
+                r = getBasicInfo(e)
+                r.scr = +board.score[i]
+                return r
+              )
               handler([ret])
             )
           else
