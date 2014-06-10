@@ -534,6 +534,7 @@ class Player extends DBWrapper
         }
         @dungeonData.randSeed = rand()
         @dungeonData.baseRank = helperLib.initCalcDungeonBaseRank(@) if stageConfig.event is 'event_daily'
+        if stageConfig.pvp then @dungeonData.PVP_Pool = team.map(createMirrorHero)
         cb('OK')
       ], (err) =>
         msg = []

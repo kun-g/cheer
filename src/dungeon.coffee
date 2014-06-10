@@ -231,6 +231,7 @@ class Dungeon
         @goldRate = 1.1
         @xpRate *= 1.1
 
+    if @PVP_Pool then cfg.pool.PVP = @PVP_Pool
     creation = createUnits(cfg, () => @rand())
     arrCollectID = []
     quests = if @quests? then @quests else []
