@@ -103,7 +103,7 @@ createMirrorHero = function (data) {
   cfg = queryTable(TABLE_ROLE, data.class);
   hero = {
     xp: data.xp,
-    name: dataname,
+    name: data.name,
     class: cfg.transId,
     gender: data.gender,
     hairStyle: data.hairStyle,

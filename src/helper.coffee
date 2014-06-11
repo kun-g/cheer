@@ -127,6 +127,8 @@ exports.initLeaderboard = (config) ->
     cfg = localConfig[board]
     if cfg.resetTime and matchDate(srvCfg[cfg.name], currentTime(), cfg.resetTime)
       require('./dbWrapper').removeLeaderboard(cfg.name, cb)
+      srvCfg[cfg.name] = currentTime()
+      dbLib.setServerConfig('Leaderboard', JSON.stringify(srvCfg))
 
   exports.getPositionOnLeaderboard = (board, name, from, to, cb) ->
     tickLeaderboard(board)
@@ -201,7 +203,9 @@ initCampaign = (me, allCampaign, abIndex) ->
         }
         count = me.counters[key] ? 0
         if e.count then evt.arg.cnt = e.count - count
-        if key is 'hunting' then evt.arg.stg = e.stages[e.stages.length%rand()]
+        if key is 'hunting'
+          console.log(rand()%e.stages.length, e.stages.length)
+          evt.arg.stg = e.stages[rand()%e.stages.length]
         ret.push(evt)
   return ret
 
@@ -430,6 +434,8 @@ exports.splicePrize = (prize) ->
         itemFlag[p.value] += p.count
       else otherPrize.push(p)
   )
+  for id, count of itemFlag
+    otherPrize.push({ type: PRIZETYPE_ITEM, value: +id, count: + count})
   return {
     goldPrize: goldPrize,
     xpPrize: xpPrize,

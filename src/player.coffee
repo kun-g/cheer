@@ -534,7 +534,7 @@ class Player extends DBWrapper
         }
         @dungeonData.randSeed = rand()
         @dungeonData.baseRank = helperLib.initCalcDungeonBaseRank(@) if stageConfig.event is 'event_daily'
-        if stageConfig.pvp then @dungeonData.PVP_Pool = team.map(createMirrorHero)
+        if stageConfig.pvp then @dungeonData.PVP_Pool = team
         cb('OK')
       ], (err) =>
         msg = []
@@ -973,7 +973,7 @@ class Player extends DBWrapper
     otherPrize.push(xpPrize)
     otherPrize.push(wxPrize)
     prize = otherPrize.filter( (e) -> return not ( e.count? and e.count is 0 ) )
-    if prize.length > 0 then rewardMessage.arg.prize = prize
+    if prize.length > 0 then rewardMessage.arg.prize = prize.filter((f) -> f.type isnt  PRIZETYPE_FUNCTION)
     ret = ret.concat(this.claimPrize(prize, false))
 
     @log('finishDungeon', { stage: dungeon.getInitialData().stage, result: result, reward: prize })
