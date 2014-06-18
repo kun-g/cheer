@@ -177,6 +177,20 @@ var lua_fetchMessage = " \
     return '[]'; \
   end";
 
+var lua_searchRival =" \
+  local board, name, from, to = ARGV[1], ARGV[2], ARGV[3], ARGV[4]; \
+  local config ={{0.95,0.02},{0.85,0.03},{0.50,0.05}}
+  local key = prefix..board; \
+  local rank = redis.call('ZREVRANK', key, name); \
+  local rivalLst ={} 
+  for i,scope in ipairs(config) do
+    local from = math.floor(rank * (scope[1] - scope[2]));
+    local from = math.floor(rank * (scope[1] + scope[2]));
+    rivalLst[i] = redis.call('zrevrange', key, from, to, 'WITHSCORES'); \
+  end
+  return {rivalLst};";
+
+
 exports.updateSessionInfo = function (session, obj, handler) {
   dbClient.hmset(makeDBKey([sessionPrefix, session]), obj, handler);
 };
@@ -464,6 +478,21 @@ exports.initializeDB = function (cfg) {
     exports.fetchMessage = function (name, handler) {
       dbClient.evalsha(sha, 0, dbPrefix, name, function (err, ret) {
         if (handler) { handler(err, JSON.parse(ret)); }
+      });
+    };
+  });
+  dbClient.script('load',lua_searchRival, function (err, sha) {
+    exports.searchRival = function (name, handler) {
+      dbClient.evalsha(sha, 0, dbPrefix, name, function (err, ret) {
+        if (!err) {
+          var result = JSON.parse(ret);
+          for (var k = 1; k < results.length; k++) {
+            var v = results[k];
+            ret[k]=v[Math.random(v.length)]; 
+          }
+          //  acc.salt = Math.random();
+        }
+        if (handler) { handler(err, ret); }
       });
     };
   });
