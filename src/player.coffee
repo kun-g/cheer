@@ -170,9 +170,8 @@ class Player extends DBWrapper
         s.level = 0
 
     flag = true
-    if @loginStreak.date and diffDate(@loginStreak.date, 'month') is 0
-      dis = diffDate(@loginStreak.date)
-      if dis is 0
+    if @loginStreak.date and moment().isSame(@loginStreak.date, 'month')
+      if moment().isSame(@loginStreak.date, 'day')
         flag = false
       else
         @loginStreak.count += 1
@@ -188,7 +187,8 @@ class Player extends DBWrapper
       (item) ->
         return false unless item?.expiration?
         return true unless item.date?
-        return helperLib.currentTime(true).valueOf() > item.date + item.expiration.day * 24*60*60
+        console.log(helperLib.matchDate(item.date, helperLib.currentTime(), item.expiration))
+        return helperLib.matchDate(item.date, helperLib.currentTime(), item.expiration)
     )
     rmMSG = itemsNeedRemove.map( (e) =>
       return @removeItem(null, null, @queryItemSlot(e))
@@ -208,7 +208,7 @@ class Player extends DBWrapper
     @log('claimLoginReward', {loginStreak: @loginStreak.count, date: currentTime()})
 
     reward = queryTable(TABLE_DP)[@loginStreak.count].prize
-    ret = @claimPrize(reward.filter((e) => not e.vip or @vipLevel() > e.vip ))
+    ret = @claimPrize(reward.filter((e) => not e.vip or @vipLevel() >= e.vip ))
     @loginStreak.count = 0 if @loginStreak.count >= queryTable(TABLE_DP).length
  
     return {ret: RET_OK, res: ret}
@@ -278,11 +278,13 @@ class Player extends DBWrapper
       receipt : myReceipt
     })
     if flag
-      if rec.productID is MonthCardID then @counters.newProperty('monthCard', 30)
       ret = [{ NTF: Event_InventoryUpdateItem, arg: { dim : @addDiamond(cfg.diamond) }}]
+      if rec.productID is MonthCardID
+        @counters.newProperty('monthCard', 30)
+        ret = ret.concat(@syncEvent())
       @rmb += cfg.rmb
       @onCampaign('RMB', cfg.rmb)
-      ret.push({NTF: Event_PlayerInfo, arg: { rmb: @rmb }})
+      ret.push({NTF: Event_PlayerInfo, arg: { rmb: @rmb, mcc: @counters.monthCard}})
       ret.push({NTF: Event_RoleUpdate, arg: { act: {vip: @vipLevel()}}})
       postPaymentInfo(@createHero().level, myReceipt, payment.paymentType)
       @saveDB()
@@ -428,6 +430,8 @@ class Player extends DBWrapper
   saveDB: (handler) -> @save(handler)
 
   stageIsUnlockable: (stage) ->
+    #TODO
+    return true
     stageConfig = queryTable(TABLE_STAGE, stage, @abIndex)
     if stageConfig.condition then return stageConfig.condition(this, genUtil())
     if stageConfig.event
@@ -534,7 +538,7 @@ class Player extends DBWrapper
         }
         @dungeonData.randSeed = rand()
         @dungeonData.baseRank = helperLib.initCalcDungeonBaseRank(@) if stageConfig.event is 'event_daily'
-        if stageConfig.pvp then @dungeonData.PVP_Pool = team
+        if stageConfig.pvp then @dungeonData.PVP_Pool = team.map(getBasicInfo)
         cb('OK')
       ], (err) =>
         msg = []
@@ -564,7 +568,6 @@ class Player extends DBWrapper
     @onEvent('item')
 
     return packQuestEvent(@quests, qid, @questVersion)
-
 
   rearragenPrize: (prize) ->
     prize = [prize] unless Array.isArray(prize)
@@ -1410,6 +1413,9 @@ class Player extends DBWrapper
         if e.enhancement
           ret.eh = e.enhancement.map((e) -> {id:e.id, lv:e.level})
 
+        if e.date
+          ret.ts = e.date
+
         return ret
       )).filter((e) -> e!=null)
 
@@ -1585,7 +1591,12 @@ playerCSConfig = {
     output: (env) ->
       ret = env.variable('ret')
       return [] unless ret and ret.length > 0
-      items = ({sid: Number(e.slot), cid: e.id, stc: e.count} for e in ret)
+      items = ret.map( (e) ->
+        item = env.player.getItemAt(e.slot)
+        evt = {sid: Number(e.slot), cid: e.id, stc: e.count}
+        if item?.date then evt.ts = item.date
+        return evt
+      )
       arg = { syn:env.variable('version') }
       arg.itm = items
       return [{NTF: Event_InventoryUpdateItem, arg: arg}]

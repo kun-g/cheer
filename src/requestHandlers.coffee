@@ -122,7 +122,10 @@ exports.route = {
             ev.push(player.syncFlags())
             ev.push({NTF: Event_ABIndex, arg: {ab: +player.abIndex}})
             ev.push({NTF: Event_UpdateStoreInfo, arg: gShop.dump(player)})
-            ev.push({NTF: Event_PlayerInfo, arg: { aid: player.accountID, vip: player.vipLevel(), rmb: player.rmb}})
+            msg = {NTF: Event_PlayerInfo, arg: { aid: player.accountID, vip: player.vipLevel(), rmb: player.rmb}}
+            if player.counters.monthCard
+              msg.arg.mcc = player.counters.monthCard
+            ev.push(msg)
             ev.push({NTF: Event_RoleUpdate, arg: { act: { vip: player.vipLevel()} } })
             async.parallel([
               (cb) -> player.fetchMessage(cb),
@@ -143,8 +146,6 @@ exports.route = {
                      .concat(player.syncEvent())
               loginInfo = {REQ: rpcID, RET: RET_OK, arg:{pid: player.runtimeID, rid: player.name, svt: time, usr: player.name, sid: gServerID}}
               if player.tutorialStage? then loginInfo.arg.tut = player.tutorialStage
-              if player.counters.monthCard
-                loginInfo.arg.mcc = player.counters.monthCard
               handle([loginInfo].concat(ev))
               player.saveDB(cb)
               player = null
@@ -440,14 +441,9 @@ exports.route = {
           ret = {REQ: rpcID, RET: RET_OK}
           if arg.me? then ret.me = result.position
           if result.board?
-            board = result.board.reduce( ( (r, l, i) ->
-              if i%2 is 0
-                r.name.push(l)
-              else
-                r.score.push(l)
-              return r
-            ), {name: [], score: []})
+            board = result.board
             async.map(board.name, getPlayerHero, (err, result) ->
+              console.log(err)
               ret.lst = result.map( (e, i) ->
                 r = getBasicInfo(e)
                 r.scr = +board.score[i]
@@ -467,11 +463,29 @@ exports.route = {
     func: (arg, player, handler, rpcID, socket) ->
       switch arg.bid
         when -1
-          if player.counter.monthCard
-            player.counter.monthCard--
-            obj.timestamp.newProperty('monthCard', util.currentTime())
-            ret = [{ NTF: Event_InventoryUpdateItem, arg: { dim : @addDiamond(80) }}]
+          if player.counters.monthCard
+            player.counters.monthCard--
+            player.timestamp.newProperty('monthCard', helperLib.currentTime())
+            ret = [{ NTF: Event_InventoryUpdateItem, arg: { dim : player.addDiamond(80) }}]
+            player.saveDB()
             handler([{REQ: rpcID, RET: RET_OK}].concat(ret))
+    ,
+    args: [],
+    needPid: true
+  },
+  RPC_GetPKInfo: {
+    id: 32,
+    func: (arg, player, handler, rpcID, socket) ->
+      dbLib.queryLeaderboard(2, player.name, 0, 0, (err, result) ->
+      )
+      #switch arg.bid
+      #  when -1
+      #    if player.counters.monthCard
+      #      player.counters.monthCard--
+      #      player.timestamp.newProperty('monthCard', helperLib.currentTime())
+      #      ret = [{ NTF: Event_InventoryUpdateItem, arg: { dim : player.addDiamond(80) }}]
+      #      player.saveDB()
+      #      handler([{REQ: rpcID, RET: RET_OK}].concat(ret))
     ,
     args: [],
     needPid: true

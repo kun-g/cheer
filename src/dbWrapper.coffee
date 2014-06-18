@@ -95,6 +95,7 @@ getPlayerHero = (name, callback) ->
     (hero, rmb, blueStar, cb) ->
       try
         vip = playerLib.getVip(rmb)
+        console.log(hero, name)
         hero = JSON.parse(hero)
         hero.vipLevel = +vip.level
         hero.blueStar = +blueStar

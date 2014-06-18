@@ -112,6 +112,57 @@ class Hero extends Unit
 
   isHero: () -> true
 
+class Mirror extends Unit
+  constructor: (heroData) ->
+    super
+    return false unless heroData?
+
+    @type = Unit_Mirror
+    @blockType = Block_Enemy
+
+    @isVisible = false
+    @keyed = true
+
+    @initialize(heroData)
+
+  initialize: (heroData) ->
+    hero = new Hero({
+      name: heroData.nam,
+      class: heroData.cid,
+      gender: heroData.gen,
+      hairStyle: heroData.hst,
+      hairColor: heroData.hcl,
+      equipment: heroData.itm,
+      xp: heroData.exp,
+    })
+    battleForce = hero.calculatePower()
+
+    cfg = queryTable(TABLE_ROLE, heroData.cid)
+    cid = cfg.transId
+    cfg = queryTable(TABLE_ROLE, cfg.transId)
+    @initWithConfig(cfg) if cfg?
+    @class = cid
+    @level = 0
+    @xp = heroData.exp
+    @levelUp()
+
+    @counterAttack = true
+    @health = Math.ceil(battleForce * (11/18.5))
+    @attack = Math.ceil(battleForce * (0.1/18.5))
+    @critical = battleForce * (1/18.5)
+    @strong = battleForce * (1/18.5)
+    @accuracy = battleForce * (1/18.5) + 30
+    @reactivity = battleForce * (10/18.5) - 40
+    @speed = battleForce * (1/18.5) + 20
+    @maxHP = @health
+    @equipment = heroData.itm
+    @name = heroData.nam
+    @gender = heroData.gen
+    @hairStyle = heroData.hst
+    @hairColor = heroData.hcl
+    @ref = heroData.ref
+    @id = cid
+
 class Monster extends Unit
   constructor: (data) ->
     super
@@ -155,6 +206,7 @@ createUnit = (config) ->
   switch cfg.classType
     when Unit_Enemy then return new Monster(config)
     when Unit_NPC then return new Npc(config)
+    when Unit_Hero then return new Mirror(config)
 
 exports.createUnit = createUnit
 exports.Hero = Hero

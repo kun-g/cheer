@@ -59,6 +59,7 @@ calcInfiniteX = (infiniteLevel) ->
 
 calcInfiniteRank = (infiniteLevel) ->
   x = calcInfiniteX(infiniteLevel)
+  # 1.5x*x + 2x + 1
   return Math.ceil(0.1 * x*x + 0.1*x + 1)
 
 # 创建怪物的设计：
@@ -196,6 +197,7 @@ class Dungeon
     ret.infiniteLevel = @infiniteLevel if @infiniteLevel?
     ret.blueStar = @blueStar if @blueStar?
     ret.baseRank = @baseRank if @baseRank
+    ret.PVP_Pool = @PVP_Pool if @PVP_Pool
     return ret
 
   getStageConfig: () -> return queryTable(TABLE_STAGE, @stage, @abIndex)
@@ -231,7 +233,13 @@ class Dungeon
         @goldRate = 1.1
         @xpRate *= 1.1
 
-    if @PVP_Pool then cfg.pool.PVP = @PVP_Pool
+    if @PVP_Pool
+      cfg.pool.PVP = @PVP_Pool.map((e) ->
+        e.weight = 10
+        e.id = e.cid
+        return e
+      )
+
     creation = createUnits(cfg, () => @rand())
     arrCollectID = []
     quests = if @quests? then @quests else []
@@ -602,18 +610,25 @@ class Level
   lockUp: (isLock) ->
     @blocks[@exit]?.tileType = if isLock then Block_LockedExit else Block_Exit
 
-  createObject: (id, pos, keyed, collectId, effect) ->
-    o = createUnit({id: id, rank: @rank, pos: pos, ref: @ref, keyed: keyed})
+  createObject: (arg) ->
+    cfg = {}
+    for k, v of arg
+      cfg[k] = v
+    cfg.rank = @rank
+    cfg.ref = @ref
+    o = createUnit(cfg)
     o.installSpell(DUNGEON_DROP_CARD_SPELL, 1)
-    @lockUp if keyed
-    o.collectId = collectId if collectId?
-    o.effect = effect
+    @lockUp(true) if cfg.keyed
+    o.collectId = cfg.collectId if cfg.collectId?
+    o.effect = cfg.effect
+    o.pos = cfg.pos
     @ref += 1
-    @blocks[pos].addRef(o)
+    @blocks[cfg.pos].addRef(o)
     @objects.push(o)
     return o
 
-  placeObjects: (id, count, keyed, collectId) ->
+  placeObjects: (arg) ->
+    count = arg.count ? 1
     indexes = (i for i in [0..DG_BLOCKCOUNT-1] when @blocks[i].getType() is Block_Empty)
     if Array.isArray(@entrance)
       indexes = (i for i in indexes when @entrance.indexOf(i) is -1)
@@ -623,14 +638,18 @@ class Level
     return [] unless indexes.length > count
     for i in [1..count]
       pos = indexes.splice(@rand() % indexes.length, 1)[0]
-      @createObject(id, pos, keyed, collectId)
+      arg.pos = pos
+      @createObject(arg)
 
   placeMapObjects: (cfg) ->
     return false unless cfg?
-    for o in cfg when o.pos?
-      @createObject(o.id, o.pos, o.keyed, o.collectId)
-    for o in cfg when not o.pos?
-      @placeObjects(o.id, o.count ? 1, o.keyed, o.collectId)
+    for o in cfg
+      if o.pos?
+        @createObject(o)
+
+    for o in cfg
+      if not o.pos?
+        @placeObjects(o)
 
   getMonsters: () -> @objects.filter( (e) -> e.isMonster() )
 
@@ -790,7 +809,7 @@ class DungeonEnvironment extends Environment
   getQuests: () -> @dungeon?.quests
   nextLevel: () -> @dungeon?.nextLevel()
   isDungeonFinished: () -> return @dungeon.currentLevel >= @dungeon.getConfig().levelCount
-  createObject: (classID, pos, withkey, collectId, effect) -> @dungeon?.level?.createObject(classID, pos, withkey, collectId, effect)
+  createObject: (cfg) -> @dungeon?.level?.createObject(cfg)
   useItem: (spell, level, cmd) -> @dungeon.getDummyHero().castSpell(spell, level, cmd)
   getReviveCount: () -> @dungeon?.revive
   createSpellMsg: (actor, spell, delay) ->
@@ -813,7 +832,7 @@ class DungeonEnvironment extends Environment
     tailString = if isBegin then 'Begin' else 'End'
     allEvent = 'on'+turnType+'Turn'+tailString
     turnEvent = 'onTurn' + tailString
-    for e in @getMonsters().concat(@getHeroes()).concat(@getBlock())
+    for e in @getObjects().concat(@getBlock())
       e.onEvent(allEvent, cmd)
       e.onEvent(turnEvent, cmd)
 
@@ -952,7 +971,7 @@ dungeonCSConfig = {
           newPosition = [entrance, entrance, entrance]
         env.moveHeroes(newPosition)
 
-        monster.onEvent('onEnterLevel', @) for monster in env.getMonsters()
+        o.onEvent('onEnterLevel', @) for o in env.getObjects()
 
       @routine({id: 'TickSpell'})
     ,
@@ -1016,7 +1035,7 @@ dungeonCSConfig = {
       return if ret? then ret else []
   },
   TickSpell: {
-    callback: (env) -> h.tickSpell(env.variable('tickType'), @) for h in env.getHeroes().concat(env.getMonsters())
+    callback: (env) -> h.tickSpell(env.variable('tickType'), @) for h in env.getObjects()
   },
   OpenBlock: {
     callback: (env) ->
@@ -1344,7 +1363,7 @@ dungeonCSConfig = {
         pos = (p.pos for p in pos)
       pos = [pos] unless Array.isArray(pos)
       env.variable('pos', pos)
-      env.createObject(env.variable('classID'), p, env.variable('withKey'), env.variable('collectID'), env.variable('effect')) for p in pos
+      env.createObject({ id: env.variable('classID'), pos: p, keyed: env.variable('withKey'), collectId: env.variable('collectID'), effect: env.variable('effect')}) for p in pos
       env.getBlock(p).explored = true for p in pos
       env.getBlock(p).effect = env.variable('effect') for p in pos
       for p in env.variable('pos')

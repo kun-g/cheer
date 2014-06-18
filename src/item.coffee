@@ -14,7 +14,7 @@ class Item extends Serializer
     if @getConfig().category is ITEM_EQUIPMENT
       cfg.xp = 0
       cfg.enhancement = []
-    #if @getConfig().expiration then cfg.date = -1
+    if @getConfig().expiration then cfg.date = -1
 
     super(data, cfg, {})
     @initialize() if @id?

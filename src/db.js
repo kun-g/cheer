@@ -373,6 +373,11 @@ exports.subscribe = function (channel, callback) {
   channelConfig[channel].push(callback);
 };
 
+exports.queryLeaderboardLength = function (board, handler) {
+  var dbKey = 'Leaderboard.'+board;
+  dbClient.zcount(dbKey, '-inf', '+inf', handler);
+};
+
 dbSeparator = '.';
 exports.initializeDB = function (cfg) {
   accountDBClient = redis.createClient(cfg.Account.PORT, cfg.Account.IP);

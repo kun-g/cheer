@@ -101,6 +101,7 @@ listAllProperties = function(o){
 
 createMirrorHero = function (data) {
   cfg = queryTable(TABLE_ROLE, data.class);
+  //TODO:
   hero = {
     xp: data.xp,
     name: data.name,
@@ -507,6 +508,7 @@ Unit_Hero = 0;
 Unit_Enemy = 1;
 Unit_NPC = 2;
 Unit_TreasureBox = 3;
+Unit_Mirror = 4;
 Unit_Boss = 5;
 Unit_Exit = 100;
 

@@ -116,7 +116,15 @@ exports.initLeaderboard = (config) ->
       obj = player
       if tmp.length
         obj = require('./trigger').doGetProperty(player, tmp.join('.')) ? player
-      obj[key] = v.initialValue unless obj[key]?
+      if v.initialValue and not obj[key]?
+        obj[key] = 0
+        if typeof v.initialValue is 'number'
+          obj[key] = v.initialValue
+        else if v.initialValue is 'length'
+          require('./db').queryLeaderboardLength(key, (err, result) ->
+            obj[key] = +result
+          )
+
       v.func(player.name, obj[key])
       tap(obj, key, (dummy, value) ->
         v.func(player.name, value)
@@ -133,7 +141,16 @@ exports.initLeaderboard = (config) ->
   exports.getPositionOnLeaderboard = (board, name, from, to, cb) ->
     tickLeaderboard(board)
     cfg = localConfig[board]
-    require('./db').queryLeaderboard(cfg.name, name, from, to, cb)
+    require('./db').queryLeaderboard(cfg.name, name, from, to, (err, result) ->
+      result.board = result.board.reduce( ( (r, l, i) ->
+        if i%2 is 0
+          r.name.push(l)
+        else
+          r.score.push(l)
+        return r
+      ), {name: [], score: []})
+      cb(err, result)
+    )
 
 # Time util
 currentTime = (needObject) ->
@@ -169,10 +186,10 @@ matchDate = (date, today, rule) ->
     date = date.date(rule.monthday)
 
   if rule.month then date = date.month(rule.month)
-  if rule.day then date = date.day(rule.day)
-  date = date.hour(rule.hour ? 0)
-  date = date.minute(rule.minute ? 0)
-  date = date.second(rule.second ? 0)
+  if rule.day then date = date.add('day', rule.day)
+  date = date.set('hour', rule.hour ? 0)
+  date = date.set('minute', rule.minute ? 0)
+  date = date.set('second', rule.second ? 0)
 
   return date <= today
   
@@ -197,15 +214,16 @@ initCampaign = (me, allCampaign, abIndex) ->
       if e.id?
         actived = e.actived
         if typeof actived is 'function' then actived = actived(me, util)
-        evt = {
-          NTF: Event_BountyUpdate,
-          arg: { bid: e.id, sta: actived}
-        }
+        evt = { NTF: Event_BountyUpdate, arg: { bid: e.id, sta: actived} }
         count = me.counters[key] ? 0
         if e.count then evt.arg.cnt = e.count - count
         if key is 'hunting'
-          console.log(rand()%e.stages.length, e.stages.length)
-          evt.arg.stg = e.stages[rand()%e.stages.length]
+          if not moment().isSame(gHuntingInfo.timestamp, 'day') or
+             not gHuntingInfo.timestamp?
+            gHuntingInfo.timestamp = currentTime()
+            gHuntingInfo.stage = e.stages[rand()%e.stages.length]
+            dbLib.setServerConfig('huntingInfo', JSON.stringify(gHuntingInfo))
+          evt.arg.stg = +gHuntingInfo.stage
         ret.push(evt)
   return ret
 
@@ -344,7 +362,7 @@ exports.events = {
       actived: 1,
       count: 3,
       canReset: (obj, util) ->
-        return util.diffDay(obj.timestamp.goblin, util.today) && util.today.hour() >= 8
+        return util.diffDay(obj.timestamp.goblin, util.today)
       ,
       reset: (obj, util) ->
         obj.timestamp.newProperty('goblin', util.currentTime())
@@ -357,7 +375,7 @@ exports.events = {
       actived: 1,
       count: 3,
       canReset: (obj, util) ->
-        return (util.today.hour() >= 8 and util.diffDay(obj.timestamp.enhance, util.today)) and (
+        return ( util.diffDay(obj.timestamp.enhance, util.today)) and (
           util.today.weekday() is 2 or
           util.today.weekday() is 4 or
           util.today.weekday() is 6 or
@@ -375,7 +393,7 @@ exports.events = {
       actived: 1,
       count: 3,
       canReset: (obj, util) ->
-        return (util.today.hour() >= 8 && util.diffDay(obj.timestamp.weapon, util.today)) and (
+        return (util.diffDay(obj.timestamp.weapon, util.today)) and (
           util.today.weekday() is 1 or
           util.today.weekday() is 3 or
           util.today.weekday() is 5 or
@@ -402,9 +420,9 @@ exports.events = {
       storeType: "player",
       id: 4,
       actived: 1,
-      stages: [114, 115, 116],
+      stages: [114, 115, 116, 119, 120, 121, 122, 123, 124, 125, 126],
       canReset: (obj, util) ->
-        return (util.today.hour() >= 8 && util.diffDay(obj.timestamp.hunting, util.today))
+        return (util.diffDay(obj.timestamp.hunting, util.today))
       ,
       reset: (obj, util) ->
         obj.timestamp.newProperty('hunting', util.currentTime())
@@ -413,8 +431,105 @@ exports.events = {
 
     monthCard: {
       storeType: "player",
-      actived: (obj, util) -> return util.diffDay(obj.timestamp.monthCard, util.today)?1:0
-    },
+      id: -1,
+      actived: (obj, util) ->
+        return 0 unless obj.counters.monthCard
+        return 1 unless obj.timestamp.monthCard
+        return 0 if moment().isSame(obj.timestamp.monthCard, 'day')
+        return 1
+    }
+}
+
+exports.intervalEvent = {
+  infinityDungeonPrize: {
+    time: { hour: 6 },
+    func: (libs) ->
+      cfg = [
+        {
+          from: 0,
+          to: 0,
+          mail: {
+            type: MESSAGE_TYPE_SystemReward,
+            src:  MESSAGE_REWARD_TYPE_SYSTEM,
+            prize: [{ type: 2, count: 50},
+                    { type: 0,value:869, count: 1}],
+            tit: "铁人试炼排行奖励",
+            txt: "恭喜你成为铁人试炼冠军，点击领取奖励。"
+          }
+        },
+        {
+          from: 1,
+          to: 4,
+          mail: {
+            type: MESSAGE_TYPE_SystemReward,
+            src:  MESSAGE_REWARD_TYPE_SYSTEM,
+            prize: [{ type: 2, count: 20},
+                    { type: 0,value:868, count: 1}],
+            tit: "铁人试炼排行奖励",
+            txt: "恭喜你进入铁人试炼前五，点击领取奖励。"
+          }
+        },
+        {
+          from: 5,
+          to: 9,
+          mail: {
+            type: MESSAGE_TYPE_SystemReward,
+            src:  MESSAGE_REWARD_TYPE_SYSTEM,
+            prize: [{ type: 2, count: 10},
+                    { type: 0,value:867, count: 1}],
+            tit: "铁人试炼排行奖励",
+            txt: "恭喜你进入铁人试炼前十，点击领取奖励。"
+          }
+        }
+      ]
+      cfg.forEach( (e) ->
+        libs.helper.getPositionOnLeaderboard(1, 'nobody', e.from, e.to, (err, result) ->
+          result.board.name.forEach( (name) -> libs.db.deliverMessage(name, e.mail) )
+        )
+      )
+  },
+  killMonsterPrize: {
+    time: { hour: 6 },
+    func: (libs) ->
+      cfg = [
+        {
+          from: 0,
+          to: 0,
+          mail: {
+            type: MESSAGE_TYPE_SystemReward,
+            src:  MESSAGE_REWARD_TYPE_SYSTEM,
+            prize: [{ type: 2, count: 50},
+                    { type: 0,value:866, count: 1}],
+            tit: "狩猎任务排行奖励",
+            txt: "恭喜你成为狩猎任务冠军，点击领取奖励。"
+          }
+        },
+        {
+          from: 1,
+          to: 4,
+          mail: {
+            type: MESSAGE_TYPE_SystemReward,
+            src:  MESSAGE_REWARD_TYPE_SYSTEM,
+            prize: [{ type: 2, count: 20},
+                    { type: 0,value:865, count: 1}],
+            tit: "铁人试炼排行奖励",
+            txt: "恭喜你进入狩猎任务前五，点击领取奖励。"
+          }
+        },
+        {
+          from: 5,
+          to: 9,
+          mail: {
+            type: MESSAGE_TYPE_SystemReward,
+            src:  MESSAGE_REWARD_TYPE_SYSTEM,
+            prize: [{ type: 2, count: 10},
+                    { type: 0,value:864, count: 1}],
+            tit: "铁人试炼排行奖励",
+            txt: "恭喜你进入狩猎任务前十，点击领取奖励。"
+          }
+        }
+      ]
+  },
 }
 
 exports.splicePrize = (prize) ->
@@ -431,6 +546,7 @@ exports.splicePrize = (prize) ->
       when PRIZETYPE_GOLD then goldPrize.count += p.count
       when PRIZETYPE_ITEM
         if not itemFlag[p.value] then itemFlag[p.value] = 0
+        console.log('x')
         itemFlag[p.value] += p.count
       else otherPrize.push(p)
   )

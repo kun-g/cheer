@@ -242,6 +242,42 @@ if (config) {
 
     paymentServer = require('http').createServer(wrapCallback(paymentHandler));
     paymentServer.listen(6499);
+
+    var intervalCfg = {};
+    var helperLib = require('./helper');
+    config = helperLib.intervalEvent;
+    dbLib.getServerConfig('Interval', function (err, arg) {
+      if (arg) { intervalCfg = JSON.parse(arg); }
+
+      for (var key in config) {
+        var cfg = config[key];
+        if (!intervalCfg[key]) {
+          intervalCfg[key] = helperLib.currentTime();
+        }
+      }
+
+      dbLib.setServerConfig('Interval', JSON.stringify(intervalCfg));
+      setInterval(function () {
+        var flag = false;
+        for (var key in config) {
+          var cfg = config[key];
+          if (helperLib.matchDate(intervalCfg[key], helperLib.currentTime(), cfg.time) &&
+              helperLib.diffDate(intervalCfg[key], helperLib.currentTime())) {
+            cfg.func({helper: helperLib, db: require('./db')});
+            intervalCfg[key] = helperLib.currentTime();
+            flag = true;
+          }
+        }
+        if (flag) {
+          dbLib.setServerConfig('Interval', JSON.stringify(intervalCfg));
+        }
+      }, 60000);
+
+      gHuntingInfo = {};
+      dbLib.getServerConfig('huntingInfo', function (err, arg) {
+        if (arg) { gHuntingInfo = JSON.parse(arg); }
+      });
+    });
   });
 } else {
   throw 'No config';
