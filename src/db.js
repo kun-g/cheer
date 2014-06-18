@@ -180,20 +180,20 @@ var lua_fetchMessage = " \
 var lua_searchRival =" \
   local randLst ={}
   local board, name, randLst[1], randLst[2], randLst[3] = ARGV[1], ARGV[2], ARGV[3], ARGV[4], ARGV[5]; \
-  local config ={{base=0.95,delt=0.02},
-    {base=0.85,delt=0.03},
-    {base=0.50,delt=0.05}};
---need to check number of args?
-  if randLst[3] == nil then
-    return {};
-  end
+  local config ={{base=0.95,delt=0.02}, \
+    {base=0.85,delt=0.03}, \
+    {base=0.50,delt=0.05}}; \
+--need to check number of args? \
+  if randLst[3] == nil then \
+    return {}; \
+  end \
   local key = prefix..board; \
   local rank = redis.call('ZREVRANK', key, name); \
-  local rivalLst ={} ;
-  for i,scope in ipairs(config) do
-    local from = math.floor(rank * (scope.base - scope.delt + scope.delt *(2*randLst[i])));
-    rivalLst[i] = redis.call('zrevrange', key, from, from, 'WITHSCORES'); \
-  end
+  local rivalLst ={} ; \
+  for i,scope in ipairs(config) do \
+    local from = math.floor(rank * (scope.base - scope.delt + scope.delt *(2*randLst[i]))); \
+    rivalLst[i] = redis.call('zrevrange', key, from, from, 'WITHSCORES'); \ \
+  end \
   return rivalLst;";
 
 
