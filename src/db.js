@@ -178,17 +178,20 @@ var lua_fetchMessage = " \
   end";
 
 var lua_searchRival =" \
-  local board, name, from, to = ARGV[1], ARGV[2], ARGV[3], ARGV[4]; \
-  local config ={{0.95,0.02},{0.85,0.03},{0.50,0.05}}
+  local board, name = ARGV[1], ARGV[2]; \
+  local config ={{0.95,0.02},{0.85,0.03},{0.50,0.05}};
+  --need to check number of args?
+  if ARGV[5] == nil then
+    return {};
+  end
   local key = prefix..board; \
   local rank = redis.call('ZREVRANK', key, name); \
-  local rivalLst ={} 
+  local rivalLst ={} ;
   for i,scope in ipairs(config) do
-    local from = math.floor(rank * (scope[1] - scope[2]));
-    local from = math.floor(rank * (scope[1] + scope[2]));
-    rivalLst[i] = redis.call('zrevrange', key, from, to, 'WITHSCORES'); \
+    local from = math.floor(rank * (scope[1] + scope[2]*(2*ARGV[i+2] - 1)));
+    rivalLst[i] = redis.call('zrevrange', key, from, from, 'WITHSCORES'); \
   end
-  return {rivalLst};";
+  return rivalLst;";
 
 
 exports.updateSessionInfo = function (session, obj, handler) {
@@ -483,16 +486,8 @@ exports.initializeDB = function (cfg) {
   });
   dbClient.script('load',lua_searchRival, function (err, sha) {
     exports.searchRival = function (name, handler) {
-      dbClient.evalsha(sha, 0, dbPrefix, name, function (err, ret) {
-        if (!err) {
-          var result = JSON.parse(ret);
-          for (var k = 1; k < results.length; k++) {
-            var v = results[k];
-            ret[k]=v[Math.random(v.length)]; 
-          }
-          //  acc.salt = Math.random();
-        }
-        if (handler) { handler(err, ret); }
+      dbClient.evalsha(sha, 0, dbPrefix, name, Math.random(), Math.random(), Math.random(), function (err, ret) {
+       if (handler) { handler(err, JSON.parse(ret)); }
       });
     };
   });
