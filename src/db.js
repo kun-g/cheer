@@ -197,8 +197,9 @@ var lua_searchRival =" \
   end \
   return rivalLst;";
 
-var lua_saveScore = " \
+var lua_exchangeScore = " \
   local board, champion, second = ARGV[1], ARGV[2], ARGV[3]; \
+  local prefix = 'Leaderboard.'; \
   local key = prefix..board; \
   local championRank = redis.call('ZRANK', key, champion); \
   local secondRank = redis.call('ZRANK', key, second); \
@@ -206,7 +207,7 @@ var lua_saveScore = " \
     -- exchange rank
     redis.call('ZADD',key,second, championRank); \
     redis.call('ZADD',key,champion, secondRank); \
-    return 'exchage' ; \
+    return 'exchanged' ; \
   end \
   return 'noNeed'; ";
 
@@ -507,7 +508,7 @@ exports.initializeDB = function (cfg) {
       });
     };
   });
-  dbClient.script('load',lua_saveScore, function (err, sha) {
+  dbClient.script('load',lua_exchangeScore, function (err, sha) {
     exports.saveSocre= function (name, handler) {
       dbClient.evalsha(sha, 0, dbPrefix, champion, second, function (err, ret) {
        if (handler) { handler(err, ret); }
