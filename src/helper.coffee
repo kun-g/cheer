@@ -154,7 +154,7 @@ exports.initLeaderboard = (config) ->
 
 # Time util
 currentTime = (needObject) ->
-  obj = moment().zone("+08:00")
+  obj = moment()
   if needObject
     return obj
   else
@@ -163,8 +163,8 @@ exports.currentTime = currentTime
 
 diffDate = (date, today, flag = 'day') ->
   return null unless date
-  date = moment(date).zone("+08:00").startOf('day') if date
-  today = moment(today).zone("+08:00").startOf('day')
+  date = moment(date).startOf('day') if date
+  today = moment(today).startOf('day')
   duration = moment.duration(today.diff(date))
   switch flag
     when 'second' then return duration.asSeconds()
@@ -177,8 +177,8 @@ exports.diffDate = diffDate
 
 matchDate = (date, today, rule) ->
   return false unless date
-  date = moment(date).zone("+08:00")
-  today = moment(today).zone("+08:00")
+  date = moment(date)
+  today = moment(today)
 
   if rule.weekday?
     date = date.weekday(rule.weekday)
@@ -414,18 +414,22 @@ exports.events = {
       ,
       reset: (obj, util) ->
         obj.timestamp.newProperty('infinite', util.currentTime())
+        obj.stage[120].newProperty('level', 0)
     },
 
     hunting: {
       storeType: "player",
       id: 4,
       actived: 1,
-      stages: [114, 115, 116, 119, 120, 121, 122, 123, 124, 125, 126],
+      stages: [121, 122, 123, 125, 126, 127, 128, 129, 130, 131, 132],
       canReset: (obj, util) ->
         return (util.diffDay(obj.timestamp.hunting, util.today))
       ,
       reset: (obj, util) ->
         obj.timestamp.newProperty('hunting', util.currentTime())
+        stages = [121, 122, 123, 125, 126, 127, 128, 129, 130, 131, 132]
+        for s in stages
+          obj.stage[s].newProperty('level', 0)
         obj.counters.newProperty('monster', 0)
     },
 
@@ -489,7 +493,7 @@ exports.intervalEvent = {
       )
   },
   killMonsterPrize: {
-    time: { hour: 6 },
+    time: { hour: 13 },
     func: (libs) ->
       cfg = [
         {
@@ -529,6 +533,11 @@ exports.intervalEvent = {
           }
         }
       ]
+      cfg.forEach( (e) ->
+        libs.helper.getPositionOnLeaderboard(2, 'nobody', e.from, e.to, (err, result) ->
+          result.board.name.forEach( (name) -> libs.db.deliverMessage(name, e.mail) )
+        )
+      )
   },
 }
 

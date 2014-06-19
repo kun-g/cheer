@@ -239,17 +239,17 @@ function loadReceipt () {
     pushPayment(paymentDB, time.format('MM'), {rmb: rmb, tunnel: x.tunnel});
     //if (time.format('MM') < 8) console.log(x.time, rmb, e, x.tunnel);
   });
-  for (var k in paymentDB) {
-    paymentDB[k] =
-      paymentDB[k].reduce(
-          function (r, e) {
-            if (!r[e.tunnel]) r[e.tunnel] = 0;
-            r[e.tunnel] += e.rmb;
-            return r;
-          },
-          {}
-        );
-      }
+  //for (var k in paymentDB) {
+    //paymentDB[k] =
+      //paymentDB[k].reduce(
+      //    function (r, e) {
+      //      if (!r[e.tunnel]) r[e.tunnel] = 0;
+      //      r[e.tunnel] += e.rmb;
+      //      return r;
+      //    },
+      //    {}
+      //  );
+      //}
   //console.log(paymentDB);
   //accountDBClient.keys('Receipt.*', function (err, list) {
   //  console.log(list);

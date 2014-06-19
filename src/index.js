@@ -249,20 +249,17 @@ if (config) {
     dbLib.getServerConfig('Interval', function (err, arg) {
       if (arg) { intervalCfg = JSON.parse(arg); }
 
-      for (var key in config) {
-        var cfg = config[key];
-        if (!intervalCfg[key]) {
-          intervalCfg[key] = helperLib.currentTime();
-        }
-      }
-
+      // TODO: 多个服务器的情况
       dbLib.setServerConfig('Interval', JSON.stringify(intervalCfg));
       setInterval(function () {
         var flag = false;
         for (var key in config) {
           var cfg = config[key];
-          if (helperLib.matchDate(intervalCfg[key], helperLib.currentTime(), cfg.time) &&
-              helperLib.diffDate(intervalCfg[key], helperLib.currentTime())) {
+          var now = helperLib.currentTime();
+          var moment = require('moment');
+          if (helperLib.matchDate(now, now, cfg.time) &&
+              (!intervalCfg[key] || !moment().isSame(intervalCfg[key], 'day'))
+            ) {
             cfg.func({helper: helperLib, db: require('./db')});
             intervalCfg[key] = helperLib.currentTime();
             flag = true;
@@ -271,7 +268,7 @@ if (config) {
         if (flag) {
           dbLib.setServerConfig('Interval', JSON.stringify(intervalCfg));
         }
-      }, 60000);
+      }, 6000);
 
       gHuntingInfo = {};
       dbLib.getServerConfig('huntingInfo', function (err, arg) {

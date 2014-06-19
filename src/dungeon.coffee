@@ -57,10 +57,12 @@ calcInfiniteX = (infiniteLevel) ->
   else
     infiniteLevel - Math.floor(infiniteLevel/5) - Math.floor(infiniteLevel/10)
 
-calcInfiniteRank = (infiniteLevel) ->
+calcInfiniteRank = (infiniteLevel, id) ->
   x = calcInfiniteX(infiniteLevel)
-  # 1.5x*x + 2x + 1
-  return Math.ceil(0.1 * x*x + 0.1*x + 1)
+  if id? and id is 1
+   return 1.5*x*x + 2*x + 1
+  else
+    return Math.ceil(0.1 * x*x + 0.1*x + 1)
 
 # 创建怪物的设计：
 # 指定位置 pos
@@ -221,7 +223,7 @@ class Dungeon
     @baseRank = 0 unless @baseRank?
     @baseRank = cfg.rank if cfg.rank
     if @infiniteLevel?
-      @baseRank += calcInfiniteRank(@infiniteLevel)
+      @baseRank += calcInfiniteRank(@infiniteLevel, @formularId)
       infiniteLevel = @infiniteLevel
       if infiniteLevel % 10 is 0
         @goldRate *= 1.5

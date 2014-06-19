@@ -449,7 +449,7 @@ class Player extends DBWrapper
       arg = {chp: chapter, stg:stage, sta:state}
 
       if stg.isInfinite
-        @stage[stage].level = 0 unless @stage[stage].level?
+        @stage[stage].newProperty('level', 0) unless @stage[stage].level?
         if state is STAGE_STATE_PASSED
           @stage[stage].level += 1
           if @stage[stage].level%5 is 0
