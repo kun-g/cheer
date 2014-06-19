@@ -179,6 +179,7 @@ var lua_fetchMessage = " \
 
 var lua_searchRival =" \
   local randLst ={}
+  local prefix = 'Leaderboard.'; \
   local board, name, randLst[1], randLst[2], randLst[3] = ARGV[1], ARGV[2], ARGV[3], ARGV[4], ARGV[5]; \
   local config ={{base=0.95,delt=0.02}, \
     {base=0.85,delt=0.03}, \
@@ -192,10 +193,22 @@ var lua_searchRival =" \
   local rivalLst ={} ; \
   for i,scope in ipairs(config) do \
     local from = math.floor(rank * (scope.base - scope.delt + scope.delt *(2*randLst[i]))); \
-    rivalLst[i] = redis.call('zrevrange', key, from, from, 'WITHSCORES'); \ \
+    rivalLst[i] = redis.call('zrange', key, from, from, 'WITHSCORES'); \ \
   end \
   return rivalLst;";
 
+var lua_saveScore = " \
+  local board, champion, second = ARGV[1], ARGV[2], ARGV[3]; \
+  local key = prefix..board; \
+  local championRank = redis.call('ZRANK', key, champion); \
+  local secondRank = redis.call('ZRANK', key, second); \
+  if championRank < secondRank then \
+    -- exchange rank
+    redis.call('ZADD',key,second, championRank); \
+    redis.call('ZADD',key,champion, secondRank); \
+    return 'exchage' ; \
+  end \
+  return 'noNeed'; ";
 
 exports.updateSessionInfo = function (session, obj, handler) {
   dbClient.hmset(makeDBKey([sessionPrefix, session]), obj, handler);
@@ -494,6 +507,14 @@ exports.initializeDB = function (cfg) {
       });
     };
   });
+  dbClient.script('load',lua_saveScore, function (err, sha) {
+    exports.saveSocre= function (name, handler) {
+      dbClient.evalsha(sha, 0, dbPrefix, champion, second, function (err, ret) {
+       if (handler) { handler(err, ret); }
+      });
+    };
+  });
+
 //function fetchMessage(name, handler) {
 //  dbClient.smembers(playerMessagePrefix+name, function (err, ids) {
 //    async.map(
