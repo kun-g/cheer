@@ -500,5 +500,26 @@ exports.route = {
     ,
     args: [],
     needPid: true
+  },
+  RPC_GetPkRivals: {
+    id: 32,
+    func: (arg, player, handler, rpcID, socket) ->
+      dbLib.searchRival(player.name, (err, rivalLst) ->
+        rivalLst = helperLib.warpRivalLst(rivalLst)
+        ret = {REQ: rpcID, RET: RET_OK}
+        async.map( rivalLst.name, getPlayerHero, (err, result) ->
+          console.log(err)
+          ret.lst = result.map( (e, i) ->
+            r = getBasicInfo(e)
+            r.rnk = +board.rnk[i]
+            return r
+          )
+          handler([ret])
+        )
+      )
+    ,
+    args: [],
+    needPid: true
   }
+
 }

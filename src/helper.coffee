@@ -152,6 +152,24 @@ exports.initLeaderboard = (config) ->
       cb(err, result)
     )
 
+  # is that right?
+  exports.array2map = (keys, value) ->
+    size = keys.length
+    value.reduce( ( ( r, l , i) ->
+      keyIdx = i % size
+      r[keys[keyIdx]].push(l)
+      return r
+    ),{})
+
+  exports.warpRivalLst(lst) ->
+      return lst.reduce( ( (r, l, i) ->
+        if i%2 is 0
+          r.name.push(l)
+        else
+          r.rnk.push(l)
+        return r
+      ), {name: [], rnk: []})
+ 
 # Time util
 currentTime = (needObject) ->
   obj = moment()
