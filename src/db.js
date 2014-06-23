@@ -178,7 +178,7 @@ var lua_fetchMessage = " \
   end";
 
 var lua_searchRival =" \
-  local randLst ={}
+  local randLst ={} \
   local prefix = 'Leaderboard.'; \
   local board, name, randLst[1], randLst[2], randLst[3] = ARGV[1], ARGV[2], ARGV[3], ARGV[4], ARGV[5]; \
   local config ={{base=0.95,delt=0.02}, \
@@ -204,7 +204,6 @@ var lua_exchangeScore = " \
   local championRank = redis.call('ZRANK', key, champion); \
   local secondRank = redis.call('ZRANK', key, second); \
   if championRank < secondRank then \
-    -- exchange rank
     redis.call('ZADD',key,second, championRank); \
     redis.call('ZADD',key,champion, secondRank); \
     return 'exchanged' ; \
