@@ -507,8 +507,8 @@ exports.initializeDB = function (cfg) {
     };
   });
   dbClient.script('load',lua_exchangeScore, function (err, sha) {
-    exports.saveSocre= function (name, handler) {
-      dbClient.evalsha(sha, 0, dbPrefix, champion, second, function (err, ret) {
+    exports.saveSocre= function (champion, second, handler) {
+      dbClient.evalsha(sha, 0, 'Arena', champion, second, function (err, ret) {
        if (handler) { handler(err, ret); }
       });
     };

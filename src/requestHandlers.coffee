@@ -301,7 +301,7 @@ exports.route = {
     id: 1,
     func: (arg, player, handler, rpcID, socket) ->
       player.dungeonData = {}
-      player.startDungeon(+arg.stg, arg.initialDataOnly, (err, evEnter, extraMsg) ->
+      player.startDungeon(+arg.stg, arg.initialDataOnly, arg.pkr, (err, evEnter, extraMsg) ->
         extraMsg = (extraMsg ? []).concat(player.syncEnergy())
         if typeof evEnter is 'number'
           handler([{REQ: rpcID, RET: evEnter}].concat(extraMsg))
@@ -493,7 +493,7 @@ exports.route = {
         async.map( rivalLst.name, getPlayerHero, (err, result) ->
           ret.arg = result.map( (e, i) ->
             r = getBasicInfo(e)
-            r.rnk = rivalLst.rnk[i]
+            r.rnk = +rivalLst.rnk[i]
             return r
           )
           handler([ret])

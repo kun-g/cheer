@@ -162,7 +162,7 @@ exports.array2map = (keys, value) ->
 
 exports.warpRivalLst = (lst) ->
   return lst.reduce( ( (r, l, i) ->
-    if l.length == 2 then r.name.push(l[0]) and r.rnk.push(l[1])
+    if l.length == 2 then r.name.push(l[0]) and r.rnk.push(+l[1])
     return r
   ), {name: [], rnk: []})
 

@@ -480,7 +480,7 @@ class Player extends DBWrapper
     ret = ret.concat(@claimDungeonAward(@dungeon)) if @dungeon.result?
     return ret
 
-  startDungeon: (stage, startInfoOnly, handler) ->
+  startDungeon: (stage, startInfoOnly, pkr, handler) ->
     stageConfig = queryTable(TABLE_STAGE, stage, @abIndex)
     dungeonConfig = queryTable(TABLE_DUNGEON, stageConfig.dungeon, @abIndex)
     unless stageConfig? and dungeonConfig?
@@ -538,8 +538,16 @@ class Player extends DBWrapper
         }
         @dungeonData.randSeed = rand()
         @dungeonData.baseRank = helperLib.initCalcDungeonBaseRank(@) if stageConfig.event is 'event_daily'
-        if stageConfig.pvp then @dungeonData.PVP_Pool = team.map(getBasicInfo)
-        cb('OK')
+        cb()
+      ,
+      (cb) =>
+        if stageConfig.pvp?
+          getPlayerHero(pkr, wrapCallback(this, (err, heroData) ->
+            @dungeonData.PVP_Pool = [getBasicInfo(heroData)]
+            cb('OK')
+        else
+          @dungeonData.PVP_Pool = []
+          cb('OK')
       ], (err) =>
         msg = []
         if stageConfig.initialAction then stageConfig.initialAction(@,  genUtil)
@@ -978,6 +986,8 @@ class Player extends DBWrapper
     prize = otherPrize.filter( (e) -> return not ( e.count? and e.count is 0 ) )
     if prize.length > 0 then rewardMessage.arg.prize = prize.filter((f) -> f.type isnt  PRIZETYPE_FUNCTION)
     ret = ret.concat(this.claimPrize(prize, false))
+
+    if result == 'Win' then dbLib.saveSocre(@name, dungeon.pkr)
 
     @log('finishDungeon', { stage: dungeon.getInitialData().stage, result: result, reward: prize })
 
