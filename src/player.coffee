@@ -927,7 +927,7 @@ class Player extends DBWrapper
   
     return prize
 
-  claimDungeonAward: (dungeon) ->
+  claimDungeonAward: (dungeon, isSweep) ->
     return [] unless dungeon?
     ret = []
 
@@ -979,9 +979,10 @@ class Player extends DBWrapper
     if prize.length > 0 then rewardMessage.arg.prize = prize.filter((f) -> f.type isnt  PRIZETYPE_FUNCTION)
     ret = ret.concat(this.claimPrize(prize, false))
 
-    @log('finishDungeon', { stage: dungeon.getInitialData().stage, result: result, reward: prize })
-
-    @releaseDungeon()
+    if isSweep
+    else
+      @log('finishDungeon', { stage: dungeon.getInitialData().stage, result: result, reward: prize })
+      @releaseDungeon()
     return ret
 
   whisper: (name, message, callback) ->

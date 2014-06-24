@@ -407,6 +407,7 @@ exports.subscribe = function (channel, callback) {
 
 exports.queryLeaderboardLength = function (board, handler) {
   var dbKey = 'Leaderboard.'+board;
+  console.log(dbKey);
   dbClient.zcard(dbKey, handler);
 };
 
