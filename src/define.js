@@ -401,6 +401,10 @@ updateStageStatus = function (stageStatus, player, abindex) {
     var unlockable = true;
     if (stage.cond) unlockable = triggerLib.conditionCheck(stage.cond, player);
     if (unlockable && stageStatus[sid] == null) ret.push(sid);
+    if (stage.isInfinite 
+        && stageStatus[sid] 
+        && stageStatus[sid].level == null)
+      ret.push(sid);
   }
   return ret;
 };

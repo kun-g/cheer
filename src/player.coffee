@@ -430,8 +430,6 @@ class Player extends DBWrapper
   saveDB: (handler) -> @save(handler)
 
   stageIsUnlockable: (stage) ->
-    #TODO
-    return true
     stageConfig = queryTable(TABLE_STAGE, stage, @abIndex)
     if stageConfig.condition then return stageConfig.condition(this, genUtil())
     if stageConfig.event
@@ -471,7 +469,7 @@ class Player extends DBWrapper
 
       if flag then ret.push({NTF: Event_UpdateStageInfo, arg: {syn: @stageVersion, stg:[arg]}})
 
-      #@log('stage', { operation: operation, stage: stage })
+      @log('stage', { operation: operation, stage: stage })
       return ret
 
   dungeonAction: (action) ->
