@@ -473,23 +473,6 @@ exports.route = {
     args: [],
     needPid: true
   },
-  RPC_GetPKInfo: {
-    id: 32,
-    func: (arg, player, handler, rpcID, socket) ->
-      dbLib.queryLeaderboard(2, player.name, 0, 0, (err, result) ->
-      )
-      #switch arg.bid
-      #  when -1
-      #    if player.counters.monthCard
-      #      player.counters.monthCard--
-      #      player.timestamp.newProperty('monthCard', helperLib.currentTime())
-      #      ret = [{ NTF: Event_InventoryUpdateItem, arg: { dim : player.addDiamond(80) }}]
-      #      player.saveDB()
-      #      handler([{REQ: rpcID, RET: RET_OK}].concat(ret))
-    ,
-    args: [],
-    needPid: true
-  },
   RPC_SubmitDailyQuest: {
     id: 29,
     func: (arg, player, handler, rpcID, socket) ->
@@ -501,17 +484,16 @@ exports.route = {
     args: [],
     needPid: true
   },
-  RPC_GetPkRivals: {
+  RPC_GetPKInfo: {
     id: 32,
     func: (arg, player, handler, rpcID, socket) ->
       dbLib.searchRival(player.name, (err, rivalLst) ->
         rivalLst = helperLib.warpRivalLst(rivalLst)
         ret = {REQ: rpcID, RET: RET_OK}
         async.map( rivalLst.name, getPlayerHero, (err, result) ->
-          console.log(err)
-          ret.lst = result.map( (e, i) ->
+          ret.arg = result.map( (e, i) ->
             r = getBasicInfo(e)
-            r.rnk = +board.rnk[i]
+            r.rnk = rivalLst.rnk[i]
             return r
           )
           handler([ret])

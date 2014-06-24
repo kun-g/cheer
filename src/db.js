@@ -178,13 +178,12 @@ var lua_fetchMessage = " \
   end";
 
 var lua_searchRival =" \
-  local randLst ={} \
+  local randLst ={ ARGV[3], ARGV[4], ARGV[5] } \
   local prefix = 'Leaderboard.'; \
-  local board, name, randLst[1], randLst[2], randLst[3] = ARGV[1], ARGV[2], ARGV[3], ARGV[4], ARGV[5]; \
+  local board, name = ARGV[1], ARGV[2]; \
   local config ={{base=0.95,delt=0.02}, \
     {base=0.85,delt=0.03}, \
     {base=0.50,delt=0.05}}; \
---need to check number of args? \
   if randLst[3] == nil then \
     return nil \
   end \
@@ -503,7 +502,7 @@ exports.initializeDB = function (cfg) {
   dbClient.script('load',lua_searchRival, function (err, sha) {
     exports.searchRival = function (name, handler) {
       dbClient.evalsha(sha, 0, 'Arena', name, Math.random(), Math.random(), Math.random(), function (err, ret) {
-       if (handler) { handler(err, JSON.parse(ret)); }
+       if (handler) { handler(err, ret); }
       });
     };
   });

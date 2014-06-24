@@ -161,14 +161,11 @@ exports.array2map = (keys, value) ->
   ),{})
 
 exports.warpRivalLst = (lst) ->
-    return lst.reduce( ( (r, l, i) ->
-      if i%2 is 0
-        r.name.push(l)
-      else
-        r.rnk.push(l)
-      return r
-    ), {name: [], rnk: []})
- 
+  return lst.reduce( ( (r, l, i) ->
+    if l.length == 2 then r.name.push(l[0]) and r.rnk.push(l[1])
+    return r
+  ), {name: [], rnk: []})
+
 # Time util
 currentTime = (needObject) ->
   obj = moment()
