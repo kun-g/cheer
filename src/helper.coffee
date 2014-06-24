@@ -122,6 +122,7 @@ exports.initLeaderboard = (config) ->
           obj[key] = v.initialValue
         else if v.initialValue is 'length'
           require('./db').queryLeaderboardLength(key, (err, result) ->
+            console.log('set leadbo', key, result)
             obj[key] = +result
           )
 

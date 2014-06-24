@@ -484,7 +484,7 @@ exports.route = {
     args: [],
     needPid: true
   },
-  RPC_GetPKInfo: {
+  RPC_GetPkRivals: {
     id: 32,
     func: (arg, player, handler, rpcID, socket) ->
       dbLib.searchRival(player.name, (err, rivalLst) ->
@@ -502,6 +502,18 @@ exports.route = {
     ,
     args: [],
     needPid: true
+  },
+  RPC_PVPInfoUpdate: {
+    id: 34,
+    func: (arg, player, handler, rpcID, socket) ->
+      dbLib.getPvpInfo(player.name, (err, result) ->
+        ret = {REQ: rpcID, RET: RET_OK}
+        handler([ret])
+        )
+    ,
+    args: [],
+    needPid: true
   }
+
 
 }

@@ -545,6 +545,7 @@ class Player extends DBWrapper
           getPlayerHero(pkr, wrapCallback(this, (err, heroData) ->
             @dungeonData.PVP_Pool = [getBasicInfo(heroData)]
             cb('OK')
+          ))
         else
           @dungeonData.PVP_Pool = []
           cb('OK')
@@ -987,7 +988,7 @@ class Player extends DBWrapper
     if prize.length > 0 then rewardMessage.arg.prize = prize.filter((f) -> f.type isnt  PRIZETYPE_FUNCTION)
     ret = ret.concat(this.claimPrize(prize, false))
 
-    if result == 'Win' then dbLib.saveSocre(@name, dungeon.pkr)
+    if result == 'Win' then dbLib.saveSocre(@name, dungeon.PVP_Pool[0].name)
 
     @log('finishDungeon', { stage: dungeon.getInitialData().stage, result: result, reward: prize })
 
