@@ -541,13 +541,12 @@ class Player extends DBWrapper
         cb()
       ,
       (cb) =>
-        if stageConfig.pvp?
+        if stageConfig.pvp? and pkr?
           getPlayerHero(pkr, wrapCallback(this, (err, heroData) ->
-            @dungeonData.PVP_Pool = [getBasicInfo(heroData)]
+            @dungeonData.PVP_Pool = if heroData? then [getBasicInfo(heroData)]
             cb('OK')
           ))
         else
-          @dungeonData.PVP_Pool = []
           cb('OK')
       ], (err) =>
         msg = []
@@ -988,7 +987,7 @@ class Player extends DBWrapper
     if prize.length > 0 then rewardMessage.arg.prize = prize.filter((f) -> f.type isnt  PRIZETYPE_FUNCTION)
     ret = ret.concat(this.claimPrize(prize, false))
 
-    if result == 'Win' then dbLib.saveSocre(@name, dungeon.PVP_Pool[0].name)
+    if dungeon.result is DUNGEON_RESULT_WIN and dungeon.PVP_Pool? then dbLib.saveSocre(@name, dungeon.PVP_Pool[0].name)
 
     @log('finishDungeon', { stage: dungeon.getInitialData().stage, result: result, reward: prize })
 
