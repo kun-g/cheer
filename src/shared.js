@@ -202,7 +202,7 @@ RES_GOLD = 12;
 RES_WXP = 13;
 RES_EXP = 14;
 
-Sweep_Vip_Level = 4;
+Sweep_Vip_Level = 3;
 
 LOGIN_ACCOUNT_TYPE_TG = 0;
 LOGIN_ACCOUNT_TYPE_AD = 1;

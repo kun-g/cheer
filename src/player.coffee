@@ -219,7 +219,7 @@ class Player extends DBWrapper
     ret_result = RET_OK
     prize = []
     ret = []
-    if multiple and false #@vipLevel() < Sweep_Vip_Level
+    if multiple and @vipLevel() < Sweep_Vip_Level
       ret_result = RET_VipLevelIsLow
     else if @energy < stgCfg.cost*count
       ret_result = RET_NotEnoughEnergy
@@ -514,7 +514,7 @@ class Player extends DBWrapper
     ret = ret.concat(@claimDungeonAward(@dungeon)) if @dungeon.result?
     return ret
 
-  startDungeon: (stage, startInfoOnly, pkr, handler) ->
+  startDungeon: (stage, startInfoOnly, handler) ->
     stageConfig = queryTable(TABLE_STAGE, stage, @abIndex)
     dungeonConfig = queryTable(TABLE_DUNGEON, stageConfig.dungeon, @abIndex)
     unless stageConfig? and dungeonConfig?
@@ -572,17 +572,8 @@ class Player extends DBWrapper
         }
         @dungeonData.randSeed = rand()
         @dungeonData.baseRank = helperLib.initCalcDungeonBaseRank(@) if stageConfig.event is 'event_daily'
-        cb()
-      ,
-      (cb) =>
-        if stageConfig.pvp?
-          getPlayerHero(pkr, wrapCallback(this, (err, heroData) ->
-            @dungeonData.PVP_Pool = [getBasicInfo(heroData)]
-            cb('OK')
-          ))
-        else
-          @dungeonData.PVP_Pool = []
-          cb('OK')
+        if stageConfig.pvp then @dungeonData.PVP_Pool = team.map(getBasicInfo)
+        cb('OK')
       ], (err) =>
         msg = []
         if stageConfig.initialAction then stageConfig.initialAction(@,  genUtil)
