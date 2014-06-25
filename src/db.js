@@ -209,6 +209,12 @@ var lua_exchangeScore = " \
   end \
   return 'noNeed'; ";
 
+var lua_getPvpInfo = " \
+  local board, name = ARGV[1],ARGV[2]; \
+  local prefix = 'Leaderboard.'; \
+  local key = prefix..board; \
+  local rank = redis.call('ZREVRANK', key, name); \
+  return 'noFinished'; ";
 exports.updateSessionInfo = function (session, obj, handler) {
   dbClient.hmset(makeDBKey([sessionPrefix, session]), obj, handler);
 };
@@ -508,12 +514,21 @@ exports.initializeDB = function (cfg) {
     };
   });
   dbClient.script('load',lua_exchangeScore, function (err, sha) {
-    exports.saveSocre= function (name, handler) {
-      dbClient.evalsha(sha, 0, dbPrefix, champion, second, function (err, ret) {
+    exports.saveSocre= function (champion, second, handler) {
+      dbClient.evalsha(sha, 0, 'Arena', champion, second, function (err, ret) {
        if (handler) { handler(err, ret); }
       });
     };
   });
+  dbClient.script('load',lua_getPvpInfo, function (err, sha) {
+    exports.getPvpInfo= function (name, handler) {
+      dbClient.evalsha(sha, 0, 'Arena', name, function (err, ret) {
+       if (handler) { handler(err, ret); }
+      });
+    };
+  });
+
+
 
 //function fetchMessage(name, handler) {
 //  dbClient.smembers(playerMessagePrefix+name, function (err, ids) {

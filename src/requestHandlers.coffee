@@ -301,7 +301,7 @@ exports.route = {
     id: 1,
     func: (arg, player, handler, rpcID, socket) ->
       player.dungeonData = {}
-      player.startDungeon(+arg.stg, arg.initialDataOnly, (err, evEnter, extraMsg) ->
+      player.startDungeon(+arg.stg, arg.initialDataOnly, arg.pkr, (err, evEnter, extraMsg) ->
         extraMsg = (extraMsg ? []).concat(player.syncEnergy())
         if typeof evEnter is 'number'
           handler([{REQ: rpcID, RET: evEnter}].concat(extraMsg))
@@ -483,7 +483,7 @@ exports.route = {
     args: [],
     needPid: true
   },
-  RPC_GetPKInfo: {
+  RPC_GetPkRivals: {
     id: 32,
     func: (arg, player, handler, rpcID, socket) ->
       dbLib.searchRival(player.name, (err, rivalLst) ->
@@ -492,12 +492,23 @@ exports.route = {
         async.map( rivalLst.name, getPlayerHero, (err, result) ->
           ret.arg = result.map( (e, i) ->
             r = getBasicInfo(e)
-            r.rnk = rivalLst.rnk[i]
+            r.rnk = +rivalLst.rnk[i]
             return r
           )
           handler([ret])
         )
       )
+    ,
+    args: [],
+    needPid: true
+  },
+  RPC_PVPInfoUpdate: {
+    id: 34,
+    func: (arg, player, handler, rpcID, socket) ->
+      dbLib.getPvpInfo(player.name, (err, result) ->
+        ret = {REQ: rpcID, RET: RET_OK}
+        handler([ret])
+        )
     ,
     args: [],
     needPid: true

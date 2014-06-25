@@ -166,6 +166,7 @@ makeDBKey = (keys, prefix) ->
   return [prefix].concat(keys).join(dbSeparator)
 
 exports.updateLeaderboard = (board, member, score, callback) ->
+  console.log(board,member,score)
   dbClient.zadd(makeDBKey([board], LeaderboardPrefix), score, member, callback)
 exports.removeLeaderboard = (board, callback) ->
   dbClient.del(makeDBKey([board], LeaderboardPrefix), callback)
