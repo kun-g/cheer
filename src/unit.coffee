@@ -147,12 +147,12 @@ class Mirror extends Unit
     @levelUp()
 
     @counterAttack = true
-    @health = Math.ceil(battleForce * (9/18.5))
-    @attack = Math.ceil(battleForce * (0.1/18.5))
+    @health = Math.ceil(battleForce * (8/18.5))
+    @attack = Math.ceil(battleForce * (0.35/18.5))
     @critical = battleForce * (1/18.5)
     @strong = battleForce * (1/18.5)
     @accuracy = battleForce * (1/18.5) + 30
-    @reactivity = battleForce * (10/18.5) - 50
+    @reactivity = battleForce * (1/18.5) - 40
     @speed = battleForce * (1/18.5) + 20
     @maxHP = @health
     @equipment = heroData.itm
@@ -162,6 +162,8 @@ class Mirror extends Unit
     @hairColor = heroData.hcl
     @ref = heroData.ref
     @id = cid
+
+    console.log( @accuracy )
 
 class Monster extends Unit
   constructor: (data) ->

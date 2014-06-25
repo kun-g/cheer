@@ -122,8 +122,8 @@ exports.initLeaderboard = (config) ->
           obj[key] = v.initialValue
         else if v.initialValue is 'length'
           require('./db').queryLeaderboardLength(key, (err, result) ->
-            console.log('set leadbo', key, result)
             obj[key] = +result
+            obj.saveDB()
           )
 
       v.func(player.name, obj[key])
@@ -461,7 +461,7 @@ exports.events = {
 
 exports.intervalEvent = {
   infinityDungeonPrize: {
-    time: { hour: 6 },
+    time: { hour: 11 },
     func: (libs) ->
       cfg = [
         {
@@ -531,7 +531,7 @@ exports.intervalEvent = {
             src:  MESSAGE_REWARD_TYPE_SYSTEM,
             prize: [{ type: 2, count: 20},
                     { type: 0,value:865, count: 1}],
-            tit: "铁人试炼排行奖励",
+            tit: "狩猎任务排行奖励",
             txt: "恭喜你进入狩猎任务前五，点击领取奖励。"
           }
         },
@@ -543,7 +543,7 @@ exports.intervalEvent = {
             src:  MESSAGE_REWARD_TYPE_SYSTEM,
             prize: [{ type: 2, count: 10},
                     { type: 0,value:864, count: 1}],
-            tit: "铁人试炼排行奖励",
+            tit: "狩猎任务排行奖励",
             txt: "恭喜你进入狩猎任务前十，点击领取奖励。"
           }
         }
@@ -570,7 +570,6 @@ exports.splicePrize = (prize) ->
       when PRIZETYPE_GOLD then goldPrize.count += p.count
       when PRIZETYPE_ITEM
         if not itemFlag[p.value] then itemFlag[p.value] = 0
-        console.log('x')
         itemFlag[p.value] += p.count
       else otherPrize.push(p)
   )

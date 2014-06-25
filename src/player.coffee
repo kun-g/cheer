@@ -198,6 +198,42 @@ class Player extends DBWrapper
 
     return ret
 
+  sweepStage: (stage, multiple) ->
+    stgCfg = queryTable(TABLE_STAGE, stage, @abIndex)
+    return { code: RET_DungeonNotExist, ret: [] } unless stgCfg
+
+    cfg = queryTable(TABLE_DUNGEON, stgCfg.dungeon, @abIndex)
+    return { code: RET_DungeonNotExist, ret: [] } unless cfg
+
+    dungeon = {
+      team: [],
+      quests: [],
+      revive: 0,
+      result: DUNGEON_RESULT_WIN,
+      killingInfo: [],
+      currentLevel: cfg.levelCount,
+      getConfig: () -> return cfg
+    }
+    count = 1
+    count = 5 if multiple
+    ret_result = RET_OK
+    prize = []
+    ret = []
+    if multiple and false #@vipLevel() < Sweep_Vip_Level
+      ret_result = RET_VipLevelIsLow
+    else if @energy < stgCfg.cost*count
+      ret_result = RET_NotEnoughEnergy
+    else
+      for i in [1..count]
+        p = @generateDungeonAward(dungeon, true)
+        r = []
+        for k, v of p
+          r = r.concat(v)
+        prize.push(r)
+        ret = ret.concat(@claimPrize(r))
+    @log('sweepDungeon', { stage: stage, multiple: multiple, reward: prize })
+    return { code: ret_result, prize: prize, ret: ret }
+
   claimLoginReward: () ->
     if @loginStreak.date
       dis = diffDate(@loginStreak.date)
@@ -430,8 +466,6 @@ class Player extends DBWrapper
   saveDB: (handler) -> @save(handler)
 
   stageIsUnlockable: (stage) ->
-    #TODO
-    return true
     stageConfig = queryTable(TABLE_STAGE, stage, @abIndex)
     if stageConfig.condition then return stageConfig.condition(this, genUtil())
     if stageConfig.event
@@ -471,7 +505,7 @@ class Player extends DBWrapper
 
       if flag then ret.push({NTF: Event_UpdateStageInfo, arg: {syn: @stageVersion, stg:[arg]}})
 
-      #@log('stage', { operation: operation, stage: stage })
+      @log('stage', { operation: operation, stage: stage })
       return ret
 
   dungeonAction: (action) ->
@@ -933,9 +967,9 @@ class Player extends DBWrapper
         else
           prize.push(iPrize)
   
-    return prize
+    return helperLib.splicePrize(prize)
 
-  claimDungeonAward: (dungeon) ->
+  claimDungeonAward: (dungeon, isSweep) ->
     return [] unless dungeon?
     ret = []
 
@@ -953,8 +987,7 @@ class Player extends DBWrapper
         for k, objective of quest.objects when objective.type is QUEST_TYPE_NPC and qst.counters[k]? and @quests[qid].counters?
           @quests[qid].counters[k] = qst.counters[k]
   
-    prize = @generateDungeonAward(dungeon)
-    {goldPrize, xpPrize, wxPrize, otherPrize} = helperLib.splicePrize(prize)
+    {goldPrize, xpPrize, wxPrize, otherPrize} = @generateDungeonAward(dungeon)
 
     rewardMessage = { NTF: Event_DungeonReward, arg: { res: dungeon.result } }
   
@@ -987,11 +1020,12 @@ class Player extends DBWrapper
     if prize.length > 0 then rewardMessage.arg.prize = prize.filter((f) -> f.type isnt  PRIZETYPE_FUNCTION)
     ret = ret.concat(this.claimPrize(prize, false))
 
-    if dungeon.result is DUNGEON_RESULT_WIN and dungeon.PVP_Pool? then dbLib.saveSocre(@name, dungeon.PVP_Pool[0].name)
+    if dungeon.result is DUNGEON_RESULT_WIN and dungeon.PVP_Pool?  then dbLib.saveSocre(@name, dungeon.PVP_Pool[0].name)
 
-    @log('finishDungeon', { stage: dungeon.getInitialData().stage, result: result, reward: prize })
-
-    @releaseDungeon()
+    if isSweep
+    else
+      @log('finishDungeon', { stage: dungeon.getInitialData().stage, result: result, reward: prize })
+      @releaseDungeon()
     return ret
 
   whisper: (name, message, callback) ->

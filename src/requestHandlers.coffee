@@ -443,7 +443,6 @@ exports.route = {
           if result.board?
             board = result.board
             async.map(board.name, getPlayerHero, (err, result) ->
-              console.log(err)
               ret.lst = result.map( (e, i) ->
                 r = getBasicInfo(e)
                 r.scr = +board.score[i]
@@ -513,7 +512,21 @@ exports.route = {
     ,
     args: [],
     needPid: true
+  },
+  RPC_SweepStage: {
+    id: 35,
+    func: (arg, player, handler, rpcID, socket) ->
+      { code, prize, ret } = player.sweepStage(+arg.stg, arg.mul)
+
+      res = {REQ: rpcID, RET: code}
+      if prize then res.arg = prize
+
+      res = [res]
+      res = res.concat(ret) if ret
+
+      return res
+    ,
+    args: [],
+    needPid: true
   }
-
-
 }
