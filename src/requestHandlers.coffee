@@ -505,39 +505,17 @@ exports.route = {
   RPC_SweepStage: {
     id: 35,
     func: (arg, player, handler, rpcID, socket) ->
-      stgCfg = queryTable(TABLE_STAGE, +arg.stg, player.abIndex)
-      cfg = queryTable(TABLE_DUNGEON, stgCfg.dungeon, player.abIndex)
-      dungeon = {
-        team: [],
-        quests: [],
-        revive: 0,
-        result: DUNGEON_RESULT_WIN,
-        killingInfo: [],
-        currentLevel: cfg.levelCount,
-        getConfig: () -> return cfg
-      }
-      count = 1
-      count = 5 if arg.mul
-      ret_result = RET_OK
-      prize = []
-      ret = []
-      if arg.mul and false #player.vipLevel() < Sweep_Vip_Level
-        ret_result = RET_VipLevelIsLow
-      else if player.energy < stgCfg.cost*count
-        ret_result = RET_NotEnoughEnergy
-      else
-        for i in [1..count]
-          p = player.generateDungeonAward(dungeon, true)
-          r = []
-          for k, v of p when v.length > 0
-            r = r.concat(v)
-          prize.push(r)
-          ret = ret.concat(player.claimPrize(r))
-      player.log('sweepDungeon', { stage: arg.stg, multiple: arg.mul, reward: prize })
-      handler([{REQ: rpcID, RET: ret_result, arg: prize}].concat(ret))
+      { code, prize, ret } = player.sweepStage(+arg.stg, arg.mul)
+
+      res = {REQ: rpcID, RET: code}
+      if prize then res.arg = prize
+
+      res = [res]
+      res = res.concat(ret) if ret
+
+      return res
     ,
     args: [],
     needPid: true
   }
-
 }
