@@ -58,8 +58,8 @@ describe('Player', function () {
 //    dbLib.releaseDB();
 //  });
 //
-//describe('Player', function () {
-//  it('Creation', function () {
+  describe('Player', function () {
+    it('Creation', function () {
 //    var p = new playerLib.Player();
 //    p.setName('Test');
 //    p.initialize();
@@ -81,40 +81,40 @@ describe('Player', function () {
 //    //p.saveDB();
 
 //      //x.startDungeon(104, true, console.log);
-//    });
-//  });
-//
-//  describe('SimpleProtocol', function () {
-//    var parseLib = require('../requestStream');
-//    var encoder = new parseLib.SimpleProtocolEncoder();
-//    var decoder = new parseLib.SimpleProtocolDecoder();
-//
-//    it('Should work with message pack & AES', function (done) {
-//      encoder.setFlag('messagePack');
-//      encoder.setFlag('size');
-//      encoder.pipe(decoder);
-//      var count = 6;
-//      decoder.on('request', function (req) {
-//        should(req).eql({a: '123'});
-//        count--;
-//        if (count === 0) done();
-//      });
-//      encoder.setFlag('aes');
-//      encoder.writeObject({a: '123'});
-//      encoder.writeObject({a: '123'});
-//      encoder.setFlag('aes', false);
-//      encoder.writeObject({a: '123'});
-//      encoder.writeObject({a: '123'});
-//      encoder.setFlag('aes', true);
-//      encoder.writeObject({a: '123'});
-//      encoder.setFlag('bson', true);
-//      encoder.writeObject({a: '123'});
-//      encoder.setFlag('bson', true);
-//      encoder.writeObject({a: '123'});
-//    });
-//  });
-//
-//
+      });
+    });
+  
+    describe('SimpleProtocol', function () {
+      var parseLib = require('../js/requestStream');
+      var encoder = new parseLib.SimpleProtocolEncoder();
+      var decoder = new parseLib.SimpleProtocolDecoder();
+  
+      it('Should work with message pack & AES', function (done) {
+        encoder.setFlag('messagePack');
+        encoder.setFlag('size');
+        encoder.pipe(decoder);
+        var count = 6;
+        decoder.on('request', function (req) {
+          shall(req).eql({a: '123'});
+          count--;
+          if (count === 0) done();
+        });
+        encoder.setFlag('aes');
+        encoder.writeObject({a: '123'});
+        encoder.writeObject({a: '123'});
+        encoder.setFlag('aes', false);
+        encoder.writeObject({a: '123'});
+        encoder.writeObject({a: '123'});
+        encoder.setFlag('aes', true);
+        encoder.writeObject({a: '123'});
+        encoder.setFlag('bson', true);
+        encoder.writeObject({a: '123'});
+        encoder.setFlag('bson', true);
+        encoder.writeObject({a: '123'});
+      });
+    });
+  
+  
   describe('CommandStream', function () {
     var cmdLib = require('../js/commandStream');
     it('Should work with this test run', function () {
@@ -157,137 +157,137 @@ describe('Player', function () {
       m.isVisible = (i % 2) == 1;
     }
 
-    it('should pass this test run', function () {
-      var env = new dungeonLib.DungeonEnvironment(null);
-      var routine = {};
-      var cmd = {
-        routine: function(c) {routine = c},
-        getEnvironment: function () { return env }
-      };
-      env.getTeammateOf = function (wizard) {
-        if (wizard.isMonster) {
-          return monsters.filter(function (m) { return m.name != wizard.name; });
-        } else {
-          return heroes.filter(function (m) { return m.name != wizard.name; });
-        }
-      };
-      env.getEnemyOf = function (wizard) {
-        if (wizard.isMonster) {
-          return heroes;
-        } else {
-          return monsters;
-        }
-      };
-      var me = heroes[0];
-      var dataField = {src: heroes[0], tar: monsters[0]};
-      env.setVariableField(dataField);
-      env.rand = function () { return 0; };
-      // Target Selection
-      me.selectTarget({targetSelection: {pool:'Self', filter: ['Visible', 'Alive']}}, cmd).should.length(0);
-      me.isVisible = true;
-      var tar = me.selectTarget({targetSelection: {pool:'self', filter: ['Visible', 'Alive']}}, cmd);
-      tar[0].should.have.property('name').equal(me.name);
+    //it('should pass this test run', function () {
+    //  var env = new dungeonLib.DungeonEnvironment(null);
+    //  var routine = {};
+    //  var cmd = {
+    //    routine: function(c) {routine = c},
+    //    getEnvironment: function () { return env }
+    //  };
+    //  env.getTeammateOf = function (wizard) {
+    //    if (wizard.isMonster) {
+    //      return monsters.filter(function (m) { return m.name != wizard.name; });
+    //    } else {
+    //      return heroes.filter(function (m) { return m.name != wizard.name; });
+    //    }
+    //  };
+    //  env.getEnemyOf = function (wizard) {
+    //    if (wizard.isMonster) {
+    //      return heroes;
+    //    } else {
+    //      return monsters;
+    //    }
+    //  };
+    //  var me = heroes[0];
+    //  var dataField = {src: heroes[0], tar: monsters[0]};
+    //  env.setVariableField(dataField);
+    //  env.rand = function () { return 0; };
+    //  // Target Selection
+    //  me.selectTarget({targetSelection: {pool:'Self', filter: ['Visible', 'Alive']}}, cmd).should.length(0);
+    //  me.isVisible = true;
+    //  var tar = me.selectTarget({targetSelection: {pool:'self', filter: ['Visible', 'Alive']}}, cmd);
+    //  tar[0].should.have.property('name').equal(me.name);
 
-      // Trigger condition TODO:
-      var thisSpell = {};
-      var ret = me.triggerCheck(thisSpell, [], {}, me, cmd);
-      ret[0].should.equal(true);
-      ret = me.triggerCheck(null, [{'type':'countDown', 'cd': 10}], {}, me, cmd);
-      ret[1].should.equal('NotLearned');
-      ret = me.triggerCheck(thisSpell, [{'type':'countDown', cd: 10}], {}, me, cmd);
-      ret[1].should.equal('NotReady');
-      env.rand = function () { return 1; };
-      ret = me.triggerCheck(thisSpell, [{'type':'chance', chance: 0.1}], {}, me, cmd);
-      ret[1].should.equal('NotFortunate');
-      env.rand = function () { return 0; };
-      ret = me.triggerCheck(thisSpell, [{'type':'chance', chance: 0.1}], {}, me, cmd);
-      ret[0].should.equal(true);
-      ret = me.triggerCheck(thisSpell, [{'type':'targetMutex', mutex: 'theMutex'}], {}, [me], cmd);
-      ret[0].should.equal(true);
-      me.setMutex('theMutex', 1);
-      ret = me.triggerCheck(thisSpell, [{'type':'targetMutex', mutex: 'theMutex'}], {}, [me], cmd);
-      ret[1].should.equal('TargetMutex');
-      ret = me.triggerCheck(thisSpell, [{'type':'card', id:0}], {}, me, cmd);
-      ret[1].should.equal('NoCard');
-      me.health = 11;
-      ret = me.triggerCheck(thisSpell, [{'type':'property', property: 'health', from:0, to:10}], {}, me, cmd);
-      ret[1].should.equal('Property');
-      me.health = -1;
-      ret = me.triggerCheck(thisSpell, [{'type':'property', property: 'health', from:0, to:10}], {}, me, cmd);
-      ret[1].should.equal('Property');
-      me.health = -1;
-      ret = me.triggerCheck(thisSpell, [{'type':'property', property: 'health', to:10}], {}, me, cmd);
-      ret[0].should.equal(true);
+    //  // Trigger condition TODO:
+    //  var thisSpell = {};
+    //  var ret = me.triggerCheck(thisSpell, [], {}, me, cmd);
+    //  ret[0].should.equal(true);
+    //  ret = me.triggerCheck(null, [{'type':'countDown', 'cd': 10}], {}, me, cmd);
+    //  ret[1].should.equal('NotLearned');
+    //  ret = me.triggerCheck(thisSpell, [{'type':'countDown', cd: 10}], {}, me, cmd);
+    //  ret[1].should.equal('NotReady');
+    //  env.rand = function () { return 1; };
+    //  ret = me.triggerCheck(thisSpell, [{'type':'chance', chance: 0.1}], {}, me, cmd);
+    //  ret[1].should.equal('NotFortunate');
+    //  env.rand = function () { return 0; };
+    //  ret = me.triggerCheck(thisSpell, [{'type':'chance', chance: 0.1}], {}, me, cmd);
+    //  ret[0].should.equal(true);
+    //  ret = me.triggerCheck(thisSpell, [{'type':'targetMutex', mutex: 'theMutex'}], {}, [me], cmd);
+    //  ret[0].should.equal(true);
+    //  me.setMutex('theMutex', 1);
+    //  ret = me.triggerCheck(thisSpell, [{'type':'targetMutex', mutex: 'theMutex'}], {}, [me], cmd);
+    //  ret[1].should.equal('TargetMutex');
+    //  ret = me.triggerCheck(thisSpell, [{'type':'card', id:0}], {}, me, cmd);
+    //  ret[1].should.equal('NoCard');
+    //  me.health = 11;
+    //  ret = me.triggerCheck(thisSpell, [{'type':'property', property: 'health', from:0, to:10}], {}, me, cmd);
+    //  ret[1].should.equal('Property');
+    //  me.health = -1;
+    //  ret = me.triggerCheck(thisSpell, [{'type':'property', property: 'health', from:0, to:10}], {}, me, cmd);
+    //  ret[1].should.equal('Property');
+    //  me.health = -1;
+    //  ret = me.triggerCheck(thisSpell, [{'type':'property', property: 'health', to:10}], {}, me, cmd);
+    //  ret[0].should.equal(true);
 
-      // Actions TODO
-      var actions = [ {'type': 'installSpell', spell: 1, level: 1},
-          {'type': 'modifyVar', x: 'damage', formular: {c: 1}},
-          {'type': 'ignoreHurt'},
-          {'type': 'replaceTar'},
-          {'type': 'setTargetMutex', mutex: 'TestMutex', count: 1},
-          {'type': 'ignoreCardCost'} ];
-      dataField.damage = 10;
-      dataField.tar = {name: 'xxxxxx'};
-      me.doAction(thisSpell, actions, {},[me], cmd);
-      me.wSpellDB.should.have.property('1');
-      dataField.damage.should.equal(1);
-      dataField.should.have.property('ignoreHurt').equal(true);
-      dataField.tar.should.have.property('name').equal(me.name);
-      me.haveMutex('TestMutex').should.equal(true);
-      dataField.should.have.property('ignoreCardCost').equal(true);
-      me.installSpell(0, 1, cmd);
-      me.castSpell(0, 1, cmd).should.equal(true);
-      //me.castSpell(0, 1, cmd).should.equal('NotReady');
-      me.doAction(thisSpell, [ {type: 'clearSpellCD'} ], {}, [me], cmd);
+    //  // Actions TODO
+    //  var actions = [ {'type': 'installSpell', spell: 1, level: 1},
+    //      {'type': 'modifyVar', x: 'damage', formular: {c: 1}},
+    //      {'type': 'ignoreHurt'},
+    //      {'type': 'replaceTar'},
+    //      {'type': 'setTargetMutex', mutex: 'TestMutex', count: 1},
+    //      {'type': 'ignoreCardCost'} ];
+    //  dataField.damage = 10;
+    //  dataField.tar = {name: 'xxxxxx'};
+    //  me.doAction(thisSpell, actions, {},[me], cmd);
+    //  me.wSpellDB.should.have.property('1');
+    //  dataField.damage.should.equal(1);
+    //  dataField.should.have.property('ignoreHurt').equal(true);
+    //  dataField.tar.should.have.property('name').equal(me.name);
+    //  me.haveMutex('TestMutex').should.equal(true);
+    //  dataField.should.have.property('ignoreCardCost').equal(true);
+    //  me.installSpell(0, 1, cmd);
+    //  me.castSpell(0, 1, cmd).should.equal(true);
+    //  //me.castSpell(0, 1, cmd).should.equal('NotReady');
+    //  me.doAction(thisSpell, [ {type: 'clearSpellCD'} ], {}, [me], cmd);
 
-      //me.health = 10;
-      //me.doAction(thisSpell, [ {type: 'setProperty', modifications: {health: {src: {health:1}, c:10} }} ],  {}, [me], cmd);
-      //me.health.should.equal(30);
-      //thisSpell.modifications.should.have.property('health').equal(20);
+    //  //me.health = 10;
+    //  //me.doAction(thisSpell, [ {type: 'setProperty', modifications: {health: {src: {health:1}, c:10} }} ],  {}, [me], cmd);
+    //  //me.health.should.equal(30);
+    //  //thisSpell.modifications.should.have.property('health').equal(20);
 
-      //me.doAction(thisSpell, [ {type: 'resetProperty'} ],  {}, [me], cmd);
-      //me.health.should.equal(10);
-      //thisSpell.should.not.have.property('modifications');
+    //  //me.doAction(thisSpell, [ {type: 'resetProperty'} ],  {}, [me], cmd);
+    //  //me.health.should.equal(10);
+    //  //thisSpell.should.not.have.property('modifications');
 
-      // install && uninstall
-      me.installSpell(1, 1, cmd);
-      me.wTriggers.should.have.property('onBePhysicalDamage').have.property('0').equal(1);
-      me.wTriggers.should.have.property('onBeSpellDamage').have.property('0').equal(1);
-      me.removeSpell(1, cmd);
-      me.wTriggers.should.not.have.property('onBeDamage');
-      me.wTriggers.should.not.have.property('onBeSpellDamage');
-      //me.installSpell(6, 1, cmd);
-      //me.installSpell(12, 2, cmd);
+    //  // install && uninstall
+    //  me.installSpell(1, 1, cmd);
+    //  me.wTriggers.should.have.property('onBePhysicalDamage').have.property('0').equal(1);
+    //  me.wTriggers.should.have.property('onBeSpellDamage').have.property('0').equal(1);
+    //  me.removeSpell(1, cmd);
+    //  me.wTriggers.should.not.have.property('onBeDamage');
+    //  me.wTriggers.should.not.have.property('onBeSpellDamage');
+    //  //me.installSpell(6, 1, cmd);
+    //  //me.installSpell(12, 2, cmd);
 
 
-      //var dcmd = new cmdStreamLib.DungeonCommandStream({id: 'Dialog', dialogId: 0});
-      //me.installSpell(24, 1, dcmd);
-      //me.ref = 0;
-      //dcmd.print();
-      //console.log(dcmd.translate());
-      //should(routine).eql({id: 'SpellState', wizard: me, state: {as: BUFF_TYPE_BUFF, dc: me.attack}});
+    //  //var dcmd = new cmdStreamLib.DungeonCommandStream({id: 'Dialog', dialogId: 0});
+    //  //me.installSpell(24, 1, dcmd);
+    //  //me.ref = 0;
+    //  //dcmd.print();
+    //  //console.log(dcmd.translate());
+    //  //should(routine).eql({id: 'SpellState', wizard: me, state: {as: BUFF_TYPE_BUFF, dc: me.attack}});
 
-      // installAction && uninstallAction
-      me.attack = 10;
-      me.installSpell(14, 1, cmd);
-      me.attack.should.equal(17);
-      me.removeSpell(14, cmd);
-      me.attack.should.equal(10);
+    //  // installAction && uninstallAction
+    //  me.attack = 10;
+    //  me.installSpell(14, 1, cmd);
+    //  me.attack.should.equal(17);
+    //  me.removeSpell(14, cmd);
+    //  me.attack.should.equal(10);
 
-      // availableCheck
-      me.installSpell(50, 1, cmd);
-      me.wSpellDB.should.have.property('50');
-      me.castSpell(50, 1, cmd);
-      me.wSpellDB.should.not.have.property('50');
-      me.installSpell(50, 1, cmd);
-      me.tickSpell('Battle', cmd);
-      me.wSpellDB.should.have.property('50');
-      me.tickSpell('Battle', cmd);
-      me.wSpellDB.should.not.have.property('50');
-      me.installSpell(50, 1, cmd);
-      me.tickSpell('Move', cmd);
-      me.wSpellDB.should.not.have.property('50');
-    });
+    //  // availableCheck
+    //  me.installSpell(50, 1, cmd);
+    //  me.wSpellDB.should.have.property('50');
+    //  me.castSpell(50, 1, cmd);
+    //  me.wSpellDB.should.not.have.property('50');
+    //  me.installSpell(50, 1, cmd);
+    //  me.tickSpell('Battle', cmd);
+    //  me.wSpellDB.should.have.property('50');
+    //  me.tickSpell('Battle', cmd);
+    //  me.wSpellDB.should.not.have.property('50');
+    //  me.installSpell(50, 1, cmd);
+    //  me.tickSpell('Move', cmd);
+    //  me.wSpellDB.should.not.have.property('50');
+    //});
 
     describe('Real deal', function () {
       before(function (done) {
@@ -355,6 +355,16 @@ describe('Player', function () {
 
     });
   });
+
+  //describe('Sweep Dungeon', function () {
+  //  it('', function () {
+  //    var p = new playerLib.Player();
+  //    p.setName('Test');
+  //    p.initialize();
+  //    logInfo(p.sweepStage(108, true));
+  //  });
+  //});
+
 //
 //  describe('Player', function () {
 //    after(function (done) {

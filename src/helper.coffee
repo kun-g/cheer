@@ -571,7 +571,6 @@ exports.splicePrize = (prize) ->
       when PRIZETYPE_GOLD then goldPrize.count += p.count
       when PRIZETYPE_ITEM
         if not itemFlag[p.value] then itemFlag[p.value] = 0
-        console.log('x')
         itemFlag[p.value] += p.count
       else otherPrize.push(p)
   )

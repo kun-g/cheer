@@ -443,7 +443,6 @@ exports.route = {
           if result.board?
             board = result.board
             async.map(board.name, getPlayerHero, (err, result) ->
-              console.log(err)
               ret.lst = result.map( (e, i) ->
                 r = getBasicInfo(e)
                 r.scr = +board.score[i]
@@ -518,18 +517,24 @@ exports.route = {
         getConfig: () -> return cfg
       }
       count = 1
-      count = 5 if arg.mod
+      count = 5 if arg.mul
       ret_result = RET_OK
       prize = []
-      if arg.mod and player.getVip() < Sweep_Vip_Level
+      ret = []
+      if arg.mul and false #player.vipLevel() < Sweep_Vip_Level
         ret_result = RET_VipLevelIsLow
       else if player.energy < stgCfg.cost*count
         ret_result = RET_NotEnoughEnergy
       else
         for i in [1..count]
-          prize.push(player.claimDungeonAward(dungeon))
-      player.log('sweepDungeon', { stage: arg.stg, auto: arg.mod, reward: prize })
-      handler([{REQ: rpcID, RET: ret_result, arg: prize}])
+          p = player.generateDungeonAward(dungeon, true)
+          r = []
+          for k, v of p when v.length > 0
+            r = r.concat(v)
+          prize.push(r)
+          ret = ret.concat(player.claimPrize(r))
+      player.log('sweepDungeon', { stage: arg.stg, multiple: arg.mul, reward: prize })
+      handler([{REQ: rpcID, RET: ret_result, arg: prize}].concat(ret))
     ,
     args: [],
     needPid: true
