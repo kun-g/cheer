@@ -220,7 +220,7 @@ class Player extends DBWrapper
     prize = []
     ret = []
     energyCost = stgCfg.cost*count
-    itemCost = {id: 853, num: count}
+    itemCost = {id: 871, num: count}
     
     if multiple and false #@vipLevel() < Sweep_Vip_Level
       ret_result = RET_VipLevelIsLow
