@@ -147,8 +147,8 @@ class Mirror extends Unit
     @levelUp()
 
     @counterAttack = true
-    @health = Math.ceil(battleForce * (8/18.5))
-    @attack = Math.ceil(battleForce * (0.35/18.5))
+    @health = Math.ceil(battleForce * (7/18.5))
+    @attack = Math.ceil(battleForce * (0.2/18.5))
     @critical = battleForce * (1/18.5)
     @strong = battleForce * (1/18.5)
     @accuracy = battleForce * (1/18.5) + 30
