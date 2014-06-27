@@ -187,7 +187,6 @@ class Player extends DBWrapper
       (item) ->
         return false unless item?.expiration?
         return true unless item.date?
-        console.log(helperLib.matchDate(item.date, helperLib.currentTime(), item.expiration))
         return helperLib.matchDate(item.date, helperLib.currentTime(), item.expiration)
     )
     rmMSG = itemsNeedRemove.map( (e) =>
@@ -495,8 +494,7 @@ class Player extends DBWrapper
       arg = {chp: chapter, stg:stage, sta:state}
 
       if stg.isInfinite
-        #@stage[stage].newProperty('level', 0) unless @stage[stage].level?
-        @stage[stage].level = 0 unless @stage[stage].level?
+        @stage[stage].newProperty('level', 0) unless @stage[stage].level?
         if state is STAGE_STATE_PASSED
           @stage[stage].level += 1
           if @stage[stage].level%5 is 0
