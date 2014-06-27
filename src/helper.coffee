@@ -461,7 +461,7 @@ exports.events = {
 
 exports.intervalEvent = {
   infinityDungeonPrize: {
-    time: { hour: 11 },
+    time: { hour: 13 },
     func: (libs) ->
       cfg = [
         {
@@ -508,7 +508,7 @@ exports.intervalEvent = {
       )
   },
   killMonsterPrize: {
-    time: { hour: 13 },
+    time: { hour: 22 },
     func: (libs) ->
       cfg = [
         {
@@ -629,3 +629,62 @@ exports.initObserveration = (obj) ->
   obj.notify = (event, arg) ->
     ob = obj.observers[event]
     if ob then ob(obj, arg)
+
+exports.dbScripts = {
+  getMercenary: """
+  local battleforce, count, range = ARGV[1], ARGV[2], ARGV[3];
+  local delta, rand, names, retrys = ARGV[4], ARGV[5], ARGV[6], ARGV[7];
+  local table = 'Leaderboard.battleForce';
+
+  local from = battleforce - range;
+  local to = battleforce + range;
+
+  while true
+    local list = redis.call('zrevrange', table, from, to);
+    local mercenarys = {}
+    for i, v in ipairs(list) do
+      ;
+    end
+    from = battleforce - range;
+    to = battleforce + range;
+    retrys -= 1;
+    if retrys == 0 return {err='Fail'};
+  end
+
+  //doFindMercenary = (list, cb) ->
+  //  if list.length <= 0
+  //    cb(new Error('Empty mercenarylist'))
+  //  else
+  //    selector = selectRange(list)
+  //    battleForce = selector[rand()%selector.length]
+  //    list = list.filter((i) -> return i != battleForce; )
+  //    mercenaryGet(battleForce, count, (err, mList) ->
+  //      if mList == null
+  //        dbClient.srem(mercenaryPrefix+'Keys', battleForce, callback)
+  //        dbClient.del(mercenaryPrefix+battleForce)
+  //        mList = []
+
+  //      mList = mList.filter((key) ->
+  //        for name in names
+  //          if key is name then return false
+  //        return true
+  //      )
+  //      if mList.length is 0
+  //        cb(null, list)
+  //      else
+  //        selectedName = mList[rand()%mList.length]
+  //        getPlayerHero(selectedName, (err, hero) ->
+  //          if hero
+  //            cb(new Error('Done'), hero)
+  //          else
+  //            logError({action: 'RemoveInvalidMercenary', error: err, name: selectedName})
+  //            mercenaryDel(battleForce, selectedName, (err) -> cb(null, list))
+  //        )
+  //    )
+  //actions = [ (cb) -> mercenaryKeyList(cb); ]
+  //for i in [0..50]
+  //  actions.push(doFindMercenary)
+  //async.waterfall(actions, handler)
+
+  """
+}
