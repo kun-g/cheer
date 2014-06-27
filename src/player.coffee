@@ -227,7 +227,7 @@ class Player extends DBWrapper
     else if @energy < energyCost
       ret_result = RET_NotEnoughEnergy
     else if (not stgCfg.sweepPower?) and stgCfg.sweepPower > @createHero().calculatePower()
-      ret_result = RET_SweepPowerNotEnough 
+      ret_result = RET_SweepPowerNotEnough
     else
       itemCostRet = @claimCost(itemCost.id, itemCost.num)
       if not itemCostRet?
@@ -949,7 +949,7 @@ class Player extends DBWrapper
   generateDungeonAward: (dungeon) ->
     result = dungeon.result
     cfg = dungeon.getConfig()
-    if result is DUNGEON_RESULT_DONE or not cfg? then return headers.splicePrize([])
+    if result is DUNGEON_RESULT_DONE or not cfg? then return  helperLib.splicePrize([])
   
     dropInfo = dungeon.killingInfo.reduce( ((r, e) ->
       if e and e.dropInfo then return r.concat(e.dropInfo)
