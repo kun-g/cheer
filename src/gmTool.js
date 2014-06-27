@@ -5,10 +5,10 @@ require('./globals');
 
 //players = ['天走卢克', '埃及傲', '萌成喵', '鲍哥', '江湖飘', '飛扬', 
 //        'Doyle', '豆豆同学丶', '震北冥', '888666', '蛋町' ];
-players = ['jvf'];
+players = ['jvf','oakk'];
 
-//serverName = 'Develop';
-serverName = 'Master';
+serverName = 'Develop';
+//serverName = 'Master';
 
 var config = {
   Develop: {
@@ -65,7 +65,7 @@ var rewardMessage = {
     //{type: PRIZETYPE_DIAMOND, count: 10000},
     //{type: PRIZETYPE_ITEM, value: 533, count: 20}//至尊礼包
     //{type: PRIZETYPE_ITEM, value: 553, count: 1},//至尊礼包
-    {type: PRIZETYPE_ITEM, value: 0, count: 1000},//至尊礼包
+    {type: PRIZETYPE_ITEM, value: 871, count: 1000},//至尊礼包
     //{type: PRIZETYPE_EXP, count: 1000000},
   ]
 };
@@ -258,14 +258,14 @@ function loadReceipt () {
 }
 
 initGlobalConfig(null, function () {
-  loadReceipt ();
+  //loadReceipt ();
 });
-//async.map(players, function (playerName, cb) {
-//  dbLib.deliverMessage(playerName, rewardMessage, cb);
-//}, function (err, result) {
-//  console.log('Done');
-//  dbLib.releaseDB();
-//});
+async.map(players, function (playerName, cb) {
+  dbLib.deliverMessage(playerName, rewardMessage, cb);
+}, function (err, result) {
+  console.log('Done');
+  dbLib.releaseDB();
+});
 
 /*
 receipt = 'qqd@1@1393082131@3@APP111';

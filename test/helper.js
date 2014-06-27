@@ -80,13 +80,14 @@ describe('Helper', function () {
         availableConfition: true
       }
     ];
+    config = require('../../data/stable/leadboard').data
     var players = [
-      { name: 'Ken',  type: 'player', scores: {} },
-      { name: 'Ken1', type: 'player', scores: {} },
-      { name: 'Ken2', type: 'player', scores: {} },
-      { name: 'Ken3', type: 'player', scores: {} },
-      { name: 'Ken4', type: 'player', scores: {} },
-      { name: 'Ken5', type: 'player', scores: {} }
+      { name: 'Ken',  type: 'player', scores: {} ,saveDB:function(){}},
+      { name: 'Ken1', type: 'player', scores: {} ,saveDB:function(){}},
+      { name: 'Ken2', type: 'player', scores: {} ,saveDB:function(){}},
+      { name: 'Ken3', type: 'player', scores: {} ,saveDB:function(){}},
+      { name: 'Ken4', type: 'player', scores: {} ,saveDB:function(){}},
+      { name: 'Ken5', type: 'player', scores: {} ,saveDB:function(){}}
     ];
     helpLib.initLeaderboard(config);
     players.forEach(helpLib.assignLeaderboard);
@@ -112,6 +113,16 @@ describe('Helper', function () {
           done();
         });
         */
+    });
+    it('kill monster prize', function (done) {
+      
+      helpLib.intervalEvent.killMonsterPrize.func({
+          helper:helpLib, 
+          db:{
+            deliverMessage:function(name,mail) {
+              console.log('res',name,mail.txt) 
+            }}})
+      done();
     });
   });
 

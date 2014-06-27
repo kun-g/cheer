@@ -112,22 +112,22 @@ exports.initLeaderboard = (config) ->
     localConfig.forEach( (v) ->
       return false unless player.type is v.type
       tmp = v.key.split('.')
-      key = tmp.pop()
+      field = tmp.pop()
       obj = player
       if tmp.length
         obj = require('./trigger').doGetProperty(player, tmp.join('.')) ? player
-      if v.initialValue and not obj[key]?
-        obj[key] = 0
+      if v.initialValue? and not (typeof obj[field] isnt 'undefined' and obj[field])
+        obj[field] = 0
         if typeof v.initialValue is 'number'
-          obj[key] = v.initialValue
+          obj[field] = v.initialValue
         else if v.initialValue is 'length'
-          require('./db').queryLeaderboardLength(key, (err, result) ->
-            obj[key] = +result
+          require('./db').queryLeaderboardLength(field, (err, result) ->
+            obj[field] = +result
             obj.saveDB()
           )
 
-      v.func(player.name, obj[key])
-      tap(obj, key, (dummy, value) ->
+      v.func(player.name, obj[field])
+      tap(obj, field, (dummy, value) ->
         v.func(player.name, value)
       )
     )
@@ -140,6 +140,7 @@ exports.initLeaderboard = (config) ->
       dbLib.setServerConfig('Leaderboard', JSON.stringify(srvCfg))
 
   exports.getPositionOnLeaderboard = (board, name, from, to, cb) ->
+    console.log('getPositionOnLeaderboard',board, name, from, to)
     tickLeaderboard(board)
     cfg = localConfig[board]
     require('./db').queryLeaderboard(cfg.name, name, from, to, (err, result) ->
