@@ -505,10 +505,13 @@ exports.route = {
   RPC_PVPInfoUpdate: {
     id: 34,
     func: (arg, player, handler, rpcID, socket) ->
-      dbLib.getPvpInfo(player.name, (err, result) ->
-        ret = {REQ: rpcID, RET: RET_OK}
-        handler([ret])
-        )
+      ret = {REQ: rpcID, RET: RET_OK}
+      ret.arg ={
+        rnk: player.counters.Arena
+        cpl: 0 unless player.counters.currentPKCount
+        ttl: 5 unless player.counters.totalPKCount
+        rcv: true unless player.flags.rcvAward}
+      handler(ret)
     ,
     args: [],
     needPid: true
@@ -521,10 +524,9 @@ exports.route = {
       res = {REQ: rpcID, RET: code}
       if prize then res.arg = prize
 
-      res = [res]
-      res = res.concat(ret) if ret
+      player.saveDB()
 
-      return res
+      handler([res].concat(ret))
     ,
     args: [],
     needPid: true

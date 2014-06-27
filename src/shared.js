@@ -82,6 +82,7 @@ RET_NeedTeammate = 45;
 RET_NeedReceipt = 46;
 RET_InsufficientIngredient = 47;
 RET_InvalidPaymentInfo = 48;
+RET_SweepPowerNotEnough = 49;
 
 ErrorMsgs = [
     "操作成功",
@@ -132,7 +133,8 @@ ErrorMsgs = [
     "Need Teammate",
     "缺少配方",
     "缺少材料",
-    "付费信息错误，请联系工作人员"
+    "付费信息错误，请联系工作人员",
+    "战斗力不足",
 ];
 
 /*** ITEM CATEGORY ***/
