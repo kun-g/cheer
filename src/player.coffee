@@ -228,7 +228,7 @@ class Player extends DBWrapper
     else if (not stgCfg.sweepPower?) and stgCfg.sweepPower > @createHero().calculatePower()
       ret_result = RET_SweepPowerNotEnough
     else
-      itemCostRet = @claimCost(itemCost.id, itemCost.num)
+      itemCostRet = @claimCost({id:itemCost.id}, itemCost.num)
       if not itemCostRet?
         ret_result = RET_NotEnoughItem
       else
@@ -641,8 +641,8 @@ class Player extends DBWrapper
     return itemPrize.concat(otherPrize)
 
   claimCost: (cost, count = 1) ->
-    if typeof cost is 'number'
-      cfg ={material:[{type:0, value:cost, count:1}]}
+    if typeof cost is 'object'
+      cfg ={material:[{type:0, value:cost.id, count:1}]}
     else
       cfg = queryTable(TABLE_COSTS, cost)
 
