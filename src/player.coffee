@@ -187,7 +187,6 @@ class Player extends DBWrapper
       (item) ->
         return false unless item?.expiration?
         return true unless item.date?
-        console.log(helperLib.matchDate(item.date, helperLib.currentTime(), item.expiration))
         return helperLib.matchDate(item.date, helperLib.currentTime(), item.expiration)
     )
     rmMSG = itemsNeedRemove.map( (e) =>
@@ -219,31 +218,19 @@ class Player extends DBWrapper
     ret_result = RET_OK
     prize = []
     ret = []
-    energyCost = stgCfg.cost*count
-    itemCost = {id: 871, num: count}
-    
-    if multiple and false #@vipLevel() < Sweep_Vip_Level
+    if multiple and @vipLevel() < Sweep_Vip_Level
       ret_result = RET_VipLevelIsLow
-    else if @energy < energyCost
+    else if @energy < stgCfg.cost*count
       ret_result = RET_NotEnoughEnergy
-    else if (not stgCfg.sweepPower?) and stgCfg.sweepPower > @createHero().calculatePower()
-      ret_result = RET_SweepPowerNotEnough 
     else
-      itemCostRet = @claimCost(itemCost.id, itemCost.num)
-      if not itemCostRet?
-        ret_result = RET_NotEnoughItem
-      else
-        @costEnergy(energyCost)
-        ret = ret.concat(itemCostRet)
-        for i in [1..count]
-          p = @generateDungeonAward(dungeon, true)
-          r = []
-          for k, v of p
-            r = r.concat(v)
-          prize.push(r)
-          ret = ret.concat(@claimPrize(r))
-        @log('sweepDungeon', { stage: stage, multiple: multiple, reward: prize })
-        ret = ret.concat(@syncEnergy())
+      for i in [1..count]
+        p = @generateDungeonAward(dungeon, true)
+        r = []
+        for k, v of p
+          r = r.concat(v)
+        prize.push(r)
+        ret = ret.concat(@claimPrize(r))
+    @log('sweepDungeon', { stage: stage, multiple: multiple, reward: prize })
     return { code: ret_result, prize: prize, ret: ret }
 
   claimLoginReward: () ->
@@ -495,8 +482,7 @@ class Player extends DBWrapper
       arg = {chp: chapter, stg:stage, sta:state}
 
       if stg.isInfinite
-        #@stage[stage].newProperty('level', 0) unless @stage[stage].level?
-        @stage[stage].level = 0 unless @stage[stage].level?
+        @stage[stage].newProperty('level', 0) unless @stage[stage].level?
         if state is STAGE_STATE_PASSED
           @stage[stage].level += 1
           if @stage[stage].level%5 is 0
@@ -527,7 +513,7 @@ class Player extends DBWrapper
     ret = ret.concat(@claimDungeonAward(@dungeon)) if @dungeon.result?
     return ret
 
-  startDungeon: (stage, startInfoOnly, pkr=null, handler) ->
+  startDungeon: (stage, startInfoOnly, handler) ->
     stageConfig = queryTable(TABLE_STAGE, stage, @abIndex)
     dungeonConfig = queryTable(TABLE_DUNGEON, stageConfig.dungeon, @abIndex)
     unless stageConfig? and dungeonConfig?
@@ -585,16 +571,8 @@ class Player extends DBWrapper
         }
         @dungeonData.randSeed = rand()
         @dungeonData.baseRank = helperLib.initCalcDungeonBaseRank(@) if stageConfig.event is 'event_daily'
-        cb()
-      ,
-      (cb) =>
-        if stageConfig.pvp? and pkr?
-          getPlayerHero(pkr, wrapCallback(this, (err, heroData) ->
-            @dungeonData.PVP_Pool = if heroData? then [getBasicInfo(heroData)]
-            cb('OK')
-          ))
-        else
-          cb('OK')
+        if stageConfig.pvp then @dungeonData.PVP_Pool = team.map(getBasicInfo)
+        cb('OK')
       ], (err) =>
         msg = []
         if stageConfig.initialAction then stageConfig.initialAction(@,  genUtil)
@@ -643,11 +621,7 @@ class Player extends DBWrapper
     return itemPrize.concat(otherPrize)
 
   claimCost: (cost, count = 1) ->
-    if typeof cost is 'number'
-      cfg ={material:[{type:0, value:cost, count:1}]}
-    else
-      cfg = queryTable(TABLE_COSTS, cost)
-
+    cfg = queryTable(TABLE_COSTS, cost)
     return null unless cfg?
     prize = @rearragenPrize(cfg.material)
     haveEnoughtMoney = prize.reduce( (r, l) =>
@@ -949,7 +923,7 @@ class Player extends DBWrapper
   generateDungeonAward: (dungeon) ->
     result = dungeon.result
     cfg = dungeon.getConfig()
-    if result is DUNGEON_RESULT_DONE or not cfg? then return headers.splicePrize([])
+    if result is DUNGEON_RESULT_DONE or not cfg? then return []
   
     dropInfo = dungeon.killingInfo.reduce( ((r, e) ->
       if e and e.dropInfo then return r.concat(e.dropInfo)
@@ -1036,7 +1010,6 @@ class Player extends DBWrapper
     prize = otherPrize.filter( (e) -> return not ( e.count? and e.count is 0 ) )
     if prize.length > 0 then rewardMessage.arg.prize = prize.filter((f) -> f.type isnt  PRIZETYPE_FUNCTION)
     ret = ret.concat(this.claimPrize(prize, false))
-    @updatePkInof(dungeon)
 
     if isSweep
     else
@@ -1044,18 +1017,6 @@ class Player extends DBWrapper
       @releaseDungeon()
     return ret
 
-  updatePkInof: (dungeon) ->
-    if @counters.currentPKCount? then @counters.currentPKCount++ else @counters.newProperty('currentPKCount',0)
-    
-    if dungeon.PVP_Pool?
-      myName = @name
-      rivalName = dungeon.PVP_Pool[0].nam
-      if dungeon.result is DUNGEON_RESULT_WIN 
-        dbLib.saveSocre(myName, rivalName, (err, result) ->
-          console.log('saveSocre',myName, rivalName, err, result)
-          if result isnt 'noNeed'
-            @counters.Arena = result[0]
-        )
   whisper: (name, message, callback) ->
     myName = this.name
     dbLib.deliverMessage(

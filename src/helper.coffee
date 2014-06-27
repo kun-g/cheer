@@ -423,7 +423,7 @@ exports.events = {
     infinite: {
       storeType: "player",
       id: 3,
-      actived: 1,
+      actived: 0,
       canReset: (obj, util) ->
         return (util.today.hour() >= 8 && util.diffDay(obj.timestamp.infinite, util.today))
       ,
@@ -435,7 +435,7 @@ exports.events = {
     hunting: {
       storeType: "player",
       id: 4,
-      actived: 1,
+      actived: 0,
       stages: [121, 122, 123, 125, 126, 127, 128, 129, 130, 131, 132],
       canReset: (obj, util) ->
         return (util.diffDay(obj.timestamp.hunting, util.today))
@@ -460,100 +460,100 @@ exports.events = {
 }
 
 exports.intervalEvent = {
-  infinityDungeonPrize: {
-    time: { hour: 13 },
-    func: (libs) ->
-      cfg = [
-        {
-          from: 0,
-          to: 0,
-          mail: {
-            type: MESSAGE_TYPE_SystemReward,
-            src:  MESSAGE_REWARD_TYPE_SYSTEM,
-            prize: [{ type: 2, count: 50},
-                    { type: 0,value:869, count: 1}],
-            tit: "铁人试炼排行奖励",
-            txt: "恭喜你成为铁人试炼冠军，点击领取奖励。"
-          }
-        },
-        {
-          from: 1,
-          to: 4,
-          mail: {
-            type: MESSAGE_TYPE_SystemReward,
-            src:  MESSAGE_REWARD_TYPE_SYSTEM,
-            prize: [{ type: 2, count: 20},
-                    { type: 0,value:868, count: 1}],
-            tit: "铁人试炼排行奖励",
-            txt: "恭喜你进入铁人试炼前五，点击领取奖励。"
-          }
-        },
-        {
-          from: 5,
-          to: 9,
-          mail: {
-            type: MESSAGE_TYPE_SystemReward,
-            src:  MESSAGE_REWARD_TYPE_SYSTEM,
-            prize: [{ type: 2, count: 10},
-                    { type: 0,value:867, count: 1}],
-            tit: "铁人试炼排行奖励",
-            txt: "恭喜你进入铁人试炼前十，点击领取奖励。"
-          }
-        }
-      ]
-      cfg.forEach( (e) ->
-        libs.helper.getPositionOnLeaderboard(1, 'nobody', e.from, e.to, (err, result) ->
-          result.board.name.forEach( (name) -> libs.db.deliverMessage(name, e.mail) )
-        )
-      )
-  },
-  killMonsterPrize: {
-    time: { hour: 22 },
-    func: (libs) ->
-      cfg = [
-        {
-          from: 0,
-          to: 0,
-          mail: {
-            type: MESSAGE_TYPE_SystemReward,
-            src:  MESSAGE_REWARD_TYPE_SYSTEM,
-            prize: [{ type: 2, count: 50},
-                    { type: 0,value:866, count: 1}],
-            tit: "狩猎任务排行奖励",
-            txt: "恭喜你成为狩猎任务冠军，点击领取奖励。"
-          }
-        },
-        {
-          from: 1,
-          to: 4,
-          mail: {
-            type: MESSAGE_TYPE_SystemReward,
-            src:  MESSAGE_REWARD_TYPE_SYSTEM,
-            prize: [{ type: 2, count: 20},
-                    { type: 0,value:865, count: 1}],
-            tit: "狩猎任务排行奖励",
-            txt: "恭喜你进入狩猎任务前五，点击领取奖励。"
-          }
-        },
-        {
-          from: 5,
-          to: 9,
-          mail: {
-            type: MESSAGE_TYPE_SystemReward,
-            src:  MESSAGE_REWARD_TYPE_SYSTEM,
-            prize: [{ type: 2, count: 10},
-                    { type: 0,value:864, count: 1}],
-            tit: "狩猎任务排行奖励",
-            txt: "恭喜你进入狩猎任务前十，点击领取奖励。"
-          }
-        }
-      ]
-      cfg.forEach( (e) ->
-        libs.helper.getPositionOnLeaderboard(2, 'nobody', e.from, e.to, (err, result) ->
-          result.board.name.forEach( (name) -> libs.db.deliverMessage(name, e.mail) )
-        )
-      )
-  },
+#  infinityDungeonPrize: {
+#    time: { hour: 13 },
+#    func: (libs) ->
+#      cfg = [
+#        {
+#          from: 0,
+#          to: 0,
+#          mail: {
+#            type: MESSAGE_TYPE_SystemReward,
+#            src:  MESSAGE_REWARD_TYPE_SYSTEM,
+#            prize: [{ type: 2, count: 50},
+#                    { type: 0,value:869, count: 1}],
+#            tit: "铁人试炼排行奖励",
+#            txt: "恭喜你成为铁人试炼冠军，点击领取奖励。"
+#          }
+#        },
+#        {
+#          from: 1,
+#          to: 4,
+#          mail: {
+#            type: MESSAGE_TYPE_SystemReward,
+#            src:  MESSAGE_REWARD_TYPE_SYSTEM,
+#            prize: [{ type: 2, count: 20},
+#                    { type: 0,value:868, count: 1}],
+#            tit: "铁人试炼排行奖励",
+#            txt: "恭喜你进入铁人试炼前五，点击领取奖励。"
+#          }
+#        },
+#        {
+#          from: 5,
+#          to: 9,
+#          mail: {
+#            type: MESSAGE_TYPE_SystemReward,
+#            src:  MESSAGE_REWARD_TYPE_SYSTEM,
+#            prize: [{ type: 2, count: 10},
+#                    { type: 0,value:867, count: 1}],
+#            tit: "铁人试炼排行奖励",
+#            txt: "恭喜你进入铁人试炼前十，点击领取奖励。"
+#          }
+#        }
+#      ]
+#      cfg.forEach( (e) ->
+#        libs.helper.getPositionOnLeaderboard(1, 'nobody', e.from, e.to, (err, result) ->
+#          result.board.name.forEach( (name) -> libs.db.deliverMessage(name, e.mail) )
+#        )
+#      )
+#  },
+#  killMonsterPrize: {
+#    time: { hour: 22 },
+#    func: (libs) ->
+#      cfg = [
+#        {
+#          from: 0,
+#          to: 0,
+#          mail: {
+#            type: MESSAGE_TYPE_SystemReward,
+#            src:  MESSAGE_REWARD_TYPE_SYSTEM,
+#            prize: [{ type: 2, count: 50},
+#                    { type: 0,value:866, count: 1}],
+#            tit: "狩猎任务排行奖励",
+#            txt: "恭喜你成为狩猎任务冠军，点击领取奖励。"
+#          }
+#        },
+#        {
+#          from: 1,
+#          to: 4,
+#          mail: {
+#            type: MESSAGE_TYPE_SystemReward,
+#            src:  MESSAGE_REWARD_TYPE_SYSTEM,
+#            prize: [{ type: 2, count: 20},
+#                    { type: 0,value:865, count: 1}],
+#            tit: "狩猎任务排行奖励",
+#            txt: "恭喜你进入狩猎任务前五，点击领取奖励。"
+#          }
+#        },
+#        {
+#          from: 5,
+#          to: 9,
+#          mail: {
+#            type: MESSAGE_TYPE_SystemReward,
+#            src:  MESSAGE_REWARD_TYPE_SYSTEM,
+#            prize: [{ type: 2, count: 10},
+#                    { type: 0,value:864, count: 1}],
+#            tit: "狩猎任务排行奖励",
+#            txt: "恭喜你进入狩猎任务前十，点击领取奖励。"
+#          }
+#        }
+#      ]
+#      cfg.forEach( (e) ->
+#        libs.helper.getPositionOnLeaderboard(2, 'nobody', e.from, e.to, (err, result) ->
+#          result.board.name.forEach( (name) -> libs.db.deliverMessage(name, e.mail) )
+#        )
+#      )
+#  },
 }
 
 exports.splicePrize = (prize) ->

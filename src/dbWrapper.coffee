@@ -95,7 +95,6 @@ getPlayerHero = (name, callback) ->
     (hero, rmb, blueStar, cb) ->
       try
         vip = playerLib.getVip(rmb)
-        console.log(hero, name)
         hero = JSON.parse(hero)
         hero.vipLevel = +vip.level
         hero.blueStar = +blueStar
@@ -166,7 +165,6 @@ makeDBKey = (keys, prefix) ->
   return [prefix].concat(keys).join(dbSeparator)
 
 exports.updateLeaderboard = (board, member, score, callback) ->
-  console.log(board,member,score)
   dbClient.zadd(makeDBKey([board], LeaderboardPrefix), score, member, callback)
 exports.removeLeaderboard = (board, callback) ->
   dbClient.del(makeDBKey([board], LeaderboardPrefix), callback)
