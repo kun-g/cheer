@@ -109,7 +109,8 @@ exports.initLeaderboard = (config) ->
   )
 
   exports.assignLeaderboard = (player,updateType) ->
-    localConfig.forEach( (v) ->
+    v = localConfig[updateType]
+    if v?
       return false unless player.type is v.type updateType is v.name
       tmp = v.key.split('.')
       field = tmp.pop()
@@ -130,7 +131,7 @@ exports.initLeaderboard = (config) ->
       # tap(obj, field, (dummy, value) ->
       #   v.func(player.name, value)
       # )
-    )
+    
 
   tickLeaderboard = (board, cb) ->
     cfg = localConfig[board]
