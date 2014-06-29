@@ -82,12 +82,20 @@ describe('Helper', function () {
     ];
     config = require('../../data/stable/leadboard').data
     var players = [
-      { name: 'Ken',  type: 'player', scores: {} ,saveDB:function(){}},
-      { name: 'Ken1', type: 'player', scores: {} ,saveDB:function(){}},
-      { name: 'Ken2', type: 'player', scores: {} ,saveDB:function(){}},
-      { name: 'Ken3', type: 'player', scores: {} ,saveDB:function(){}},
-      { name: 'Ken4', type: 'player', scores: {} ,saveDB:function(){}},
-      { name: 'Ken5', type: 'player', scores: {} ,saveDB:function(){}}
+      //{ name: 'Ken',  type: 'player', monster:1, scores: {} ,saveDB:function(){}},
+      //{ name: 'Ken1', type: 'player', monster:2, scores: {} ,saveDB:function(){}},
+      //{ name: 'Ken2', type: 'player', monster:3, scores: {} ,saveDB:function(){}},
+      //{ name: 'Ken3', type: 'player', monster:4, scores: {} ,saveDB:function(){}},
+      //{ name: 'Ken4', type: 'player', monster:5, scores: {} ,saveDB:function(){}},
+      //{ name: 'Ken5', type: 'player', monster:6, scores: {} ,saveDB:function(){}},
+      //{ name: 'Ken6', type: 'player', monster:7, scores: {} ,saveDB:function(){}},
+      //{ name: 'Ken7', type: 'player', monster:8, scores: {} ,saveDB:function(){}},
+      //{ name: 'Ken8', type: 'player', monster:9, scores: {} ,saveDB:function(){}},
+      //{ name: 'Ken9', type: 'player', monster:10, scores: {} ,saveDB:function(){}},
+      { name: 'Ken10', type: 'player', monster:13, scores: {} ,saveDB:function(){}},
+      { name: 'Ken11', type: 'player', monster:15, scores: {} ,saveDB:function(){}},
+      { name: 'Ken12', type: 'player', monster:16, scores: {} ,saveDB:function(){}},
+      { name: 'Ken12', type: 'player', monster:13, scores: {} ,saveDB:function(){}},
     ];
     helpLib.initLeaderboard(config);
     players.forEach(helpLib.assignLeaderboard);
@@ -116,6 +124,7 @@ describe('Helper', function () {
     });
     it('kill monster prize', function (done) {
       
+      console.log('TestKillMonster',helpLib.intervalEvent.killMonsterPrize)
       helpLib.intervalEvent.killMonsterPrize.func({
           helper:helpLib, 
           db:{

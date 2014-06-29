@@ -211,7 +211,8 @@ class Player extends DBWrapper
       result: DUNGEON_RESULT_WIN,
       killingInfo: [],
       currentLevel: cfg.levelCount,
-      getConfig: () -> return cfg
+      getConfig: () -> return cfg,
+      isSweep : true
     }
     count = 1
     count = 5 if multiple
@@ -289,6 +290,7 @@ class Player extends DBWrapper
 
     helperLib.initObserveration(this)
     @installObserver('heroxpChanged')
+    @installObserver('leaderboardChanged')
     
     if @isNewPlayer then @isNewPlayer = false
 
@@ -957,7 +959,8 @@ class Player extends DBWrapper
     percentage = 1
     if result is DUNGEON_RESULT_WIN
       dbLib.incrBluestarBy(this.name, 1)
-      dropInfo = dropInfo.concat(cfg.dropID) if cfg.dropID
+      if dungeon.isSweep?
+        dropInfo = dropInfo.concat(cfg.dropID) if cfg.dropID
     else
       percentage = (dungeon.currentLevel / cfg.levelCount) * 0.5
 
@@ -1050,7 +1053,6 @@ class Player extends DBWrapper
       rivalName = dungeon.PVP_Pool[0].nam
       if dungeon.result is DUNGEON_RESULT_WIN 
         dbLib.saveSocre(myName, rivalName, (err, result) ->
-          console.log('saveSocre',myName, rivalName, err, result)
           if result isnt 'noNeed'
             @counters.Arena = result[0]
         )

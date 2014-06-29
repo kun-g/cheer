@@ -44,11 +44,21 @@ dbLib.initializeDB({
 
 
 
-//var playerName = 'unitTestQ';
+var playerName = 'unitTestQ';
 //var othersName = 'pawn';
 //var countOfOthers = 30;
 //logLevel = 1;
 //var handlers = require('../commandHandlers').route;
+
+describe('Helper', function () {
+  it('Object', function () {
+    var t ={};
+    tapObject(t, console.log);
+    t.newProperty(1,{})
+    console.log(t, t.newProperty)
+    t[1].newProperty('level',0)
+  });
+});
 
 describe('Player', function () {
   before(function (done) {
@@ -598,37 +608,39 @@ describe('Player', function () {
 //      });
 //    });
 //
-//    describe('#Hero', function () {
-//      it('Should complete without errors', function () {
-//        dbLib.loadPlayer(playerName, function (err, player) {
-//          //TODO
-//          //player.stage.should.length(1);
-//          player.completeStage(0);
-//          player.stage[0].should.have.property('state').equal(STAGE_STATE_PASSED);
-//          player.completeStage(1);
-//          player.stage[1].should.have.property('state').equal(STAGE_STATE_PASSED);
-//          player.completeStage(7);
-//          player.stage[7].should.have.property('state').equal(STAGE_STATE_PASSED);
-//          player.completeStage(78);
-//          player.isNewPlayer.should.not.equal(true);
-//          var config = {
-//            name: playerName, class : 0, gender: 1, hairStyle : 2, hairColor : 3
-//          };
-//          player.createHero(config);
-//          config.class = 1;
-//          player.addHeroExp(100000);
-//          player.createHero().level.should.equal(10);
-//          player.createHero(config);
-//          config.class = 2;
-//          player.createHero(config);
-//          player.save();
-//          assert.equal(null, player.createHero({class:0}));
-//          player.addHeroExp(NaN);
-//          player.addHeroExp(0);
-//          player.addHeroExp(10000);
-//          assert.ok(player.createHero().level > 0);
-//        });
-//      });
+    describe('#Hero', function () {
+      it('Should complete without errors', function () {
+        dbLib.loadPlayer(playerName, function (err, player) {
+          //TODO
+          //player.stage.should.length(1);
+          player.completeStage(0);
+          player.stage[0].should.have.property('state').equal(STAGE_STATE_PASSED);
+          player.completeStage(102);
+          player.stage[0].should.have.property('state').equal(STAGE_STATE_PASSED);
+          player.completeStage(1);
+          player.stage[1].should.have.property('state').equal(STAGE_STATE_PASSED);
+          player.completeStage(7);
+          player.stage[7].should.have.property('state').equal(STAGE_STATE_PASSED);
+          player.completeStage(78);
+          player.isNewPlayer.should.not.equal(true);
+          var config = {
+            name: playerName, class : 0, gender: 1, hairStyle : 2, hairColor : 3
+          };
+          player.createHero(config);
+          config.class = 1;
+          player.addHeroExp(100000);
+          player.createHero().level.should.equal(10);
+          player.createHero(config);
+          config.class = 2;
+          player.createHero(config);
+          player.save();
+          assert.equal(null, player.createHero({class:0}));
+          player.addHeroExp(NaN);
+          player.addHeroExp(0);
+          player.addHeroExp(10000);
+          assert.ok(player.createHero().level > 0);
+        });
+      });
 //
 //      it('Campaign test', function (done) {
 //        dbLib.loadPlayer(playerName, function (err, player) {
@@ -676,7 +688,7 @@ describe('Player', function () {
 //            });
 //        });
 //      });
-//    });
+    });
 //
 //    describe('Commands', function () {
 //      var requestHandlers = require('../requestHandlers').route;
