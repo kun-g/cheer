@@ -124,7 +124,7 @@ exports.initLeaderboard = (config) ->
       else if v.initialValue is 'length'
         require('./db').queryLeaderboardLength(field, (err, result) ->
           obj[field] = +result
-          obj.saveDB()
+          player.saveDB()
         )
 
     v.func(player.name, obj[field])
@@ -421,19 +421,20 @@ exports.events = {
     infinite: {
       storeType: "player",
       id: 3,
-      actived: 0,
+      actived: 1,
       canReset: (obj, util) ->
         return (util.today.hour() >= 8 && util.diffDay(obj.timestamp.infinite, util.today))
       ,
       reset: (obj, util) ->
         obj.timestamp.newProperty('infinite', util.currentTime())
-        obj.stage[120].newProperty('level', 0)
+        obj.stage[120].level = 0
+        obj.notify('stageChanged')
     },
 
     hunting: {
       storeType: "player",
       id: 4,
-      actived: 0,
+      actived: 1,
       stages: [121, 122, 123, 125, 126, 127, 128, 129, 130, 131, 132],
       canReset: (obj, util) ->
         return (util.diffDay(obj.timestamp.hunting, util.today))
@@ -443,7 +444,7 @@ exports.events = {
         stages = [121, 122, 123, 125, 126, 127, 128, 129, 130, 131, 132]
         for s in stages when obj.stage[s]
           obj.stage[s].newProperty('level', 0)
-        obj.counters.newProperty('monster', 0)
+        obj.modifyCounters('monster',{ value : 0,notify:{name:'countersChanged'}})
     },
 
     monthCard: {
@@ -627,9 +628,9 @@ exports.observers = {
     exports.assignLeaderboard(obj, Leaderboard_BattleForce)
     obj.updateMercenaryInfo()
   countersChanged: (obj, arg) ->
-    exports.assignLeaderboard(obj, Leaderboard_KillingMonster)
+    exports.assignLeaderboard(obj, Leaderboard_KillingMonster) if arg.type is 'monster'
   stageChanged: (obj, arg) ->
-    exports.assignLeaderboard(obj, Leaderboard_InfinityDungeon)
+    exports.assignLeaderboard(obj, Leaderboard_InfinityDungeon) if arg.stage is 120
   winningAnPVP: (obj, arg) ->
     #TODO:
     exports.assignLeaderboard(obj, Leaderboard_Arena)
