@@ -108,32 +108,26 @@ exports.initLeaderboard = (config) ->
     dbLib.setServerConfig('Leaderboard', JSON.stringify(srvCfg))
   )
 
-  exports.getLeaderboardEvent = (leaderboardName) ->
-    return  localConfig[leaderboardName]?.event
-  exports.assignLeaderboard = (player,leaderboardName) ->
-    v = localConfig[leaderboardName]
-    if v?
-      return false unless player.type is v.type 
-      tmp = v.key.split('.')
-      field = tmp.pop()
-      obj = player
-      if tmp.length
-        obj = require('./trigger').doGetProperty(player, tmp.join('.')) ? player
-      if v.initialValue? and not (typeof obj[field] isnt 'undefined' and obj[field])
-        obj[field] = 0
-        if typeof v.initialValue is 'number'
-          obj[field] = v.initialValue
-        else if v.initialValue is 'length'
-          require('./db').queryLeaderboardLength(field, (err, result) ->
-            obj[field] = +result
-            obj.saveDB()
-          )
+  exports.assignLeaderboard = (player,leaderboardID) ->
+    v = localConfig[leaderboardID]
 
-      v.func(player.name, obj[field])
-      # tap(obj, field, (dummy, value) ->
-      #   v.func(player.name, value)
-      # )
-    
+    return false unless v? and player.type is v.type
+
+    tmp = v.key.split('.')
+    field = tmp.pop()
+    obj = player
+    if tmp.length
+      obj = require('./trigger').doGetProperty(player, tmp.join('.')) ? player
+    if v.initialValue? and not (typeof obj[field] isnt 'undefined' and obj[field])
+      if typeof v.initialValue is 'number'
+        obj[field] = v.initialValue
+      else if v.initialValue is 'length'
+        require('./db').queryLeaderboardLength(field, (err, result) ->
+          obj[field] = +result
+          obj.saveDB()
+        )
+
+    v.func(player.name, obj[field])
 
   tickLeaderboard = (board, cb) ->
     cfg = localConfig[board]
@@ -616,27 +610,29 @@ exports.calculateTotalItemXP = (item) ->
   return xp
 
 # Observer
+Leaderboard_BattleForce = 0
+Leaderboard_InfinityDungeon = 1
+Leaderboard_KillingMonster = 2
+Leaderboard_Arena = 3
 exports.observers = {
   heroxpChanged: (obj, arg) ->
+    obj.onCampaign('Level')
     if arg.prevLevel isnt arg.currentLevel
       if arg.currentLevel is 10
         dbLib.broadcastEvent(BROADCAST_PLAYER_LEVEL, {
           who: obj.name,
           what: obj.hero.class
         })
-  leaderboardChanged: (obj, arg) ->
-    obj[arg.key] = arg.value
-    if arg.event?
-      exports.assignLeaderboard(obj,arg.leaderboardName)
-      eventName = exports.getLeaderboardEvent(leaderboardName)
-      if eventName?
-        event = exports.observers[arg.event]
-        if event? then event(obj,arg)
-
-  battleforce: (obj, arg) ->
-  infinitydungeon: (obj, arg) ->
-  killMonster: (obj, arg) ->
-  Arena: (obj, arg) ->
+  battleForceChanged: (obj, arg) ->
+    exports.assignLeaderboard(obj, Leaderboard_BattleForce)
+    obj.updateMercenaryInfo()
+  countersChanged: (obj, arg) ->
+    exports.assignLeaderboard(obj, Leaderboard_KillingMonster)
+  stageChanged: (obj, arg) ->
+    exports.assignLeaderboard(obj, Leaderboard_InfinityDungeon)
+  winningAnPVP: (obj, arg) ->
+    #TODO:
+    exports.assignLeaderboard(obj, Leaderboard_Arena)
 }
 
 exports.initObserveration = (obj) ->

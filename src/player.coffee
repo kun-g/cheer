@@ -290,8 +290,10 @@ class Player extends DBWrapper
 
     helperLib.initObserveration(this)
     @installObserver('heroxpChanged')
-    @installObserver('leaderboardChanged')
-    @notify('leaderboardChanged',{})
+    @installObserver('battleForceChanged')
+    @installObserver('countersChanged')
+    @installObserver('stageChanged')
+    @installObserver('winningAnPVP')
     
     if @isNewPlayer then @isNewPlayer = false
 
@@ -415,7 +417,10 @@ class Player extends DBWrapper
         @hero.newProperty('equipment', equip)
 
       hero = new Hero(@hero)
-      @battleForce = hero.calculatePower()
+      bf = hero.calculatePower()
+      if bf isnt @battleForce
+        @battleForce = bf
+        @notify('battleForceChanged')
       return hero
     else
       throw 'NoHero'
@@ -453,10 +458,7 @@ class Player extends DBWrapper
         prevLevel: prevLevel,
         currentLevel: currentLevel
       })
-      #if prevLevel isnt currentLevel
-      #  if currentLevel is 10 then dbLib.broadcastEvent(BROADCAST_PLAYER_LEVEL, {who: @name, what: @hero.class})
-      #  @onEvent('level')
-      #  @log('levelChange', {prevLevel: prevLevel, newLevel: currentLevel})
+      @log('levelChange', {prevLevel: prevLevel, newLevel: currentLevel})
 
     return @hero.xp
 
@@ -753,13 +755,7 @@ class Player extends DBWrapper
 
   onEvent: (eventID) ->
     switch eventID
-      when 'gold', 'diamond', 'item' then
-      when 'level'
-        @onEvent('power')
-        @onCampaign('Level')
-      #when 'experience',
-      when 'Equipment' then @onEvent('power')
-      when 'power' then @updateMercenaryInfo()
+      when 'Equipment' then @createHero()
 
   queryItemSlot: (item) -> @inventory.queryItemSlot(item)
 
