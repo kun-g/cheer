@@ -108,10 +108,12 @@ exports.initLeaderboard = (config) ->
     dbLib.setServerConfig('Leaderboard', JSON.stringify(srvCfg))
   )
 
-  exports.assignLeaderboard = (player,updateType) ->
-    v = localConfig[updateType]
+  exports.getLeaderboardEvent = (leaderboardName) ->
+    return  localConfig[leaderboardName]?.event
+  exports.assignLeaderboard = (player,leaderboardName) ->
+    v = localConfig[leaderboardName]
     if v?
-      return false unless player.type is v.type updateType is v.name
+      return false unless player.type is v.type 
       tmp = v.key.split('.')
       field = tmp.pop()
       obj = player
@@ -623,11 +625,13 @@ exports.observers = {
           what: obj.hero.class
         })
   leaderboardChanged: (obj, arg) ->
-
     obj[arg.key] = arg.value
-    exports.assignLeaderboard(obj,arg.event)
-    event = exports.observers[arg.event] if arg.event? 
-    if event? then event(obj,arg)
+    if arg.event?
+      exports.assignLeaderboard(obj,arg.leaderboardName)
+      eventName = exports.getLeaderboardEvent(leaderboardName)
+      if eventName?
+        event = exports.observers[arg.event]
+        if event? then event(obj,arg)
 
   battleforce: (obj, arg) ->
   infinitydungeon: (obj, arg) ->
