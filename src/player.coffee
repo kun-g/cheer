@@ -291,6 +291,7 @@ class Player extends DBWrapper
     helperLib.initObserveration(this)
     @installObserver('heroxpChanged')
     @installObserver('leaderboardChanged')
+    @notify('leaderboardChanged',{})
     
     if @isNewPlayer then @isNewPlayer = false
 

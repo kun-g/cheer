@@ -622,10 +622,9 @@ exports.observers = {
           what: obj.hero.class
         })
   leaderboardChanged: (obj, arg) ->
-    event = exports.observers[arg.event)
-    if event? 
-      if event(obj,arg)
-        exports.assignLeaderboard(obj)
+    exports.assignLeaderboard(obj)
+    event = exports.observers[arg.event] if arg.event? 
+    if event? then event(obj,arg)
 }
 
 exports.initObserveration = (obj) ->
