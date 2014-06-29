@@ -127,9 +127,9 @@ exports.initLeaderboard = (config) ->
           )
 
       v.func(player.name, obj[field])
-      tap(obj, field, (dummy, value) ->
-        v.func(player.name, value)
-      )
+      # tap(obj, field, (dummy, value) ->
+      #   v.func(player.name, value)
+      # )
     )
 
   tickLeaderboard = (board, cb) ->
@@ -621,6 +621,11 @@ exports.observers = {
           who: obj.name,
           what: obj.hero.class
         })
+  leaderboardChanged: (obj, arg) ->
+    event = exports.observers[arg.event)
+    if event? 
+      if event(obj,arg)
+        exports.assignLeaderboard(obj)
 }
 
 exports.initObserveration = (obj) ->

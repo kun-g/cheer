@@ -490,7 +490,10 @@ class Player extends DBWrapper
     @stageVersion++
     if stg
       chapter = stg.chapter
+
       @stage.newProperty(stage, {}) unless @stage[stage]?
+
+      tapObject(@stage[stage], console.log) unless @stage[stage].newProperty?
 
       flag = false
       arg = {chp: chapter, stg:stage, sta:state}
