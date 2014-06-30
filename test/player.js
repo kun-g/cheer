@@ -615,7 +615,7 @@ describe('Player', function () {
           //player.stage.should.length(1);
           player.completeStage(0);
           player.stage[0].should.have.property('state').equal(STAGE_STATE_PASSED);
-          player.completeStage(102);
+          player.completeStage(120);
           player.stage[0].should.have.property('state').equal(STAGE_STATE_PASSED);
           player.completeStage(1);
           player.stage[1].should.have.property('state').equal(STAGE_STATE_PASSED);

@@ -481,6 +481,10 @@ class Player extends DBWrapper
 
   saveDB: (handler) -> @save(handler)
 
+  modifyCounters: (propertyName,arg) ->
+    @counters[propertyName] = arg.value? 0
+    @notify(arg.notify.name,arg.notify.arg) if arg.notify?
+
   stageIsUnlockable: (stage) ->
     stageConfig = queryTable(TABLE_STAGE, stage, @abIndex)
     if stageConfig.condition then return stageConfig.condition(this, genUtil())
@@ -505,6 +509,7 @@ class Player extends DBWrapper
         @stage[stage].newProperty('level', 0) unless @stage[stage].level?
         if state is STAGE_STATE_PASSED
           @stage[stage].level += 1
+          @notify('stageChanged',{stage:stage})
           if @stage[stage].level%5 is 0
             dbLib.broadcastEvent(BROADCAST_INFINITE_LEVEL, {who: @name, where: stage, many: @stage[stage].level})
 
@@ -708,6 +713,7 @@ class Player extends DBWrapper
               ret = ret.concat(@syncFlags(true)).concat(@syncEvent())
             when "countUp"
               @counters[p.counter]++
+              @notify('countersChanged',{type : p.counter})
               ret = ret.concat(@syncCounters(true)).concat(@syncEvent())
     return ret
 
