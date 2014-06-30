@@ -649,6 +649,37 @@ exports.initObserveration = (obj) ->
     if ob then ob(obj, arg)
 
 exports.dbScripts = {
+  searchRival: """
+    local board, name = ARGV[1], ARGV[2];
+    local key = 'Leaderboard.'..board;
+    local config = {
+        {base=0.95, delta=0.02, rand: ARGV[3]},
+        {base=0.85, delta=0.03, rand: ARGV[4]},
+        {base=0.50, delta=0.05, rand: ARGV[5]}
+      };
+    local count = 3;
+    local rank = redis.call('ZRANK', key, name);
+
+    local rivalLst = {};
+    if rank <= count then
+      rivalLst = redis.call('zrange', key, 0, rank-1);
+      count = count - rank;
+      local tmpList = redis.call('zrange', key, rank+1, rank+count);
+      for k, v in ipairs(tmpList) do
+        table.insert(rivalLst, v)
+      end
+    else
+      rank = rank - 1;
+      for i, c in ipairs(config) do
+        local from = math.floor(rank * (c.base-c.delta));
+        local to = math.floor(rank * (c.base+c.delta));
+        local index = from + c.rand%(to - from);
+        rivalLst[i] = redis.call('zrange', key, index, index);
+      end
+    end
+
+    return rivalLst;
+  """
   getMercenary: """
   local battleforce, count, range = ARGV[1], ARGV[2], ARGV[3];
   local delta, rand, names, retrys = ARGV[4], ARGV[5], ARGV[6], ARGV[7];
