@@ -428,7 +428,7 @@ exports.events = {
       reset: (obj, util) ->
         obj.timestamp.newProperty('infinite', util.currentTime())
         obj.stage[120].level = 0
-        obj.notify('stageChanged')
+        obj.notify('stageChanged',{stage:120})
     },
 
     hunting: {
@@ -444,7 +444,7 @@ exports.events = {
         stages = [121, 122, 123, 125, 126, 127, 128, 129, 130, 131, 132]
         for s in stages when obj.stage[s]
           obj.stage[s].newProperty('level', 0)
-        obj.modifyCounters('monster',{ value : 0,notify:{name:'countersChanged'}})
+        obj.modifyCounters('monster',{ value : 0,notify:{name:'countersChanged',arg:{type : 'monster'}}})
     },
 
     monthCard: {
