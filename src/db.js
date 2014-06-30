@@ -177,32 +177,6 @@ var lua_fetchMessage = " \
     return '[]'; \
   end";
 
-var lua_searchRival =" \
-  local randLst ={ ARGV[3], ARGV[4], ARGV[5] } \
-  local prefix = 'Leaderboard.'; \
-  local board, name = ARGV[1], ARGV[2]; \
-  local config ={{base=0.95,delt=0.02}, \
-    {base=0.85,delt=0.03}, \
-    {base=0.50,delt=0.05}}; \
-  if randLst[3] == nil then \
-    return nil \
-  end \
-  local key = prefix..board; \
-  local rank = redis.call('ZRANK', key, name); \
-  local rivalLst ={} ; \
-  local initRivalLst = redis.call('zrange', key, rank + 1, rank + 3, 'WITHSCORES');  \
-  local len = table.getn(initRivalLst) \
-  for i = 1, len , 2 do \
-    rivalLst[math.ceil(i/2)] = {initRivalLst[i],initRivalLst[i+1]} \
-  end \
-  for i,scope in ipairs(config) do \
-    local from = math.floor(rank * (scope.base - scope.delt + scope.delt *(2*randLst[i]))); \
-    if from ~= rank then \
-      rivalLst[i] = redis.call('zrange', key, from, from, 'WITHSCORES');  \
-    end \
-  end \
-  return rivalLst;";
-
 var lua_exchangeScore = " \
   local board, champion, second = ARGV[1], ARGV[2], ARGV[3]; \
   local prefix = 'Leaderboard.'; \
@@ -514,7 +488,8 @@ exports.initializeDB = function (cfg) {
       });
     };
   });
-  dbClient.script('load',lua_searchRival, function (err, sha) {
+
+  dbClient.script('load', require('./helper').dbScripts.searchRival, function (err, sha) {
     exports.searchRival = function (name, handler) {
       dbClient.evalsha(sha, 0, 'Arena', name, Math.random(), Math.random(), Math.random(), function (err, ret) {
         console.log('lua_searchRival',err,ret)
