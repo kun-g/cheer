@@ -16,40 +16,40 @@ describe('Dungeon', function () {
   });
 
   describe('Create units', function () {
-    //it('case 1', function () {
-    //  var r = dungeonLib.createUnits({
-    //    pool: {
-    //            p1: [{id: 7, weight: 1}, {id: 4, weight: 1}],
-    //            p2: [{id: 5, weight: 1}, {id: 6, weight: 1}]
-    //    },
-    //    global: [
-    //      {id: 1, pos: [1,2,3], from: 0, to: 5},
-    //      {id: 2, /*property: {keyed: true}, */count: 3},
-    //      {id: 3, count: 3, levels: [0, 1, 3]},
-    //      {pool: 'p2', count: 2, levels:{ from: 3, to: 5}} 
-    //    ],
-    //    levels: [
-    //      { objects: [ {id: 4, from: 2, to: 5} ] },
-    //      { objects: [ /*{property: {tag: 1}}*/, {id: 1, count: 1}, {count: 2} ] },
-    //      { objects: [ {count: 4} ] },
-    //      { objects: [ {pool: 'p1', from:0, to: 2} ] },
-    //      { objects: [] }
-    //    ]
-    //  }, function () { return 1; });
-    //  r.should.eql([
-    //    [ { id: 4, count: 3 } ],
-    //    [ { id: 1, count: 1 },
-    //      { id: 1, pos: 2, count: 1 } ],
-    //    [ { id: 2, count: 1 },
-    //      { id: 2, count: 1 },
-    //      { id: 2, count: 1 },
-    //      { id: 3, count: 1 } ],
-    //    [ { id: 7, count: 1 } ],
-    //    [ { id: 3, count: 1 },
-    //      { id: 3, count: 1 },
-    //      { id: 5, count: 1 } ]
-    //  ]);
-    //});
+    it('case 1', function () {
+      var r = dungeonLib.createUnits({
+        pool: {
+              p1: [{id: 7, weight: 1}, {id: 4, weight: 1}, { skill: [{id: 1, lv: 2}]} ],
+              p2: [{id: 5, weight: 1}, {id: 6, weight: 1}, { property: { keyed: true } }]
+        },
+        global: [
+          {id: 1, pos: [1,2,3], from: 0, to: 5},
+          {id: 2, property: {keyed: true}, count: 3},
+          {id: 3, count: 3, levels: [0, 1, 3]},
+          {pool: 'p2', count: 2, levels:{ from: 3, to: 5}} 
+        ],
+        levels: [
+          { objects: [ {id: 4, from: 2, to: 5, skill: [1]} ] },
+          { objects: [ {property: {tag: 1}}, {id: 1, count: 1}, {count: 2} ] },
+          { objects: [ {count: 4} ] },
+          { objects: [ {pool: 'p1', from:0, to: 2} ] },
+          { objects: [] }
+        ]
+      }, function () { return 1; });
+      r.should.eql([
+        [ { id: 4, count: 3 } ],
+        [ { id: 1, count: 1 },
+          { id: 1, pos: 2, count: 1 } ],
+        [ { id: 2, count: 1 },
+          { id: 2, count: 1 },
+          { id: 2, count: 1 },
+          { id: 3, count: 1 } ],
+        [ { id: 7, count: 1 } ],
+        [ { id: 3, count: 1 },
+          { id: 3, count: 1 },
+          { id: 5, count: 1 } ]
+      ]);
+    });
   });
 
 //  describe('Dungeon', function () {
