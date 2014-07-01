@@ -297,7 +297,7 @@ class Player extends DBWrapper
     
     if @isNewPlayer then @isNewPlayer = false
 
-    helperLib.assignLeaderboard(@)
+    helperLib.assignLeaderboard(@,3)
 
     @inventory.validate()
 

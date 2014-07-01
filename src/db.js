@@ -177,19 +177,6 @@ var lua_fetchMessage = " \
     return '[]'; \
   end";
 
-var lua_exchangeScore = " \
-  local board, champion, second = ARGV[1], ARGV[2], ARGV[3]; \
-  local prefix = 'Leaderboard.'; \
-  local key = prefix..board; \
-  local championRank = redis.call('ZRANK', key, champion); \
-  local secondRank = redis.call('ZRANK', key, second); \
-  if championRank < secondRank then \
-    redis.call('ZADD',key, championRank, second); \
-    redis.call('ZADD',key, secondRank, champion); \
-    return {championRank,secondRank} ; \
-  end \
-  return 'noNeed'; ";
-
 var lua_getPvpInfo = " \
   local board, name = ARGV[1],ARGV[2]; \
   local prefix = 'Leaderboard.'; \
@@ -497,8 +484,8 @@ exports.initializeDB = function (cfg) {
       });
     };
   });
-  dbClient.script('load',lua_exchangeScore, function (err, sha) {
-    console.log('load lua_exchangeScore', err,sha)
+  dbClient.script('load',require('./helper').dbScripts.exchangePKRank, function (err, sha) {
+    console.log('load exchangePKRank', err,sha)
     exports.saveSocre = function (champion, second, handler) {
       dbClient.evalsha(sha, 0, 'Arena', champion, second, function (err, ret) {
        if (handler) { handler(err, ret); }
@@ -512,6 +499,14 @@ exports.initializeDB = function (cfg) {
       });
     };
   });
+  dbClient.script('load',require('./helper').dbScripts.tryAddLeaderboardMember, function (err, sha) {
+    exports.tryAddLeaderboardMember = function (board, name, value, handler) {
+      dbClient.evalsha(sha, 0, board, name, value, function (err, ret) {
+       if (handler) { handler(err, ret); }
+      });
+    };
+  });
+ 
   //dbClient.script('load', lua_getMercenary, function (err, sha) {
   //  exports.findMercenary = function (battleforce, count, range, delta, names handler) {
   //    dbClient.evalsha(

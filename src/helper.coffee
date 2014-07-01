@@ -113,21 +113,27 @@ exports.initLeaderboard = (config) ->
 
     return false unless v? and player.type is v.type
 
-    tmp = v.key.split('.')
-    field = tmp.pop()
-    obj = player
-    if tmp.length
-      obj = require('./trigger').doGetProperty(player, tmp.join('.')) ? player
-    if v.initialValue? and not (typeof obj[field] isnt 'undefined' and obj[field])
-      if typeof v.initialValue is 'number'
-        obj[field] = v.initialValue
-      else if v.initialValue is 'length'
-        require('./db').queryLeaderboardLength(field, (err, result) ->
-          obj[field] = +result
-          player.saveDB()
-        )
+    if not v.key?
+      val = if typeof v.initialValue is 'number'? then v.initialValue else undefined
+      require('.db').tryAddLeaderboardMember(v.name,player.name,val)
+    else
+      tmp = v.key.split('.')
+      field = tmp.pop()
+      obj = player
+      if tmp.length
+        obj = require('./trigger').doGetProperty(player, tmp.join('.')) ? player
+      if v.initialValue? and not (typeof obj[field] isnt 'undefined' and obj[field])
+        if typeof v.initialValue is 'number'
+          obj[field] = v.initialValue
+        else if v.initialValue is 'length'
+          require('./db').queryLeaderboardLength(v.name, (err, result) ->
+            obj[field] = +result
+            #TODO getLen + saveDB => lua
+            v.func(player.name, obj[field])
+            player.saveDB()
+          )
 
-    v.func(player.name, obj[field])
+      v.func(player.name, obj[field])
 
   tickLeaderboard = (board, cb) ->
     cfg = localConfig[board]
@@ -460,7 +466,7 @@ exports.events = {
 
 exports.intervalEvent = {
   infinityDungeonPrize: {
-    time: { hour: 13 },
+    time: { minite: 59 },
     func: (libs) ->
       cfg = [
         {
@@ -509,7 +515,7 @@ exports.intervalEvent = {
       )
   },
   killMonsterPrize: {
-    time: { hour: 22 },
+    time: { minite: 59 },
     func: (libs) ->
       cfg = [
         {
@@ -653,28 +659,33 @@ exports.dbScripts = {
     local board, name = ARGV[1], ARGV[2];
     local key = 'Leaderboard.'..board;
     local config = {
-        {base=0.95, delta=0.02, rand: ARGV[3]},
-        {base=0.85, delta=0.03, rand: ARGV[4]},
-        {base=0.50, delta=0.05, rand: ARGV[5]}
+        {base=0.95, delta=0.02, rand= ARGV[3]},
+        {base=0.85, delta=0.03, rand= ARGV[4]},
+        {base=0.50, delta=0.05, rand= ARGV[5]},
       };
     local count = 3;
     local rank = redis.call('ZRANK', key, name);
 
     local rivalLst = {};
     if rank <= count then
-      rivalLst = redis.call('zrange', key, 0, rank-1);
-      count = count - rank;
-      local tmpList = redis.call('zrange', key, rank+1, rank+count);
-      for k, v in ipairs(tmpList) do
-        table.insert(rivalLst, v)
+      for index = 0, rank-1 do 
+        table.insert(rivalLst,redis.call('zrange', key, index, index, 'withscores'));
       end
-    else
+      for index = rank+1, count do 
+        table.insert(rivalLst,redis.call('zrange', key, index, index, 'withscores'));
+      end
+   else
       rank = rank - 1;
       for i, c in ipairs(config) do
-        local from = math.floor(rank * (c.base-c.delta));
-        local to = math.floor(rank * (c.base+c.delta));
-        local index = from + c.rand%(to - from);
-        rivalLst[i] = redis.call('zrange', key, index, index);
+        local from = math.ceil(rank * (c.base-c.delta));
+        local to = math.ceil(rank * (c.base+c.delta));
+        local index = from
+        if  to ~=  from then 
+          index = index + c.rand%(to - from);
+        end
+        index = math.ceil(index);
+        rivalLst[count - i + 1] = redis.call('zrange', key, index, index, 'withscores');
+        rank = index - 1;
       end
     end
 
@@ -736,4 +747,33 @@ exports.dbScripts = {
   //async.waterfall(actions, handler)
 
   """
+  exchangePKRank: """
+    local board, champion, second = ARGV[1], ARGV[2], ARGV[3]; 
+    local prefix = 'Leaderboard.'; 
+    local key = prefix..board; 
+    local championRank = redis.call('ZRANK', key, champion); 
+    local secondRank = redis.call('ZRANK', key, second); 
+    if championRank < secondRank then 
+      redis.call('ZADD',key, championRank, second); 
+      redis.call('ZADD',key, secondRank, champion); 
+      return {championRank,secondRank} ; 
+    end 
+    return 'noNeed'; """
+
+  tryAddLeaderboardMember:"""
+    local board, name, value = ARGV[1], ARGV[2], ARGV[3]; 
+    local prefix = 'Leaderboard.'; 
+    local key = prefix..board; 
+    local score = redis.call('ZSCORE', key, name)
+    if score == nil then
+      if value == nil then
+        value = redis.call('ZCARD', key)
+      end
+      redis.call('ZADD', key, name, value)
+      return {"ok", value}
+    else
+      return {"alreadyExist"}
+    end
+  """
+
 }

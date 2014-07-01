@@ -48,6 +48,22 @@ describe('Helper', function () {
     shall(marker).eql({ name: 1, age: 2, equip: 4, friend: 3 });
   });
 
+  describe('Helper', function () {
+    it('warpRivalLst',function(done){
+      var data = [{
+        value:[ [ 'P36', '36' ], [ 'P78', '78' ], [ 'P94', '94' ] ],
+        check:{ name:['P36','P78','P94'], rnk:[36,78,94]}},
+      ]
+      
+      async.map(data, 
+        function(e,cb){
+          shall(helpLib.warpRivalLst(e.value)).eql(e.check);
+          cb();
+        },done);
+    });
+  });
+
+
   describe('Leaderboard', function () {
     var dbLib = require('../js/db');
 

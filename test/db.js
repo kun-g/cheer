@@ -12,6 +12,9 @@ dbLib.initializeDB({
 
 var shall = require('should');
 
+var checkInRange = function(range,value){
+  return value >= range.from && value <= range.to
+}
 gServerID = 1;
 initServer();
 
@@ -50,5 +53,63 @@ describe('DB', function () {
         });
     });
   });
+  describe('PK', function () {
+    it('searchRival', function (done) {
+      for (i = 0; i < 101; i++) {
+        dbClient.zadd('Leaderboard.Arena', i, 'P'+i );
+      }
+
+      var arr = [
+        { name: 'P6', result: [ [2, 2], [4, 5], [5, 5] ] },
+        { name: 'P1', result: [ [0, 0], [2, 2], [3, 3] ] },
+        { name: 'P3', result: [ [0, 0], [1, 1], [2, 2] ] },
+      //  { name: 'P100', result: [ [44, 54], [81, 87], [92, 96] ] }
+      ];
+
+     async.map(arr, 
+         function(e, cb) {
+          dbLib.searchRival(e.name, function (err, result) {
+            result[0][1].should.be.within(e.result[0][0], e.result[0][1]);
+            result[1][1].should.be.within(e.result[1][0], e.result[1][1]);
+            result[2][1].should.be.within(e.result[2][0], e.result[2][1]);
+            cb();
+          });
+         }, 
+         done)
+    });
+  });
+
+  describe('tryAddLeaderboardMember', function () {
+    it('', function (done) {
+      var dbKey = 'Leaderboard.Test'
+      dbClient.del(dbKey);
+      for (i = 0; i < 10; i++) {
+        dbClient.zadd(dbKey, i, 'P'+i );
+      }
+
+      var arr = [
+      { board: 'Test', name: 'P6', value: 10, result: ['alreadyExist'] },
+      { board: 'Test', name: 'P6', value: undefined, result: ['alreadyExist'] },
+      { board: 'Test', name: 'P10',value: 10, result: ['ok',10]},
+      { board: 'Test', name: 'P11',value: undefined, result: ['ok',11]},
+      //  { name: 'P100', result: [ [44, 54], [81, 87], [92, 96] ] }
+      ];
+
+      console.log('before run cb')
+      async.map(arr, 
+        function(e, cb) {
+          console.log(' is run cb')
+          dbLib.tryAddLeaderboardMember(e.board, e.name, e.value, function (err, result) {
+            result.should.eql(e.result);
+            result.should.eql(e.result);
+            result.should.eql(e.result);
+            console.log('run cb')
+            cb();
+          });
+        }, 
+        done)
+    });
+  });
+
 });
 
