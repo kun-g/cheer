@@ -15,6 +15,13 @@ criticalFormula = { 'a' : 7, 'b' : 140, 'c' : 0.1, upLimit : 0.4 }
 
 flagShowRand = false
 
+mapDiff = (source, excludeLst) ->
+  result ={}
+  for k, v of source when k not in excludeLst
+    result[k] =v
+  return result
+
+
 compete = (formula, dungeon) ->
   return (p1, p2) ->
     x = p1 - p2
@@ -94,7 +101,19 @@ createUnits = (rules, randFunc) ->
     )
 
   levelRule = []
-  levelRule.push(translateRule(l.objects)) for l in rules.levels
+  levelOtherKey =[]
+  for l in rules.levels
+    # console.log('l',l)
+    otherKeys = mapDiff(l,['objects','levels'])
+    levelOtherKey.push(otherKeys)
+   # objs = l.objects.map((e) ->
+   #   o ={}
+   #   res = mapContact(mapContact(o,e), otherKeys)
+   #   #console.log('append', res,'----',e,'----',otherKeys)
+   #   return res
+   # )
+    levelRule.push(translateRule(l.objects))
+  console.log('levelrul', levelRule)
   globalRule = translateRule(rules.global)
 
   levelConfig = []
@@ -107,7 +126,7 @@ createUnits = (rules, randFunc) ->
   selectFromPool = (poolID, count) ->
     (
       for i in [0..count-1]
-        selectElementFromWeightArray(rules.pool[poolID], rand())
+        selectElementFromWeightArray(rules.pool[poolID].objects, rand())
     )
 
   selectPos = (positions, lConfig) ->
@@ -127,9 +146,12 @@ createUnits = (rules, randFunc) ->
       if r.pool?
         idList = selectFromPool(r.pool, count)
         count = 1
+        proList = mapDiff(rules.pool[r.pool], ['objects']) ? []
       idList.forEach( (c) ->
         u = {}
-        u[k] = v for k, v of c
+        u[k] = v for k, v of c when k isnt 'levels'
+        u[k] = v for k, v of proList
+        u[k] = v for k, v of levelOtherKey[lConfig.id] if levelOtherKey[lConfig.id]?
         u.count = count
         if r.pos
           if typeof r.pos is 'number' then u.pos = r.pos
@@ -619,7 +641,14 @@ class Level
     cfg.rank = @rank
     cfg.ref = @ref
     o = createUnit(cfg)
+    if arg.skill?
+      o.installSpell(skill.id,skill.lv) for skill in arg.skill
     o.installSpell(DUNGEON_DROP_CARD_SPELL, 1)
+
+    if arg.property?
+      for k, v of arg.property
+        o[k] = v
+
     @lockUp(true) if cfg.keyed
     o.collectId = cfg.collectId if cfg.collectId?
     o.effect = cfg.effect
