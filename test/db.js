@@ -80,29 +80,35 @@ describe('DB', function () {
   });
 
   describe('tryAddLeaderboardMember', function () {
-    var dbKey = 'Leaderboard.Test';
+    var dbKey = 'Leaderboard.Arena';
     before(function (done) {
       dbClient.del(dbKey, done);
     });
 
     it('', function (done) {
-      for (i = 0; i < 10; i++) {
-        dbClient.zadd(dbKey, i, 'P'+i );
-      }
-
+      var board = 'Arena';
       var arr = [
-        { board: 'Test', name: 'P6', value: 10, result: 6 },
-        { board: 'Test', name: 'P10',value: 90, result: 90 },
-        { board: 'Test', name: 'P6', value: null, result: 6 },
-        { board: 'Test', name: 'P11',value: null, result: 11}
+        { action: 'new', name: 'P0', value: null, result: 0 },
+        { action: 'new', name: 'P0', value: 10, result: 0 },
+        { action: 'new', name: 'P1', value: null, result: 1 },
+        { action: 'new', name: 'P2', value: 90, result: 90 },
+        { action: 'sweep', me: 'P2', foo: 'P0', result: 0 },
+        { action: 'sweep', me: 'P2', foo: 'P0', result: 0 },
       ];
 
-      async.map(arr, 
+      async.mapSeries(arr, 
         function(e, cb) {
-          dbLib.tryAddLeaderboardMember(e.board, e.name, e.value, function (err, result) {
-            result.should.eql(e.result);
-            cb(err);
-          });
+          if (e.action === 'new') {
+            dbLib.tryAddLeaderboardMember(board, e.name, e.value, function (err, result) {
+              result.should.eql(e.result);
+              cb(err);
+            });
+          } else {
+            dbLib.saveSocre(e.me, e.foo, function (err, result) {
+              result.should.eql(e.result);
+              cb(err);
+            });
+          }
         }, 
         done);
     });

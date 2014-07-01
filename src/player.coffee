@@ -1018,21 +1018,22 @@ class Player extends DBWrapper
     ret = ret.concat([rewardMessage])
     if dungeon.result isnt DUNGEON_RESULT_FAIL then ret = ret.concat(this.completeStage(dungeon.stage))
   
-    offlineReward = [
-      { type: PRIZETYPE_EXP,  count: Math.ceil(xpPrize.count* TEAMMATE_REWARD_RATIO) },
-      { type: PRIZETYPE_GOLD, count: Math.ceil(goldPrize.count* TEAMMATE_REWARD_RATIO) },
-      { type: PRIZETYPE_WXP,  count: Math.ceil(wxPrize.count* TEAMMATE_REWARD_RATIO) }
-    ].filter( (e) -> e.count > 0)
+    # Close Offline reward
+    #offlineReward = [
+    #  { type: PRIZETYPE_EXP,  count: Math.ceil(xpPrize.count* TEAMMATE_REWARD_RATIO) },
+    #  { type: PRIZETYPE_GOLD, count: Math.ceil(goldPrize.count* TEAMMATE_REWARD_RATIO) },
+    #  { type: PRIZETYPE_WXP,  count: Math.ceil(wxPrize.count* TEAMMATE_REWARD_RATIO) }
+    #].filter( (e) -> e.count > 0)
 
-    if offlineReward.length > 0
-      teammateRewardMessage = {
-        type: MESSAGE_TYPE_SystemReward,
-        src : MESSAGE_REWARD_TYPE_OFFLINE,
-        prize : offlineReward
-      }
-      dungeon.team.filter((m) => m.nam != @name).forEach((m) ->
-        if m then dbLib.deliverMessage(m.nam, teammateRewardMessage)
-      )
+    #if offlineReward.length > 0
+    #  teammateRewardMessage = {
+    #    type: MESSAGE_TYPE_SystemReward,
+    #    src : MESSAGE_REWARD_TYPE_OFFLINE,
+    #    prize : offlineReward
+    #  }
+    #  dungeon.team.filter((m) => m.nam != @name).forEach((m) ->
+    #    if m then dbLib.deliverMessage(m.nam, teammateRewardMessage)
+    #  )
   
     result = 'Lost'
     result = 'Win' if dungeon.result is DUNGEON_RESULT_WIN
@@ -1057,10 +1058,9 @@ class Player extends DBWrapper
     if dungeon.PVP_Pool?
       myName = @name
       rivalName = dungeon.PVP_Pool[0].nam
-      if dungeon.result is DUNGEON_RESULT_WIN 
+      if dungeon.result is DUNGEON_RESULT_WIN
         dbLib.saveSocre(myName, rivalName, (err, result) ->
-          if result isnt 'noNeed'
-            @counters.Arena = result[0]
+          console.log(err, result)
         )
   whisper: (name, message, callback) ->
     myName = this.name

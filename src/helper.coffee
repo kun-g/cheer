@@ -114,8 +114,8 @@ exports.initLeaderboard = (config) ->
     return false unless v? and player.type is v.type
 
     if not v.key?
-      val = if typeof v.initialValue is 'number'? then v.initialValue else undefined
-      require('.db').tryAddLeaderboardMember(v.name,player.name,val)
+      val = if typeof v.initialValue is 'number'? then v.initialValue else null
+      require('./db').tryAddLeaderboardMember(v.name, player.name, val)
     else
       tmp = v.key.split('.')
       field = tmp.pop()
@@ -125,13 +125,6 @@ exports.initLeaderboard = (config) ->
       if v.initialValue? and not (typeof obj[field] isnt 'undefined' and obj[field])
         if typeof v.initialValue is 'number'
           obj[field] = v.initialValue
-        else if v.initialValue is 'length'
-          require('./db').queryLeaderboardLength(v.name, (err, result) ->
-            obj[field] = +result
-            #TODO getLen + saveDB => lua
-            v.func(player.name, obj[field])
-            player.saveDB()
-          )
 
       v.func(player.name, obj[field])
 
@@ -146,7 +139,7 @@ exports.initLeaderboard = (config) ->
     console.log('getPositionOnLeaderboard',board, name, from, to)
     tickLeaderboard(board)
     cfg = localConfig[board]
-    require('./db').queryLeaderboard(cfg.name, name, from, to, (err, result) ->
+    dbLib.queryLeaderboard(cfg.name, name, from, to, (err, result) ->
       result.board = result.board.reduce( ( (r, l, i) ->
         if i%2 is 0
           r.name.push(l)
@@ -749,20 +742,20 @@ exports.dbScripts = {
   """
   exchangePKRank: """
     local board, champion, second = ARGV[1], ARGV[2], ARGV[3]; 
-    local prefix = 'Leaderboard.'; 
-    local key = prefix..board; 
+    local key = 'Leaderboard.'..board; 
     local championRank = redis.call('ZRANK', key, champion); 
     local secondRank = redis.call('ZRANK', key, second); 
-    if championRank < secondRank then 
-      redis.call('ZADD',key, championRank, second); 
-      redis.call('ZADD',key, secondRank, champion); 
-      return {championRank,secondRank} ; 
+    if championRank > secondRank then 
+      redis.call('ZADD', key, championRank, second); 
+      redis.call('ZADD', key, secondRank, champion); 
+      championRank = secondRank;
     end 
-    return 'noNeed'; """
+    return championRank;
+  """
 
   tryAddLeaderboardMember: """
-    local board, name, value = ARGV[1], ARGV[2], ARGV[3]; 
-    local key = 'Leaderboard.'..board; 
+    local board, name, value = ARGV[1], ARGV[2], ARGV[3];
+    local key = 'Leaderboard.'..board;
     local score = redis.call('ZSCORE', key, name)
     if score == false then
       score = value;
