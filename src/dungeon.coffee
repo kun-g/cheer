@@ -103,17 +103,11 @@ createUnits = (rules, randFunc) ->
   levelRule = []
   levelOtherKey =[]
   for l in rules.levels
-    # console.log('l',l)
+    levelRule.push(translateRule(l.objects))
+
     otherKeys = mapDiff(l,['objects','levels'])
     levelOtherKey.push(otherKeys)
-   # objs = l.objects.map((e) ->
-   #   o ={}
-   #   res = mapContact(mapContact(o,e), otherKeys)
-   #   #console.log('append', res,'----',e,'----',otherKeys)
-   #   return res
-   # )
-    levelRule.push(translateRule(l.objects))
-  console.log('levelrul', levelRule)
+
   globalRule = translateRule(rules.global)
 
   levelConfig = []
