@@ -19,6 +19,7 @@ describe('Dungeon', function () {
     it('case 1', function () {
       var r = dungeonLib.createUnits({
         pool: {
+          p1: {
               p1: [{id: 7, weight: 1}, {id: 4, weight: 1}, { skill: [{id: 1, lv: 2 }]} ],
               p2: [{id: 5, weight: 1}, {id: 6, weight: 1}, { property: { keyed: true } }]
         },
@@ -29,29 +30,35 @@ describe('Dungeon', function () {
           {pool: 'p2', count: 2, levels:{ from: 3, to: 5}} 
         ],
         levels: [
-          { objects: [ {id: 4, from: 2, to: 5, skill: [1]} ] },
-          { objects: [ {property: {tag: 1}}, {id: 1, count: 1}, {count: 2} ] },
+          { 
+            objects: [ {id: 4, from: 2, to: 5 } ],
+            skill: [{id:1, lv: 2}]
+          },
+          {
+            objects: [ {id: 1, count: 1}, {count: 2} ],
+            property: {tag: 1}
+          },
           { objects: [ {count: 4} ] },
           { objects: [ {pool: 'p1', from:0, to: 2} ] },
           { objects: [] }
         ]
       }, function () { return 1; });
       r.should.eql([
-        [ { id: 4, count: 3 } ],
-        [ { id: 1, count: 1 },
-          { id: 1, pos: 2, count: 1 } ],
-        [ { id: 2, count: 1 },
-          { id: 2, count: 1 },
-          { id: 2, count: 1 },
+        [ { id: 4, count: 3 ,skill :[{id:1, lv: 2}]} ],
+        [ { id: 1, count: 1 ,property:{tag: 1}},
+          { id: 1, pos: 2, count: 1 ,property:{tag: 1}} ],
+        [ { id: 2, count: 1 , property: {keyed: true}},
+          { id: 2, count: 1 , property: {keyed: true}},
+          { id: 2, count: 1 , property: {keyed: true}},
           { id: 3, count: 1 } ],
-        [ { id: 7, count: 1 } ],
-        [ { id: 3, count: 1 },
+        [ { id: 7, weight: 1,count: 1 ,skill: [{id: 1, lv: 2}]},
           { id: 3, count: 1 },
-          { id: 5, count: 1 } ]
+          { id: 3, count: 1 },],
+        [ { id: 5, weight: 1, count: 1 ,property: {keyed: true}} ]
       ]);
     });
   });
-
+      
 //  describe('Dungeon', function () {
 //    it('Test mergeFirstPace', function () {
 //      var cmdStreamLib = require('../commandStream');
