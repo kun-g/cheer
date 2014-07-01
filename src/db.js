@@ -479,13 +479,11 @@ exports.initializeDB = function (cfg) {
   dbClient.script('load', require('./helper').dbScripts.searchRival, function (err, sha) {
     exports.searchRival = function (name, handler) {
       dbClient.evalsha(sha, 0, 'Arena', name, Math.random(), Math.random(), Math.random(), function (err, ret) {
-        console.log('lua_searchRival',err,ret)
         if (handler) { handler(err, ret); }
       });
     };
   });
   dbClient.script('load',require('./helper').dbScripts.exchangePKRank, function (err, sha) {
-    console.log('load exchangePKRank', err,sha)
     exports.saveSocre = function (champion, second, handler) {
       dbClient.evalsha(sha, 0, 'Arena', champion, second, function (err, ret) {
        if (handler) { handler(err, ret); }
@@ -500,6 +498,7 @@ exports.initializeDB = function (cfg) {
     };
   });
   dbClient.script('load',require('./helper').dbScripts.tryAddLeaderboardMember, function (err, sha) {
+    console.log('load exchangePKRank', err,sha)
     exports.tryAddLeaderboardMember = function (board, name, value, handler) {
       dbClient.evalsha(sha, 0, board, name, value, function (err, ret) {
        if (handler) { handler(err, ret); }

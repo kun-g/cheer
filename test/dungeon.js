@@ -19,7 +19,7 @@ describe('Dungeon', function () {
     it('case 1', function () {
       var r = dungeonLib.createUnits({
         pool: {
-              p1: [{id: 7, weight: 1}, {id: 4, weight: 1}, { skill: [{id: 1, lv: 2}]} ],
+              p1: [{id: 7, weight: 1}, {id: 4, weight: 1}, { skill: [{id: 1, lv: 2 }]} ],
               p2: [{id: 5, weight: 1}, {id: 6, weight: 1}, { property: { keyed: true } }]
         },
         global: [

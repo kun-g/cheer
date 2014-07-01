@@ -760,20 +760,18 @@ exports.dbScripts = {
     end 
     return 'noNeed'; """
 
-  tryAddLeaderboardMember:"""
+  tryAddLeaderboardMember: """
     local board, name, value = ARGV[1], ARGV[2], ARGV[3]; 
-    local prefix = 'Leaderboard.'; 
-    local key = prefix..board; 
+    local key = 'Leaderboard.'..board; 
     local score = redis.call('ZSCORE', key, name)
-    if score == nil then
-      if value == nil then
-        value = redis.call('ZCARD', key)
+    if score == false then
+      score = value;
+      if value == 'null' then
+        score = redis.call('ZCARD', key)
       end
-      redis.call('ZADD', key, name, value)
-      return {"ok", value}
-    else
-      return {"alreadyExist"}
+      redis.call('ZADD', key, score, name);
     end
+    return score
   """
 
 }
