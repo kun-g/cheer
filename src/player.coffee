@@ -221,8 +221,12 @@ class Player extends DBWrapper
     ret = []
     energyCost = stgCfg.cost*count
     itemCost = {id: 871, num: count}
-    
-    if multiple and false #@vipLevel() < Sweep_Vip_Level
+    @counters.currentPKCount ?= 0
+    @counters.totalPKCount ?= 5
+
+    if @counters.currentPKCount >= @counters.totalPKCount
+      ret_result = RET_NotEnoughTimes
+    else if multiple and false #@vipLevel() < Sweep_Vip_Level
       ret_result = RET_VipLevelIsLow
     else if @energy < energyCost
       ret_result = RET_NotEnoughEnergy
@@ -1053,7 +1057,8 @@ class Player extends DBWrapper
     return ret
 
   updatePkInof: (dungeon) ->
-    if @counters.currentPKCount? then @counters.currentPKCount++ else @counters.newProperty('currentPKCount',0)
+    @counters.currentPKCount++
+    @saveDB()
     
     if dungeon.PVP_Pool?
       myName = @name

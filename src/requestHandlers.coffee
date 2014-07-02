@@ -505,13 +505,16 @@ exports.route = {
   RPC_PVPInfoUpdate: {
     id: 34,
     func: (arg, player, handler, rpcID, socket) ->
-      ret = {REQ: rpcID, RET: RET_OK}
-      ret.arg ={
-        rnk: player.counters.Arena
-        cpl: 0 unless player.counters.currentPKCount
-        ttl: 5 unless player.counters.totalPKCount
-        rcv: true unless player.flags.rcvAward}
-      handler(ret)
+      helperLib.getPositionOnLeaderboard(helperLib.LeaderboardIdx.Arena,
+        player.name, 0 ,0, (err, result) ->
+          ret = {REQ: rpcID, RET: RET_OK}
+          ret.arg ={
+            rnk: result.position
+            cpl: player.counters.currentPKCount ? 0
+            ttl: player.counters.totalPKCount ? 5
+            rcv: if player.flags.rcvAward is 1 then true else false
+          }
+          handler(ret))
     ,
     args: [],
     needPid: true
