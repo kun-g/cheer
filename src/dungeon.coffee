@@ -252,7 +252,8 @@ class Dungeon
         @xpRate *= 1.1
 
     if @PVP_Pool
-      cfg.pool.PVP = @PVP_Pool.map((e) ->
+      cfg.pool.PVP ={}
+      cfg.pool.PVP.objects = @PVP_Pool.map((e) ->
         e.weight = 10
         e.id = e.cid
         return e

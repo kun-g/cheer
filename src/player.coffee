@@ -221,12 +221,8 @@ class Player extends DBWrapper
     ret = []
     energyCost = stgCfg.cost*count
     itemCost = {id: 871, num: count}
-    @counters.currentPKCount ?= 0
-    @counters.totalPKCount ?= 5
 
-    if @counters.currentPKCount >= @counters.totalPKCount
-      ret_result = RET_NotEnoughTimes
-    else if multiple and false #@vipLevel() < Sweep_Vip_Level
+    if multiple and false #@vipLevel() < Sweep_Vip_Level
       ret_result = RET_VipLevelIsLow
     else if @energy < energyCost
       ret_result = RET_NotEnoughEnergy
@@ -237,6 +233,7 @@ class Player extends DBWrapper
       if not itemCostRet?
         ret_result = RET_NotEnoughItem
       else
+
         @costEnergy(energyCost)
         ret = ret.concat(itemCostRet)
         for i in [1..count]
@@ -549,6 +546,14 @@ class Player extends DBWrapper
       @logError('startDungeon', {reason: 'InvalidStageConfig', stage: stage, stageConfig: stageConfig?, dungeonConfig: dungeonConfig?})
       return handler(null, RET_ServerError)
     async.waterfall([
+      (cb) =>
+        if stageConfig.pvp? and pkr?
+          @counters.currentPKCount ?= 0
+          @counters.totalPKCount ?= 5
+          if @counters.currentPKCount >= @counters.totalPKCount
+            cb(RET_NotEnoughTimes)
+        cb()
+      ,
       (cb) => if @dungeonData.stage? then cb('OK') else cb(),
       (cb) => if @stageIsUnlockable(stage) then cb() else cb(RET_StageIsLocked),
       (cb) => if @costEnergy(stageConfig.cost) then cb() else cb(RET_NotEnoughEnergy),
@@ -606,6 +611,8 @@ class Player extends DBWrapper
         if stageConfig.pvp? and pkr?
           getPlayerHero(pkr, wrapCallback(this, (err, heroData) ->
             @dungeonData.PVP_Pool = if heroData? then [getBasicInfo(heroData)]
+            @counters.currentPKCount++
+            @saveDB()
             cb('OK')
           ))
         else
@@ -1057,8 +1064,6 @@ class Player extends DBWrapper
     return ret
 
   updatePkInof: (dungeon) ->
-    @counters.currentPKCount++
-    @saveDB()
     
     if dungeon.PVP_Pool?
       myName = @name
