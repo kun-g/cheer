@@ -136,10 +136,11 @@ exports.initLeaderboard = (config) ->
       dbLib.setServerConfig('Leaderboard', JSON.stringify(srvCfg))
 
   exports.getPositionOnLeaderboard = (board, name, from, to, cb) ->
-    console.log('getPositionOnLeaderboard',board, name, from, to)
     tickLeaderboard(board)
     cfg = localConfig[board]
-    dbLib.queryLeaderboard(cfg.name, name, from, to, (err, result) ->
+    reverse = if cfg.reverse then 1 else 0
+    console.log('getPositionOnLeaderboard',reverse)
+    dbLib.queryLeaderboard(cfg.name, reverse, name, from, to, (err, result) ->
       result.board = result.board.reduce( ( (r, l, i) ->
         if i%2 is 0
           r.name.push(l)
@@ -614,10 +615,12 @@ exports.calculateTotalItemXP = (item) ->
   return xp
 
 # Observer
-Leaderboard_BattleForce = 0
-Leaderboard_InfinityDungeon = 1
-Leaderboard_KillingMonster = 2
-Leaderboard_Arena = 3
+exports.LeaderboardIdx = {
+  BattleForce : 0
+  InfinityDungeon : 1
+  KillingMonster : 2
+  Arena : 3
+}
 exports.observers = {
   heroxpChanged: (obj, arg) ->
     obj.onCampaign('Level')
@@ -628,15 +631,15 @@ exports.observers = {
           what: obj.hero.class
         })
   battleForceChanged: (obj, arg) ->
-    exports.assignLeaderboard(obj, Leaderboard_BattleForce)
+    exports.assignLeaderboard(obj, exports.LeaderboardIdx.BattleForce)
     obj.updateMercenaryInfo()
   countersChanged: (obj, arg) ->
-    exports.assignLeaderboard(obj, Leaderboard_KillingMonster) if arg.type is 'monster'
+    exports.assignLeaderboard(obj, exports.LeaderboardIdx.KillingMonster) if arg.type is 'monster'
   stageChanged: (obj, arg) ->
-    exports.assignLeaderboard(obj, Leaderboard_InfinityDungeon) if arg.stage is 120
+    exports.assignLeaderboard(obj, exports.LeaderboardIdx.InfinityDungeon) if arg.stage is 120
   winningAnPVP: (obj, arg) ->
     #TODO:
-    exports.assignLeaderboard(obj, Leaderboard_Arena)
+    exports.assignLeaderboard(obj, exports.LeaderboardIdx.Arena)
 }
 
 exports.initObserveration = (obj) ->

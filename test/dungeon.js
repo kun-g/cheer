@@ -20,8 +20,14 @@ describe('Dungeon', function () {
       var r = dungeonLib.createUnits({
         pool: {
           p1: {
-              p1: [{id: 7, weight: 1}, {id: 4, weight: 1}, { skill: [{id: 1, lv: 2 }]} ],
-              p2: [{id: 5, weight: 1}, {id: 6, weight: 1}, { property: { keyed: true } }]
+            objects: [{id: 7, weight: 1}, {id: 4, weight: 1}] ,
+            skill: [{id: 1, lv: 2}]
+
+          } ,
+          p2: {
+            objects: [{id: 5, weight: 1}, {id: 6, weight: 1}],
+            property: { keyed: true }
+          }
         },
         global: [
           {id: 1, pos: [1,2,3], from: 0, to: 5},
@@ -44,21 +50,20 @@ describe('Dungeon', function () {
         ]
       }, function () { return 1; });
       r.should.eql([
-        [ { id: 4, count: 3 ,skill :[{id:1, lv: 2}]} ],
-        [ { id: 1, count: 1 ,property:{tag: 1}},
+          [ { id: 4, count: 3 ,skill :[{id:1, lv: 2}]} ],
+          [ { id: 1, count: 1 ,property:{tag: 1}},
           { id: 1, pos: 2, count: 1 ,property:{tag: 1}} ],
-        [ { id: 2, count: 1 , property: {keyed: true}},
+          [ { id: 2, count: 1 , property: {keyed: true}},
           { id: 2, count: 1 , property: {keyed: true}},
           { id: 2, count: 1 , property: {keyed: true}},
           { id: 3, count: 1 } ],
-        [ { id: 7, weight: 1,count: 1 ,skill: [{id: 1, lv: 2}]},
+          [ { id: 7, weight: 1,count: 1 ,skill: [{id: 1, lv: 2}]},
           { id: 3, count: 1 },
           { id: 3, count: 1 },],
-        [ { id: 5, weight: 1, count: 1 ,property: {keyed: true}} ]
-      ]);
+          [ { id: 5, weight: 1, count: 1 ,property: {keyed: true}} ]
+          ]);
     });
   });
-      
 //  describe('Dungeon', function () {
 //    it('Test mergeFirstPace', function () {
 //      var cmdStreamLib = require('../commandStream');
