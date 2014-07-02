@@ -512,7 +512,7 @@ exports.route = {
             rnk: result.position
             cpl: player.counters.currentPKCount ? 0
             ttl: player.counters.totalPKCount ? 5
-            rcv: if player.flags.rcvAward is 1 then true else false
+            rcv: player.flags.rcvAward ? true
           }
           handler(ret))
     ,
@@ -533,5 +533,22 @@ exports.route = {
     ,
     args: [],
     needPid: true
+  },
+  RPC_ReceivePrize: {
+    id: 33,
+    func: (arg, player, handler, rpcID, socket) ->
+      switch arg.typ
+        when 0
+          if not player.flags.rcvAward
+            player.flags.rcvAward = true
+            ret = [{ NTF: Event_InventoryUpdateItem, arg: { dim : player.addMoney(80) }}]
+            player.saveDB()
+            handler([{REQ: rpcID, RET: RET_OK}].concat(ret))
+          else
+            handler([{REQ: rpcID, RET: RET_CantReceivePkAward}])
+    ,
+    args: [],
+    needPid: true
   }
+
 }
