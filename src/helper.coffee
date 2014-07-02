@@ -455,7 +455,21 @@ exports.events = {
         return 1 unless obj.timestamp.monthCard
         return 0 if moment().isSame(obj.timestamp.monthCard, 'day')
         return 1
-    }
+    },
+    
+    pkCounter: {
+      storeType: "player",
+      id: 6,
+      actived: 1,
+      canReset: (obj, util) ->
+        return (util.diffDay(obj.timestamp.currentPKCount, util.today))
+      ,
+      reset: (obj, util) ->
+        obj.timestamp.currentPKCount = util.currentTime()
+        obj.counters.currentPKCount = 0
+    },
+
+
 }
 
 exports.intervalEvent = {

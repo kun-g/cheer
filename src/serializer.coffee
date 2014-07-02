@@ -72,7 +72,7 @@ class Serializer
 
   dumpChanged: () ->
     ret = null
-    for key, val of @s_attr_dirtyFlag
+    for key in @s_attr_to_save
       ret = {} unless ret?
       if this[key].dump
         ret[key] = this[key].dump()
