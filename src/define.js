@@ -60,7 +60,7 @@ rand = function() {
 
 isNameValid = function(name) {
   var ban = ['\\.', ' ', '\\?', '@', '!', '#', '\\$', '%', '\\^', '\\\\', '\\\*',
-      '\\]', '\\['
+      '\\]', '\\[', ',',
       ];
   for (var x in ban) {
     var reg = new RegExp(ban[x],'g');

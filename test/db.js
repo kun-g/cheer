@@ -12,9 +12,6 @@ dbLib.initializeDB({
 
 var shall = require('should');
 
-var checkInRange = function(range,value){
-  return value >= range.from && value <= range.to;
-};
 gServerID = 1;
 initServer();
 
@@ -29,30 +26,30 @@ describe('DB', function () {
       for (i = 0; i < 10000; i++) arr.push(i);
       async.map(arr,
         function (id, cb) {
-          dbClient.zadd('Leaderboard.battleForce', id, 'P'+id, cb);
+          dbClient.zadd('Leaderboard.battleforce', id, 'P'+id, cb);
         },
         function (err, result) {
           var tests = [
-            { result: 'P3', names: ['P1', 'P2'] },
-            { result: 'P0', names: ['P1', 'P2', 'P3'] },
-            { result: 'P4', names: ['P0', 'P1', 'P2', 'P3'] },
-            //{ result: 'P4', names: ['P0', 'P1', 'P2', 'P3', 'P4'] },
+            { count: 1, result: ['P3'], names: ['P1', 'P2'] },
+            { count: 1, result: ['P0'], names: ['P1', 'P2', 'P3'] },
+            { count: 1, result: ['P4'], names: ['P0', 'P1', 'P2', 'P3'] },
+            { count: 2, result: ['P4'], names: ['P0', 'P1', 'P2', 'P3'] },
           ];
           async.map(tests,
             function (t, cb) {
-              //battleforce: 2, count: 1, range: 1, delta: 1, rand: 0, 
-              dbLib.findMercenary(2, 1, 1, 1, 0, t.names, function (err, result) {
-                if (result === t.result) {
-                  cb();
-                } else {
-                  cb('Fail');
-                }
+              dbLib.findMercenary(2, t.count, 1, 1, t.names, function (err, result) {
+                shall(result.length).equal(t.count);
+                result.forEach(function (e) {
+                  shall(t.names.indexOf(e)).equal(-1);
+                });
+                cb(err);
               });
             },
             done);
         });
     });
   });
+
   describe('PK', function () {
     it('searchRival', function (done) {
       for (i = 0; i < 101; i++) {

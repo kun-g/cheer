@@ -433,6 +433,7 @@ exports.initializeDB = function (cfg) {
   ReceiptPrefix = 'Receipt';
 
   authPrefix = 'Auth';
+  var helperLib = require('./helper');
 
   // Scripts
   accountDBClient.script('load', lua_createPassportWithAccount, function (err, sha) {
@@ -483,28 +484,29 @@ exports.initializeDB = function (cfg) {
     };
   });
 
-  dbClient.script('load', require('./helper').dbScripts.searchRival, function (err, sha) {
+  dbClient.script('load', helperLib.dbScripts.searchRival, function (err, sha) {
     exports.searchRival = function (name, handler) {
       dbClient.evalsha(sha, 0, 'Arena', name, Math.random(), Math.random(), Math.random(), function (err, ret) {
         if (handler) { handler(err, ret); }
       });
     };
   });
-  dbClient.script('load',require('./helper').dbScripts.exchangePKRank, function (err, sha) {
+  dbClient.script('load', helperLib.dbScripts.exchangePKRank, function (err, sha) {
     exports.saveSocre = function (champion, second, handler) {
       dbClient.evalsha(sha, 0, 'Arena', champion, second, function (err, ret) {
        if (handler) { handler(err, ret); }
       });
     };
   });
-  dbClient.script('load',lua_getPvpInfo, function (err, sha) {
+  dbClient.script('load', lua_getPvpInfo, function (err, sha) {
     exports.getPvpInfo = function (name, handler) {
       dbClient.evalsha(sha, 0, 'Arena', name, function (err, ret) {
        if (handler) { handler(err, ret); }
       });
     };
   });
-  dbClient.script('load',require('./helper').dbScripts.tryAddLeaderboardMember, function (err, sha) {
+
+  dbClient.script('load', helperLib.dbScripts.tryAddLeaderboardMember, function (err, sha) {
     exports.tryAddLeaderboardMember = function (board, name, value, handler) {
       dbClient.evalsha(sha, 0, board, name, value, function (err, ret) {
        if (handler) { handler(err, ret); }
@@ -512,38 +514,23 @@ exports.initializeDB = function (cfg) {
     };
   });
  
-  //dbClient.script('load', lua_getMercenary, function (err, sha) {
-  //  exports.findMercenary = function (battleforce, count, range, delta, names handler) {
-  //    dbClient.evalsha(
-  //      sha,
-  //      0,
-  //      battleforce,
-  //      count,
-  //      range,
-  //      delta,
-  //      rand(),
-  //      names,
-  //      5,
-  //      function (err, ret) {
-  //       if (handler) { handler(err, ret); }
-  //      });
-  //  };
-  //});
-
-
-
-//function fetchMessage(name, handler) {
-//  dbClient.smembers(playerMessagePrefix+name, function (err, ids) {
-//    async.map(
-//      ids, 
-//      function (id, cb) { dbClient.get(messagePrefix+id, cb); },
-//      function (err, results) {
-//        if (results) results = results.map(JSON.parse);
-//        if (handler) handler(err, results);
-//      });
-//  });
-//}
-//exports.fetchMessage = fetchMessage;
+  dbClient.script('load', helperLib.dbScripts.getMercenary, function (err, sha) {
+    exports.findMercenary = function (battleforce, count, range, delta, names, handler) {
+      dbClient.evalsha(
+        sha,
+        0,
+        battleforce,
+        count,
+        range,
+        delta,
+        rand(),
+        names,
+        30,
+        function (err, ret) {
+         if (handler) { handler(err, ret); }
+        });
+    };
+  });
 
 };
 

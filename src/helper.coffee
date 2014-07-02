@@ -115,7 +115,7 @@ exports.initLeaderboard = (config) ->
 
     if not v.key?
       val = if typeof v.initialValue is 'number'? then v.initialValue else null
-      require('./db').tryAddLeaderboardMember(v.name, player.name, val)
+      dbLib.tryAddLeaderboardMember(v.name, player.name, val)
     else
       tmp = v.key.split('.')
       field = tmp.pop()
@@ -688,61 +688,51 @@ exports.dbScripts = {
     return rivalLst;
   """
   getMercenary: """
-  local battleforce, count, range = ARGV[1], ARGV[2], ARGV[3];
-  local delta, rand, names, retrys = ARGV[4], ARGV[5], ARGV[6], ARGV[7];
-  local table = 'Leaderboard.battleForce';
+    local battleforce, count, range = ARGV[1], ARGV[2], ARGV[3];
+    local delta, rand, names, retrys = ARGV[4], ARGV[5], ARGV[6], ARGV[7];
+    local key = 'Leaderboard.battleforce';
+    local from = battleforce - range;
+    local to = battleforce + range;
+    local nameMask = {}
 
-  local from = battleforce - range;
-  local to = battleforce + range;
-
-  while true
-    local list = redis.call('zrevrange', table, from, to);
-    local mercenarys = {}
-    for i, v in ipairs(list) do
-      ;
+    while string.len(names) > 0 do
+      local index = string.find(names, ',');
+      if index == nil then
+        nameMask[names] = 1;
+        break;
+      end
+      local v = string.sub(names, 1, index-1)
+      nameMask[v] = 1;
+      names = string.sub(names, index+1, -1);
     end
-    from = battleforce - range;
-    to = battleforce + range;
-    retrys -= 1;
-    if retrys == 0 return {err='Fail'};
-  end
 
-  //doFindMercenary = (list, cb) ->
-  //  if list.length <= 0
-  //    cb(new Error('Empty mercenarylist'))
-  //  else
-  //    selector = selectRange(list)
-  //    battleForce = selector[rand()%selector.length]
-  //    list = list.filter((i) -> return i != battleForce; )
-  //    mercenaryGet(battleForce, count, (err, mList) ->
-  //      if mList == null
-  //        dbClient.srem(mercenaryPrefix+'Keys', battleForce, callback)
-  //        dbClient.del(mercenaryPrefix+battleForce)
-  //        mList = []
+    local ret = {};
+    while true do
+      local list = redis.call('zrevrangebyscore', key, to, from);
+      local mercenarys = {};
+      for i, name in ipairs(list) do
+        if nameMask[name] ~= 1 then table.insert(mercenarys, name); end
+      end
 
-  //      mList = mList.filter((key) ->
-  //        for name in names
-  //          if key is name then return false
-  //        return true
-  //      )
-  //      if mList.length is 0
-  //        cb(null, list)
-  //      else
-  //        selectedName = mList[rand()%mList.length]
-  //        getPlayerHero(selectedName, (err, hero) ->
-  //          if hero
-  //            cb(new Error('Done'), hero)
-  //          else
-  //            logError({action: 'RemoveInvalidMercenary', error: err, name: selectedName})
-  //            mercenaryDel(battleForce, selectedName, (err) -> cb(null, list))
-  //        )
-  //    )
-  //actions = [ (cb) -> mercenaryKeyList(cb); ]
-  //for i in [0..50]
-  //  actions.push(doFindMercenary)
-  //async.waterfall(actions, handler)
+      local length = table.getn(mercenarys);
+      if length > 0 then
+        local name = mercenarys[rand%length + 1];
+        table.insert(ret, name);
+        nameMask[name] = 1;
+      end
 
+      if table.getn(ret) >= tonumber(count) then break; end
+
+      from = from - delta;
+      if from < 0 then from = 0; end
+      to = to + delta;
+      retrys = retrys - 1;
+      if retrys == 0 then return {err='Fail'}; end
+    end
+
+    return ret;
   """
+
   exchangePKRank: """
     local board, champion, second = ARGV[1], ARGV[2], ARGV[3]; 
     local key = 'Leaderboard.'..board; 
