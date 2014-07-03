@@ -147,10 +147,10 @@ class Player extends DBWrapper
 
   getTotalPkTimes: () -> return 5
   claimPkPrice: (callback) ->
-    console.log('?????',helperLib)
+    me = @
     helperLib.getPositionOnLeaderboard(helperLib.LeaderboardIdx.Arena, @name, 0, 0, (err, result) ->
       prize = arenaPirze(result.position + 1 )
-      ret = @claimPrize(prize)
+      ret = me.claimPrize(prize)
       callback(ret)
     )
   submitCampaign: (campaign, handler) ->
@@ -984,8 +984,8 @@ class Player extends DBWrapper
     percentage = 1
     if result is DUNGEON_RESULT_WIN
       dbLib.incrBluestarBy(this.name, 1)
-      if dungeon.isSweep?
-        dropInfo = dropInfo.concat(cfg.dropID) if cfg.dropID
+      dropInfo = dropInfo.concat(cfg.dropID) if cfg.dropID
+      #if dungeon.isSweep?
     else
       percentage = (dungeon.currentLevel / cfg.levelCount) * 0.5
 

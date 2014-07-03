@@ -6,6 +6,7 @@ var playerLib = require('../js/player');
 var dungeonLib = require('../js/dungeon');
 //var should = require('should');
 var spellLib = require('../js/spell');
+var helpLib = require('../js/helper');
 //var itemLib = require('../item');
 //require('../shared');
 //initServer();
@@ -62,12 +63,40 @@ describe('Helper', function () {
 
 describe('Player', function () {
   before(function (done) {
+    console.log('-----------')
     initGlobalConfig('../../build/', done);
   });
 //  after(function () {
 //    dbLib.releaseDB();
 //  });
 //
+  describe('player.claimPkPrice', function() {
+  
+    initGlobalConfig('../../build/', function() {
+//      console.log(queryTable,'---------------/')
+      helpLib.initLeaderboard(queryTable(TABLE_LEADBOARD));
+      var player = new playerLib.Player();
+      var data =
+      [ 
+      {name:'P1', rank:2,result:{}},
+      {name:'P2', rank:2,result:{}},
+      ];
+
+      console.log(dbLib.queryLeaderboard,'---------sdfsdf')
+      data.forEach(function (e) {
+        //console.log(arenaPirze(e.rank),'------------->????')
+        //re.should.eql(e.result);
+        player.setName(e.name);
+        player.claimPkPrice(function (result) {
+          result.should.eql(e.result);
+        });
+      });
+
+   
+    });
+  });
+
+
   describe('Player', function () {
     it('Creation', function () {
 //    var p = new playerLib.Player();
@@ -363,22 +392,6 @@ describe('Player', function () {
 //      w.onEvent('onTarget', cmd);
 //    });
 
-    });
-  });
-
-  describe('player.claimPkPrice', function() {
-    var player = new playerLib.Player();
-    var data =
-    [ 
-      {name:'P2',result:{}},
-      {name:'P2',result:{}},
-    ];
-    
-    data.forEach(function (e) {
-      player.setName(e.name);
-      player.claimPkPrice(function (result) {
-        result.should.eql(e.result);
-      });
     });
   });
 

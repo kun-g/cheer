@@ -208,6 +208,14 @@ matchDate = (date, today, rule) ->
   
 exports.matchDate = matchDate
 
+exports.dateInRange = (date, ranges) ->
+  return false unless date
+  monthOfDate = moment(date).date()
+  for range in ranges
+    if monthOfDate >= range.from and monthOfDate <= range.to
+      return true
+  return false
+
 genCampaignUtil = () ->
   return {
     diffDay: (date, today) -> return not date? or diffDate(date, today, 'day') isnt 0,
@@ -421,7 +429,11 @@ exports.events = {
     infinite: {
       storeType: "player",
       id: 3,
-      actived: 1,
+      actived: (obj, util) ->
+       if exports.dateInRange(util.today,[{from:1,to:6},{from:14,to:20},{from:28,to:28}])
+         return 1
+       else
+         return 0
       canReset: (obj, util) ->
         return (util.today.hour() >= 8 && util.diffDay(obj.timestamp.infinite, util.today))
       ,
@@ -434,10 +446,15 @@ exports.events = {
     hunting: {
       storeType: "player",
       id: 4,
-      actived: 1,
+      actived: (obj, util) ->
+        if exports.dateInRange(util.today,[{from:7,to:13},{from:21,to:27}])
+          return 1
+        else
+          return 0
+      ,
       stages: [121, 122, 123, 125, 126, 127, 128, 129, 130, 131, 132],
       canReset: (obj, util) ->
-        return (util.diffDay(obj.timestamp.hunting, util.today))
+        return (util.diffDay(obj.timestamp.hunting, util.today) )
       ,
       reset: (obj, util) ->
         obj.timestamp.newProperty('hunting', util.currentTime())

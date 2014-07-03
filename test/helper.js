@@ -152,6 +152,18 @@ describe('Helper', function () {
   });
 
   describe('Time Method', function () {
+    it('dateInRange', function() {
+      var date = [
+        {result:true, time:'2014/4/1',range:[{from:1,to:2}, {from:4,to:20}]},
+        {result:false, time:'2014/4/3',range:[{from:1,to:2}, {from:4,to:20}]},
+        {result:true, time:'2014/4/4',range:[{from:1,to:2}, {from:4,to:20}]},
+        {result:true, time:'2014/4/19',range:[{from:1,to:2}, {from:4,to:20}]},
+      ]
+
+      date.forEach(function(e) {
+        helpLib.dateInRange(e.time,e.range).should.eql(e.result);
+      });
+    });
     it('Diff', function () {
       var diff = helpLib.diffDate;
       var x = diff('2014/3/16', '2014/3/12', 'second');

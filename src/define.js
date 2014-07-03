@@ -233,11 +233,12 @@ function initShop (data) {
   }
 }
 
-function arenaPirze(rank) {
+arenaPirze = function (rank) {
   cfg = queryTable(TABLE_ARENA);
   for (var k in cfg) {
-    if (rank <= k.top) {
-      return k.pirze;
+    var v = cfg[k];
+    if (rank <= v.top) {
+      return v.prize;
     }
   }
   return []
