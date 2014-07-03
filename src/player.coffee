@@ -899,6 +899,7 @@ class Player extends DBWrapper
     newItem = ret.newItem
     if newItem
       ret.newItem.enhancement = enhance
+      ret.newItem.xp = item.xp
       eh = newItem.enhancement.map((e) -> {id:e.id, lv:e.level})
       ret.res.push({NTF: Event_InventoryUpdateItem, arg: {syn:this.inventoryVersion, itm:[{sid: @queryItemSlot(newItem), eh:eh}]}})
     return ret
