@@ -32,7 +32,7 @@ describe('Dungeon', function () {
         global: [
           {id: 1, pos: [1,2,3], from: 0, to: 5},
           {id: 2, property: {keyed: true}, count: 3},
-          {id: 3, count: 3, levels: [0, 1, 3]},
+          {id: 3, count: 3, skill:[{id:1, lv:2}], levels: [0, 1, 3]},
           {pool: 'p2', count: 2, levels:{ from: 3, to: 5}} 
         ],
         levels: [
@@ -56,10 +56,10 @@ describe('Dungeon', function () {
           [ { id: 2, count: 1 , property: {keyed: true}},
           { id: 2, count: 1 , property: {keyed: true}},
           { id: 2, count: 1 , property: {keyed: true}},
-          { id: 3, count: 1 } ],
+          { id: 3, count: 1 ,skill:[{id:1, lv:2}]} ],
           [ { id: 7, weight: 1,count: 1 ,skill: [{id: 1, lv: 2}]},
-          { id: 3, count: 1 },
-          { id: 3, count: 1 },],
+          { id: 3, count: 1 ,skill:[{id:1, lv:2}]},
+          { id: 3, count: 1 ,skill:[{id:1, lv:2}]},],
           [ { id: 5, weight: 1, count: 1 ,property: {keyed: true}} ]
           ]);
     });

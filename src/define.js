@@ -233,6 +233,15 @@ function initShop (data) {
   }
 }
 
+function arenaPirze(rank) {
+  cfg = queryTable(TABLE_ARENA);
+  for (var k in cfg) {
+    if (rank <= k.top) {
+      return k.pirze;
+    }
+  }
+  return []
+}
 var gConfigTable = {};
 initGlobalConfig = function (path, callback) {
   queryTable = function (type, index, abIndex) {
@@ -267,7 +276,7 @@ initGlobalConfig = function (path, callback) {
     {name:TABLE_STAGE, func: initStageConfig}, {name:TABLE_QUEST}, {name: TABLE_COSTS},
     {name:TABLE_UPGRADE}, {name:TABLE_ENHANCE}, {name: TABLE_CONFIG}, {name: TABLE_VIP},
     {name:TABLE_SKILL}, {name:TABLE_CAMPAIGN}, {name: TABLE_DROP}, {name: TABLE_TRIGGER},
-    {name:TABLE_DP}
+    {name:TABLE_DP},{name:TABLE_ARENA}
   ];
   if (!path) path = "./";
   configTable.forEach(function (e) {

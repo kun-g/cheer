@@ -467,6 +467,7 @@ exports.events = {
       reset: (obj, util) ->
         obj.timestamp.currentPKCount = util.currentTime()
         obj.counters.currentPKCount = 0
+        obj.flags.rcvAward = false
     },
 
 

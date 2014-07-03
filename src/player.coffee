@@ -145,6 +145,14 @@ class Player extends DBWrapper
 
   getType: () -> 'player'
 
+  getTotalPkTimes: () -> return 5
+  claimPkPrice: (callback) ->
+    console.log('?????',helperLib)
+    helperLib.getPositionOnLeaderboard(helperLib.LeaderboardIdx.Arena, @name, 0, 0, (err, result) ->
+      prize = arenaPirze(result.position + 1 )
+      ret = @claimPrize(prize)
+      callback(ret)
+    )
   submitCampaign: (campaign, handler) ->
     event = this[campaign]
     if event?
@@ -1069,6 +1077,7 @@ class Player extends DBWrapper
       myName = @name
       rivalName = dungeon.PVP_Pool[0].nam
       if dungeon.result is DUNGEON_RESULT_WIN
+        console.log('debug pkRank', myName, rivalName, dungeon.result)
         dbLib.saveSocre(myName, rivalName, (err, result) ->
           console.log(err, result)
         )

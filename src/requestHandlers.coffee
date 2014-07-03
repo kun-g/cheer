@@ -511,8 +511,8 @@ exports.route = {
           ret.arg ={
             rnk: result.position
             cpl: player.counters.currentPKCount ? 0
-            ttl: player.counters.totalPKCount ? 5
-            rcv: player.flags.rcvAward ? true
+            ttl: player.getTotalPkTimes()
+            rcv: player.flags.rcvAward ? false
           }
           handler(ret))
     ,
@@ -539,13 +539,15 @@ exports.route = {
     func: (arg, player, handler, rpcID, socket) ->
       switch arg.typ
         when 0
-          if not player.flags.rcvAward
-            player.flags.rcvAward = true
-            ret = [{ NTF: Event_InventoryUpdateItem, arg: { dim : player.addMoney(80) }}]
-            player.saveDB()
-            handler([{REQ: rpcID, RET: RET_OK}].concat(ret))
-          else
+          if (not (player.counters.currentPKCount?) or player.getTotalPkTimes() > player.counters.currentPKCount or player.flags.rcvAward)
+
             handler([{REQ: rpcID, RET: RET_CantReceivePkAward}])
+          else
+            player.flags.rcvAward = true
+            player.claimPkPrice((result) ->
+              player.saveDB()
+              handler([{REQ: rpcID, RET: RET_OK}].concat(result))
+            )
     ,
     args: [],
     needPid: true

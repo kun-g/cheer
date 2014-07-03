@@ -366,6 +366,22 @@ describe('Player', function () {
     });
   });
 
+  describe('player.claimPkPrice', function() {
+    var player = new playerLib.Player();
+    var data =
+    [ 
+      {name:'P2',result:{}},
+      {name:'P2',result:{}},
+    ];
+    
+    data.forEach(function (e) {
+      player.setName(e.name);
+      player.claimPkPrice(function (result) {
+        result.should.eql(e.result);
+      });
+    });
+  });
+
   //describe('Sweep Dungeon', function () {
   //  it('', function () {
   //    var p = new playerLib.Player();

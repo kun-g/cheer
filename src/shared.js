@@ -28,7 +28,7 @@ TABLE_LEADBOARD = "leadboard";
 TABLE_FACTION = "faction";
 TABLE_COSTS = "costs";
 TABLE_DP = "dailyPrize";
-
+TABLE_ARENA = "arena";
 /*** GAME CONSTANTS ***/
 ItemId_RevivePotion = 540;
 
