@@ -987,8 +987,8 @@ class Player extends DBWrapper
     percentage = 1
     if result is DUNGEON_RESULT_WIN
       dbLib.incrBluestarBy(this.name, 1)
-      dropInfo = dropInfo.concat(cfg.dropID) if cfg.dropID
-      #if dungeon.isSweep?
+      if dungeon.isSweep?
+        dropInfo = dropInfo.concat(cfg.dropID) if cfg.dropID
     else
       percentage = (dungeon.currentLevel / cfg.levelCount) * 0.5
 
@@ -998,9 +998,10 @@ class Player extends DBWrapper
 
     prize = helperLib.generatePrize(queryTable(TABLE_DROP), dropInfo)
 
-    prize.push({type:PRIZETYPE_GOLD, count:Math.floor(gr*cfg.prizeGold)}) if cfg.prizeGold
-    prize.push({type:PRIZETYPE_EXP, count: Math.floor(xr*cfg.prizeXp)}) if cfg.prizeXp
-    prize.push({type:PRIZETYPE_WXP, count: Math.floor(wr*cfg.prizeWxp)}) if cfg.prizeWxp
+    if not dungeon.isSweep?
+      prize.push({type:PRIZETYPE_GOLD, count:Math.floor(gr*cfg.prizeGold)}) if cfg.prizeGold
+      prize.push({type:PRIZETYPE_EXP, count: Math.floor(xr*cfg.prizeXp)}) if cfg.prizeXp
+      prize.push({type:PRIZETYPE_WXP, count: Math.floor(wr*cfg.prizeWxp)}) if cfg.prizeWxp
 
     infiniteLevel = dungeon.infiniteLevel
     if infiniteLevel? and cfg.infinityPrize and result is DUNGEON_RESULT_WIN
@@ -1075,7 +1076,6 @@ class Player extends DBWrapper
     return ret
 
   updatePkInof: (dungeon) ->
-    
     if dungeon.PVP_Pool?
       myName = @name
       rivalName = dungeon.PVP_Pool[0].nam
