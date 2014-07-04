@@ -140,12 +140,13 @@ createUnits = (rules, randFunc) ->
       if r.pool?
         idList = selectFromPool(r.pool, count)
         count = 1
-        proList = mapDiff(rules.pool[r.pool], ['objects']) ? []
+        proList = mapDiff(rules.pool[r.pool], ['objects'])
       idList.forEach( (c) ->
         u = {}
         u[k] = v for k, v of c when k isnt 'levels'
         u[k] = v for k, v of proList
         u[k] = v for k, v of levelOtherKey[lConfig.id] if levelOtherKey[lConfig.id]?
+        u[k] = v for k, v of mapDiff(r,['pool', 'levels', 'count'])
         u.count = count
         if r.pos
           if typeof r.pos is 'number' then u.pos = r.pos
@@ -160,19 +161,22 @@ createUnits = (rules, randFunc) ->
   result.push(placeUnit(l, levelConfig[i])) for i, l of levelRule
 
   for rule in globalRule
-    i = 0
+    gi = 0
+
     filterLevels = () ->
       cfg = levelConfig.filter( (c) -> c.total < c.limit )
-      if rule.levels?.from? then cfg = cfg.filter( (c) -> c.id > rule.levels.from )
+      if rule.levels?.from? then cfg = cfg.filter( (c) -> c.id >= rule.levels.from )
       if rule.levels?.to? then cfg = cfg.filter( (c) -> c.id < rule.levels.to )
       return cfg
 
-    while i < rule.count
+    while gi < rule.count
       cfg = filterLevels()
+
       if cfg.length <= 0 then break
       cfg = cfg[rand()%cfg.length]
       result[cfg.id] = result[cfg.id].concat(placeUnit([rule], cfg, true))
-      i++
+
+      gi++
 
   return result
 
