@@ -89,11 +89,11 @@ class Bag extends Serializer
           else
             tmpCount = if left > stack then stack else left
             if count is 1
-              bag.e = item
+              bag[e] = item
             else
               constructor = item.getConstructor()
               tmp = new constructor(item.dump().save)
-              bag.e = tmp
+              bag[e] = tmp
 
           bag[e].count = tmpCount
           left -= (tmpCount-eCount)

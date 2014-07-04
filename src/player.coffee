@@ -263,7 +263,7 @@ class Player extends DBWrapper
       if dis is 0
         @logError('claimLoginReward', {prev: @loginStreak.date, today: currentTime()})
         return {ret: RET_Unknown}
-    @loginStreak.date = currentTime(true).valueOf()
+    @loginStreak['date'] = currentTime(true).valueOf()
     @log('claimLoginReward', {loginStreak: @loginStreak.count, date: currentTime()})
 
     reward = queryTable(TABLE_DP)[@loginStreak.count].prize
@@ -343,7 +343,7 @@ class Player extends DBWrapper
     if flag
       ret = [{ NTF: Event_InventoryUpdateItem, arg: { dim : @addDiamond(cfg.diamond) }}]
       if rec.productID is MonthCardID
-        @counters.monthCard = 30
+        @counters['monthCard'] = 30
         ret = ret.concat(@syncEvent())
       @rmb += cfg.rmb
       @onCampaign('RMB', cfg.rmb)
@@ -405,7 +405,7 @@ class Player extends DBWrapper
       return null if @heroBase[heroData.class]?
       heroData.xp = 0
       heroData.equipment = []
-      @heroBase.heroData.class = heroData
+      @heroBase[heroData.class] = heroData
       @switchHero(heroData.class)
       return @createHero()
     else if @hero
@@ -425,7 +425,7 @@ class Player extends DBWrapper
         }
         @save()
       else
-        @hero.equipment = equip
+        @hero['equipment'] = equip
 
       hero = new Hero(@hero)
       bf = hero.calculatePower()
@@ -509,13 +509,13 @@ class Player extends DBWrapper
     if stg
       chapter = stg.chapter
 
-      @stage.stage = {} unless @stage[stage]?
+      @stage[stage]= {} unless @stage[stage]?
 
       flag = false
       arg = {chp: chapter, stg:stage, sta:state}
 
       if stg.isInfinite
-        @stage[stage].level = 0 unless @stage[stage].level?
+        @stage[stage]['level'] = 0 unless @stage[stage].level?
         if state is STAGE_STATE_PASSED
           @stage[stage].level += 1
           @notify('stageChanged',{stage:stage})

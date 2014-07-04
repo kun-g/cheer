@@ -1,8 +1,3 @@
-# Provide serializing mechanism
-#tap = require('./define').tap
-destroyReactDB = require('./define').destroyReactDB
-#destroyReactDB = require('./helper').destroyReactDB
-#tap = require('./helper').tap
 
 generateMonitor = (obj) ->
   return (key, val) -> obj.s_attr_dirtyFlag[key] = true
@@ -31,17 +26,14 @@ class Serializer
 
   destroy: () ->
     @s_attr_monitor = null
-    destroyReactDB(this)
 
   attrSave: (key, restoreFlag = false) ->
     return false unless @s_attr_to_save.indexOf(key) is -1
-    #tap(this, key, @s_attr_monitor, restoreFlag)
     @s_attr_to_save.push(key)
 
   versionControl: (versionKey, keys) ->
     keys = [keys] unless Array.isArray(keys)
     versionIncr = () => this[versionKey]++
-#    tap(this, key, versionIncr) for key in keys
 
   getConstructor: () -> g_attr_constructorTable[this.constructor.name]
 
