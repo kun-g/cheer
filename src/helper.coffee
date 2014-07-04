@@ -454,7 +454,7 @@ exports.events = {
       ,
       stages: [121, 122, 123, 125, 126, 127, 128, 129, 130, 131, 132],
       canReset: (obj, util) ->
-        return (util.diffDate(obj.timestamp.hunting, util.today) >= 7 )
+        return (diffDate(obj.timestamp.hunting, util.today) >= 7 )
       ,
       reset: (obj, util) ->
         obj.timestamp.newProperty('hunting', util.currentTime())
