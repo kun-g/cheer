@@ -170,7 +170,7 @@ class Player extends DBWrapper
     if gGlobalPrize?
       for key, prize of gGlobalPrize when not @globalPrizeFlag[key]
         dbLib.deliverMessage(@name, prize)
-        @globalPrizeFlag.newProperty(key, true)
+        @globalPrizeFlag[key] = true
 
     if not moment().isSame(@infiniteTimer, 'week')
       @infiniteTimer = currentTime()
@@ -263,7 +263,7 @@ class Player extends DBWrapper
       if dis is 0
         @logError('claimLoginReward', {prev: @loginStreak.date, today: currentTime()})
         return {ret: RET_Unknown}
-    @loginStreak.newProperty('date', currentTime(true).valueOf())
+    @loginStreak.date = currentTime(true).valueOf()
     @log('claimLoginReward', {loginStreak: @loginStreak.count, date: currentTime()})
 
     reward = queryTable(TABLE_DP)[@loginStreak.count].prize
@@ -343,7 +343,7 @@ class Player extends DBWrapper
     if flag
       ret = [{ NTF: Event_InventoryUpdateItem, arg: { dim : @addDiamond(cfg.diamond) }}]
       if rec.productID is MonthCardID
-        @counters.newProperty('monthCard', 30)
+        @counters.monthCard = 30
         ret = ret.concat(@syncEvent())
       @rmb += cfg.rmb
       @onCampaign('RMB', cfg.rmb)
@@ -405,7 +405,7 @@ class Player extends DBWrapper
       return null if @heroBase[heroData.class]?
       heroData.xp = 0
       heroData.equipment = []
-      @heroBase.newProperty(heroData.class, heroData)
+      @heroBase.heroData.class = heroData
       @switchHero(heroData.class)
       return @createHero()
     else if @hero
@@ -425,7 +425,7 @@ class Player extends DBWrapper
         }
         @save()
       else
-        @hero.newProperty('equipment', equip)
+        @hero.equipment = equip
 
       hero = new Hero(@hero)
       bf = hero.calculatePower()
@@ -440,12 +440,12 @@ class Player extends DBWrapper
     return false unless @heroBase[hClass]?
 
     if @hero?
-      @heroBase.newProperty(@hero.class, {})
+      @heroBase[@hero.class] = {}
       for k, v of @hero
-        @heroBase[@hero.class].newProperty(k, JSON.parse(JSON.stringify(v)))
+        @heroBase[@hero.class][k] = JSON.parse(JSON.stringify(v))
 
     for k, v of @heroBase[hClass]
-      @hero.newProperty(k, JSON.parse(JSON.stringify(v)))
+      @hero[k] = JSON.parse(JSON.stringify(v))
 
   addMoney: (type, point) ->
     return this[type] unless point
@@ -509,7 +509,7 @@ class Player extends DBWrapper
     if stg
       chapter = stg.chapter
 
-      @stage.newProperty(stage, {}) unless @stage[stage]?
+      @stage.stage = {} unless @stage[stage]?
 
       tapObject(@stage[stage], console.log) unless @stage[stage].newProperty?
 
@@ -517,7 +517,7 @@ class Player extends DBWrapper
       arg = {chp: chapter, stg:stage, sta:state}
 
       if stg.isInfinite
-        @stage[stage].newProperty('level', 0) unless @stage[stage].level?
+        @stage[stage].level = 0 unless @stage[stage].level?
         if state is STAGE_STATE_PASSED
           @stage[stage].level += 1
           @notify('stageChanged',{stage:stage})
@@ -649,7 +649,7 @@ class Player extends DBWrapper
   acceptQuest: (qid) ->
     return [] if @quests[qid]
     quest = queryTable(TABLE_QUEST, qid, @abIndex)
-    @quests.newProperty(qid, {counters: (0 for i in quest.objects)})
+    @quests[qid] = {counters: (0 for i in quest.objects)}
     @onEvent('gold')
     @onEvent('diamond')
     @onEvent('item')
@@ -730,7 +730,7 @@ class Player extends DBWrapper
         when PRIZETYPE_FUNCTION
           switch p.func
             when "setFlag"
-              @flags.newProperty(p.flag, p.value)
+              @flags[p.flag] = p.value
               ret = ret.concat(@syncFlags(true)).concat(@syncEvent())
             when "countUp"
               @counters[p.counter]++
@@ -764,7 +764,7 @@ class Player extends DBWrapper
         when QUEST_TYPE_ITEM then ret = ret.concat(this.removeItem(obj.value, obj.count))
 
     @log('claimQuest', { id: qid })
-    @quests.newProperty(qid, {complete: true})
+    @quest[qid] = {complete: true}
     return ret.concat(@updateQuestStatus())
 
   checkQuestStatues: (qid) ->
@@ -828,7 +828,7 @@ class Player extends DBWrapper
           delete this.equipment[item.subcategory]
         else
           if equip? then ret.arg.itm.push({sid: equip, sta: 0})
-          this.equipment.newProperty(item.subcategory, slot)
+          this.equipment[item.subcategory] = slot
           tmp.sta = 1
         ret.arg.itm.push(tmp)
         delete ret.arg.itm if ret.arg.itm.length < 1
@@ -1170,9 +1170,9 @@ class Player extends DBWrapper
     return null unless @campaignState
     if not @campaignState[campaignName]?
       if campaignName is 'Charge' or campaignName is 'DuanwuCharge'
-        @campaignState.newProperty(campaignName, {})
+        @campaignState[campaignName] = {}
       else
-        @campaignState.newProperty(campaignName, 0)
+        @campaignState[campaignName] = 0
     return @campaignState[campaignName]
 
   setCampaignState: (campaignName, val) ->

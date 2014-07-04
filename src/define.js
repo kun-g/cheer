@@ -572,136 +572,136 @@ Event_UpdateStoreInfo = 10;
 Event_Fail = 11;
 Event_UpdateQuest = 19;
 
-destroyReactDB = function(obj) {
-  var k, v;
-  if (!obj) {
-    return false;
-  }
-  for (k in obj) {
-    v = obj[k];
-    if (!(typeof v === 'object')) {
-      continue;
-    }
-    destroyReactDB(v);
-    delete obj[k];
-  }
-  if (obj.destroyReactDB) {
-    obj.destroyReactDB();
-  }
-  if (obj.newProperty) {
-    obj.newProperty = null;
-  }
-  if (obj.push) {
-    obj.push = null;
-  }
-  return obj.destroyReactDB = null;
-};
-
-exports.destroyReactDB = destroyReactDB;
-
-tap = function(obj, key, callback, invokeFlag) {
-  var theCB;
-  if (invokeFlag == null) {
-    invokeFlag = false;
-  }
-  if (typeof obj[key] === 'function') {
-    return false;
-  }
-  if (obj.reactDB == null) {
-    Object.defineProperty(obj, 'reactDB', {
-      enumerable: false,
-      configurable: true,
-      value: {}
-    });
-    Object.defineProperty(obj, 'destroyReactDB', {
-      enumerable: false,
-      configurable: true,
-      value: function() {
-        var k, v, _ref;
-        _ref = obj.reactDB;
-        for (k in _ref) {
-          v = _ref[k];
-          v.value = null;
-          v.hooks = null;
-        }
-        obj.reactDB = null;
-        return obj = null;
-      }
-    });
-  }
-  if (obj.reactDB[key] == null) {
-    obj.reactDB[key] = {
-      value: obj[key],
-      hooks: [callback]
-    };
-    theCB = function(val) {
-      var cb, _i, _len, _ref, _ref1, _ref2;
-      if (((_ref = obj.reactDB) != null ? (_ref1 = _ref[key]) != null ? _ref1.hooks : void 0 : void 0) == null) {
-        return null;
-      }
-      _ref2 = obj.reactDB[key].hooks;
-      for (_i = 0, _len = _ref2.length; _i < _len; _i++) {
-        cb = _ref2[_i];
-        if (cb != null) {
-          cb(key, val);
-        }
-      }
-      return obj.reactDB[key].value = val;
-    };
-    Object.defineProperty(obj, key, {
-      get: function() {
-        return obj.reactDB[key].value;
-      },
-      set: theCB,
-      enumerable: true,
-      configurable: true
-    });
-    if (typeof obj[key] === 'object') {
-      tapObject(obj[key], theCB);
-    }
-  } else {
-    obj.reactDB[key].hooks.push(callback);
-  }
-  if (invokeFlag) {
-    return callback(key, obj[key]);
-  }
-};
-
-tapObject = function(obj, callback) {
-  var config, k, tabNewProperty, theCallback, v;
-  if (obj == null) {
-    return false;
-  }
-  theCallback = function() {
-    return callback(obj);
-  };
-  tabNewProperty = function(key, val) {
-    obj[key] = val;
-    tap(obj, key, theCallback);
-    return callback(obj);
-  };
-  for (k in obj) {
-    v = obj[k];
-    tap(obj, k, theCallback);
-  }
-  config = {
-    value: tabNewProperty,
-    enumerable: false,
-    configurable: true,
-    writable: false
-  };
-  if (obj.newProperty == null) {
-    Object.defineProperty(obj, 'newProperty', config);
-    if (Array.isArray(obj)) {
-      return Object.defineProperty(obj, 'push', {
-        value: function(val) {
-          return this.newProperty(this.length, val);
-        }
-      });
-    }
-  }
-};
-exports.tap = tap;
-exports.tapObject = tapObject;
+//destroyReactDB = function(obj) {
+//  var k, v;
+//  if (!obj) {
+//    return false;
+//  }
+//  for (k in obj) {
+//    v = obj[k];
+//    if (!(typeof v === 'object')) {
+//      continue;
+//    }
+//    destroyReactDB(v);
+//    delete obj[k];
+//  }
+//  if (obj.destroyReactDB) {
+//    obj.destroyReactDB();
+//  }
+//  if (obj.newProperty) {
+//    obj.newProperty = null;
+//  }
+//  if (obj.push) {
+//    obj.push = null;
+//  }
+//  return obj.destroyReactDB = null;
+//};
+//
+//exports.destroyReactDB = destroyReactDB;
+//
+//tap = function(obj, key, callback, invokeFlag) {
+//  var theCB;
+//  if (invokeFlag == null) {
+//    invokeFlag = false;
+//  }
+//  if (typeof obj[key] === 'function') {
+//    return false;
+//  }
+//  if (obj.reactDB == null) {
+//    Object.defineProperty(obj, 'reactDB', {
+//      enumerable: false,
+//      configurable: true,
+//      value: {}
+//    });
+//    Object.defineProperty(obj, 'destroyReactDB', {
+//      enumerable: false,
+//      configurable: true,
+//      value: function() {
+//        var k, v, _ref;
+//        _ref = obj.reactDB;
+//        for (k in _ref) {
+//          v = _ref[k];
+//          v.value = null;
+//          v.hooks = null;
+//        }
+//        obj.reactDB = null;
+//        return obj = null;
+//      }
+//    });
+//  }
+//  if (obj.reactDB[key] == null) {
+//    obj.reactDB[key] = {
+//      value: obj[key],
+//      hooks: [callback]
+//    };
+//    theCB = function(val) {
+//      var cb, _i, _len, _ref, _ref1, _ref2;
+//      if (((_ref = obj.reactDB) != null ? (_ref1 = _ref[key]) != null ? _ref1.hooks : void 0 : void 0) == null) {
+//        return null;
+//      }
+//      _ref2 = obj.reactDB[key].hooks;
+//      for (_i = 0, _len = _ref2.length; _i < _len; _i++) {
+//        cb = _ref2[_i];
+//        if (cb != null) {
+//          cb(key, val);
+//        }
+//      }
+//      return obj.reactDB[key].value = val;
+//    };
+//    Object.defineProperty(obj, key, {
+//      get: function() {
+//        return obj.reactDB[key].value;
+//      },
+//      set: theCB,
+//      enumerable: true,
+//      configurable: true
+//    });
+//    if (typeof obj[key] === 'object') {
+//      tapObject(obj[key], theCB);
+//    }
+//  } else {
+//    obj.reactDB[key].hooks.push(callback);
+//  }
+//  if (invokeFlag) {
+//    return callback(key, obj[key]);
+//  }
+//};
+//
+//tapObject = function(obj, callback) {
+//  var config, k, tabNewProperty, theCallback, v;
+//  if (obj == null) {
+//    return false;
+//  }
+//  theCallback = function() {
+//    return callback(obj);
+//  };
+//  tabNewProperty = function(key, val) {
+//    obj[key] = val;
+//    tap(obj, key, theCallback);
+//    return callback(obj);
+//  };
+//  for (k in obj) {
+//    v = obj[k];
+//    tap(obj, k, theCallback);
+//  }
+//  config = {
+//    value: tabNewProperty,
+//    enumerable: false,
+//    configurable: true,
+//    writable: false
+//  };
+//  if (obj.newProperty == null) {
+//    Object.defineProperty(obj, 'newProperty', config);
+//    if (Array.isArray(obj)) {
+//      return Object.defineProperty(obj, 'push', {
+//        value: function(val) {
+//          return this.newProperty(this.length, val);
+//        }
+//      });
+//    }
+//  }
+//};
+//exports.tap = tap;
+//exports.tapObject = tapObject;
 
 exports.fileVersion = -1;
