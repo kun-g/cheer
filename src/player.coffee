@@ -762,7 +762,7 @@ class Player extends DBWrapper
         when QUEST_TYPE_ITEM then ret = ret.concat(this.removeItem(obj.value, obj.count))
 
     @log('claimQuest', { id: qid })
-    @quest[qid] = {complete: true}
+    @quests[qid] = {complete: true}
     return ret.concat(@updateQuestStatus())
 
   checkQuestStatues: (qid) ->

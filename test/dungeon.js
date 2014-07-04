@@ -41,7 +41,7 @@ describe('Dungeon', function () {
             skill: [{id:1, lv: 2}]
           },
           {
-            objects: [ {id: 1, count: 1}, {count: 2} ],
+            objects: [ {id: 1, count: 1,skill:[{id: 4, lv: 3}]}, {count: 2} ],
             property: {tag: 1}
           },
           { objects: [ {count: 4} ] },
@@ -51,7 +51,7 @@ describe('Dungeon', function () {
       }, function () { return 1; });
       r.should.eql([
           [ { id: 4, count: 3 ,skill :[{id:1, lv: 2}]} ],
-          [ { id: 1, count: 1 ,property:{tag: 1}},
+          [ { id: 1, count: 1 ,property:{tag: 1},skill:[{id: 4, lv: 3}]},
           { id: 1, pos: 2, count: 1 ,property:{tag: 1}} ],
           [ { id: 2, count: 1 , property: {keyed: true}},
           { id: 2, count: 1 , property: {keyed: true}},
