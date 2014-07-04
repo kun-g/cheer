@@ -230,7 +230,9 @@ class Player extends DBWrapper
     energyCost = stgCfg.cost*count
     itemCost = {id: 871, num: count}
 
-    if multiple and false #@vipLevel() < Sweep_Vip_Level
+    if @stage[stage].state != STAGE_STATE_PASSED
+      ret_result = RET_StageIsLocked
+    else if multiple and @vipLevel() < Sweep_Vip_Level
       ret_result = RET_VipLevelIsLow
     else if @energy < energyCost
       ret_result = RET_NotEnoughEnergy

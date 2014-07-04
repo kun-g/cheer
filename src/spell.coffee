@@ -310,8 +310,8 @@ class Wizard
         when 'setMyMutex' then @setMutex(getProperty(a.mutex, level.mutex), getProperty(a.count, level.count))
         when 'resetSpellCD' then t.clearSpellCD(t.getActiveSpell(), cmd) for t in target
         when 'ignoreCardCost' then env.variable('ignoreCardCost', true)
-        when 'dropItem' then cmd.routine?({id:'DropItem', list: a.dropList, me: @})
-        when 'dropPrize' then cmd.routine?({id:'DropPrize', dropID: a.dropID})
+        when 'dropItem' then cmd.routine?({id:'DropItem', list: a.dropList})
+        when 'dropPrize' then cmd.routine?({id:'DropPrize', dropID: a.dropID, me: @})
         when 'rangeAttack', 'attack' then cmd.routine?({id: 'Attack', src: @, tar: t, isRange: true}) for t in target
         when 'showUp' then cmd.routine?({id: 'ShowUp', tar: t}) for t in target
         when 'costCard' then cmd.routine?({id: 'CostCard', card: a.card})
