@@ -463,9 +463,12 @@ exports.route = {
       switch arg.bid
         when -1
           if player.counters.monthCard
+            if player.counters.monthCard is 30
+              ret = [{ NTF: Event_InventoryUpdateItem, arg: { dim : player.addDiamond(180) }}]
+            else
+              ret = [{ NTF: Event_InventoryUpdateItem, arg: { dim : player.addDiamond(80) }}]
             player.counters.monthCard--
             player.timestamp.newProperty('monthCard', helperLib.currentTime())
-            ret = [{ NTF: Event_InventoryUpdateItem, arg: { dim : player.addDiamond(80) }}]
             player.saveDB()
             handler([{REQ: rpcID, RET: RET_OK}].concat(ret))
     ,

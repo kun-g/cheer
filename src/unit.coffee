@@ -28,7 +28,8 @@ class Unit extends Wizard
     while cfg[@level]?.xp <= @xp
       data = cfg[@level]
       @modifyProperty(data.property)
-      if data.skill? then @installSpell(s.id, s.level) for s in data.skill
+      if data.skill?
+        @installSpell(s.id, s.level) for s in data.skill when s.classID is @class
       @level += 1
       console.log('LevelUp ', JSON.stringify(data.property)) if flagCreation
 
