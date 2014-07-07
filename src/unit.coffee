@@ -152,7 +152,7 @@ class Mirror extends Unit
     @critical = battleForce * (1/18.5)
     @strong = battleForce * (1/18.5)
     @accuracy = battleForce * (1/18.5) + 30
-    @reactivity = battleForce * (1/18.5) - 40
+    @reactivity = battleForce * (1/18.5) - 60
     @speed = battleForce * (1/18.5) + 20
     @maxHP = @health
     @equipment = heroData.itm

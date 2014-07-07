@@ -277,7 +277,7 @@ initDailyEvent = (me, key, e) ->
     me[key].newProperty('stepPrize', [
       [{type: PRIZETYPE_ITEM, value: 538, count: 1}],
       [{type: PRIZETYPE_GOLD, count: goldCount}],
-      [{type: PRIZETYPE_ITEM, value: 571, count: 3}],
+      [{type: PRIZETYPE_ITEM, value: 871, count: 3}],
       [{type: PRIZETYPE_DIAMOND, count: 10}]
     ])
   quest = me[key].quest
