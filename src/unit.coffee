@@ -29,7 +29,8 @@ class Unit extends Wizard
       data = cfg[@level]
       @modifyProperty(data.property)
       if data.skill?
-        @installSpell(s.id, s.level) for s in data.skill when s.classID is @class
+        for s in data.skill when not s.classID? or s.classID is @class
+          @installSpell(s.id, s.level) 
       @level += 1
       console.log('LevelUp ', JSON.stringify(data.property)) if flagCreation
 
