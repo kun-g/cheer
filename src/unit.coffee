@@ -30,7 +30,7 @@ class Unit extends Wizard
       @modifyProperty(data.property)
       if data.skill?
         for s in data.skill when not s.classID? or s.classID is @class
-          @installSpell(s.id, s.level) 
+          @installSpell(s.id, s.level)
       @level += 1
       console.log('LevelUp ', JSON.stringify(data.property)) if flagCreation
 
@@ -154,7 +154,7 @@ class Mirror extends Unit
     @critical = battleForce * (1/18.5)
     @strong = battleForce * (1/18.5)
     @accuracy = battleForce * (1/18.5) + 30
-    @reactivity = battleForce * (1/18.5) - 40
+    @reactivity = battleForce * (1/18.5) - 60
     @speed = battleForce * (1/18.5) + 20
     @maxHP = @health
     @equipment = heroData.itm

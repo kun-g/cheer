@@ -33,7 +33,7 @@ describe('Dungeon', function () {
           {id: 1, pos: [1,2,3], from: 0, to: 5},
           {id: 2, property: {keyed: true}, count: 3},
           {id: 3, count: 3, skill:[{id:1, lv:2}], levels: [0, 1, 3]},
-          {pool: 'p2', count: 2, levels:{ from: 3, to: 5}} 
+          {pool: 'p2', count: 2, levels:{ from: 3, to: 5},skill:[{id: 9, lv: 3}]} 
         ],
         levels: [
           { 
@@ -41,7 +41,7 @@ describe('Dungeon', function () {
             skill: [{id:1, lv: 2}]
           },
           {
-            objects: [ {id: 1, count: 1, skill: [{id: 1}]}, {count: 2} ],
+            objects: [ {id: 1, count: 1,skill:[{id: 4, lv: 3}]}, {count: 2} ],
             property: {tag: 1}
           },
           { objects: [ {count: 4} ] },
@@ -51,16 +51,22 @@ describe('Dungeon', function () {
       }, function () { return 1; });
       r.should.eql([
           [ { id: 4, count: 3 ,skill :[{id:1, lv: 2}]} ],
-          [ { id: 1, count: 1 ,property:{tag: 1}, skill: [{id: 1}]},
-          { id: 1, pos: 2, count: 1 ,property:{tag: 1}} ],
-          [ { id: 2, count: 1 , property: {keyed: true}},
-          { id: 2, count: 1 , property: {keyed: true}},
-          { id: 2, count: 1 , property: {keyed: true}},
-          { id: 3, count: 1 ,skill:[{id:1, lv:2}]} ],
-          [ { id: 7, weight: 1,count: 1 ,skill: [{id: 1, lv: 2}]},
-          { id: 3, count: 1 ,skill:[{id:1, lv:2}]},
-          { id: 3, count: 1 ,skill:[{id:1, lv:2}]},],
-          [ { id: 5, weight: 1, count: 1 ,property: {keyed: true}} ]
+          [ 
+            { id: 1, count: 1 ,property:{tag: 1},skill:[{id: 4, lv: 3}]},
+            { id: 1, pos: 2, count: 1 ,property:{tag: 1}} ],
+          [ 
+            { id: 2, count: 1 , property: {keyed: true}},
+            { id: 2, count: 1 , property: {keyed: true}},
+            { id: 2, count: 1 , property: {keyed: true}},
+            { id: 3, count: 1 ,skill:[{id:1, lv:2}]} ],
+          [ 
+            { id: 7, weight: 1,count: 1 ,skill: [{id: 1, lv: 2}]},
+            { id: 3, count: 1 ,skill:[{id:1, lv:2}]},
+            { id: 3, count: 1 ,skill:[{id:1, lv:2}]},
+            ],
+          [ { id: 5, weight: 1, count: 1 ,property: {keyed: true},skill:[{id: 9, lv: 3}]},
+            { id: 5, weight: 1, count: 1 ,property: {keyed: true},skill:[{id: 9, lv: 3}]}
+          ]
           ]);
     });
   });

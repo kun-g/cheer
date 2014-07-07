@@ -997,7 +997,7 @@ class Player extends DBWrapper
 
     prize = helperLib.generatePrize(queryTable(TABLE_DROP), dropInfo)
 
-    if not dungeon.isSweep?
+    if not dungeon.isSweep
       prize.push({type:PRIZETYPE_GOLD, count:Math.floor(gr*cfg.prizeGold)}) if cfg.prizeGold
       prize.push({type:PRIZETYPE_EXP, count: Math.floor(xr*cfg.prizeXp)}) if cfg.prizeXp
       prize.push({type:PRIZETYPE_WXP, count: Math.floor(wr*cfg.prizeWxp)}) if cfg.prizeWxp
