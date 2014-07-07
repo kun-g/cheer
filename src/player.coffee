@@ -986,7 +986,6 @@ class Player extends DBWrapper
 
     percentage = 1
     if result is DUNGEON_RESULT_WIN
-      dbLib.incrBluestarBy(this.name, 1)
       if dungeon.isSweep?
         dropInfo = dropInfo.concat(cfg.dropID) if cfg.dropID
     else
