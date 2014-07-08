@@ -431,6 +431,7 @@ exports.initializeDB = function (cfg) {
   passportPrefix = 'Passport';
   accPrefix = 'Account';
   ReceiptPrefix = 'Receipt';
+  serverObjectPrefix = 'so';
 
   authPrefix = 'Auth';
   var helperLib = require('./helper');
@@ -560,6 +561,9 @@ exports.broadcastEvent = function (type, arg, handler) {
 
 exports.getGlobalPrize = function (handler) { dbClient.get("GlobalPrize", handler); };
 
+exports.getServerProperty = function (key, handler) {
+  dbClient.hgetall(makeDBKey([serverObjectPrefix, key]), key, handler);
+};
 exports.getServerConfig = function (key, handler) {
   dbClient.hget("ServerConfig", key, handler);
 };

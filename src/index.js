@@ -222,6 +222,10 @@ function deliverReceipt (receipt, tunnel, cb) {
   ], cb);
 }
 
+gServerObject = {
+  getType: function () { return 'server'; }
+};
+
 if (config) {
   initiateFluentLogger();
   initServer();
@@ -246,6 +250,21 @@ if (config) {
     var intervalCfg = {};
     var helperLib = require('./helper');
     config = helperLib.intervalEvent;
+    async.series([
+        function (cb) {
+          dbLib.getServerProperty('counters', function (err, arg) {
+            if (arg) {
+              gServerObject.counters = arg;
+            } else {
+              gServerObject.counters = {};
+            }
+          });
+        }],
+        function (err, ret) {
+          var helperLib = require('./helper');
+          helperLib.initCampaign(gServerObject, helperLib.events);
+          helperLib.initObserveration(gServerObject);
+        });
     dbLib.getServerConfig('Interval', function (err, arg) {
       if (arg) { intervalCfg = JSON.parse(arg); }
 
