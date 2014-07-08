@@ -732,9 +732,13 @@ class Player extends DBWrapper
               @flags[p.flag] = p.value
               ret = ret.concat(@syncFlags(true)).concat(@syncEvent())
             when "countUp"
-              @counters[p.counter]++
-              @notify('countersChanged',{type : p.counter})
-              ret = ret.concat(@syncCounters(true)).concat(@syncEvent())
+              if p.target is 'server'
+                gServerObject[p.counter]++
+                gServerObject.notify('countersChanged',{type : p.counter, delta: 1})
+              else
+                @counters[p.counter]++
+                @notify('countersChanged',{type : p.counter})
+                ret = ret.concat(@syncCounters(true)).concat(@syncEvent())
     return ret
 
   isQuestAchieved: (qid) ->

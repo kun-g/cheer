@@ -403,6 +403,16 @@ exports.events = {
         obj.flags.rcvAward = false
     },
 
+    dragonQuest0: {
+      storeType: "server",
+      id: 6,
+      actived: 1,
+      canReset: (obj, util) ->
+        return not obj.counters.dragonQuest0?
+      ,
+      reset: (obj, util) ->
+        obj.counters.dragonQuest0 = 1000
+    },
 
 }
 
@@ -582,7 +592,10 @@ exports.observers = {
     exports.assignLeaderboard(obj, exports.LeaderboardIdx.BattleForce)
     obj.updateMercenaryInfo()
   countersChanged: (obj, arg) ->
-    exports.assignLeaderboard(obj, exports.LeaderboardIdx.KillingMonster) if arg.type is 'monster'
+    if obj.getType() is 'server'
+      dbClient.hincr(makeDBKey([serverObjectPrefix, key]), arg.type, arg.delta, (err, result)->)
+    else
+      exports.assignLeaderboard(obj, exports.LeaderboardIdx.KillingMonster) if arg.type is 'monster'
   stageChanged: (obj, arg) ->
     exports.assignLeaderboard(obj, exports.LeaderboardIdx.InfinityDungeon) if arg.stage is 120
   winningAnPVP: (obj, arg) ->
