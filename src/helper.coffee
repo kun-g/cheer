@@ -1,90 +1,6 @@
 {conditionCheck} = require('./trigger')
 moment = require('moment')
 
-# React Programming
-destroyReactDB = (obj) ->
-  return false unless obj
-  for k, v of obj when typeof v is 'object'
-    destroyReactDB(v)
-    delete obj[k]
-  if obj.destroyReactDB then obj.destroyReactDB()
-  if obj.newProperty then obj.newProperty = null
-  if obj.push then obj.push = null
-  obj.destroyReactDB = null
-
-exports.destroyReactDB = destroyReactDB
-
-tap = (obj, key, callback, invokeFlag = false) ->
-  return false if typeof obj[key] is 'function'
-  unless obj.reactDB?
-    Object.defineProperty(obj, 'reactDB', {
-      enumerable : false,
-      configurable : true,
-      value: { }
-    })
-    Object.defineProperty(obj, 'destroyReactDB', {
-      enumerable : false,
-      configurable : true,
-      value: () ->
-        return null unless obj?.reactDB
-        for k, v of obj.reactDB
-          v.value = null
-          v.hooks = null
-        obj.reactDB = null
-        obj = null
-    })
-
-  unless obj.reactDB[key]?
-    obj.reactDB[key] = {
-      value: obj[key],
-      hooks: [callback]
-    }
-    theCB = (val) ->
-      return null unless obj.reactDB?[key]?.hooks?
-      cb(key, val) for cb in obj.reactDB[key].hooks when cb?
-      return obj.reactDB[key].value = val
-
-    Object.defineProperty(obj, key, {
-      get : () ->
-        return null unless obj?.reactDB?[key]?
-        return obj.reactDB[key].value
-      ,
-      set : theCB,
-      enumerable : true,
-      configurable : true
-    })
-
-    if typeof obj[key] is 'object' then tapObject(obj[key], theCB)
-  else
-    obj.reactDB[key].hooks.push(callback)
-  if invokeFlag then callback(key, obj[key])
-
-tapObject = (obj, callback) ->
-  return false unless obj?
-  theCallback = () -> callback(obj)
-  tabNewProperty = (key, val) ->
-    obj[key] = val
-    tap(obj, key, theCallback)
-    callback(obj)
-
-  for k, v of obj
-    tap(obj, k, theCallback)
-
-  config = {
-    value: tabNewProperty,
-    enumerable : false,
-    configurable : true,
-    writable : false,
-  }
-
-  if not obj.newProperty?
-    Object.defineProperty(obj, 'newProperty', config)
-    if Array.isArray(obj)
-      Object.defineProperty(obj, 'push', {
-        value: (val) -> @newProperty(@length, val)
-      })
-exports.tap = tap
-
 dbLib = require('./db')
 # Leaderboard
 exports.initLeaderboard = (config) ->
@@ -262,24 +178,24 @@ initDailyEvent = (me, key, e) ->
   if e.daily
     if not me[key].date or diffDate(me[key].date, currentTime()) isnt 0
       e.quest.forEach( (q) -> delete me.quests[q])
-      me[key].newProperty('status', 'Init')
-      me[key].newProperty('date', currentTime())
+      me[key]['status'] = 'Init'
+      me[key]['date'] = currentTime()
       if key is 'event_daily'
-        me[key].newProperty('rank', Math.ceil(me.battleForce*0.04))
+        me[key]['rank'] = Math.ceil(me.battleForce*0.04)
         if me[key].rank < 1 then me[key].rank = 1
-        me[key].newProperty('reward', [{type: PRIZETYPE_DIAMOND, count: 50}])
+        me[key]['reward'] = [{type: PRIZETYPE_DIAMOND, count: 50}]
 
   if e.quest and Array.isArray(e.quest) and me[key].status is 'Init'
-    me[key].newProperty('quest', shuffle(e.quest, Math.random()).slice(0, e.steps))
-    me[key].newProperty('step', 0)
+    me[key].quest = shuffle(e.quest, Math.random()).slice(0, e.steps)
+    me[key].step = 0
     goldCount = Math.ceil(me.battleForce)
     diamondCount = Math.ceil(me[key].rank/10)
-    me[key].newProperty('stepPrize', [
+    me[key]['stepPrize'] = [
       [{type: PRIZETYPE_ITEM, value: 538, count: 1}],
       [{type: PRIZETYPE_GOLD, count: goldCount}],
       [{type: PRIZETYPE_ITEM, value: 871, count: 3}],
       [{type: PRIZETYPE_DIAMOND, count: 10}]
-    ])
+    ]
   quest = me[key].quest
   if Array.isArray(quest)
     quest = quest[me[key].step]
@@ -386,8 +302,8 @@ exports.events = {
         return util.diffDay(obj.timestamp.goblin, util.today)
       ,
       reset: (obj, util) ->
-        obj.timestamp.newProperty('goblin', util.currentTime())
-        obj.counters.newProperty('goblin', 0)
+        obj.timestamp['goblin'] = util.currentTime()
+        obj.counters['goblin'] = 0
     },
 
     enhance: {
@@ -404,8 +320,8 @@ exports.events = {
         )
       ,
       reset: (obj, util) ->
-        obj.timestamp.newProperty('enhance', util.currentTime())
-        obj.counters.newProperty('enhance', 0)
+        obj.timestamp['enhance'] = util.currentTime()
+        obj.counters['enhance'] = 0
     },
 
     weapon: {
@@ -422,8 +338,8 @@ exports.events = {
         )
       ,
       reset: (obj, util) ->
-        obj.timestamp.newProperty('weapon', util.currentTime())
-        obj.counters.newProperty('weapon', 0)
+        obj.timestamp['weapon'] = util.currentTime()
+        obj.counters['weapon'] = 0
     },
 
     infinite: {
@@ -438,8 +354,8 @@ exports.events = {
         return (util.today.hour() >= 8 && diffDate(obj.timestamp.infinite, util.today) >= 7)
       ,
       reset: (obj, util) ->
-        obj.timestamp.newProperty('infinite', util.currentTime())
-        obj.stage[120].level = 0
+        obj.timestamp['infinite'] = util.currentTime()
+        obj.stage[120]['level'] = 0
         obj.notify('stageChanged',{stage:120})
     },
 
@@ -457,10 +373,10 @@ exports.events = {
         return (diffDate(obj.timestamp.hunting, util.today) >= 7 )
       ,
       reset: (obj, util) ->
-        obj.timestamp.newProperty('hunting', util.currentTime())
+        obj.timestamp.hunting = util.currentTime()
         stages = [121, 122, 123, 125, 126, 127, 128, 129, 130, 131, 132]
         for s in stages when obj.stage[s]
-          obj.stage[s].newProperty('level', 0)
+          obj.stage[s].level = 0
         obj.modifyCounters('monster',{ value : 0,notify:{name:'countersChanged',arg:{type : 'monster'}}})
     },
 
