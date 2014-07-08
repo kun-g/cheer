@@ -45,7 +45,7 @@ class Player extends DBWrapper
       stageVersion: 0,
 
       quests: {},
-      questsVersion: 0,
+      questVersion: 0,
 
       energy: ENERGY_MAX,
       energyTime: now.valueOf(),
@@ -651,6 +651,7 @@ class Player extends DBWrapper
     @onEvent('gold')
     @onEvent('diamond')
     @onEvent('item')
+    @questVersion++
 
     return packQuestEvent(@quests, qid, @questVersion)
 
@@ -754,7 +755,7 @@ class Player extends DBWrapper
     if not prize or prize.length is 0 then return RET_InventoryFull
     ret = ret.concat(prize)
 
-    @questsVersion++
+    @questVersion++
     for obj in quest.objects when obj.consume
       switch obj.type
         when QUEST_TYPE_GOLD then ret = ret.concat({NTF: Event_InventoryUpdateItem, arg: {syn:@inventoryVersion, god: @addGold(-obj.count)}})
@@ -1013,6 +1014,13 @@ class Player extends DBWrapper
   
     return helperLib.splicePrize(prize)
 
+  updateQuest: (quests) ->
+    for qid, qst of quests
+      continue unless qst?.counters? and @quests[qid]
+      quest = queryTable(TABLE_QUEST, qid, @abIndex)
+      for k, objective of quest.objects when objective.type is QUEST_TYPE_NPC and qst.counters[k]? and @quests[qid].counters?
+        @quests[qid].counters[k] = qst.counters[k]
+
   claimDungeonAward: (dungeon, isSweep) ->
     return [] unless dungeon?
     ret = []
@@ -1025,11 +1033,8 @@ class Player extends DBWrapper
   
     quests = dungeon.quests
     if quests
-      for qid, qst of quests
-        continue unless qst?.counters? and @quests[qid]
-        quest = queryTable(TABLE_QUEST, qid, @abIndex)
-        for k, objective of quest.objects when objective.type is QUEST_TYPE_NPC and qst.counters[k]? and @quests[qid].counters?
-          @quests[qid].counters[k] = qst.counters[k]
+      @updateQuest(quests)
+      @questVersion++
   
     {goldPrize, xpPrize, wxPrize, otherPrize} = @generateDungeonAward(dungeon)
 

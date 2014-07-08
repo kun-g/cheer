@@ -170,7 +170,7 @@ exports.route = {
           handle([ret])
       )
     ,
-    args: ['tp', 'number', 'id', 'string', 'bv', 'string', 'rv', 'number', 'ch', 'string']
+    args: {'tp':'number', 'id':'string', 'bv':'string', 'rv':'number', 'ch':'string'}
   },
   RPC_Register: {
     id: 101,
@@ -205,7 +205,7 @@ exports.route = {
           exports.route.RPC_Login.func(socket.session, dummy, handle, rpcID, socket, true)
       )
     ,
-    args: ['pid', 'string', 'nam', 'string', 'cid', 'number', 'gen', 'number', 'hst', 'number', 'hcl', 'number']
+    args: {'pid':'string', 'nam':'string', 'cid':'number', 'gen':'number', 'hst':'number', 'hcl':'number'}
   },
   RPC_ValidateName: {
     id: 102,
@@ -214,7 +214,7 @@ exports.route = {
         handler([{REQ: rpcID, RET : if err then +err.message else RET_OK}])
       )
     ,
-    args: ['nam', 'string']
+    args: {'nam':'string'}
   },
   NTF_Echo: {
     id: 103,
@@ -227,7 +227,7 @@ exports.route = {
         evt.bvurl = queryTable(TABLE_VERSION, 'bin_url')
       handler([evt])
     ,
-    args: ['sign', 'number']
+    args: {'sign':'string'}
   },
   RPC_VerifyDungeon: {
     id: 17,
@@ -286,7 +286,7 @@ exports.route = {
       else
         doVerify()
     ,
-    args: [],
+    args: {},
     needPid: true
   },
   Request_Stastics: {
@@ -294,7 +294,7 @@ exports.route = {
     func: (arg, player, handler, rpcID, socket) ->
       logInfo({action: 'stastics', key: arg.key, value: arg.val, name: player.name})
     ,
-    args: [],
+    args: {},
     needPid: true
   },
   RPC_GameStartDungeon: {
@@ -314,7 +314,7 @@ exports.route = {
         player.saveDB()
       )
     ,
-    args: ['stg'],
+    args: {'stg':'string', 'initialDataOnly':'boolean', 'pkr':'string'},
     needPid: true
   },
   RPC_ChargeDiamond: {
@@ -324,7 +324,7 @@ exports.route = {
         when 'AppStore' then throw Error('AppStore Payment')
         when 'PP25' then throw Error('PP25 Payment')
     ,
-    args: ['pid', 'string', 'rep', 'string'],
+    args: {'pid':'string', 'rep':'string'},
     needPid: true
   },
   RPC_VerifyPayment: {
@@ -369,7 +369,7 @@ exports.route = {
 
           req.write(JSON.stringify({"receipt-data": arg.rep}))
           req.end()
-    args: [],
+    args: {},
     needPid: true
   },
   RPC_BindSubAuth: {
@@ -381,11 +381,11 @@ exports.route = {
         handler([{REQ: rpcID, RET: RET_OK, aid: account}])
       )
     ,
-    args: []
+    args: {}
   },
   RPC_Reconnect: {
     id: 104,
-    args: ['pid', 'string'],
+    args: {'pid', 'string'},
     func: (arg, player, handler, rpcID, socket) ->
       async.waterfall([
         (cbb) -> dbLib.loadSessionInfo(arg.PID, cbb),
@@ -454,7 +454,7 @@ exports.route = {
             handler([ret])
       )
     ,
-    args: [],
+    args: {},
     needPid: true
   },
   RPC_SubmitBounty: {
@@ -469,7 +469,7 @@ exports.route = {
             player.saveDB()
             handler([{REQ: rpcID, RET: RET_OK}].concat(ret))
     ,
-    args: [],
+    args: {},
     needPid: true
   },
   RPC_SubmitDailyQuest: {
@@ -480,7 +480,7 @@ exports.route = {
         player.saveDB()
       )
     ,
-    args: [],
+    args: {},
     needPid: true
   },
   RPC_GetPkRivals: {
@@ -499,7 +499,7 @@ exports.route = {
         )
       )
     ,
-    args: [],
+    args: {},
     needPid: true
   },
   RPC_PVPInfoUpdate: {
@@ -516,7 +516,7 @@ exports.route = {
           }
           handler(ret))
     ,
-    args: [],
+    args: {},
     needPid: true
   },
   RPC_SweepStage: {
@@ -531,7 +531,7 @@ exports.route = {
 
       handler([res].concat(ret))
     ,
-    args: [],
+    args: {},
     needPid: true
   },
   RPC_ReceivePrize: {
@@ -549,7 +549,7 @@ exports.route = {
               handler([{REQ: rpcID, RET: RET_OK}].concat(result))
             )
     ,
-    args: [],
+    args: {},
     needPid: true
   }
 
