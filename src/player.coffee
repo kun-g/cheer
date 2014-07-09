@@ -197,11 +197,9 @@ class Player extends DBWrapper
         return true unless item.date?
         return helperLib.matchDate(item.date, helperLib.currentTime(), item.expiration)
     )
-    rmMSG = itemsNeedRemove.map( (e) =>
-      return @removeItem(null, null, @queryItemSlot(e))
-    )
-
-    ret = ret.concat(rmMSG)
+    ret = itemsNeedRemove.reduce( (pValue,e) =>
+      return pValue.concat(@removeItem(null, null, @queryItemSlot(e)))
+    , ret)
 
     return ret
 
@@ -251,10 +249,12 @@ class Player extends DBWrapper
           r = []
           for k, v of p
             r = r.concat(v)
+          r = r.filter((e) => not (e.type >=1 and e.type <= 4 and e.count <= 0))
           prize.push(r)
           ret = ret.concat(@claimPrize(r))
         @log('sweepDungeon', { stage: stage, multiple: multiple, reward: prize })
         ret = ret.concat(@syncEnergy())
+        
     return { code: ret_result, prize: prize, ret: ret }
 
   claimLoginReward: () ->
@@ -710,9 +710,9 @@ class Player extends DBWrapper
         when PRIZETYPE_ITEM
           ret = @aquireItem(p.value, p.count, allOrFail)
           return [] unless ret and ret.length > 0
-        when PRIZETYPE_GOLD then ret.push({NTF: Event_InventoryUpdateItem, arg: {syn: @inventoryVersion, god: @addGold(p.count)}})
-        when PRIZETYPE_DIAMOND then ret.push({NTF: Event_InventoryUpdateItem, arg: {syn: @inventoryVersion, dim: @addDiamond(p.count)}})
-        when PRIZETYPE_EXP then ret.push({NTF: Event_RoleUpdate, arg: {syn: @heroVersion, act: {exp: @addHeroExp(p.count)}}})
+        when PRIZETYPE_GOLD then ret.push({NTF: Event_InventoryUpdateItem, arg: {syn: @inventoryVersion, god: @addGold(p.count)}}) if p.count > 0
+        when PRIZETYPE_DIAMOND then ret.push({NTF: Event_InventoryUpdateItem, arg: {syn: @inventoryVersion, dim: @addDiamond(p.count)}}) if p.count > 0
+        when PRIZETYPE_EXP then ret.push({NTF: Event_RoleUpdate, arg: {syn: @heroVersion, act: {exp: @addHeroExp(p.count)}}}) if p.count > 0
         when PRIZETYPE_WXP
           continue unless p.count
           equipUpdate = []
@@ -1671,8 +1671,10 @@ class PlayerEnvironment extends Environment
   constructor: (@player) ->
 
   removeItem: (item, count, slot, allorfail) ->
-    return {ret: @player?.inventory.remove(item, count, slot, allorfail), version: @player.inventoryVersion}
-
+    result = {ret: @player?.inventory.remove(item, count, slot, allorfail), version: @player.inventoryVersion}
+    if result.ret isnt []
+      delete @player.equipment[k] for k, s of @player.equipment when s is slot
+    return result
   translateAction: (cmd) ->
     return [] unless cmd?
     ret = []
