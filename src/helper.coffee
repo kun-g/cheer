@@ -593,7 +593,7 @@ exports.observers = {
     obj.updateMercenaryInfo()
   countersChanged: (obj, arg) ->
     if obj.getType() is 'server'
-      dbClient.hincr(makeDBKey([serverObjectPrefix, key]), arg.type, arg.delta, (err, result)->)
+      dbClient.hincrby(makeDBKey([serverObjectPrefix, 'counters']), arg.type, arg.delta, (err, result)->)
     else
       exports.assignLeaderboard(obj, exports.LeaderboardIdx.KillingMonster) if arg.type is 'monster'
   stageChanged: (obj, arg) ->

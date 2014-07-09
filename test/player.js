@@ -14,6 +14,8 @@ var helpLib = require('../js/helper');
 //gServerID = 1;
 //dbPrefix = gServerName+'.';
 
+var async = require('async');
+
 var dbLib = require('../js/db');
 dbPrefix = 'Develop'+'.';
 dbLib.initializeDB({
@@ -26,8 +28,10 @@ dbLib.initializeDB({
   // "Publisher": { "IP": "localhost", "PORT": 6379},
   // "Subscriber": { "IP": "localhost", "PORT": 6379}
 });
+gServerObject = {
+  getType: function () { return 'server'; }
+};
 
-//dbLib.loadPassport( LOGIN_ACCOUNT_TYPE_91, '571082474', false, console.log);
 //dbLib.loadPlayer('呃呃饭否', function (err, p) {
   // p.startDungeon(104, true, function (err, ret) {
   //   console.log('XXX', err, ret);
@@ -51,6 +55,34 @@ var playerName = 'unitTestQ';
 //logLevel = 1;
 //var handlers = require('../commandHandlers').route;
 
+describe('countUp', function () {
+  it('countUp', function (done) {
+
+    var redis = require("redis");
+    dbClient.del('so.counters');
+    var data =[ 
+      {type:'testMk1', delta:1, times:1, result:1},
+      {type:'testMk2', delta:1, times:2, result:2},
+      {type:'testMk3', delta:2, times:3, result:6},
+      {type:'testMk1', delta:1, times:1, result:2},
+    ];
+    async.eachSeries(data,
+      function(e,cb) {
+      for(var i =0; i < e.times; i++) {
+        helpLib.observers.countersChanged(gServerObject,e);
+      }
+
+      dbLib.getServerProperty('counters', function (err, arg) {
+        arg[e.type].should.eql(e.result);
+        cb();
+      });
+    },
+    done);
+  });
+});
+
+
+
 describe('Helper', function () {
   it('Object', function () {
     var t ={};
@@ -70,32 +102,31 @@ describe('Player', function () {
 //    dbLib.releaseDB();
 //  });
 //
-  describe('player.claimPkPrice', function() {
-  
-    initGlobalConfig('../../build/', function() {
-//      console.log(queryTable,'---------------/')
-      helpLib.initLeaderboard(queryTable(TABLE_LEADBOARD));
-      var player = new playerLib.Player();
-      var data =
-      [ 
-      {name:'P1', rank:2,result:{}},
-      {name:'P2', rank:2,result:{}},
-      ];
-
-      console.log(dbLib.queryLeaderboard,'---------sdfsdf')
-      data.forEach(function (e) {
-        //console.log(arenaPirze(e.rank),'------------->????')
-        //re.should.eql(e.result);
-        player.setName(e.name);
-        player.claimPkPrice(function (result) {
-          result.should.eql(e.result);
-        });
-      });
-
-   
-    });
-  });
-
+//  describe('player.claimPkPrice', function() {
+//  
+//    initGlobalConfig('../../build/', function() {
+////      console.log(queryTable,'---------------/')
+//      helpLib.initLeaderboard(queryTable(TABLE_LEADBOARD));
+//      var player = new playerLib.Player();
+//      var data =
+//      [ 
+//      {name:'P1', rank:2,result:{}},
+//      {name:'P2', rank:2,result:{}},
+//      ];
+//
+//      console.log(dbLib.queryLeaderboard,'---------sdfsdf')
+//      data.forEach(function (e) {
+//        //console.log(arenaPirze(e.rank),'------------->????')
+//        //re.should.eql(e.result);
+//        player.setName(e.name);
+//        player.claimPkPrice(function (result) {
+//          result.should.eql(e.result);
+//        });
+//      });
+//
+//   
+//    });
+//  });
 
   describe('Player', function () {
     it('Creation', function () {

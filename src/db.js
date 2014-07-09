@@ -562,7 +562,7 @@ exports.broadcastEvent = function (type, arg, handler) {
 exports.getGlobalPrize = function (handler) { dbClient.get("GlobalPrize", handler); };
 
 exports.getServerProperty = function (key, handler) {
-  dbClient.hgetall(makeDBKey([serverObjectPrefix, key]), key, handler);
+  dbClient.hgetall(makeDBKey([serverObjectPrefix, key]), handler);
 };
 exports.getServerConfig = function (key, handler) {
   dbClient.hget("ServerConfig", key, handler);
