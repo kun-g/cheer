@@ -314,7 +314,7 @@ exports.route = {
         player.saveDB()
       )
     ,
-    args: {'stg':'string', 'initialDataOnly':'boolean', 'pkr':'string'},
+    args: {'stg':'number', 'initialDataOnly':'boolean', 'pkr':'string'},
     needPid: true
   },
   RPC_ChargeDiamond: {
@@ -385,7 +385,7 @@ exports.route = {
   },
   RPC_Reconnect: {
     id: 104,
-    args: {'pid', 'string'},
+    args: {'PID', 'string'},
     func: (arg, player, handler, rpcID, socket) ->
       async.waterfall([
         (cbb) -> dbLib.loadSessionInfo(arg.PID, cbb),
