@@ -211,7 +211,7 @@ describe('Player', function () {
       var h = new spellLib.Wizard();
       h.name = 'Hero'+i;
       h.health = i + 3;
-      h.attack = i + 1;
+      h.attack = i + 10;
       heroes.push(h);
       h.isMonster = false;
       h.getActiveSpell = getActiveSpell;
@@ -221,42 +221,65 @@ describe('Player', function () {
       var m = new spellLib.Wizard();
       m.name = 'Monster'+i;
       m.health = i + 3;
-      m.attack = i + 1;
+      m.attack = i + 10;
       monsters.push(m);
       m.isMonster = true;
       m.isVisible = (i % 2) == 1;
     }
 
-    //it('should pass this test run', function () {
-    //  var env = new dungeonLib.DungeonEnvironment(null);
-    //  var routine = {};
-    //  var cmd = {
-    //    routine: function(c) {routine = c},
-    //    getEnvironment: function () { return env }
-    //  };
-    //  env.getTeammateOf = function (wizard) {
-    //    if (wizard.isMonster) {
-    //      return monsters.filter(function (m) { return m.name != wizard.name; });
-    //    } else {
-    //      return heroes.filter(function (m) { return m.name != wizard.name; });
-    //    }
-    //  };
-    //  env.getEnemyOf = function (wizard) {
-    //    if (wizard.isMonster) {
-    //      return heroes;
-    //    } else {
-    //      return monsters;
-    //    }
-    //  };
-    //  var me = heroes[0];
-    //  var dataField = {src: heroes[0], tar: monsters[0]};
-    //  env.setVariableField(dataField);
-    //  env.rand = function () { return 0; };
-    //  // Target Selection
-    //  me.selectTarget({targetSelection: {pool:'Self', filter: ['Visible', 'Alive']}}, cmd).should.length(0);
-    //  me.isVisible = true;
-    //  var tar = me.selectTarget({targetSelection: {pool:'self', filter: ['Visible', 'Alive']}}, cmd);
-    //  tar[0].should.have.property('name').equal(me.name);
+    it('spell test', function () {
+      dungeon = new dungeonLib.Dungeon({
+        stage: 0,
+              randSeed: 1,
+              team : [
+      {nam: 'W', cid: 0, gen: 0, hst:0, hcl: 0, exp: 50000},
+              {nam: 'M', cid: 1, gen: 0, hst:0, hcl: 0, exp: 50000},
+              {nam: 'P', cid: 2, gen: 0, hst:0, hcl: 0, exp: 50000},
+              {nam: 'W1', cid: 0, gen: 0, hst:0, hcl: 0, exp: 50000}
+      ]
+      });
+      dungeon.initialize();
+
+      var env = new dungeonLib.DungeonEnvironment(dungeon);
+      var routine = {};
+      var cmd = {
+        routine: function(c) {routine = c},
+        getEnvironment: function () { return env }
+      };
+      env.getTeammateOf = function (wizard) {
+        if (wizard.isMonster) {
+          return monsters.filter(function (m) { return m.name != wizard.name; });
+        } else {
+          return heroes.filter(function (m) { return m.name != wizard.name; });
+        }
+      };
+      env.getAliveHeroes= function() { return heroes;}
+      env.getMonsters = function() { return monsters;}
+      env.getObjectAtBlock = function(idx) {return monsters[idx];}
+      env.getHeroes = function() {return heroes;}
+      env.getObjects = function() { return heroes.concat(monsters);}
+//      env.variable = function() {
+//        if (this.vb == null) {
+//          this.vb = {}
+//        }
+//        return this.vb;
+//      }
+      env.getEnemyOf = function (wizard) {
+        if (wizard.isMonster) {
+          return heroes;
+        } else {
+          return monsters;
+        }
+      };
+      var me = heroes[0];
+      var dataField = {src: heroes[0], tar: monsters[0]};
+      env.setVariableField(dataField);
+      env.rand = function () { return 0; };
+      // Target Selection
+      me.selectTarget({targetSelection: {pool:'Self', filter: ['Visible', 'Alive']}}, cmd).should.length(0);
+      me.isVisible = true;
+      var tar = me.selectTarget({targetSelection: {pool:'self', filter: ['Visible', 'Alive']}}, cmd);
+      tar[0].should.have.property('name').equal(me.name);
 
     //  // Trigger condition TODO:
     //  var thisSpell = {};
@@ -319,15 +342,32 @@ describe('Player', function () {
     //  //me.health.should.equal(10);
     //  //thisSpell.should.not.have.property('modifications');
 
-    //  // install && uninstall
-    //  me.installSpell(1, 1, cmd);
-    //  me.wTriggers.should.have.property('onBePhysicalDamage').have.property('0').equal(1);
-    //  me.wTriggers.should.have.property('onBeSpellDamage').have.property('0').equal(1);
-    //  me.removeSpell(1, cmd);
-    //  me.wTriggers.should.not.have.property('onBeDamage');
-    //  me.wTriggers.should.not.have.property('onBeSpellDamage');
-    //  //me.installSpell(6, 1, cmd);
-    //  //me.installSpell(12, 2, cmd);
+      // install && uninstall
+      me.installSpell(1, 1, cmd);
+      me.wTriggers.should.have.property('onBePhysicalDamage').have.property('0').equal(1);
+      me.wTriggers.should.have.property('onBeSpellDamage').have.property('0').equal(1);
+      me.removeSpell(1, cmd);
+      me.wTriggers.should.not.have.property('onBeDamage');
+      me.wTriggers.should.not.have.property('onBeSpellDamage');
+
+
+      cmd = dungeonLib.DungeonCommandStream({id: 'InitiateAttack', block:0});
+      cmd.getEnvironment = function () { return env }
+
+      var hero = heroes[0];
+      var npc = monsters[0];
+      //console.log(me,'before ====');
+      var attackBefore = npc.attack;
+      npc.installSpell(110,1,cmd);
+      npc.attack.should.eql(attackBefore/2);
+      for( var i = 0; i < 5 ; i ++) {
+        cmd.process();
+      }
+      npc.attack.should.eql(attackBefore);
+      //me.removeSpell(110, cmd);
+      //console.log(me,'removed ====');
+      //me.installSpell(6, 1, cmd);
+      //me.installSpell(12, 2, cmd);
 
 
     //  //var dcmd = new cmdStreamLib.DungeonCommandStream({id: 'Dialog', dialogId: 0});
@@ -357,7 +397,7 @@ describe('Player', function () {
     //  me.installSpell(50, 1, cmd);
     //  me.tickSpell('Move', cmd);
     //  me.wSpellDB.should.not.have.property('50');
-    //});
+    });
 
     describe('Real deal', function () {
       before(function (done) {
