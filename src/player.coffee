@@ -1,7 +1,7 @@
 require('./shop')
 moment = require('moment')
 {Serializer, registerConstructor} = require './serializer'
-{DBWrapper, getMercenaryMember, updateMercenaryMember, addMercenaryMember, getPlayerHero} = require './dbWrapper'
+{DBWrapper, updateMercenaryMember, addMercenaryMember, getPlayerHero} = require './dbWrapper'
 {createUnit, Hero} = require './unit'
 {Item, Card} = require './item'
 {CommandStream, Environment, DungeonEnvironment, DungeonCommandStream} = require('./commandStream')
@@ -1410,7 +1410,7 @@ class Player extends DBWrapper
       filtedName = [@name]
       filtedName = filtedName.concat(@mercenary.map((m) -> m.name))
       if @contactBook? then filtedName = filtedName.concat(@contactBook.book)
-      getMercenaryMember(filtedName, @battleForce-100, @battleForce+100, 30,
+      dbLib.findMercenary(@battleForce, 30, 100, 3, filtedName,
           (err, heroData) =>
             if heroData
               @mercenary.push(heroData)
@@ -1482,7 +1482,7 @@ class Player extends DBWrapper
     filtedName = [@name]
     filtedName = filtedName.concat(me.mercenary.map((m) -> m.name))
     filtedName = filtedName.concat(me.contactBook.book)
-    getMercenaryMember(filtedName, battleForce-10, battleForce+200, 30,
+    dbLib.findMercenary(battleForce + 95, 30, 105, 3, filtedName,
       (err, heroData) ->
         if heroData
           me.mercenary.splice(id, 1, heroData)

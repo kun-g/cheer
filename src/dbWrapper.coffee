@@ -106,51 +106,6 @@ getPlayerHero = (name, callback) ->
   ])
 exports.getPlayerHero = getPlayerHero
 
-exports.getMercenaryMember = (names, rangeFrom, rangeTo, count, handler) ->
-  selectRange = (list) ->
-    selector = []
-    trys = 30
-    while selector.length <= 0 and trys > 0
-      selector = list.filter( (e) -> return e <= rangeTo and e >= rangeFrom; )
-      rangeFrom -= 300
-      rangeTo += 300
-      trys -= 1
-    return selector
-  doFindMercenary = (list, cb) ->
-    if list.length <= 0
-      cb(new Error('Empty mercenarylist'))
-    else
-      selector = selectRange(list)
-      battleForce = selector[rand()%selector.length]
-      list = list.filter((i) -> return i != battleForce; )
-      mercenaryGet(battleForce, count, (err, mList) ->
-        if mList == null
-          dbClient.srem(mercenaryPrefix+'Keys', battleForce, callback)
-          dbClient.del(mercenaryPrefix+battleForce)
-          mList = []
-
-        mList = mList.filter((key) ->
-          for name in names
-            if key is name then return false
-          return true
-        )
-        if mList.length is 0
-          cb(null, list)
-        else
-          selectedName = mList[rand()%mList.length]
-          getPlayerHero(selectedName, (err, hero) ->
-            if hero
-              cb(new Error('Done'), hero)
-            else
-              logError({action: 'RemoveInvalidMercenary', error: err, name: selectedName})
-              mercenaryDel(battleForce, selectedName, (err) -> cb(null, list))
-          )
-      )
-  actions = [ (cb) -> mercenaryKeyList(cb); ]
-  for i in [0..50]
-    actions.push(doFindMercenary)
-  async.waterfall(actions, handler)
-
 exports.removeMercenaryMember = (battleForce, member, handler) -> mercenaryDel(battleForce, member, handler)
 exports.addMercenaryMember = (battleForce, member, handler) -> mercenaryAdd(battleForce, member, handler)
 exports.demoteMercenaryMember = (battleForce, member, handler) -> mercenaryDemote(battleForce, member, handler)
