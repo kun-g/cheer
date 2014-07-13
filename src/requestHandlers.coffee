@@ -385,7 +385,7 @@ exports.route = {
   },
   RPC_Reconnect: {
     id: 104,
-    args: {'PID', 'string'},
+    args: {'PID':'number'},
     func: (arg, player, handler, rpcID, socket) ->
       async.waterfall([
         (cbb) -> dbLib.loadSessionInfo(arg.PID, cbb),

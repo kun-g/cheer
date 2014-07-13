@@ -32,21 +32,6 @@ gServerObject = {
   getType: function () { return 'server'; }
 };
 
-//dbLib.loadPlayer('呃呃饭否', function (err, p) {
-  // p.startDungeon(104, true, function (err, ret) {
-  //   console.log('XXX', err, ret);
-  // });
-  //p.requireMercenary(console.log);
-  // console.log('FFFFFFFFFFF');
-  // logInfo(p.dumpChanged());
-  //p.submitCampaign('event_daily', console.log);
-  //logInfo(p.dumpChanged());
-  //p.quests[134].counters[0] = 3;
-  //p.submitCampaign('event_daily', console.log);
-  //p.save(console.log);
-//});
-
-
 
 
 var playerName = 'unitTestQ';
@@ -127,6 +112,33 @@ describe('Player', function () {
 //   
 //    });
 //  });
+
+  describe("player", function() {
+    it("requireMercenary", function (done) {
+      helpLib.assignLeaderboard = function(a,b){}
+      dbLib.loadPlayer('faruba', function (err, p) {
+//        p.startDungeon(104, true, function (err, ret) {
+//          console.log('XXX', err, ret);
+//        });
+        p.requireMercenary(function(lst) {
+//          console.log(lst,'------------');
+        });
+        p.replaceMercenary(0,function(lst) {
+          console.log(lst,'------------');
+          done();
+        });
+
+//        logInfo(p.dumpChanged());
+//        p.submitCampaign('event_daily', console.log);
+//        logInfo(p.dumpChanged());
+//        p.quests[134].counters[0] = 3;
+//        p.submitCampaign('event_daily', console.log);
+//        p.save(console.log);
+      });
+    });
+  });
+
+
 
   describe('Player', function () {
     it('Creation', function () {
@@ -364,6 +376,18 @@ describe('Player', function () {
         cmd.process();
       }
       npc.attack.should.eql(attackBefore);
+
+      console.log(hero.attack,'before ^',hero.wSpellDB);
+      hero.installSpell(90,1,cmd);
+      console.log(hero.attack,'after ^',hero.wSpellDB);
+      //cmd.process();
+      console.log(hero.attack,'before v',hero.wSpellDB);
+      hero.installSpell(110,1,cmd);
+      console.log(hero.attack,'after v',hero.wSpellDB);
+      cmd.process();
+      console.log(hero.attack,'step 1',hero.wSpellDB);
+      cmd.process();
+      console.log(hero.attack,'step 2',hero.wSpellDB);
       //me.removeSpell(110, cmd);
       //console.log(me,'removed ====');
       //me.installSpell(6, 1, cmd);

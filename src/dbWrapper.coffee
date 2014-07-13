@@ -78,6 +78,7 @@ mercenaryDel = (battleForce, member, callback) ->
           if callback then callback(err, result)
       )
 
+
 mercenaryAdd = (battleForce, member, callback) ->
   dbClient.zadd(mercenaryPrefix+battleForce, 0, member, callback)
   dbClient.sadd(mercenaryPrefix+'Keys', battleForce)
@@ -105,6 +106,25 @@ getPlayerHero = (name, callback) ->
         cb()
   ])
 exports.getPlayerHero = getPlayerHero
+
+exports.getMercenaryMember = (name, count, range, delta, names, handler) ->
+  heros = []
+  dbLib.findMercenary(name, count, range, delta, names,
+    (err, heroNames) =>
+      if heroNames
+        async.eachSeries(
+          heroNames,
+          (e, cb) ->
+            getPlayerHero(e,
+              wrapCallback(this, (err, heroData) ->
+                heros = heros.concat(heroData)
+                cb()
+              )
+            )
+          ,
+          () -> handler(err, heros)
+        )
+  )
 
 exports.removeMercenaryMember = (battleForce, member, handler) -> mercenaryDel(battleForce, member, handler)
 exports.addMercenaryMember = (battleForce, member, handler) -> mercenaryAdd(battleForce, member, handler)

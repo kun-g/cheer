@@ -3,6 +3,7 @@ moment = require('moment')
 
 dbLib = require('./db')
 # Leaderboard
+# redis.LOG_WARNING
 exports.initLeaderboard = (config) ->
   localConfig = []
   srvCfg = {}
@@ -55,7 +56,6 @@ exports.initLeaderboard = (config) ->
     tickLeaderboard(board)
     cfg = localConfig[board]
     reverse = if cfg.reverse then 1 else 0
-    console.log('getPositionOnLeaderboard',reverse)
     dbLib.queryLeaderboard(cfg.name, reverse, name, from, to, (err, result) ->
       result.board = result.board.reduce( ( (r, l, i) ->
         if i%2 is 0
@@ -649,11 +649,13 @@ exports.dbScripts = {
     return rivalLst;
   """
   getMercenary: """
-    local battleforce, count, range = ARGV[1], ARGV[2], ARGV[3];
+    local myName, count, range = ARGV[1], ARGV[2], ARGV[3];
     local delta, rand, names, retrys = ARGV[4], ARGV[5], ARGV[6], ARGV[7];
     local key = 'Leaderboard.battleforce';
-    local from = battleforce - range;
-    local to = battleforce + range;
+    local myRange = redis.call('ZRANK', key, myName);
+    redis.log(redis.LOG_WARNING, myName, 'my',myRange,'ran',range,'???');
+    local from = myRange - range;
+    local to = myRange + range;
     local nameMask = {}
 
     while string.len(names) > 0 do
@@ -669,7 +671,7 @@ exports.dbScripts = {
 
     local ret = {};
     while true do
-      local list = redis.call('zrevrangebyscore', key, to, from);
+      local list = redis.call('zrange', key, from, to);
       local mercenarys = {};
       for i, name in ipairs(list) do
         if nameMask[name] ~= 1 then table.insert(mercenarys, name); end

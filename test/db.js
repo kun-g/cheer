@@ -2,14 +2,12 @@ shall = require('should');
 require('../js/define');
 dbLib = require('../js/db');
 async = require('async');
-dbPrefix = 'Local'+'.';
-dbLib.initializeDB({
-  "Account": { "IP": "localhost", "PORT": 6379},
-  "Role": { "IP": "localhost", "PORT": 6379},
-  "Publisher": { "IP": "localhost", "PORT": 6379},
-  "Subscriber": { "IP": "localhost", "PORT": 6379}
-});
 
+dbPrefix = 'Develop.';
+dbIp = "10.4.3.41";
+
+//dbPrefix = 'Local'+'.';
+//dbIp = "127.0.0.1";
 var shall = require('should');
 
 gServerID = 1;
@@ -17,13 +15,22 @@ initServer();
 
 describe('DB', function () {
   before(function (done) {
-    initGlobalConfig('../../build/', done);
+    dbLib.initializeDB({
+      "Account": { "IP": dbIp, "PORT": 6379},
+      "Role": { "IP": dbIp, "PORT": 6379},
+      "Publisher": { "IP": dbIp, "PORT": 6379},
+      "Subscriber": { "IP": dbIp, "PORT": 6379}
+    }, function() {
+      initGlobalConfig('../../build/', done);
+    });
+
+
   });
 
   describe('Mercenary', function () {
     it('update', function (done) {
       var arr = [];
-      for (i = 0; i < 10000; i++) arr.push(i);
+ //     for (i = 0; i < 10000; i++) arr.push(i);
       async.map(arr,
         function (id, cb) {
           dbClient.zadd('Leaderboard.battleforce', id, 'P'+id, cb);
@@ -37,7 +44,8 @@ describe('DB', function () {
           ];
           async.map(tests,
             function (t, cb) {
-              dbLib.findMercenary(2, t.count, 1, 1, t.names, function (err, result) {
+              dbLib.findMercenary('faruba', t.count, 30, 1, t.names, function (err, result) {
+                console.log(err,result);
                 shall(result.length).equal(t.count);
                 result.forEach(function (e) {
                   shall(t.names.indexOf(e)).equal(-1);

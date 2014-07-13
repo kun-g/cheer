@@ -1,7 +1,7 @@
 require('./shop')
 moment = require('moment')
 {Serializer, registerConstructor} = require './serializer'
-{DBWrapper, updateMercenaryMember, addMercenaryMember, getPlayerHero} = require './dbWrapper'
+{DBWrapper, getMercenaryMember, updateMercenaryMember, addMercenaryMember, getPlayerHero} = require './dbWrapper'
 {createUnit, Hero} = require './unit'
 {Item, Card} = require './item'
 {CommandStream, Environment, DungeonEnvironment, DungeonCommandStream} = require('./commandStream')
@@ -1003,7 +1003,8 @@ class Player extends DBWrapper
     if not dungeon.isSweep
       prize.push({type:PRIZETYPE_GOLD, count:Math.floor(gr*cfg.prizeGold)}) if cfg.prizeGold
       prize.push({type:PRIZETYPE_EXP, count: Math.floor(xr*cfg.prizeXp)}) if cfg.prizeXp
-      prize.push({type:PRIZETYPE_WXP, count: Math.floor(wr*cfg.prizeWxp)}) if cfg.prizeWxp
+
+    prize.push({type:PRIZETYPE_WXP, count: Math.floor(wr*cfg.prizeWxp)}) if cfg.prizeWxp
 
     infiniteLevel = dungeon.infiniteLevel
     if infiniteLevel? and cfg.infinityPrize and result is DUNGEON_RESULT_WIN
@@ -1086,9 +1087,7 @@ class Player extends DBWrapper
       myName = @name
       rivalName = dungeon.PVP_Pool[0].nam
       if dungeon.result is DUNGEON_RESULT_WIN
-        console.log('debug pkRank', myName, rivalName, dungeon.result)
         dbLib.saveSocre(myName, rivalName, (err, result) ->
-          console.log(err, result)
         )
   whisper: (name, message, callback) ->
     myName = this.name
@@ -1402,6 +1401,7 @@ class Player extends DBWrapper
     return ret.concat(this.updateStageStatus())
 
   requireMercenary: (callback) ->
+    me = @
     if not callback then return
     if @mercenary.length >= MERCENARYLISTLEN
       callback(@mercenary.map( (h) -> new Hero(h)))
@@ -1410,14 +1410,14 @@ class Player extends DBWrapper
       filtedName = [@name]
       filtedName = filtedName.concat(@mercenary.map((m) -> m.name))
       if @contactBook? then filtedName = filtedName.concat(@contactBook.book)
-      dbLib.findMercenary(@battleForce, 30, 100, 3, filtedName,
-          (err, heroData) =>
-            if heroData
-              @mercenary.push(heroData)
-              @requireMercenary(callback)
-            else
-              callback(null)
-        )
+      getMercenaryMember(@name, 2, 30, 1, filtedName,
+        (err, heroData) ->
+          if heroData
+            me.mercenary = me.mercenary.concat(heroData)
+            me.requireMercenary(callback)
+          else
+            callback(null)
+      )
 
   recycleItem: (slot) ->
     recyclableEnhance = queryTable(TABLE_CONFIG, 'Global_Recyclable_Enhancement', @abIndex)
@@ -1477,18 +1477,18 @@ class Player extends DBWrapper
 
   replaceMercenary: (id, handler) ->
     me = this
-    battleForce = this.battleForce
+    myName = @name
     # TODO: range  & count to config
     filtedName = [@name]
-    filtedName = filtedName.concat(me.mercenary.map((m) -> m.name))
-    filtedName = filtedName.concat(me.contactBook.book)
-    dbLib.findMercenary(battleForce + 95, 30, 105, 3, filtedName,
+    filtedName = filtedName.concat(@mercenary.map((m) -> m.name))
+    filtedName = filtedName.concat(@contactBook.book) if @contactBook?.book?
+    getMercenaryMember(myName , 1, 30, 1, filtedName,
       (err, heroData) ->
         if heroData
-          me.mercenary.splice(id, 1, heroData)
+          me.mercenary.splice(id, 1, heroData[0])
         else
           heroData = me.mercenary[id]
-        handler(heroData)
+        handler(heroData[0])
       )
 
   updateMercenaryInfo: (isLogin) ->
