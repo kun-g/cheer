@@ -369,25 +369,32 @@ describe('Player', function () {
       var hero = heroes[0];
       var npc = monsters[0];
       //console.log(me,'before ====');
-      var attackBefore = npc.attack;
-      npc.installSpell(110,1,cmd);
-      npc.attack.should.eql(attackBefore/2);
-      for( var i = 0; i < 5 ; i ++) {
-        cmd.process();
-      }
-      npc.attack.should.eql(attackBefore);
+      //var attackBefore = npc.attack;
+      //npc.installSpell(110,1,cmd);
+      //npc.attack.should.eql(attackBefore/2);
+      //for( var i = 0; i < 5 ; i ++) {
+      //  cmd.process();
+      //}
+    //  npc.attack.should.eql(attackBefore);
 
-      console.log(hero.attack,'before ^',hero.wSpellDB);
+      dprint([hero.attack,'before ^',hero.wSpellDB]);
       hero.installSpell(90,1,cmd);
-      console.log(hero.attack,'after ^',hero.wSpellDB);
-      //cmd.process();
-      console.log(hero.attack,'before v',hero.wSpellDB);
-      hero.installSpell(110,1,cmd);
-      console.log(hero.attack,'after v',hero.wSpellDB);
+      dprint([hero.attack,'after ^',hero.wSpellDB]);
       cmd.process();
-      console.log(hero.attack,'step 1',hero.wSpellDB);
       cmd.process();
-      console.log(hero.attack,'step 2',hero.wSpellDB);
+      cmd.process();
+      dprint([hero.attack,'before v',hero.wSpellDB]);
+      hero.installSpell(92,1,cmd);
+      dprint([hero.attack,'after v',hero.wSpellDB]);
+
+      cmd = dungeonLib.DungeonCommandStream({id: 'InitiateAttack', block:0});
+      cmd.getEnvironment = function () { return env }
+
+
+      cmd.process();
+      dprint([hero.attack,'step 1',hero.wSpellDB]);
+      cmd.process();
+      dprint([hero.attack,'step 2',hero.wSpellDB]);
       //me.removeSpell(110, cmd);
       //console.log(me,'removed ====');
       //me.installSpell(6, 1, cmd);

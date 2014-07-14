@@ -20,6 +20,7 @@ TEAMMATE_REWARD_RATIO = 0.2;
 //////////////////// Log
 serverType = 'None';
 print = console.log;
+dprint = function(obj) { console.log(require('util').inspect(obj, true, 10));}
 logger = null;
 initServer = function () {
   var pid = process.pid;

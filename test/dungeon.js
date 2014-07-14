@@ -84,15 +84,15 @@ describe('Dungeon', function () {
   it('Should be ok', function (done) {
     cmdStreamLib = require('../js/commandStream');
     d = new dungeonLib.Dungeon({
-      stage: 104,
+      stage: 107,
       randSeed: 1,
       abIndex: 0,
       //initialQuests: { '20': { counters: [ 0 ] },  
       //    '21': { counters: [ 0 ] } },
       team : [
-        {nam: 'W', cid: 0, gen: 0, hst:0, hcl: 0, exp: 100000},
-        {nam: 'M', cid: 1, gen: 0, hst:0, hcl: 0, exp: 100000},
-        {nam: 'P', cid: 2, gen: 0, hst:0, hcl: 0, exp: 100000},
+        {nam: 'W', cid: 0, gen: 0, hst:0, hcl: 0, exp: 1},
+        {nam: 'M', cid: 1, gen: 0, hst:0, hcl: 0, exp: 1},
+        {nam: 'P', cid: 2, gen: 0, hst:0, hcl: 0, exp: 1},
         //{nam: 'W1', cid: 0, gen: 0, hst:0, hcl: 0, exp:100000}
       ]
     });
@@ -103,11 +103,16 @@ describe('Dungeon', function () {
       //d.getHeroes()[0].attack = 10000;
     var actions = [
       {CMD:RPC_GameStartDungeon},
-      {CMD:Request_DungeonExplore, arg: {tar: 11, pos:10, pos1:10, pos2:10}},
-      {CMD:Request_DungeonExplore, arg: {tar: 16, pos:10, pos1:10, pos2:10}},
-      {CMD:Request_DungeonExplore, arg: {tar: 21, pos:10, pos1:10, pos2:10}},
-      {CMD:Request_DungeonExplore, arg: {tar: 22, pos:10, pos1:10, pos2:10}},
-      {CMD:Request_DungeonExplore, arg: {tar: 23, pos:10, pos1:10, pos2:10}},
+      {CMD:Request_DungeonAttack, arg: {tar: 12, pos:8, pos1:8, pos2:8}},
+      {CMD:Request_DungeonAttack, arg: {tar: 12, pos:8, pos1:8, pos2:8}},
+      {CMD:Request_DungeonAttack, arg: {tar: 12, pos:8, pos1:8, pos2:8}},
+      {CMD:Request_DungeonAttack, arg: {tar: 12, pos:8, pos1:8, pos2:8}},
+      {CMD:Request_DungeonAttack, arg: {tar: 12, pos:8, pos1:8, pos2:8}},
+//      {CMD:Request_DungeonExplore, arg: {tar: 11, pos:10, pos1:10, pos2:10}},
+//      {CMD:Request_DungeonExplore, arg: {tar: 16, pos:10, pos1:10, pos2:10}},
+//      {CMD:Request_DungeonExplore, arg: {tar: 21, pos:10, pos1:10, pos2:10}},
+//      {CMD:Request_DungeonExplore, arg: {tar: 22, pos:10, pos1:10, pos2:10}},
+//      {CMD:Request_DungeonExplore, arg: {tar: 23, pos:10, pos1:10, pos2:10}},
 //        {CMD:REQUEST_CancelDungeon, arg: {}},
 //
 //        //{CMD:Request_DungeonCard, arg: {slt: 0}},
@@ -173,9 +178,20 @@ describe('Dungeon', function () {
 //
 //      //{CMD:Request_DungeonCard, arg: {slt: 0}},
     ]; 
-//    for (var k = 0; k < actions.length-1; k++) {
-//      d.doAction(actions[k]);
-//    }
+    getInfo = function(dungeon) {
+      var h = dungeon.heroes;
+      var hInfo = [];
+      for (var k = 0; k < h.length -1; k++) {
+        var v = h[k];
+        hInfo.push({hp:v.health,skill:v.wSpellDB});
+      }
+      return require('util').inspect(hInfo, true, 10);
+    }
+    for (var k = 0; k < actions.length-1; k++) {
+      d.doAction(actions[k]);
+      console.log('--------',k+1,'-----------');
+      console.log(getInfo(d));
+    }
 //    print(d.doAction(actions[actions.length-1]));
 //    d.level.print();
 //
