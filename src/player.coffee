@@ -306,9 +306,11 @@ class Player extends DBWrapper
     @installObserver('stageChanged')
     @installObserver('winningAnPVP')
     
+    helperLib.assignLeaderboard(@,helperLib.LeaderboardIdx.Arena)
+    @counters['worldBoss'] ={} unless @counters['worldBoss']?
+
     if @isNewPlayer then @isNewPlayer = false
 
-    helperLib.assignLeaderboard(@,3)
 
     @inventory.validate()
 
@@ -555,6 +557,14 @@ class Player extends DBWrapper
       return handler(null, RET_ServerError)
     async.waterfall([
       (cb) =>
+        if dungeonConfig.dungeonId in helperLib.WorldBossDungeonLst
+          dbLib.getServerProperty('counters', (err, arg) ->
+            if arg?[dungeonConfig.dungeonId]? and arg[dungeonConfig.dungeonId] < 1000
+              cb(RET_DungeonCantOpen)
+          )
+        cb()
+      ,
+      (cb) =>
         if stageConfig.pvp? and pkr?
           @counters.currentPKCount ?= 0
           @counters.totalPKCount ?= 5
@@ -739,6 +749,10 @@ class Player extends DBWrapper
                 @counters[p.counter]++
                 @notify('countersChanged',{type : p.counter})
                 ret = ret.concat(@syncCounters(true)).concat(@syncEvent())
+            when "updateLeaderboard"
+              @counters['worldBoss'][p.counter] = 0 unless @counters['worldBoss'][p.counter]?
+              @counters['worldBoss'][p.counter] += p.delta
+              helperLib.assignLeaderboard(@, p.boardId)
     return ret
 
   isQuestAchieved: (qid) ->
