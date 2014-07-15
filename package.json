@@ -23,7 +23,6 @@
     "debug": "~0.7.4",
     "faye-websocket": "~0.7.2",
     "gulp": "^3.5.6",
-    "v8-profiler": "*",
     "gulp-cached": "0.0.3",
     "gulp-changed": "^0.2.1",
     "gulp-coffee": "^1.4.1",
@@ -40,8 +39,10 @@
     "mocha": "~1.14.0",
     "qs": "~0.6.6",
     "should": "~2.1.1",
+    "socket.io": "^1.0.6",
+    "sqlite3": "^2.2.0",
     "ursa": "~0.8.0",
-    "sqlite3": "^2.2.0"
+    "v8-profiler": "*"
   },
   "scripts": {
     "test": "mocha",

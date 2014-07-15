@@ -53,7 +53,6 @@ Server.prototype.startTcpServer = function (config) {
 
   var handler = config.handler;
   var appNet = net.createServer(function (c) {
-    //console.log('New Connection', c.remoteAddress)
     appNet.aliveConnections.push(c);
     c.connectionIndex = appNet.aliveConnections.length - 1;
     c.pendingRequest = new Buffer(0);
@@ -89,7 +88,6 @@ Server.prototype.startTcpServer = function (config) {
     logInfo({
       action: 'startServer', 
       port: config.port, 
-      ip: require('os').networkInterfaces(),
       bin_version: queryTable(TABLE_VERSION, 'bin_version'),
       resource_version: queryTable(TABLE_VERSION, 'resource_version')
     });
