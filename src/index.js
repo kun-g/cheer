@@ -1,8 +1,8 @@
 //require('strong-agent').profile();
-require('nodetime').profile({
-  accountKey: 'c82d52d81e9ed18e8550b58bf36f49d47e50a792', 
-  appName: 'DR'
-});
+//require('nodetime').profile({
+//  accountKey: 'c82d52d81e9ed18e8550b58bf36f49d47e50a792', 
+//  appName: 'DR'
+//});
 //var agent = require('webkit-devtools-agent');
 require('./define');
 dbLib = require('./db');
@@ -31,11 +31,37 @@ var srvLib = require("./server");
 gServer = new srvLib.Server();
 exports.server = gServer;
 
+function initiateLogger() {
+  logger = {};
+  initiateFluentLogger();
+  initiateTrinLogger();
+  logger.emit = function (type, log, time) {
+    if (logger.tr_agent) {
+      logger.tr_agent.write(JSON.stringify({type: type, log: log, time: time}));
+    }
+    if (logger.td_agent) {
+      logger.td_agent.emit(type, log, time);
+    }
+  };
+}
+function initiateTrinLogger() {
+  var net = require('net')
+  logger.tr_agent = net.connect(9528, 'localhost');
+  function trinLoggerErrorHandler () {
+    logger.tr_agent = null;
+    setTimeout(function (err) {
+      logError({msg:"Try to reconnect to trin logger.", error: err});
+      initiateTrinLogger();
+    }, 10000);
+  }
+  logger.tr_agent.on('end', trinLoggerErrorHandler);
+  logger.tr_agent.on('error', trinLoggerErrorHandler);
+}
 function initiateFluentLogger() {
-  logger = require('fluent-logger');
-  logger.configure('td.game', {host: 'localhost', port: 9527});
-  logger.on('error', function (err) {
-    logger = null;
+  logger.td_agent = require('fluent-logger');
+  logger.td_agent.configure('td.game', {host: 'localhost', port: 9527});
+  logger.td_agent.on('error', function (err) {
+    logger.td_agent = null;
     setTimeout(function () {
       logError({msg:"Try to reconnect to fluent.", error: err});
       initiateFluentLogger();
@@ -198,8 +224,9 @@ function paymentHandler (request, response) {
       data = null;
       response.end('failed');
     });
+  } else if (request.url.substr(0, 5) === '/jdp?') {
   }
-}
+} 
 
 function deliverReceipt (receipt, tunnel, cb) {
   var receiptInfo = unwrapReceipt(receipt);
@@ -227,7 +254,7 @@ gServerObject = {
 };
 
 if (config) {
-  initiateFluentLogger();
+  initiateLogger();
   initServer();
   initGlobalConfig(null, function () {
     gServerID = queryTable(TABLE_CONFIG, 'ServerID');

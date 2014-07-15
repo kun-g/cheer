@@ -201,6 +201,7 @@ class Player extends DBWrapper
       return pValue.concat(@removeItem(null, null, @queryItemSlot(e)))
     , ret)
 
+    @createHero()
     return ret
 
   sweepStage: (stage, multiple) ->

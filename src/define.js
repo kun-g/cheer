@@ -33,13 +33,12 @@ initServer = function () {
     if (typeof log !== 'object') {
       log = {log:log}; 
     }
-    log.time = (new Date()).valueOf();
+    log.time = new Date();
     log.pid = pid;
     log.server = gServerID;
-    log.logType = type;
 
     if (logger && type) {
-      logger.emit(type, log, new Date());
+      logger.emit(type, log, (new Date()).valueOf());
     }
     if (logger == null || process.stdout.isTTY || type === 'Error') {
       var util = require('util');
