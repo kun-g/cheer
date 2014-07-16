@@ -627,12 +627,6 @@ exports.WorldBossDungeonLst = [133]
 exports.observers = {
   heroxpChanged: (obj, arg) ->
     obj.onCampaign('Level')
-    if arg.prevLevel isnt arg.currentLevel
-      if arg.currentLevel is 10
-        dbLib.broadcastEvent(BROADCAST_PLAYER_LEVEL, {
-          who: obj.name,
-          what: obj.hero.class
-        })
   battleForceChanged: (obj, arg) ->
     exports.assignLeaderboard(obj, exports.LeaderboardIdx.BattleForce)
     obj.updateMercenaryInfo()
