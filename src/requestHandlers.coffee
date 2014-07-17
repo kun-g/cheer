@@ -314,7 +314,7 @@ exports.route = {
         player.saveDB()
       )
     ,
-    args: {'stg':'number', 'initialDataOnly':'boolean', 'pkr':'string'},
+    args: {'stg':'number', 'initialDataOnly':'boolean', 'pkr':{type:'string',opt:true}},
     needPid: true
   },
   RPC_ChargeDiamond: {
