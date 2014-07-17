@@ -285,12 +285,15 @@ if (config) {
             } else {
               gServerObject.counters = {};
             }
+            cb();
           });
         }],
         function (err, ret) {
           var helperLib = require('./helper');
           helperLib.initCampaign(gServerObject, helperLib.events);
           helperLib.initObserveration(gServerObject);
+
+          gServerObject.installObserver('countersChanged');
         });
     dbLib.getServerConfig('Interval', function (err, arg) {
       if (arg) { intervalCfg = JSON.parse(arg); }

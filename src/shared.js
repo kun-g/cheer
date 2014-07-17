@@ -85,7 +85,6 @@ RET_InvalidPaymentInfo = 48;
 RET_SweepPowerNotEnough = 49;
 RET_NotEnoughTimes = 50;
 RET_CantReceivePkAward = 51;
-RET_DungeonCantOpen = 52;
 ErrorMsgs = [
     "操作成功",
     "金币数量不足",
@@ -139,7 +138,6 @@ ErrorMsgs = [
     "战斗力不足",
     "挑战次数以用尽",
     "无法领取PK奖励",
-    "现在不能进入副本",
 ];
 
 /*** ITEM CATEGORY ***/

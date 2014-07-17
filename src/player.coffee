@@ -557,15 +557,7 @@ class Player extends DBWrapper
       @logError('startDungeon', {reason: 'InvalidStageConfig', stage: stage, stageConfig: stageConfig?, dungeonConfig: dungeonConfig?})
       return handler(null, RET_ServerError)
     async.waterfall([
-      (cb) =>
-        if dungeonConfig.dungeonId in helperLib.WorldBossDungeonLst
-          dbLib.getServerProperty('counters', (err, arg) ->
-            if arg?[dungeonConfig.dungeonId]? and arg[dungeonConfig.dungeonId] < 1000
-              cb(RET_DungeonCantOpen)
-          )
-        cb()
-      ,
-      (cb) =>
+     (cb) =>
         if stageConfig.pvp? and pkr?
           @counters.currentPKCount ?= 0
           @counters.totalPKCount ?= 5
@@ -744,7 +736,8 @@ class Player extends DBWrapper
               ret = ret.concat(@syncFlags(true)).concat(@syncEvent())
             when "countUp"
               if p.target is 'server'
-                gServerObject[p.counter]++
+                gServerObject.counters[p.counter] = 0 unless gServerObject.counters[p.counter]?
+                gServerObject.counters[p.counter]++
                 gServerObject.notify('countersChanged',{type : p.counter, delta: 1})
               else
                 @counters[p.counter]++

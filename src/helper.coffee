@@ -2,6 +2,7 @@
 moment = require('moment')
 
 dbLib = require('./db')
+dbWrapper = require('./dbWrapper')
 # Leaderboard
 # redis.LOG_WARNING
 exports.initLeaderboard = (config) ->
@@ -10,7 +11,17 @@ exports.initLeaderboard = (config) ->
 
   generateHandler = (dbKey, cfg) ->
     return (name, value) ->
-      require('./dbWrapper').updateLeaderboard(dbKey, name, value)
+      dbWrapper.updateLeaderboard(
+        dbKey,
+        name,
+        value,
+        (err) ->
+          if err?
+            logError({
+              action:'updateLeaderboard',
+              type:'DB_ERR',
+              error:err})
+      )
 
   for key, cfg of config
     localConfig[key] = { func: generateHandler(cfg.name, cfg) }
@@ -48,7 +59,7 @@ exports.initLeaderboard = (config) ->
   tickLeaderboard = (board, cb) ->
     cfg = localConfig[board]
     if cfg.resetTime and matchDate(srvCfg[cfg.name], currentTime(), cfg.resetTime)
-      require('./dbWrapper').removeLeaderboard(cfg.name, cb)
+      dbWrapper.removeLeaderboard(cfg.name, cb)
       srvCfg[cfg.name] = currentTime()
       dbLib.setServerConfig('Leaderboard', JSON.stringify(srvCfg))
 
@@ -136,7 +147,8 @@ genCampaignUtil = () ->
   return {
     diffDay: (date, today) -> return not date? or diffDate(date, today, 'day') isnt 0,
     currentTime: currentTime,
-    today: moment()
+    today: moment(),
+    serverObj : gServerObject,
   }
 exports.genUtil = genCampaignUtil
 
@@ -623,7 +635,7 @@ exports.LeaderboardIdx = {
   Arena : 3
   WorldBoss : 4
 }
-exports.WorldBossDungeonLst = [133]
+
 exports.observers = {
   heroxpChanged: (obj, arg) ->
     obj.onCampaign('Level')
