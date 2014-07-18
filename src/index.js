@@ -45,8 +45,13 @@ function initiateLogger() {
   };
 }
 function initiateTrinLogger() {
-  var net = require('net')
-  logger.tr_agent = net.connect(9528, 'localhost');
+  var dgram = require('dgram');
+  var socket = dgram.createSocket('udp4');
+  logger.tr_agent = {
+    write: function (msg) {
+      socket.send(new Buffer(msg), 0, msg.length, 9528, 'localhost');
+    }
+  };
   function trinLoggerErrorHandler () {
     logger.tr_agent = null;
     setTimeout(function (err) {
@@ -54,8 +59,8 @@ function initiateTrinLogger() {
       initiateTrinLogger();
     }, 10000);
   }
-  logger.tr_agent.on('end', trinLoggerErrorHandler);
-  logger.tr_agent.on('error', trinLoggerErrorHandler);
+  socket.on('close', trinLoggerErrorHandler);
+  socket.on('error', trinLoggerErrorHandler);
 }
 function initiateFluentLogger() {
   logger.td_agent = require('fluent-logger');
