@@ -11,7 +11,7 @@ class Unit extends Wizard
   calculatePower: () ->
     ret = @health + @attack*6 + @speed*2 +
           @critical*2 + @strong*2 + @reactivity*2 +
-          @accuracy*2 + (@level-1)*40
+          @accuracy*2
     return if ret then ret else 0
 
   getActiveSpell: () ->
