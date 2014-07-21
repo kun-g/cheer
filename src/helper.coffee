@@ -3,8 +3,12 @@ moment = require('moment')
 
 dbLib = require('./db')
 dbWrapper = require('./dbWrapper')
+async = require('async')
 # Leaderboard
 # redis.LOG_WARNING
+
+CONST_MAX_WORLD_BOSS_TIMES = 200
+exports.ConstValue = {WorldBossTimes : CONST_MAX_WORLD_BOSS_TIMES}
 exports.initLeaderboard = (config) ->
   localConfig = []
   srvCfg = {}
@@ -193,7 +197,7 @@ initDailyEvent = (me, key, e) ->
       me[key]['status'] = 'Init'
       me[key]['date'] = currentTime()
       if key is 'event_daily'
-        me[key]['rank'] = Math.ceil(me.battleForce*0.04)
+        me[key]['rank'] = Math.ceil(me.battleForce*0.03)
         if me[key].rank < 1 then me[key].rank = 1
         me[key]['reward'] = [{type: PRIZETYPE_DIAMOND, count: 50}]
 
@@ -414,18 +418,6 @@ exports.events = {
         obj.counters.currentPKCount = 0
         obj.flags.rcvAward = false
     },
-
-    dragonQuest0: {
-      storeType: "server",
-      id: 6,
-      actived: 1,
-      canReset: (obj, util) ->
-        return not obj.counters.dragonQuest0?
-      ,
-      reset: (obj, util) ->
-        obj.counters.dragonQuest0 = 1000
-    },
-
 }
 
 exports.intervalEvent = {
@@ -478,8 +470,9 @@ exports.intervalEvent = {
           e.to,
           (err, result) ->
             result.board.name.forEach( (name, idx) ->
-              e.mail = e.mail + ' from:' + e.from + ' to: '+ e.to + ' rank:' + result.score[idx]
               libs.db.deliverMessage(name, e.mail)
+              infoStr =' from:' + e.from + ' to: '+ e.to + ' rank:' + result.board.score[idx]
+              logInfo({action: 'leadboradPrize', index: 0, msg: infoStr })
             )
         )
       )
@@ -533,41 +526,80 @@ exports.intervalEvent = {
           e.to,
           (err, result) ->
             result.board.name.forEach( (name, idx) ->
-              e.mail = e.mail + ' from:' + e.from + ' to: '+ e.to + ' rank:' + result.score[idx]
               libs.db.deliverMessage(name, e.mail)
-            )
+              infoStr =' from:' + e.from + ' to: '+ e.to + ' rank:' + result.board.score[idx]
+              logInfo({action: 'leadboradPrize', index: 1, msg: infoStr })
+           )
         )
       )
   },
   worldBoss: {
-    time: { minite: 59 },
+    time: { weekday: 2 },
     func: (libs) ->
-      cfg = [
-        {
-          from: 0,
-          to: 0,
-          mail: {
-            type: MESSAGE_TYPE_SystemReward,
-            src:  MESSAGE_REWARD_TYPE_SYSTEM,
-            prize: [{ type: 2, count: 50},
-                    { type: 0,value:869, count: 1}],
-            tit: "#TODO title",
-            txt: "#TODO txt"
+      stageId = '133'
+      libs.sObj.counters[stageId] ?= 0
+
+      if libs.sObj.counters[stageId] >= CONST_MAX_WORLD_BOSS_TIMES
+        cfg = [
+          {
+            from: 0,
+            to: 0,
+            mail: {
+              type: MESSAGE_TYPE_SystemReward,
+              src:  MESSAGE_REWARD_TYPE_SYSTEM,
+              prize: [{ type: 2, count: 100},
+                      { type: 0,value:878, count: 1}],
+              tit: "邪恶巫师的诡计",
+              txt: "恭喜你获得《邪恶巫师的诡计》第一名，点击领取奖励"
+            }
+          },
+          {
+            from: 1,
+            to: 9,
+            mail: {
+              type: MESSAGE_TYPE_SystemReward,
+              src:  MESSAGE_REWARD_TYPE_SYSTEM,
+              prize: [{ type: 2, count: 100} ],
+              tit: "邪恶巫师的诡计",
+              txt: "恭喜你获得《邪恶巫师的诡计》奖励，点击领取"
+            }
+          },
+          {
+            from: 10,
+            to: 29,
+            mail: {
+              type: MESSAGE_TYPE_SystemReward,
+              src:  MESSAGE_REWARD_TYPE_SYSTEM,
+              prize: [{ type: 2, count: 50} ],
+              tit: "邪恶巫师的诡计",
+              txt: "恭喜你获得《邪恶巫师的诡计》奖励，点击领取"
+            }
           }
-        },
-     ]
-      cfg.forEach( (e) ->
-        libs.helper.getPositionOnLeaderboard(
-          exports.LeaderboardIdx.WorldBoss,
-          'nobody',
-          e.from,
-          e.to,
-          (err, result) ->
-            result.board.name.forEach( (name, idx) ->
-              e.mail = e.mail + ' from:' + e.from + ' to: '+ e.to + ' rank:' + result.score[idx]
-              libs.db.deliverMessage(name, e.mail) )
+       ]
+       async.series([
+         (cb) ->
+           cfg.forEach( (e) ->
+             libs.helper.getPositionOnLeaderboard(
+               exports.LeaderboardIdx.WorldBoss,
+               'nobody',
+               e.from,
+               e.to,
+               (err, result) ->
+                 result.board.name.forEach( (name, idx) ->
+                   libs.db.deliverMessage(name, e.mail)
+                   infoStr =' from:' + e.from + ' to: '+ e.to + ' rank:' + result.board.score[idx]
+                   logInfo({action: 'leadboradPrize', index: 1, msg: infoStr })
+                 )
+             )
+           )
+           cb()
+       ],
+       (err, ret) ->
+         # counter=>0
+         libs.sObj.notify('countersChanged',{type : stageId, delta: -libs.sObj.counters[stageId]})
+         libs.sObj.counters[stageId] = 0
+         # reset leaderboardid
         )
-      )
   },
 
 }
@@ -652,6 +684,8 @@ exports.observers = {
   winningAnPVP: (obj, arg) ->
     #TODO:
     exports.assignLeaderboard(obj, exports.LeaderboardIdx.Arena)
+  onRestWorldBossCounter: (obj, arg) ->
+    
 
 
 }

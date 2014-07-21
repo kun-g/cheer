@@ -309,7 +309,7 @@ if (config) {
           if (helperLib.matchDate(now, now, cfg.time) &&
               (!intervalCfg[key] || !moment().isSame(intervalCfg[key], 'day'))
             ) {
-            cfg.func({helper: helperLib, db: require('./db')});
+            cfg.func({helper: helperLib, db: require('./db'), sObj: gServerObject});
             intervalCfg[key] = helperLib.currentTime();
             flag = true;
           }
