@@ -290,12 +290,15 @@ if (config) {
             } else {
               gServerObject.counters = {};
             }
+            cb();
           });
         }],
         function (err, ret) {
           var helperLib = require('./helper');
           helperLib.initCampaign(gServerObject, helperLib.events);
           helperLib.initObserveration(gServerObject);
+
+          gServerObject.installObserver('countersChanged');
         });
     dbLib.getServerConfig('Interval', function (err, arg) {
       if (arg) { intervalCfg = JSON.parse(arg); }
@@ -311,7 +314,7 @@ if (config) {
           if (helperLib.matchDate(now, now, cfg.time) &&
               (!intervalCfg[key] || !moment().isSame(intervalCfg[key], 'day'))
             ) {
-            cfg.func({helper: helperLib, db: require('./db')});
+            cfg.func({helper: helperLib, db: require('./db'), sObj: gServerObject});
             intervalCfg[key] = helperLib.currentTime();
             flag = true;
           }

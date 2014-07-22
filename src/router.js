@@ -30,14 +30,30 @@ function checkArgs(args, checkLst,output) {
   }
 
   for (var argName in checkLst) {
-    argType = checkLst[argName];
-    if (typeof(args[argName]) != argType) {
+    var argType = checkLst[argName];
+    var optional = false;
+    if (typeof(argType) == 'object') {
+      optional = argType.opt;
+      argType = argType.type;
+      if (typeof(optional) == 'undefined' || typeof(argType) == 'undefined' ){
+        var errmsg = 'optional set must have key opt and type';
+        if (typeof (output) == 'function') {
+          output(errmsg);
+        }else {
+          throw Error(errmsg);
+        }
+      }
+    }
+    var realType = typeof(args[argName]);
+    if (realType != argType) {
+      if (!(realType == 'undefined' && optional)) {
         if (typeof (output) == 'function') {
           output({argName : argName, expectType : argType, actualType : typeof(args[argName])});
         }else{
           throw Error("arg type invalid: arg:"+argName+" expected:" 
               +argType +" actual:" +typeof(args[argName]));
         }
+      }
     }
   }
   return;

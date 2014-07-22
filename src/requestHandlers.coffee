@@ -314,7 +314,7 @@ exports.route = {
         player.saveDB()
       )
     ,
-    args: {'stg':'number', 'initialDataOnly':'boolean', 'pkr':'string'},
+    args: {'stg':'number', 'initialDataOnly':'boolean', 'pkr':{type:'string',opt:true}},
     needPid: true
   },
   RPC_ChargeDiamond: {
@@ -551,6 +551,33 @@ exports.route = {
               player.saveDB()
               handler([{REQ: rpcID, RET: RET_OK}].concat(result))
             )
+    ,
+    args: {},
+    needPid: true
+  },
+  RPC_WorldStageInfo: {
+    id: 36,
+    func: (arg, player, handler, rpcID, socket) ->
+      helperLib.getPositionOnLeaderboard(
+        helperLib.LeaderboardIdx.WorldBoss,
+        player.name,
+        0,
+        0,
+        (err, result) ->
+          if result?
+            times = gServerObject.counters['133']
+            times ?= 0
+            killTimes = player.counters['worldBoss']['133']
+            killTimes ?= 0
+
+            ret = {REQ: rpcID, RET: RET_OK}
+            ret.arg ={
+              prg: {cpl: times, ttl:helperLib.ConstValue.WorldBossTimes},
+              me:{cnt:+killTimes, rnk: +result.position}}
+            handler(ret)
+          else
+            handler([{REQ: rpcID, RET: RET_Unknown}])
+      )
     ,
     args: {},
     needPid: true

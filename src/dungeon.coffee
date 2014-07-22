@@ -1308,7 +1308,6 @@ dungeonCSConfig = {
   DropPrize: {
     callback: (env) ->
       dropID = env.variable('dropID')
-      console.log(env.variable)
       dropID = env.variable('me').dropPrize unless dropID?
       if dropID?
         env.dungeon.killingInfo.push( { dropInfo: dropID } )
