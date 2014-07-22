@@ -575,30 +575,30 @@ exports.intervalEvent = {
               txt: "恭喜你获得《邪恶巫师的诡计》奖励，点击领取"
             }
           }
-       ]
-       async.series([
-         (cb) ->
-           cfg.forEach( (e) ->
-             libs.helper.getPositionOnLeaderboard(
-               exports.LeaderboardIdx.WorldBoss,
-               'nobody',
-               e.from,
-               e.to,
-               (err, result) ->
-                 result.board.name.forEach( (name, idx) ->
-                   libs.db.deliverMessage(name, e.mail)
-                   infoStr =' from:' + e.from + ' to: '+ e.to + ' rank:' + result.board.score[idx]
-                   logInfo({action: 'leadboradPrize', index: 1, msg: infoStr })
-                 )
-             )
-           )
-           cb()
-       ],
-       (err, ret) ->
-         # counter=>0
-         libs.sObj.notify('countersChanged',{type : stageId, delta: -libs.sObj.counters[stageId]})
-         libs.sObj.counters[stageId] = 0
-         # reset leaderboardid
+        ]
+        async.series([
+          (cb) ->
+            cfg.forEach( (e) ->
+              libs.helper.getPositionOnLeaderboard(
+                exports.LeaderboardIdx.WorldBoss,
+                'nobody',
+                e.from,
+                e.to,
+                (err, result) ->
+                  result.board.name.forEach( (name, idx) ->
+                    libs.db.deliverMessage(name, e.mail)
+                    infoStr =' from:' + e.from + ' to: '+ e.to + ' rank:' + result.board.score[idx]
+                    logInfo({action: 'leadboradPrize', index: 1, msg: infoStr })
+                  )
+              )
+            )
+            cb()
+        ],
+        (err, ret) ->
+          # counter=>0
+          libs.sObj.notify('countersChanged',{type : stageId, delta: -libs.sObj.counters[stageId]})
+          libs.sObj.counters[stageId] = 0
+          # reset leaderboardid
         )
   },
 
