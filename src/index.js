@@ -54,10 +54,7 @@ function initiateTrinLogger() {
   };
   function trinLoggerErrorHandler () {
     logger.tr_agent = null;
-    setTimeout(function (err) {
-      logError({msg:"Try to reconnect to trin logger.", error: err});
-      initiateTrinLogger();
-    }, 10000);
+    setTimeout(function (err) { initiateTrinLogger(); }, 10000);
   }
   socket.on('close', trinLoggerErrorHandler);
   socket.on('error', trinLoggerErrorHandler);
@@ -67,10 +64,7 @@ function initiateFluentLogger() {
   logger.td_agent.configure('td.game', {host: 'localhost', port: 9527});
   logger.td_agent.on('error', function (err) {
     logger.td_agent = null;
-    setTimeout(function () {
-      logError({msg:"Try to reconnect to fluent.", error: err});
-      initiateFluentLogger();
-    }, 10000);
+    setTimeout(function () { initiateFluentLogger(); }, 10000);
   });
 }
 

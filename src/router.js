@@ -24,36 +24,7 @@ for (var k in backupTable) {
   reverseTable[backupTable[k].id] = k;
 }
 
-function checkArgs(args, checkLst,output) {
-  if (checkLst == null) {
-    return;
-  }
-
-  for (var argName in checkLst) {
-    argType = checkLst[argName];
-    if (typeof(args[argName]) != argType) {
-        if (typeof (output) == 'function') {
-          output({argName : argName, expectType : argType, actualType : typeof(args[argName])});
-        }else{
-          throw Error("arg type invalid: arg:"+argName+" expected:" 
-              +argType +" actual:" +typeof(args[argName]));
-        }
-    }
-  }
-  return;
-}
-
-exports.checkArgs = checkArgs;
-
 function dispatchCommand (routeTable, req, socket, retValHandler) {
-  function argErrorHandler(errorArg) {
-    console.log({
-      type : 'Handler Failed',
-      cmd : req.CMD,
-      error_message : "arg type invalid: arg:"+errorArg.argName+" expected:" 
-              +errorArg.expectType+" actual:" +errorArg.actualType});
-  }
-
   if (req == null) {
     return logError({type : 'Req Missing'});
   }
@@ -71,8 +42,6 @@ function dispatchCommand (routeTable, req, socket, retValHandler) {
     try {
       logInfo({ type : 'pendingRequest', req : req });
 
-      checkArgs(req.arg, handler.args,argErrorHandler)
-   
       handler.func(req.arg, player, retValHandler, req.REQ, socket, false, req);
     } catch (err) {
       logError({
