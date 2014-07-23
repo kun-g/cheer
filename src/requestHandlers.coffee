@@ -12,11 +12,17 @@ loginBy = (arg, token, callback) ->
   passportType = arg.tp
   passport = arg.id
   switch passportType
-    when LOGIN_ACCOUNT_TYPE_91
-      appID = '112988'
-      appKey = 'd30d9f0f53e2654274505e25c27913fe709eb1ad6265e5c5'
+    when LOGIN_ACCOUNT_TYPE_91_Android, LOGIN_ACCOUNT_TYPE_91_iOS
+      switch passportType
+        when LOGIN_ACCOUNT_TYPE_91_Android
+          appID = '115411'
+          appKey = '77bcc1c2b9cf260b12f124d1c280ae1de639b89e127842b1'
+        when LOGIN_ACCOUNT_TYPE_91_iOS
+          appID = '112988'
+          appKey = 'd30d9f0f53e2654274505e25c27913fe709eb1ad6265e5c5'
+
       sign = md5Hash(appID+'4'+passport+token+appKey)
-      path = 'http://service.sj.91.com/usercenter/AP.aspx?Act=4&AppId=112988&Uin='+passport+'&Sign='+sign+'&SessionID='+token
+      path = 'http://service.sj.91.com/usercenter/AP.aspx?Act=4&AppId='+appID+'&Uin='+passport+'&Sign='+sign+'&SessionID='+token
       http.get(path, (res) ->
         res.setEncoding('utf8')
         res.on('data', (chunk) ->
