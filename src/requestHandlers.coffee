@@ -27,7 +27,7 @@ loginBy = (arg, token, callback) ->
         res.setEncoding('utf8')
         res.on('data', (chunk) ->
           result = JSON.parse(chunk)
-          logInfo({action: 'login', type:  LOGIN_ACCOUNT_TYPE_91, code: result})
+          logInfo({action: 'login', type: passportType, code: result})
           if result.ErrorCode is '1'
             callback(null)
           else
