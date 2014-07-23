@@ -488,6 +488,7 @@ ACT_TELEPORT = 8;
 ACT_WhiteScreen = 9;
 ACT_Delay = 10;
 ACT_Dialog = 11;
+ACT_DropItem = 12;
 
 ACT_POPHP = 101;
 ACT_POPTEXT = 102;

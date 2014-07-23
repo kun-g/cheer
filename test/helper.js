@@ -5,49 +5,49 @@ var playerLib = require('../js/player');
 var async = require('async');
 
 describe('Helper', function () {
-  describe('React programming', function () {
-    var tap = helpLib.tap;
-    function generate(marker) {
-      return function (key, val) {
-        if ( marker[key] ) {
-          marker[key] += 1;
-        } else {
-          marker[key] = 1;
-        }
-      };
-    }
-    var obj = {name: 'Obj', age: 3, friend: ['Tx'], equip: {body: 3}}, marker = {};
-    var cb1 = generate(marker);
-    var mark2 = {};
-    var cb2 = generate(mark2);
-    for (var key in obj) tap(obj, key, cb1);
-    tap(obj, 'friend', cb2);
-    obj.name = 'React';
-    obj.age += 1;
-    shall(marker).eql({ name: 1, age: 1 });
-    obj.age += 1;
-    shall(marker).eql({ name: 1, age: 2 });
-    delete obj.name;
-    shall(marker).eql({ name: 1, age: 2 });
-    shall(obj.name).equal(undefined);
-
-    obj.equip.newProperty('head', 0);
-    shall(marker).eql({ name: 1, age: 2, equip: 1 });
-    obj.equip.newProperty('arm', 1);
-    shall(marker).eql({ name: 1, age: 2, equip: 2 });
-    obj.equip.head = 5;
-    shall(marker).eql({ name: 1, age: 2, equip: 3 });
-    obj.equip.body = 6;
-    shall(marker).eql({ name: 1, age: 2, equip: 4 });
-
-    obj.friend.push('T0');
-    shall(marker).eql({ name: 1, age: 2, equip: 4, friend: 1 });
-    obj.friend.push('T1');
-    shall(marker).eql({ name: 1, age: 2, equip: 4, friend: 2 });
-    obj.friend[1] = 'T2';
-    shall(marker).eql({ name: 1, age: 2, equip: 4, friend: 3 });
-  });
-
+//  describe('React programming', function () {
+//    var tap = helpLib.tap;
+//    function generate(marker) {
+//      return function (key, val) {
+//        if ( marker[key] ) {
+//          marker[key] += 1;
+//        } else {
+//          marker[key] = 1;
+//        }
+//      };
+//    }
+//    var obj = {name: 'Obj', age: 3, friend: ['Tx'], equip: {body: 3}}, marker = {};
+//    var cb1 = generate(marker);
+//    var mark2 = {};
+//    var cb2 = generate(mark2);
+//    for (var key in obj) tap(obj, key, cb1);
+//    tap(obj, 'friend', cb2);
+//    obj.name = 'React';
+//    obj.age += 1;
+//    shall(marker).eql({ name: 1, age: 1 });
+//    obj.age += 1;
+//    shall(marker).eql({ name: 1, age: 2 });
+//    delete obj.name;
+//    shall(marker).eql({ name: 1, age: 2 });
+//    shall(obj.name).equal(undefined);
+//
+//    obj.equip.newProperty('head', 0);
+//    shall(marker).eql({ name: 1, age: 2, equip: 1 });
+//    obj.equip.newProperty('arm', 1);
+//    shall(marker).eql({ name: 1, age: 2, equip: 2 });
+//    obj.equip.head = 5;
+//    shall(marker).eql({ name: 1, age: 2, equip: 3 });
+//    obj.equip.body = 6;
+//    shall(marker).eql({ name: 1, age: 2, equip: 4 });
+//
+//    obj.friend.push('T0');
+//    shall(marker).eql({ name: 1, age: 2, equip: 4, friend: 1 });
+//    obj.friend.push('T1');
+//    shall(marker).eql({ name: 1, age: 2, equip: 4, friend: 2 });
+//    obj.friend[1] = 'T2';
+//    shall(marker).eql({ name: 1, age: 2, equip: 4, friend: 3 });
+//  });
+//
   describe('Helper', function () {
     it('warpRivalLst',function(done){
       var data = [{
@@ -108,13 +108,15 @@ describe('Helper', function () {
       //{ name: 'Ken7', type: 'player', monster:8, scores: {} ,saveDB:function(){}},
       //{ name: 'Ken8', type: 'player', monster:9, scores: {} ,saveDB:function(){}},
       //{ name: 'Ken9', type: 'player', monster:10, scores: {} ,saveDB:function(){}},
-      { name: 'Ken10', type: 'player', monster:13, scores: {} ,saveDB:function(){}},
-      { name: 'Ken11', type: 'player', monster:15, scores: {} ,saveDB:function(){}},
-      { name: 'Ken12', type: 'player', monster:16, scores: {} ,saveDB:function(){}},
-      { name: 'Ken12', type: 'player', monster:13, scores: {} ,saveDB:function(){}},
+      { name: 'Ken10', type: 'player', counters:{worldBoss:{'133':2}},monster:13, scores: {} ,saveDB:function(){}},
+      { name: 'Ken11', type: 'player', counters:{worldBoss:{'133':3}},monster:15, scores: {} ,saveDB:function(){}},
+      { name: 'Ken12', type: 'player', counters:{worldBoss:{'133':4}},monster:16, scores: {} ,saveDB:function(){}},
+      { name: 'Ken12', type: 'player', counters:{worldBoss:{'133':5}},monster:13, scores: {} ,saveDB:function(){}},
     ];
     helpLib.initLeaderboard(config);
-    players.forEach(helpLib.assignLeaderboard);
+    players.forEach(function(p) {
+      helpLib.assignLeaderboard(p,4);
+    })
     it('monitor root values', function (done) {
       players.forEach(function (p, i) {
         p.battleForce -= i;

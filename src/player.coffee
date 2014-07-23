@@ -307,9 +307,11 @@ class Player extends DBWrapper
     @installObserver('stageChanged')
     @installObserver('winningAnPVP')
     
+    helperLib.assignLeaderboard(@,helperLib.LeaderboardIdx.Arena)
+    @counters['worldBoss'] ={} unless @counters['worldBoss']?
+
     if @isNewPlayer then @isNewPlayer = false
 
-    helperLib.assignLeaderboard(@,3)
 
     @inventory.validate()
 
@@ -555,7 +557,7 @@ class Player extends DBWrapper
       @logError('startDungeon', {reason: 'InvalidStageConfig', stage: stage, stageConfig: stageConfig?, dungeonConfig: dungeonConfig?})
       return handler(null, RET_ServerError)
     async.waterfall([
-      (cb) =>
+     (cb) =>
         if stageConfig.pvp? and pkr?
           @counters.currentPKCount ?= 0
           @counters.totalPKCount ?= 5
@@ -734,12 +736,17 @@ class Player extends DBWrapper
               ret = ret.concat(@syncFlags(true)).concat(@syncEvent())
             when "countUp"
               if p.target is 'server'
-                gServerObject[p.counter]++
+                gServerObject.counters[p.counter] = 0 unless gServerObject.counters[p.counter]?
+                gServerObject.counters[p.counter]++
                 gServerObject.notify('countersChanged',{type : p.counter, delta: 1})
               else
                 @counters[p.counter]++
                 @notify('countersChanged',{type : p.counter})
                 ret = ret.concat(@syncCounters(true)).concat(@syncEvent())
+            when "updateLeaderboard"
+              @counters['worldBoss'][p.counter] = 0 unless @counters['worldBoss'][p.counter]?
+              @counters['worldBoss'][p.counter] += p.delta
+              helperLib.assignLeaderboard(@, p.boardId)
     return ret
 
   isQuestAchieved: (qid) ->
