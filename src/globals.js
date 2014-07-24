@@ -98,7 +98,7 @@ postPaymentInfo = function (level, orderID) {
       //console.log(chunk.toString());
     });
   });
-  req.on('error', function (e) { logError({action: 'talkinggame', error: e}); });
+  req.on('error', function (e) { logError({action: 'talkinggame', error: JSON.stringify(e)}); });
   var gzip = zlib.createGzip();
   gzip.pipe(req);
   var payment = {

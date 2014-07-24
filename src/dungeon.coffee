@@ -186,6 +186,7 @@ class Dungeon
   constructor: (data) ->
     @effectCounter = 0
     @killingInfo = []
+    @prizeInfo = []
     @currentLevel = -1
     @cardStack = CardStack(5)
     @actionLog = []
@@ -1309,8 +1310,16 @@ dungeonCSConfig = {
     callback: (env) ->
       dropID = env.variable('dropID')
       dropID = env.variable('me').dropPrize unless dropID?
+      showPrize = env.variable('showPrize')
       if dropID?
-        env.dungeon.killingInfo.push( { dropInfo: dropID } )
+        if showPrize
+          drop = generatePrize(queryTable(TABLE_DROP)
+          env.variable('cid', drop.type)
+          env.dungeon.prizeInfo = env.dungeon.prizeInfo.concat(drop, [dropID], evn.rand))
+        else
+          env.dungeon.killingInfo.push( { dropInfo: dropID } )
+
+    output: (env) -> [{id:  ACT_DropItem, spl: env.variable('motion'), act: env.variable('ref'), cid: env.variable('cid')}]
   },
   DropItem: {
     callback: (env) ->
