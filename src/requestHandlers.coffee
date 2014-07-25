@@ -261,16 +261,22 @@ exports.route = {
           if result.RET is RET_OK and initialData?
             replay = arg.rep
 
+            logInfo('Creating Dungeon')
             dungeon = new dungeonLib.Dungeon(initialData)
+            logInfo('Initializing Dungeon')
             dungeon.initialize()
             try
+              logInfo('Replay Dungeon')
               dungeon.replayActionLog(replay)
             catch err
               status = 'Replay Failed'
               dungeon.result = DUNGEON_RESULT_FAIL
             finally
+              logInfo('Claim Dungeon Award')
               evt = evt.concat(player.claimDungeonAward(dungeon))
+              logInfo('Releasing Dungeon')
               player.releaseDungeon()
+              logInfo('Saving')
               player.saveDB()
         else
           status = 'No dungeon'
