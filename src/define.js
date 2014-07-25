@@ -50,10 +50,14 @@ initServer = function () {
 };
 
 logError = function(log) {
-  if (log.err != null || log.err != undefined){
-    log.err = JSON.stringify(log.err);
-    print('Error', log); 
+  if (log.err == null || log.err == undefined){
+    log.err ={};
   }
+  if (log.stack != null && log.stack != undefined){
+    log.err.stack = log.stack;
+  }
+  log.err = JSON.stringify(log.err);
+  print('Error', log); 
 };
 logInfo = function(log) { print('Info', log); };
 logUser = function(log) { print('User', log); };

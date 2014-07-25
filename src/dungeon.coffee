@@ -17,7 +17,7 @@ flagShowRand = false
 
 mapDiff = (source, excludeLst) ->
   result ={}
-  for k, v of source when k not in excludeLst
+  for k, v of source when k not in excludeLst and v?
     result[k] =v
   return result
 
@@ -142,18 +142,19 @@ createUnits = (rules, randFunc) ->
         count = 1
         proList = mapDiff(rules.pool[r.pool], ['objects'])
       idList.forEach( (c) ->
-        u = {}
-        u[k] = v for k, v of c when k isnt 'levels'
-        u[k] = v for k, v of proList
-        u[k] = v for k, v of levelOtherKey[lConfig.id] if levelOtherKey[lConfig.id]?
-        u[k] = v for k, v of mapDiff(r,['pool', 'levels', 'count'])
-        u.count = count
-        if r.pos
-          if typeof r.pos is 'number' then u.pos = r.pos
-          if Array.isArray(r.pos) then u.pos = selectPos(r.pos, lConfig)
-          lConfig.takenPos[r.pos] = true
-        lConfig.total += count
-        result.push(u)
+        if c?
+          u = {}
+          u[k] = v for k, v of c when k isnt 'levels'
+          u[k] = v for k, v of proList
+          u[k] = v for k, v of levelOtherKey[lConfig.id] if levelOtherKey[lConfig.id]?
+          u[k] = v for k, v of mapDiff(r,['pool', 'levels', 'count'])
+          u.count = count
+          if r.pos
+            if typeof r.pos is 'number' then u.pos = r.pos
+            if Array.isArray(r.pos) then u.pos = selectPos(r.pos, lConfig)
+            lConfig.takenPos[r.pos] = true
+          lConfig.total += count
+          result.push(u)
       )
     return result
 
@@ -1313,8 +1314,8 @@ dungeonCSConfig = {
       showPrize = env.variable('showPrize')
       if dropID?
         if showPrize
-          drop = generatePrize(queryTable(TABLE_DROP),[dropID], env.rand)
-          env.variable('cid', drop.type)
+          drop = generatePrize(queryTable(TABLE_DROP),[dropID], () -> env.rand())
+          env.variable('cid', -1)
           env.dungeon.prizeInfo = env.dungeon.prizeInfo.concat(drop)
         else
           env.dungeon.killingInfo.push( { dropInfo: dropID } )

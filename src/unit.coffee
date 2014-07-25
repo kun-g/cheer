@@ -203,7 +203,7 @@ class Npc extends Unit
 
 createUnit = (config) ->
   cfg = queryTable(TABLE_ROLE, config.id) if config?.id?
-  throw Error('No such an unit:'+config?.id) unless cfg?
+  throw Error('No such an unit:'+config?.id + ' cfg: '+ config) unless cfg?
 
   switch cfg.classType
     when Unit_Enemy then return new Monster(config)

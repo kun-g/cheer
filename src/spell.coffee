@@ -312,8 +312,7 @@ class Wizard
         when 'ignoreCardCost' then env.variable('ignoreCardCost', true)
         when 'dropItem' then cmd.routine?({id:'DropItem', list: a.dropList})
         when 'dropPrize'
-          showPrize = false unless a.showPrize is true
-          cmd.routine?({id:'DropPrize', dropID: a.dropID, me: @, showPrize: showPrize})
+          cmd.routine?({id:'DropPrize', dropID: a.dropID, me: @, showPrize: a.showPrize, motion: a.motion,ref: @.ref})
         when 'rangeAttack', 'attack' then cmd.routine?({id: 'Attack', src: @, tar: t, isRange: true}) for t in target
         when 'showUp' then cmd.routine?({id: 'ShowUp', tar: t}) for t in target
         when 'costCard' then cmd.routine?({id: 'CostCard', card: a.card})
