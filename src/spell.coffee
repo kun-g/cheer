@@ -387,25 +387,15 @@ class Wizard
         when 'setProperty'
           modifications = getProperty(a.modifications, level.modifications)
           thisSpell.modifications = {} unless thisSpell.modifications?
-          @['buffCommonModifyProperties'] ={} unless @['buffCommonModifyProperties']?
-          oldValue = @['buffCommonModifyProperties']
           for property, formular of modifications
             val = calcFormular(variables, @, null, formular)
-            thisSpell.modifications[property] = 0 unless thisSpell.modifications[property]?
-            oldValue[property] = {'val' : @[property], 'ref' : 0}  unless oldValue[property]?
-            oldValue[property]['ref'] += 1
-            thisSpell.modifications[property] += val
             @[property] += val
-
+            thisSpell.modifications[property] = 0 unless thisSpell.modifications[property]?
+            thisSpell.modifications[property] += val
         when 'resetProperty'
           continue unless thisSpell
           for property, val of thisSpell.modifications
-            oldValue = @['buffCommonModifyProperties'][property]
-            @[property] -= val if not oldValue? or oldValue['val'] is @[property] - val
-
-            if oldValue?
-              oldValue['ref'] -= 1
-              delete @['buffCommonModifyProperties'][property] if oldValue['ref'] is 0
+            @[property] -= val
           delete thisSpell.modifications
         when 'clearDebuff', 'clearBuff'
           if a.type is 'clearDebuff'
