@@ -1321,6 +1321,7 @@ dungeonCSConfig = {
             env.variable('cid', drop[0].value)
           env.dungeon.prizeInfo = env.dungeon.prizeInfo.concat(drop)
         else
+          env.variable('cid', -1)
           env.dungeon.killingInfo.push( { dropInfo: dropID } )
 
     output: (env) -> [{id:  ACT_DropItem, spl: env.variable('motion'), act: env.variable('ref'), cid: env.variable('cid')}]
