@@ -1313,9 +1313,9 @@ dungeonCSConfig = {
       showPrize = env.variable('showPrize')
       if dropID?
         if showPrize
-          drop = generatePrize(queryTable(TABLE_DROP)
+          drop = generatePrize(queryTable(TABLE_DROP),[dropID], env.rand)
           env.variable('cid', drop.type)
-          env.dungeon.prizeInfo = env.dungeon.prizeInfo.concat(drop, [dropID], evn.rand))
+          env.dungeon.prizeInfo = env.dungeon.prizeInfo.concat(drop)
         else
           env.dungeon.killingInfo.push( { dropInfo: dropID } )
 
