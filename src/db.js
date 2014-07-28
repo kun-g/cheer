@@ -405,9 +405,9 @@ exports.initializeDB = function (cfg,finishCb) {
   });
 
   dbClient.on('error', function (err) { logError({type: 'DB_Error', error: err.error}); });
-  publisher.on('error', function (err) { logError({type: 'Publisher_Error', error: err}); });
-  subscriber.on('error', function (err) { logError({type: 'Subscriber_Error', error: err}); });
-  accountDBClient.on('error', function (err) { logError({type: 'AccountDB_Error', error: err}); });
+  publisher.on('error', function (err) { logError({type: 'Publisher_Error', error: err.error}); });
+  subscriber.on('error', function (err) { logError({type: 'Subscriber_Error', error: err.error}); });
+  accountDBClient.on('error', function (err) { logError({type: 'AccountDB_Error', error: err.error}); });
 
   playerPrefix = dbPrefix + 'player' + dbSeparator;
   dungeonPrefix = dbPrefix + 'dungeon' + dbSeparator;

@@ -581,6 +581,8 @@ exports.route = {
             times ?= 0
             killTimes = player.counters['worldBoss']['133']
             killTimes ?= 0
+            if killTimes is 0
+              result.position = 9999
 
             ret = {REQ: rpcID, RET: RET_OK}
             ret.arg ={

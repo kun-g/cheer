@@ -17,7 +17,7 @@ flagShowRand = false
 
 mapDiff = (source, excludeLst) ->
   result ={}
-  for k, v of source when k not in excludeLst
+  for k, v of source when k not in excludeLst and v?
     result[k] =v
   return result
 
@@ -142,18 +142,19 @@ createUnits = (rules, randFunc) ->
         count = 1
         proList = mapDiff(rules.pool[r.pool], ['objects'])
       idList.forEach( (c) ->
-        u = {}
-        u[k] = v for k, v of c when k isnt 'levels'
-        u[k] = v for k, v of proList
-        u[k] = v for k, v of levelOtherKey[lConfig.id] if levelOtherKey[lConfig.id]?
-        u[k] = v for k, v of mapDiff(r,['pool', 'levels', 'count'])
-        u.count = count
-        if r.pos
-          if typeof r.pos is 'number' then u.pos = r.pos
-          if Array.isArray(r.pos) then u.pos = selectPos(r.pos, lConfig)
-          lConfig.takenPos[r.pos] = true
-        lConfig.total += count
-        result.push(u)
+        if c?
+          u = {}
+          u[k] = v for k, v of c when k isnt 'levels'
+          u[k] = v for k, v of proList
+          u[k] = v for k, v of levelOtherKey[lConfig.id] if levelOtherKey[lConfig.id]?
+          u[k] = v for k, v of mapDiff(r,['pool', 'levels', 'count'])
+          u.count = count
+          if r.pos
+            if typeof r.pos is 'number' then u.pos = r.pos
+            if Array.isArray(r.pos) then u.pos = selectPos(r.pos, lConfig)
+            lConfig.takenPos[r.pos] = true
+          lConfig.total += count
+          result.push(u)
       )
     return result
 
@@ -186,6 +187,7 @@ class Dungeon
   constructor: (data) ->
     @effectCounter = 0
     @killingInfo = []
+    @prizeInfo = []
     @currentLevel = -1
     @cardStack = CardStack(5)
     @actionLog = []
@@ -1309,8 +1311,19 @@ dungeonCSConfig = {
     callback: (env) ->
       dropID = env.variable('dropID')
       dropID = env.variable('me').dropPrize unless dropID?
+      showPrize = env.variable('showPrize')
       if dropID?
-        env.dungeon.killingInfo.push( { dropInfo: dropID } )
+        if showPrize
+          drop = generatePrize(queryTable(TABLE_DROP),[dropID], () -> env.rand())
+          if drop[0].type is 1
+            env.variable('cid', -1)
+          else
+            env.variable('cid', drop[0].value)
+          env.dungeon.prizeInfo = env.dungeon.prizeInfo.concat(drop)
+        else
+          env.dungeon.killingInfo.push( { dropInfo: dropID } )
+
+    output: (env) -> [{id:  ACT_DropItem, eff: env.variable('effect'), spl: env.variable('motion'), act: env.variable('ref'), cid: env.variable('cid'),pos: env.variable('pos')}] if env.variable('cid')?
   },
   DropItem: {
     callback: (env) ->

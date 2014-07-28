@@ -3,6 +3,7 @@ var helpLib = require('../js/helper');
 var dbWrapper = require('../js/dbWrapper');
 var playerLib = require('../js/player');
 var async = require('async');
+var reqh = require('../js/requestHandlers');
 
 describe('Helper', function () {
 //  describe('React programming', function () {
@@ -97,6 +98,7 @@ describe('Helper', function () {
       }
     ];
     config = require('../../data/stable/leadboard').data
+    config[4].resetTime={ weekday:5,hour:19};
     var players = [
       //{ name: 'Ken',  type: 'player', monster:1, scores: {} ,saveDB:function(){}},
       //{ name: 'Ken1', type: 'player', monster:2, scores: {} ,saveDB:function(){}},
@@ -118,13 +120,16 @@ describe('Helper', function () {
       helpLib.assignLeaderboard(p,4);
     })
     it('monitor root values', function (done) {
-      players.forEach(function (p, i) {
-        p.battleForce -= i;
-        shall(p.scores.goldenSlime).equal(5);
-      });
+//      players.forEach(function (p, i) {
+//        p.battleForce -= i;
+//        shall(p.scores.goldenSlime).equal(5);
+//      });
 
-      //helpLib.getPositionOnLeaderboard(0, 'Ken', 0, 10, console.log);
-      done();
+      helpLib.getPositionOnLeaderboard(4, 'Ken10', 0, 10, 
+        function(err,ret) {
+          console.log(ret);
+          done();
+        });
       /* TODO:
       async.map(
         players,
@@ -151,6 +156,35 @@ describe('Helper', function () {
             }}})
       done();
     });
+    it('kill worldBoss prize', function (done) {
+
+      gServerObject = {
+        getType: function () { return 'server'; },
+        counters:{'133':200},
+      };
+
+      helpLib.initObserveration(gServerObject);
+      gServerObject.installObserver('countersChanged');
+
+      //helpLib.intervalEvent.worldBoss.time ={weekday:5};
+      console.log('TestKillMonster',helpLib.intervalEvent.worldBoss)
+      helpLib.intervalEvent.worldBoss.func({
+          helper:helpLib, 
+          db:{
+            deliverMessage:function(name, message, callback, serverName) {
+              console.log('res',name,message,callback,serverName) 
+            },
+          },
+          sObj: gServerObject
+      })
+      reqh.route.RPC_WorldStageInfo.func(
+          null,
+          {name:'ken1', counters:{worldBoss:{'133':2}}},
+          function(ret) {console.log(ret)},
+          null);
+      done();
+    });
+
   });
 
   describe('Time Method', function () {

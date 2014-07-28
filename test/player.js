@@ -239,6 +239,29 @@ describe('Player', function () {
       m.isVisible = (i % 2) == 1;
     }
 
+    it('generateDungeonAward', function(done) {
+      var dung = {
+        result:DUNGEON_RESULT_WIN,
+      getConfig: function() {return [];},
+      killingInfo: [{dropInfo:6}],// type:1,count:400
+      isSweep:false,
+      prizeInfo :[],
+      random:function (){return 0.4;}
+      };
+      
+      var player = new playerLib.Player();
+      cmd = dungeonLib.DungeonCommandStream({id: 'DropPrize',dropID:5,showPrize:true},dung);
+      cmd.environment.rand =function (){return 0.4;}
+      cmd.process();
+      dung.prizeInfo.should.eql([ { weight: 2, type: 1, count: 100 } ]);
+      var res = player.generateDungeonAward(dung) ;
+      res.goldPrize.should.eql({ type: 1, count: 500 });
+
+      done();
+    });
+
+
+
     it('spell test', function () {
       dungeon = new dungeonLib.Dungeon({
         stage: 0,
@@ -293,6 +316,7 @@ describe('Player', function () {
       var tar = me.selectTarget({targetSelection: {pool:'self', filter: ['Visible', 'Alive']}}, cmd);
       tar[0].should.have.property('name').equal(me.name);
 
+      
     //  // Trigger condition TODO:
     //  var thisSpell = {};
     //  var ret = me.triggerCheck(thisSpell, [], {}, me, cmd);

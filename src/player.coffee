@@ -816,7 +816,7 @@ class Player extends DBWrapper
             return { ret: RET_OK, ntf: ret.concat(prize) }
           when ItemUse_TreasureChest
             return { ret: RET_NoKey } if item.dropKey? and not @haveItem(item.dropKey)
-            prz = helperLib.generatePrize(queryTable(TABLE_DROP), [item.dropId])
+            prz = generatePrize(queryTable(TABLE_DROP), [item.dropId])
             prize = @claimPrize(prz)
             return { ret: RET_InventoryFull } unless prize
             @log('openTreasureChest', {type: 'TreasureChest', id: item.id, prize: prize, drop: e.drop})
@@ -1006,7 +1006,8 @@ class Player extends DBWrapper
     xr = (cfg.xpRate ? 1) * percentage
     wr = (cfg.wxpRate ? 1) * percentage
 
-    prize = helperLib.generatePrize(queryTable(TABLE_DROP), dropInfo)
+    prize = generatePrize(queryTable(TABLE_DROP), dropInfo)
+    prize = prize.concat(dungeon.prizeInfo)
 
     if not dungeon.isSweep
       prize.push({type:PRIZETYPE_GOLD, count:Math.floor(gr*cfg.prizeGold)}) if cfg.prizeGold
