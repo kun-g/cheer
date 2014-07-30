@@ -526,6 +526,7 @@ ACT_DROPITEM = 103;
 ACT_EFFECT = 104;
 ACT_SkillCD = 105;
 ACT_EventDummy = 106;
+ACT_RangeAttackEffect = 107;
 ACT_PlaySound = 108;
 ACT_ChangeBGM = 109;
 ACT_Shock = 110;

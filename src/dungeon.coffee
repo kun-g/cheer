@@ -1187,8 +1187,20 @@ dungeonCSConfig = {
         @routine({id:'Evade', src:tar})
     ,
     output: (env) ->
+      if env.variable('isRange')  and env.variable('eff')?
+        src = env.variable('src')
+        tar = env.variable('tar')
+        rangeEff = [{
+          id: ACT_RangeAttackEffect,
+          dey:env.variable('dey'),
+          eff:env.variable('eff'),
+          src:{act: src.ref, pos: src.pos},
+          tar:{act: tar.ref, pos: tar.pos} }]
+      else
+        rangeEff =[]
+
       flag = if env.variable('hit') then HP_RESULT_TYPE_HIT else HP_RESULT_TYPE_MISS
-      return [{act: env.variable('src').ref, id: ACT_ATTACK, ref: env.variable('tar').ref, res:flag}]
+      return [{act: env.variable('src').ref, id: ACT_ATTACK, ref: env.variable('tar').ref, res:flag}].concat(rangeEff)
   },
   ShiftOrder: {
     output: (env) -> [{id:ACT_SHIFTORDER}]
@@ -1533,6 +1545,17 @@ dungeonCSConfig = {
             @routine({id:'EnterLevel'})
         when Block_Npc
           block.getRef(-1).onEvent('onBeActivate', this)
+  },
+  RangeAttackEffect: {
+    output: (env) ->
+      src = env.variable('src')
+      tar = env.variable('tar')
+      return [{
+        id: ACT_RangeAttackEffect,
+        dey:env.variable('dey'),
+        eff:env.variable('eff'),
+        src:{act: src.ref, pos: src.pos},
+        tar:tar.map((e) -> return {act: e.ref, pos: e.pos}) }]  if src? and tar?
   }
 }
 

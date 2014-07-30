@@ -313,7 +313,10 @@ class Wizard
         when 'dropItem' then cmd.routine?({id:'DropItem', list: a.dropList})
         when 'dropPrize'
           cmd.routine?({ id:'DropPrize', dropID: a.dropID, me: @, showPrize: a.showPrize, motion: a.motion, ref: @.ref, effect: a.effect, pos:@pos})
-        when 'rangeAttack', 'attack' then cmd.routine?({id: 'Attack', src: @, tar: t, isRange: true}) for t in target
+        when 'rangeAttack', 'attack'
+          a.effect = level.effect if level.effect?
+          a.delay = level.delay if level.delay?
+          cmd.routine?({id: 'Attack', src: @, tar: t, isRange: true,eff:a.effect, dey:a.delay}) for t in target
         when 'showUp' then cmd.routine?({id: 'ShowUp', tar: t}) for t in target
         when 'costCard' then cmd.routine?({id: 'CostCard', card: a.card})
         when 'showExit' then cmd.routine?({id: 'ShowExit' })
@@ -420,6 +423,9 @@ class Wizard
           c.pos = a.pos if a.pos?
           cmd.routine?(c)
         when 'dialog' then cmd.routine?({id: 'Dialog', dialogId: a.dialogId})
+        when 'rangeAttackEff'
+          a.effect = level.effect if level.effect?
+          cmd.routine?({id: 'RangeAttackEffect', dey: a.delay, eff: a.effect, src:@, tar: target})
 
     thisSpell.effectCount += 1 if thisSpell?.effectCount?
 
