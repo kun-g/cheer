@@ -1192,7 +1192,7 @@ dungeonCSConfig = {
         tar = env.variable('tar')
         rangeEff = [{
           id: ACT_RangeAttackEffect,
-          dey:env.variable('dey'),
+          dey:env.variable('effDelay'),
           eff:env.variable('eff'),
           src:{act: src.ref, pos: src.pos},
           tar:{act: tar.ref, pos: tar.pos} }]
@@ -1200,7 +1200,7 @@ dungeonCSConfig = {
         rangeEff =[]
 
       flag = if env.variable('hit') then HP_RESULT_TYPE_HIT else HP_RESULT_TYPE_MISS
-      return [{act: env.variable('src').ref, id: ACT_ATTACK, ref: env.variable('tar').ref, res:flag}].concat(rangeEff)
+      return [{act: env.variable('src').ref, id: ACT_ATTACK, ref: env.variable('tar').ref, res:flag, rng:env.variable('isRange')}].concat(rangeEff)
   },
   ShiftOrder: {
     output: (env) -> [{id:ACT_SHIFTORDER}]
@@ -1470,6 +1470,7 @@ dungeonCSConfig = {
 
       if damage > 0
         delay = 0.3
+        delay = env.variable('hurtDelay') if env.variable('hurtDelay')
         delay = env.variable('delay') if env.variable('delay')
         ret.push({act:env.variable('tar').ref, id: ACT_HURT, dey:delay}) unless env.variable('ignoreHurt')
         ret.push({act:env.variable('tar').ref, id: ACT_POPHP, num:damage, flg:flag, dey:delay})

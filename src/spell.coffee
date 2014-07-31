@@ -316,7 +316,7 @@ class Wizard
         when 'rangeAttack', 'attack'
           a.effect = level.effect if level.effect?
           a.delay = level.delay if level.delay?
-          cmd.routine?({id: 'Attack', src: @, tar: t, isRange: true,eff:a.effect, dey:a.delay}) for t in target
+          cmd.routine?({id: 'Attack', src: @, tar: t, isRange: true,hurtDelay:a.hurtDelay, eff:a.effect, effDelay:a.effDelay}) for t in target
         when 'showUp' then cmd.routine?({id: 'ShowUp', tar: t}) for t in target
         when 'costCard' then cmd.routine?({id: 'CostCard', card: a.card})
         when 'showExit' then cmd.routine?({id: 'ShowExit' })
