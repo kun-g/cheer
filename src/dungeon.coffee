@@ -1006,16 +1006,10 @@ dungeonCSConfig = {
 
         o.onEvent('onEnterLevel', @) for o in env.getObjects()
 
-      @routine({id: 'TickSpell'})
-    ,
-    output: (env) ->
-      ev = {id: ACT_EnterLevel, "lvl": env.getCurrentLevel()}
-      positions = (h.pos for h in env.getHeroes())
-      ev.pos = positions[0] if env.getHeroes()[0]?.health > 0
-      ev.pos1 = positions[1] if env.getHeroes()[1]?.health > 0
-      ev.pos2 = positions[2] if env.getHeroes()[2]?.health > 0
-      ev.pos3 = positions[3] if env.getHeroes()[3]?.health > 0
 
+
+
+      @routine({id: 'TickSpell'})
       heroInfo = env.getAliveHeroes()
                   .filter((e) -> e?.ref? )
                   .sort((a, b) -> return a.order-b.order)
@@ -1028,6 +1022,18 @@ dungeonCSConfig = {
                   )
                   .map( (h) -> return genUnitInfo(h, true) )
                   .filter( (e) -> e? )
+      env.variable('heroInfo', heroInfo)
+
+    ,
+    output: (env) ->
+      ev = {id: ACT_EnterLevel, "lvl": env.getCurrentLevel()}
+      positions = (h.pos for h in env.getHeroes())
+      ev.pos = positions[0] if env.getHeroes()[0]?.health > 0
+      ev.pos1 = positions[1] if env.getHeroes()[1]?.health > 0
+      ev.pos2 = positions[2] if env.getHeroes()[2]?.health > 0
+      ev.pos3 = positions[3] if env.getHeroes()[3]?.health > 0
+
+      heroInfo = env.variable('heroInfo')
 
       ret = [ev]
       ret = ret.concat(heroInfo)
