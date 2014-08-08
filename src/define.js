@@ -270,6 +270,7 @@ initGlobalConfig = function (path, callback) {
         switch (type) {
           case TABLE_ITEM:
           case TABLE_ROLE: 
+          case TABLE_DUNGEON: 
             return JSON.parse(JSON.stringify(cfg[index])); //TODO: hotfix
             break;
           default:
