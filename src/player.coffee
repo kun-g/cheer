@@ -949,7 +949,7 @@ class Player extends DBWrapper
     @onEvent('Equipment')
 
     if level >= 32
-      dbLib.broadcastEvent(BROADCAST_ENHANCE, {who: @name, what: equip.id, many: level})
+      dbLib.broadcastEvent(BROADCAST_ENHANCE, {who: @name, what: equip.id, many: level+1})
   
     eh = equip.enhancement.map((e) -> {id:e.id, lv:e.level})
     ret = ret.concat({NTF: Event_InventoryUpdateItem, arg: {syn:this.inventoryVersion, itm:[{sid: itemSlot, eh:eh}]}})
