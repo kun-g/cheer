@@ -390,7 +390,7 @@ exports.route = {
       account = -1
       if player then account = player.accountID
       dbLib.bindAuth(account, arg.typ, arg.id, arg.pass, (err, account) ->
-        if account is  -1
+        if account is  -1 or account is '-1'
           handler([{REQ: rpcID, RET: RET_AccountHaveNoHero}])
         else
           handler([{REQ: rpcID, RET: RET_OK, aid: account}])
