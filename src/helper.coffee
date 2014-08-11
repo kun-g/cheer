@@ -289,17 +289,15 @@ actCampaign = (me, key, config, handler) ->
 
 exports.proceedCampaign = actCampaign
 
-checkBounty = (id,today) ->
+checkBountyValidate = (id,today) ->
   cfg = queryTable(TABLE_BOUNTY,id)
   return false unless cfg?.dateInterval?.startDate?
-  startDates = cfg.dateInterval.startDate
+  startDateArray = cfg.dateInterval.startDate
   nowDayYear = moment(today).dayOfYear()
-  for theDate in startDates
+  for theDate in startDateArray
     for validateDate in theDate.date
       dayOfYear = moment({y:theDate.year, M: theDate.month, d: validateDate}).dayOfYear()
-      
       return true if (dayOfYear - nowDayYear) % cfg.dateInterval.interval == 0
-
   return false
   
 exports.events = {
@@ -375,7 +373,7 @@ exports.events = {
       storeType: "player",
       id: 3,
       actived: (obj, util) ->
-        if checkBounty(3,util.today)
+        if checkBountyValidate(3,util.today)
         #if exports.dateInRange(util.today,[{from:1,to:6},{from:14,to:20},{from:28,to:28}])
           return 1
         else
@@ -393,7 +391,7 @@ exports.events = {
       storeType: "player",
       id: 4,
       actived: (obj, util) ->
-        if checkBounty(4,util.today)
+        if checkBountyValidate(4,util.today)
           #if exports.dateInRange(util.today,[{from:7,to:13},{from:21,to:27}])
           return 1
         else
