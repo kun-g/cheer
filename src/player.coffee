@@ -896,7 +896,12 @@ class Player extends DBWrapper
     newItem.xp = item.xp
     ret = ret.concat(this.aquireItem(newItem))
     eh = newItem.enhancement.map((e) -> {id:e.id, lv:e.level})
-    ret = ret.concat({NTF: Event_InventoryUpdateItem, arg:{syn:this.inventoryVersion, god:this.gold, itm:[{sid: this.queryItemSlot(newItem), stc: 1, eh:eh}]}})
+    ret = ret.concat({
+      NTF: Event_InventoryUpdateItem,
+      arg:{
+        syn:this.inventoryVersion,
+        god:this.gold,
+        itm:[{sid: this.queryItemSlot(newItem), stc: 1, eh:eh, xp: newItem.xp}]}})
   
     @log('levelUpItem', { slot: slot, id: item.id, level: item.rank })
   
