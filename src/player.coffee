@@ -893,7 +893,6 @@ class Player extends DBWrapper
     ret = this.removeItem(null, 1, slot)
     newItem = new Item(item.upgradeTarget)
     newItem.enhancement = item.enhancement
-    newItem.xp = item.xp
     ret = ret.concat(this.aquireItem(newItem))
     eh = newItem.enhancement.map((e) -> {id:e.id, lv:e.level})
     ret = ret.concat({
@@ -909,7 +908,7 @@ class Player extends DBWrapper
       dbLib.broadcastEvent(BROADCAST_ITEM_LEVEL, {who: @name, what: item.id, many: newItem.rank})
 
     @onEvent('Equipment')
-    return { out: {cid: newItem.id, sid: @queryItemSlot(newItem), stc: 1, sta: 1, eh: eh, xp: newItem.xp}, res: ret }
+    return { out: {cid: newItem.id, sid: @queryItemSlot(newItem), stc: 1, sta: 1, eh: eh}, res: ret }
 
   upgradeItemQuality: (slot) ->
     item = @getItemAt(slot)
@@ -920,7 +919,7 @@ class Player extends DBWrapper
       ret.newItem.enhancement = enhance
       ret.newItem.xp = item.xp
       eh = newItem.enhancement.map((e) -> {id:e.id, lv:e.level})
-      ret.res.push({NTF: Event_InventoryUpdateItem, arg: {syn:this.inventoryVersion, itm:[{sid: @queryItemSlot(newItem), eh:eh}]}})
+      ret.res.push({NTF: Event_InventoryUpdateItem, arg: {syn:this.inventoryVersion, itm:[{sid: @queryItemSlot(newItem), eh:eh, xp: newItem.xp}]}})
     return ret
 
   craftItem: (slot) ->
