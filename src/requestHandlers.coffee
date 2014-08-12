@@ -12,6 +12,24 @@ loginBy = (arg, token, callback) ->
   passportType = arg.tp
   passport = arg.id
   switch passportType
+  when LOGIN_ACCOUNT_TYPE_DK_Android
+      appID = '3319334'
+      appKey = 'kavpXwRFFa4rjcUy1idmAkph'
+      AppSecret ＝ 'KvCbUBBpAUvkKkC9844QEb8CB7pHnl5v'
+
+      sign = md5Hash(appID+appKey+passport+token+AppSecret)
+      path = 'http://sdk.m.duoku.com/openapi/sdk/checksession?appid='+appID+'&appkey='+appKey+'&uid='+passport+'&sessionid='+token+'&clientsecret='+sign
+      http.get(path, (res) ->
+        res.setEncoding('utf8')
+        res.on('data', (chunk) ->
+          result = JSON.parse(chunk)
+          logInfo({action: 'login', type:  LOGIN_ACCOUNT_TYPE_DK, code: result})
+          if result.error_code is 0
+            callback(null)
+          else
+            callback(Error(RET_LoginFailed))
+        )
+      ).on('error', (e) -> logError({action: 'login', type:  LOGIN_ACCOUNT_TYPE_DK, error: e}))
     when LOGIN_ACCOUNT_TYPE_91_Android, LOGIN_ACCOUNT_TYPE_91_iOS
       switch passportType
         when LOGIN_ACCOUNT_TYPE_91_Android

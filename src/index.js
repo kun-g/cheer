@@ -229,7 +229,35 @@ function paymentHandler (request, response) {
       data = null;
       response.end('failed');
     });
-  } else if (request.url.substr(0, 5) === '/jdp?') {
+  } else if (request.url.substr(0, 5) === '/DKP?') {
+    out = urlLib.parse(request.url, true).query;
+    var appKey = '';
+    if (out.AppId == '3319334') {
+      appKey = 'kavpXwRFFa4rjcUy1idmAkph';
+      appSecret ＝ 'KvCbUBBpAUvkKkC9844QEb8CB7pHnl5v'
+    }
+    var sign = out.amount+out.cardtype+out.orderid+out.result+out.timetamp+appSecret+out.aid;
+    var b = new Buffer(1024);
+    var len = b.write(sign);
+    sign = md5Hash(b.toString('binary', 0, len));
+    var receipt = out.orderid;
+    if (sign === out.client_secret && isRMBMatch(out.OrderMoney, receipt)) {
+      if (out.result === '1'){
+          deliverReceipt(receipt, 'DK', function (err) {
+          if (err === null) {
+            logInfo({action: 'AcceptPayment', receipt: receipt, info: out});
+          } else {
+            logError({action: 'AcceptPayment', error:err, info: out, receiptInfo: receiptInfo});
+          }
+        });
+      }
+      return response.end('SUCCESS');
+    } else {
+      logError({action: 'AcceptPayment', error: 'SignMissmatch', info: out, sign: sign});
+      response.end('ERROR_SIGN');
+    }
+    b = null;
+  }else if (request.url.substr(0, 5) === '/jdp?') {
   }
 } 
 
