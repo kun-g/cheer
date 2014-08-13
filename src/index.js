@@ -234,7 +234,7 @@ function paymentHandler (request, response) {
     var appKey = '';
     if (out.AppId == '3319334') {
       appKey = 'kavpXwRFFa4rjcUy1idmAkph';
-      appSecret ＝ 'KvCbUBBpAUvkKkC9844QEb8CB7pHnl5v'
+      appSecret = 'KvCbUBBpAUvkKkC9844QEb8CB7pHnl5v'
     }
     var sign = out.amount+out.cardtype+out.orderid+out.result+out.timetamp+appSecret+out.aid;
     var b = new Buffer(1024);

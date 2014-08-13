@@ -12,7 +12,7 @@ loginBy = (arg, token, callback) ->
   passportType = arg.tp
   passport = arg.id
   switch passportType
-  when LOGIN_ACCOUNT_TYPE_DK_Android
+    when LOGIN_ACCOUNT_TYPE_DK_Android
       appID = '3319334'
       appKey = 'kavpXwRFFa4rjcUy1idmAkph'
       AppSecret ＝ 'KvCbUBBpAUvkKkC9844QEb8CB7pHnl5v'
@@ -23,8 +23,8 @@ loginBy = (arg, token, callback) ->
         res.setEncoding('utf8')
         res.on('data', (chunk) ->
           result = JSON.parse(chunk)
-          logInfo({action: 'login', type:  LOGIN_ACCOUNT_TYPE_DK, code: result})
-          if result.error_code is 0
+          logInfo({action: 'login', type:  passportType, code: result})
+          if result.error_code is '0'
             callback(null)
           else
             callback(Error(RET_LoginFailed))
