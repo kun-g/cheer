@@ -124,9 +124,17 @@ exports.route = {
             else
               cb(null)
         ,
-        (cb) -> if +arg.rv isnt queryTable(TABLE_VERSION, 'resource_version') then cb(Error(RET_ResourceVersionNotMatch)) else cb(null),
+        (cb) ->
+          if +arg.rv isnt queryTable(TABLE_VERSION, 'resource_version')
+            cb(Error(RET_ResourceVersionNotMatch))
+          else cb(null)
+        ,
         (cb) -> if registerFlag then cb(null) else loginBy(arg, arg.tk, cb),
-        (cb) -> loadPlayer(arg.tp, arg.id, cb),
+        (cb) ->
+          tp = arg.tp
+          tp = arg.atp if arg.atp?
+          loadPlayer(tp, arg.id, cb)
+        ,
         (player, cb) ->
           if player
             player.log('login', {type: arg.tp, id: arg.id})
