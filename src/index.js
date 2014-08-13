@@ -241,7 +241,7 @@ function paymentHandler (request, response) {
     var len = b.write(sign);
     sign = md5Hash(b.toString('binary', 0, len));
     var receipt = out.orderid;
-    if (sign === out.client_secret && isRMBMatch(out.OrderMoney, receipt)) {
+    if (sign === out.client_secret ){ //&& isRMBMatch(out.OrderMoney, receipt)) {
       if (out.result === '1'){
           deliverReceipt(receipt, 'DK', function (err) {
           if (err === null) {
