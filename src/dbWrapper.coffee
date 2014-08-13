@@ -44,46 +44,9 @@ class DBWrapper extends Serializer
 
 exports.DBWrapper = DBWrapper
 
-exports.updateReceipt = (receipt, state, handler) ->
-  dbKey = makeDBKey([receipt], ReceiptPrefix)
-  accountDBClient.hgetall(dbKey, (err, ret) ->
-    if err then return handler(err)
-    #if not ret?
-    accountDBClient.hmset(dbKey, {time: moment().format('YYYYMMDDHHMMSS'), state: state}, handler)
-    #if state is RECEIPT_STATE_AUTHORIZED
-    #  newPendingReceipt(dbKey)
-  )
 exports.getReceipt = (receipt, handler) ->
   dbKey = makeDBKey([receipt], ReceiptPrefix)
   accountDBClient.hgetall(dbKey, handler)
-
-############################ Mercenary
-# 队友规则：
-# 1. 随机选择一个基于自己战斗力的值（在一定范围内随机）
-# 2. 选择这个值所指向的队列（根据活跃度排列的队列）
-# 3. 在此队列里前n个中随机选一个作为这次选择的对象
-mercenaryKeyList = (callback) -> dbClient.smembers(mercenaryPrefix+'Keys', callback)
-mercenaryGet = (key, count, callback) -> dbClient.zrange(mercenaryPrefix+key, 0, count, callback)
-mercenaryDel = (battleForce, member, callback) ->
-  async.series([
-        (cb) -> dbClient.zrem(mercenaryPrefix+battleForce, member, cb),
-        (cb) -> mercenaryGet(battleForce, -1, cb)
-      ], (err, result) ->
-        if not err
-          list = result[1]
-          if not list or list.length <= 0
-            dbClient.srem(mercenaryPrefix+'Keys', battleForce, callback)
-            dbClient.del(mercenaryPrefix+battleForce)
-        else
-          if callback then callback(err, result)
-      )
-
-
-mercenaryAdd = (battleForce, member, callback) ->
-  dbClient.zadd(mercenaryPrefix+battleForce, 0, member, callback)
-  dbClient.sadd(mercenaryPrefix+'Keys', battleForce)
-
-mercenaryDemote = (key, member, callback) -> dbClient.zincrby(mercenaryPrefix+key, 1, member, callback)
 
 getPlayerHero = (name, callback) ->
   playerLib = require('./player')
