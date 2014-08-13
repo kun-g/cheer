@@ -32,10 +32,8 @@ exports.bindAuth = function (account, type, id, pass, handler) {
   accountDBClient.get(key, function (err, acc) {
     if (acc != null) {
       handler(null, acc);
-    } else if (acc != -1) {
-      accountDBClient.set(key, account, function () { handler(null, account); });
     } else {
-     handler(null, account);
+      accountDBClient.set(key, account, function () { handler(null, account); });
     }
   });
 };
