@@ -30,12 +30,10 @@ exports.bindAuth = function (account, type, id, pass, handler) {
   //}
   var key = makeDBKey([passportPrefix, type, id, 'account']);
   accountDBClient.get(key, function (err, acc) {
-    if (acc != null) {
+    if (acc) {
       handler(null, acc);
-    } else if (acc != -1) {
-      accountDBClient.set(key, account, function () { handler(null, account); });
     } else {
-     handler(null, account);
+      accountDBClient.set(key, account, function () { handler(null, account); });
     }
   });
 };
@@ -47,7 +45,7 @@ exports.loadPassport = function (type, id, createOnFail, handler) {
     } else if (err) {
       logError({action: 'LoadPassport', error:err, type: type, id: id});
     } else if (createOnFail) {
-      createPassportWithAccount(type, id, handler);
+      exports.createPassportWithAccount(type, id, handler);
     } else {
       handler(err, ret);
     }
@@ -63,7 +61,7 @@ exports.updateAccount = function (id, key, val, cb){ accountDBClient.hset(makeDB
 function createNewPlayer (account, server, name, handle) {
   async.series([
       function (cb) { nameValidation(name, cb); },
-      function (cb) { doCreateNewPlayer(account, dbPrefix, name, cb); },
+      function (cb) { exports.doCreateNewPlayer(account, dbPrefix, name, cb); },
       function (cb) {
         if (account != null) {
           exports.updateAccount(account, server, name, cb);
@@ -404,10 +402,10 @@ exports.initializeDB = function (cfg,finishCb) {
     logError({info:'Parse Message Error', message:message});
   });
 
-  dbClient.on('error', function (err) { logError({type: 'DB_Error', error: err.error}); });
-  publisher.on('error', function (err) { logError({type: 'Publisher_Error', error: err.error}); });
-  subscriber.on('error', function (err) { logError({type: 'Subscriber_Error', error: err.error}); });
-  accountDBClient.on('error', function (err) { logError({type: 'AccountDB_Error', error: err.error}); });
+  dbClient.on('error', function (err) { logError({type: 'DB_Error', error: err}); });
+  publisher.on('error', function (err) { logError({type: 'Publisher_Error', error: err}); });
+  subscriber.on('error', function (err) { logError({type: 'Subscriber_Error', error: err}); });
+  accountDBClient.on('error', function (err) { logError({type: 'AccountDB_Error', error: err}); });
 
   playerPrefix = dbPrefix + 'player' + dbSeparator;
   dungeonPrefix = dbPrefix + 'dungeon' + dbSeparator;
@@ -435,53 +433,128 @@ exports.initializeDB = function (cfg,finishCb) {
   authPrefix = 'Auth';
   var helperLib = require('./helper');
 
-  // Scripts
-  accountDBClient.script('load', lua_createPassportWithAccount, function (err, sha) {
-    createPassportWithAccount = function (type, id, handler) {
-      accountDBClient.evalsha(sha, 0, type, id, (new Date()).valueOf(), handler);
-    };
-  });
-
-  dbClient.script('load', lua_createSessionInfo, function (err, sha) {
-    exports.newSessionInfo = function (handler) {
-      dbClient.evalsha(sha, 0, dbPrefix, (new Date()).valueOf(),
-        queryTable(TABLE_VERSION, 'bin_version'),
-        queryTable(TABLE_VERSION, 'resource_version'),
-        function (err, ret) {
-          if (handler) { handler(err, ret); }
-        });
-    };
-  });
-  dbClient.script('load', lua_createNewPlayer, function (err, sha) {
-    doCreateNewPlayer = function (account, prefix, name, handler) {
-      dbClient.evalsha(sha, 0, prefix, name, account, function (err, ret) {
-        if (ret === 'NameTaken') {
-          err = new Error(RET_NameTaken);
+  var scriptConfig = [
+    {
+      key: 'createPassportWithAccount',
+      script: lua_createPassportWithAccount,
+      db: 'account',
+      func: function (sha) {
+        return function (type, id, handler) {
+          accountDBClient.evalsha(sha, 0, type, id, (new Date()).valueOf(), handler);
         }
-        if (handler) { handler(err, ret); }
-      });
-    };
-  });
-  dbClient.script('load', lua_queryLeaderboard, function (err, sha) {
-    exports.queryLeaderboard = function (board, reverse, name, from, to, handler) {
-      dbClient.evalsha(sha, 0, board, reverse, name, from, to, function (err, ret) {
-        if (!err) {
-          ret = {
-            position: ret[0],
-            board: ret[1]
-          };
+      }
+    },
+    {
+      key: 'newSessionInfo',
+      script: lua_createSessionInfo,
+      db: 'player',
+      func: function (sha) {
+        return function () {
+          dbClient.evalsha(sha, 0, dbPrefix, (new Date()).valueOf(),
+            queryTable(TABLE_VERSION, 'bin_version'),
+            queryTable(TABLE_VERSION, 'resource_version'),
+            function (err, ret) {
+              if (handler) { handler(err, ret); }
+            });
         }
-        if (handler) { handler(err, ret); }
-      });
-    };
-  });
-  dbClient.script('load', lua_fetchMessage, function (err, sha) {
-    exports.fetchMessage = function (name, handler) {
-      dbClient.evalsha(sha, 0, dbPrefix, name, function (err, ret) {
-        if (handler) { handler(err, JSON.parse(ret)); }
-      });
-    };
-  });
+      }
+    },
+    {
+      key: 'doCreateNewPlayer',
+      script: lua_createNewPlayer,
+      db: 'player',
+      func: function (sha) {
+        return function (account, prefix, name, handler) {
+          dbClient.evalsha(sha, 0, prefix, name, account, function (err, ret) {
+            if (ret === 'NameTaken') {
+              err = new Error(RET_NameTaken);
+            }
+            if (handler) { handler(err, ret); }
+          });
+        }
+      }
+    },
+    {
+      key: 'queryLeaderboard',
+      script: lua_queryLeaderboard,
+      db: 'player',
+      func: function (sha) {
+        return function (board, reverse, name, from, to, handler) {
+          dbClient.evalsha(sha, 0, board, reverse, name, from, to, function (err, ret) {
+            if (!err) {
+              ret = {
+                position: ret[0],
+                board: ret[1]
+              };
+            }
+            if (handler) { handler(err, ret); }
+          });
+        }
+      }
+    },
+    {
+      key: 'fetchMessage',
+      script: lua_fetchMessage,
+      db: 'player',
+      func: function (sha) {
+        return function (name, handler) {
+          dbClient.evalsha(sha, 0, dbPrefix, name, function (err, ret) {
+            if (handler) { handler(err, JSON.parse(ret)); }
+          });
+        }
+      }
+    },
+    {
+      key: 'updateReceipt',
+      script: helperLib.dbScripts.updateReceipt,
+      db: 'account',
+      func: function (sha) {
+        return function (receipt, state, id, productID, serverID, tunnel, handler) {
+          var time = helperLib.currentTime();
+          var m = helperLib.currentTime(true);
+          var year = m.year();
+          var month = m.month();
+          var day = m.date();
+          dbClient.evalsha(
+            sha,
+            0,
+            receipt,
+            state,
+            time,
+            id,
+            productID,
+            serverID,
+            tunnel,
+            year, month, day,
+            function (err, ret) {
+             if (handler) { handler(err, ret); }
+            });
+        }
+      }
+    },
+    {
+      key: 'findMercenary',
+      script: helperLib.dbScripts.getMercenary,
+      db: 'player',
+      func: function (sha) {
+        return function (name, count, range, delta, names, handler) {
+          dbClient.evalsha(
+            sha,
+            0,
+            name,
+            count,
+            range,
+            delta,
+            rand(),
+            names,
+            30,
+            function (err, ret) {
+             if (handler) { handler(err, ret); }
+            });
+        }
+      }
+    }
+  ];
 
   dbClient.script('load', helperLib.dbScripts.searchRival, function (err, sha) {
     exports.searchRival = function (name, handler) {
@@ -512,30 +585,20 @@ exports.initializeDB = function (cfg,finishCb) {
       });
     };
   });
- 
-  dbClient.script('load', helperLib.dbScripts.getMercenary, function (err, sha) {
-    exports.findMercenary = function (name, count, range, delta, names, handler) {
-      dbClient.evalsha(
-        sha,
-        0,
-        name,
-        count,
-        range,
-        delta,
-        rand(),
-        names,
-        30,
-        function (err, ret) {
-         if (handler) { handler(err, ret); }
-        });
-    };
-    if (typeof(finishCb) == 'function') {
-      finishCb();
-    }
 
-  });
-
-  };
+  async.map(scriptConfig,
+      function(e, cb) {
+        var client = dbClient;
+        if (e.db == 'account') {
+          client = accountDBClient;
+        } 
+        client.script('load', e.script, function (err, sha) {
+          exports[e.key] = e.func(sha);
+          cb(err);
+        })
+      },
+      finishCb);
+}
 
 exports.releaseDB = function () {
   if (dbClient) {

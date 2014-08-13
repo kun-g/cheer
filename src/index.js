@@ -275,10 +275,10 @@ function deliverReceipt (receipt, tunnel, cb) {
         };
 
   async.waterfall([
-    function (cb) { dbWrapper.updateReceipt(receipt, RECEIPT_STATE_AUTHORIZED, cb); },
+    function (cb) { dbLib.updateReceipt(receipt, RECEIPT_STATE_AUTHORIZED, cb); },
     function (_, cb) { dbLib.getPlayerNameByID(receiptInfo.id, serverName, cb); },
     function (name, cb) { dbLib.deliverMessage(name, message, cb, serverName); },
-    function (_, cb) { dbWrapper.updateReceipt(receipt, RECEIPT_STATE_DELIVERED, cb); }
+    function (_, cb) { dbLib.updateReceipt(receipt, RECEIPT_STATE_DELIVERED, cb); }
   ], cb);
 }
 
