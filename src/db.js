@@ -449,7 +449,7 @@ exports.initializeDB = function (cfg,finishCb) {
       script: lua_createSessionInfo,
       db: 'player',
       func: function (sha) {
-        return function () {
+        return function (handler) {
           dbClient.evalsha(sha, 0, dbPrefix, (new Date()).valueOf(),
             queryTable(TABLE_VERSION, 'bin_version'),
             queryTable(TABLE_VERSION, 'resource_version'),
