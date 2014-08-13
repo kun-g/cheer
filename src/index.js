@@ -10,7 +10,7 @@ dbWrapper = require('./dbWrapper');
 http = require('http');
 var domain = require('domain').create();
 domain.on('error', function (err) {
-  console.log("UnhandledError", err.message, err.stack);
+  console.log("UnhandledError", err, err.message, err.stack);
 });
 
 //playerCounter = 0;
