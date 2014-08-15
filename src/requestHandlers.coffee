@@ -1,7 +1,7 @@
 require('./define')
 dbLib = require('./db')
 helperLib = require('./helper')
-{DBWrapper, updateMercenaryMember, addMercenaryMember, getPlayerHero} = require './dbWrapper'
+{DBWrapper, getPlayerHero} = require './dbWrapper'
 async = require('async')
 http = require('http')
 https = require('https')
@@ -15,7 +15,7 @@ loginBy = (arg, token, callback) ->
     when LOGIN_ACCOUNT_TYPE_DK_Android
       appID = '3319334'
       appKey = 'kavpXwRFFa4rjcUy1idmAkph'
-      AppSecret ＝ 'KvCbUBBpAUvkKkC9844QEb8CB7pHnl5v'
+      AppSecret = 'KvCbUBBpAUvkKkC9844QEb8CB7pHnl5v'
 
       sign = md5Hash(appID+appKey+passport+token+AppSecret)
       path = 'http://sdk.m.duoku.com/openapi/sdk/checksession?appid='+appID+'&appkey='+appKey+'&uid='+passport+'&sessionid='+token+'&clientsecret='+sign
@@ -124,9 +124,17 @@ exports.route = {
             else
               cb(null)
         ,
-        (cb) -> if +arg.rv isnt queryTable(TABLE_VERSION, 'resource_version') then cb(Error(RET_ResourceVersionNotMatch)) else cb(null),
+        (cb) ->
+          if +arg.rv isnt queryTable(TABLE_VERSION, 'resource_version')
+            cb(Error(RET_ResourceVersionNotMatch))
+          else cb(null)
+        ,
         (cb) -> if registerFlag then cb(null) else loginBy(arg, arg.tk, cb),
-        (cb) -> loadPlayer(arg.tp, arg.id, cb),
+        (cb) ->
+          tp = arg.tp
+          tp = arg.atp if arg.atp?
+          loadPlayer(tp, arg.id, cb)
+        ,
         (player, cb) ->
           if player
             player.log('login', {type: arg.tp, id: arg.id})
