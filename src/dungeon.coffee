@@ -1563,6 +1563,29 @@ dungeonCSConfig = {
         eff:env.variable('eff'),
         src:{act: src.ref, pos: src.pos},
         tar:tar.map((e) -> return {act: e.ref, pos: e.pos}) }]  if src? and tar?
+  },
+  ShowBubble: {
+    output: (env) ->
+      if env.variable('pos')?
+        [{
+          id:ACT_Bubble,
+          pos:env.variable('pos'),
+          eff:env.variable('eff'),
+          typ:env.variable('typ'),
+          cont:env.variable('cont'),
+          dey:env.variable('dey'),
+          dur:env.variable('dur')
+        }]
+      else
+        [{
+          id:ACT_Bubble,
+          act:env.variable('act'),
+          eff:env.variable('eff'),
+          typ:env.variable('typ'),
+          cont:env.variable('cont'),
+          dey:env.variable('dey'),
+          dur:env.variable('dur')
+        }]
   }
 }
 
