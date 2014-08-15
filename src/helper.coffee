@@ -812,24 +812,19 @@ exports.dbScripts = {
     local key = 'Receipt.'..receipt; 
     local indexKey = '';
 
-    if redis.call('EXISTS', key) ~= 1 then
-      local id, productID, serverID, tunnel = ARGV[4], ARGV[5], ARGV[6], ARGV[7];
-      local year, month, day = ARGV[8], ARGV[9], ARGV[10];
-      redis.call('HSET', key, 'id', id); 
-      redis.call('HSET', key, 'productID', productID);
-      redis.call('HSET', key, 'serverID', serverID);
-      redis.call('HSET', key, 'tunnel', tunnel);
-      redis.call('HSET', key, 'creationTime', time);
+    local id, productID, serverID, tunnel = ARGV[4], ARGV[5], ARGV[6], ARGV[7];
+    local year, month, day = ARGV[8], ARGV[9], ARGV[10];
+    redis.call('HSET', key, 'id', id); 
+    redis.call('HSET', key, 'productID', productID);
+    redis.call('HSET', key, 'serverID', serverID);
+    redis.call('HSET', key, 'tunnel', tunnel);
+    redis.call('HSET', key, 'creationTime', time);
 
-      redis.call('sadd', 'receipt_index_by_time:'..year..'_'..month..'_'..day, receipt);
-      redis.call('sadd', 'receipt_index_by_id:'..id, receipt);
-      redis.call('sadd', 'receipt_index_by_product:'..productID, receipt);
-      redis.call('sadd', 'receipt_index_by_tunnel:'..tunnel, receipt);
-      redis.call('sadd', 'receipt_index_by_server:'..serverID, receipt);
-    else
-      local oldState = redis.call('hget', key, 'state');
-      redis.call('srem', 'receipt_index_by_state:'..oldState, receipt);
-    end
+    redis.call('sadd', 'receipt_index_by_time:'..year..'_'..month..'_'..day, receipt);
+    redis.call('sadd', 'receipt_index_by_id:'..id, receipt);
+    redis.call('sadd', 'receipt_index_by_product:'..productID, receipt);
+    redis.call('sadd', 'receipt_index_by_tunnel:'..tunnel, receipt);
+    redis.call('sadd', 'receipt_index_by_server:'..serverID, receipt);
 
     redis.call('sadd', 'receipt_index_by_state:'..state, receipt);
     redis.call('HSET', key, 'state', state);
