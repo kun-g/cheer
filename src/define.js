@@ -49,7 +49,16 @@ initServer = function () {
   };
 };
 
-logError = function(log) { print('Error', log); };
+logError = function(log) {
+  if (log.err == null || log.err == undefined){
+    log.err ={};
+  }
+  if (log.stack != null && log.stack != undefined){
+    log.err.stack = log.stack;
+  }
+  log.err = JSON.stringify(log.err);
+  print('Error', log); 
+};
 logInfo = function(log) { print('Info', log); };
 logUser = function(log) { print('User', log); };
 logWarn = function(log) { print('Warn', log); };
@@ -261,6 +270,7 @@ initGlobalConfig = function (path, callback) {
         switch (type) {
           case TABLE_ITEM:
           case TABLE_ROLE: 
+          case TABLE_DUNGEON: 
             return JSON.parse(JSON.stringify(cfg[index])); //TODO: hotfix
             break;
           default:
@@ -277,7 +287,7 @@ initGlobalConfig = function (path, callback) {
     {name:TABLE_STAGE, func: initStageConfig}, {name:TABLE_QUEST}, {name: TABLE_COSTS},
     {name:TABLE_UPGRADE}, {name:TABLE_ENHANCE}, {name: TABLE_CONFIG}, {name: TABLE_VIP},
     {name:TABLE_SKILL}, {name:TABLE_CAMPAIGN}, {name: TABLE_DROP}, {name: TABLE_TRIGGER},
-    {name:TABLE_DP},{name:TABLE_ARENA}
+    {name:TABLE_DP},{name:TABLE_ARENA},{name:TABLE_BOUNTY}
   ];
   if (!path) path = "./";
   configTable.forEach(function (e) {
@@ -411,6 +421,27 @@ mapContact = function (target, source) {
   return target
 }
 
+generatePrize = function (cfg, dropInfo,rand) {
+  var reward;
+  if (rand == null || typeof rand == 'undefined') {
+    rand = Math.random;
+  }
+  if (cfg == null || typeof cfg == 'undefined') {
+    return [];
+  }
+  return reward = dropInfo.reduce((function(r, p) {
+    return r.concat(cfg[p]);
+  }), []).filter(function(p) {
+    return p && rand() < p.rate;
+  }).map(function(g) {
+    var e;
+    e = selectElementFromWeightArray(g.prize, rand());
+    return e;
+  });
+};
+
+
+
 logLevel = 0;
 
 updateStageStatus = function (stageStatus, player, abindex) {
@@ -496,6 +527,7 @@ ACT_DROPITEM = 103;
 ACT_EFFECT = 104;
 ACT_SkillCD = 105;
 ACT_EventDummy = 106;
+ACT_RangeAttackEffect = 107;
 ACT_PlaySound = 108;
 ACT_ChangeBGM = 109;
 ACT_Shock = 110;

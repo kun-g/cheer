@@ -68,19 +68,18 @@ describe('countUp', function () {
 
 
 
-describe('Helper', function () {
-  it('Object', function () {
-    var t ={};
-    tapObject(t, console.log);
-    t.newProperty(1,{})
-    console.log(t, t.newProperty)
-    t[1].newProperty('level',0)
-  });
-});
+//describe('Helper', function () {
+//  it('Object', function () {
+//    var t ={};
+//    tapObject(t, console.log);
+//    t.newProperty(1,{})
+//    console.log(t, t.newProperty)
+//    t[1].newProperty('level',0)
+//  });
+//});
 
 describe('Player', function () {
   before(function (done) {
-    console.log('-----------')
     initGlobalConfig('../../build/', done);
   });
 //  after(function () {
@@ -239,6 +238,29 @@ describe('Player', function () {
       m.isVisible = (i % 2) == 1;
     }
 
+    it('generateDungeonAward', function(done) {
+      var dung = {
+        result:DUNGEON_RESULT_WIN,
+      getConfig: function() {return [];},
+      killingInfo: [{dropInfo:6}],// type:1,count:400
+      isSweep:false,
+      prizeInfo :[],
+      random:function (){return 0.4;}
+      };
+      
+      var player = new playerLib.Player();
+      cmd = dungeonLib.DungeonCommandStream({id: 'DropPrize',dropID:5,showPrize:true},dung);
+      cmd.environment.rand =function (){return 0.4;}
+      cmd.process();
+      dung.prizeInfo.should.eql([ { weight: 2, type: 1, count: 100 } ]);
+      var res = player.generateDungeonAward(dung) ;
+      res.goldPrize.should.eql({ type: 1, count: 500 });
+
+      done();
+    });
+
+
+
     it('spell test', function () {
       dungeon = new dungeonLib.Dungeon({
         stage: 0,
@@ -265,6 +287,8 @@ describe('Player', function () {
           return heroes.filter(function (m) { return m.name != wizard.name; });
         }
       };
+      var  variables ={};
+      env.variable = function() {return variables;}
       env.getAliveHeroes= function() { return heroes;}
       env.getMonsters = function() { return monsters;}
       env.getObjectAtBlock = function(idx) {return monsters[idx];}
@@ -293,6 +317,15 @@ describe('Player', function () {
       var tar = me.selectTarget({targetSelection: {pool:'self', filter: ['Visible', 'Alive']}}, cmd);
       tar[0].should.have.property('name').equal(me.name);
 
+      
+      //it('RangeAttEff', function(done) {
+        console.log('=---------------------');
+        var dcmd = dungeonLib.DungeonCommandStream(null, env);
+        var thisSpell ={};
+        var res = me.doAction(thisSpell,[{type: 'RangeAttEff',dey: 1, eff:2}],{},monsters,dcmd) 
+        console.log(dcmd.print());
+       // done();
+      //});
     //  // Trigger condition TODO:
     //  var thisSpell = {};
     //  var ret = me.triggerCheck(thisSpell, [], {}, me, cmd);
@@ -345,6 +378,8 @@ describe('Player', function () {
     //  //me.castSpell(0, 1, cmd).should.equal('NotReady');
     //  me.doAction(thisSpell, [ {type: 'clearSpellCD'} ], {}, [me], cmd);
 
+
+
     //  //me.health = 10;
     //  //me.doAction(thisSpell, [ {type: 'setProperty', modifications: {health: {src: {health:1}, c:10} }} ],  {}, [me], cmd);
     //  //me.health.should.equal(30);
@@ -354,7 +389,6 @@ describe('Player', function () {
     //  //me.health.should.equal(10);
     //  //thisSpell.should.not.have.property('modifications');
 
-      // install && uninstall
       me.installSpell(1, 1, cmd);
       me.wTriggers.should.have.property('onBePhysicalDamage').have.property('0').equal(1);
       me.wTriggers.should.have.property('onBeSpellDamage').have.property('0').equal(1);
@@ -363,43 +397,46 @@ describe('Player', function () {
       me.wTriggers.should.not.have.property('onBeSpellDamage');
 
 
-      cmd = dungeonLib.DungeonCommandStream({id: 'InitiateAttack', block:0});
-      cmd.getEnvironment = function () { return env }
+      // install && uninstall
+      it('buff bug', function(done) {
+        cmd = dungeonLib.DungeonCommandStream({id: 'InitiateAttack', block:0});
+        cmd.getEnvironment = function () { return env }
 
-      var hero = heroes[0];
-      var npc = monsters[0];
-      //console.log(me,'before ====');
-      //var attackBefore = npc.attack;
-      //npc.installSpell(110,1,cmd);
-      //npc.attack.should.eql(attackBefore/2);
-      //for( var i = 0; i < 5 ; i ++) {
-      //  cmd.process();
-      //}
-    //  npc.attack.should.eql(attackBefore);
+        var hero = heroes[0];
+        var npc = monsters[0];
+        //console.log(me,'before ====');
+        //var attackBefore = npc.attack;
+        //npc.installSpell(110,1,cmd);
+        //npc.attack.should.eql(attackBefore/2);
+        //for( var i = 0; i < 5 ; i ++) {
+        //  cmd.process();
+        //}
+      //  npc.attack.should.eql(attackBefore);
 
-      dprint([hero.attack,'before ^',hero.wSpellDB]);
-      hero.installSpell(90,1,cmd);
-      dprint([hero.attack,'after ^',hero.wSpellDB]);
-      cmd.process();
-      cmd.process();
-      cmd.process();
-      dprint([hero.attack,'before v',hero.wSpellDB]);
-      hero.installSpell(92,1,cmd);
-      dprint([hero.attack,'after v',hero.wSpellDB]);
+        dprint([hero.attack,'before ^',hero.wSpellDB]);
+        hero.installSpell(90,1,cmd);
+        dprint([hero.attack,'after ^',hero.wSpellDB]);
+        cmd.process();
+        cmd.process();
+        cmd.process();
+        dprint([hero.attack,'before v',hero.wSpellDB]);
+        hero.installSpell(92,1,cmd);
+        dprint([hero.attack,'after v',hero.wSpellDB]);
 
-      cmd = dungeonLib.DungeonCommandStream({id: 'InitiateAttack', block:0});
-      cmd.getEnvironment = function () { return env }
+        cmd = dungeonLib.DungeonCommandStream({id: 'InitiateAttack', block:0});
+        cmd.getEnvironment = function () { return env }
 
 
-      cmd.process();
-      dprint([hero.attack,'step 1',hero.wSpellDB]);
-      cmd.process();
-      dprint([hero.attack,'step 2',hero.wSpellDB]);
-      //me.removeSpell(110, cmd);
-      //console.log(me,'removed ====');
-      //me.installSpell(6, 1, cmd);
-      //me.installSpell(12, 2, cmd);
+        cmd.process();
+        dprint([hero.attack,'step 1',hero.wSpellDB]);
+        cmd.process();
+        dprint([hero.attack,'step 2',hero.wSpellDB]);
+        //me.removeSpell(110, cmd);
+        //console.log(me,'removed ====');
+        //me.installSpell(6, 1, cmd);
+        //me.installSpell(12, 2, cmd);
 
+      });
 
     //  //var dcmd = new cmdStreamLib.DungeonCommandStream({id: 'Dialog', dialogId: 0});
     //  //me.installSpell(24, 1, dcmd);

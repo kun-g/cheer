@@ -27,7 +27,7 @@ loginBy = (arg, token, callback) ->
         res.setEncoding('utf8')
         res.on('data', (chunk) ->
           result = JSON.parse(chunk)
-          logInfo({action: 'login', type:  LOGIN_ACCOUNT_TYPE_91, code: result})
+          logInfo({action: 'login', type: passportType, code: result})
           if result.ErrorCode is '1'
             callback(null)
           else
@@ -390,7 +390,10 @@ exports.route = {
       account = -1
       if player then account = player.accountID
       dbLib.bindAuth(account, arg.typ, arg.id, arg.pass, (err, account) ->
-        handler([{REQ: rpcID, RET: RET_OK, aid: account}])
+        if account is  -1 or account is '-1'
+          handler([{REQ: rpcID, RET: RET_AccountHaveNoHero}])
+        else
+          handler([{REQ: rpcID, RET: RET_OK, aid: account}])
       )
     ,
     args: {}
@@ -581,6 +584,8 @@ exports.route = {
             times ?= 0
             killTimes = player.counters['worldBoss']['133']
             killTimes ?= 0
+            if killTimes is 0
+              result.position = 9999
 
             ret = {REQ: rpcID, RET: RET_OK}
             ret.arg ={

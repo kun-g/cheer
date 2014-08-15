@@ -311,8 +311,12 @@ class Wizard
         when 'resetSpellCD' then t.clearSpellCD(t.getActiveSpell(), cmd) for t in target
         when 'ignoreCardCost' then env.variable('ignoreCardCost', true)
         when 'dropItem' then cmd.routine?({id:'DropItem', list: a.dropList})
-        when 'dropPrize' then cmd.routine?({id:'DropPrize', dropID: a.dropID, me: @})
-        when 'rangeAttack', 'attack' then cmd.routine?({id: 'Attack', src: @, tar: t, isRange: true}) for t in target
+        when 'dropPrize'
+          cmd.routine?({ id:'DropPrize', dropID: a.dropID, me: @, showPrize: a.showPrize, motion: a.motion, ref: @.ref, effect: a.effect, pos:@pos})
+        when 'rangeAttack', 'attack'
+          a.effect = level.effect if level.effect?
+          a.delay = level.delay if level.delay?
+          cmd.routine?({id: 'Attack', src: @, tar: t, isRange: true,hurtDelay:a.hurtDelay, eff:a.effect, effDelay:a.effDelay}) for t in target
         when 'showUp' then cmd.routine?({id: 'ShowUp', tar: t}) for t in target
         when 'costCard' then cmd.routine?({id: 'CostCard', card: a.card})
         when 'showExit' then cmd.routine?({id: 'ShowExit' })
@@ -386,25 +390,15 @@ class Wizard
         when 'setProperty'
           modifications = getProperty(a.modifications, level.modifications)
           thisSpell.modifications = {} unless thisSpell.modifications?
-          @['buffCommonModifyProperties'] ={} unless @['buffCommonModifyProperties']?
-          oldValue = @['buffCommonModifyProperties']
           for property, formular of modifications
             val = calcFormular(variables, @, null, formular)
-            thisSpell.modifications[property] = 0 unless thisSpell.modifications[property]?
-            oldValue[property] = {'val' : @[property], 'ref' : 0}  unless oldValue[property]?
-            oldValue[property]['ref'] += 1
-            thisSpell.modifications[property] += val
             @[property] += val
-
+            thisSpell.modifications[property] = 0 unless thisSpell.modifications[property]?
+            thisSpell.modifications[property] += val
         when 'resetProperty'
           continue unless thisSpell
           for property, val of thisSpell.modifications
-            oldValue = @['buffCommonModifyProperties'][property]
-            @[property] -= val if not oldValue? or oldValue['val'] is @[property] - val
-
-            if oldValue?
-              oldValue['ref'] -= 1
-              delete @['buffCommonModifyProperties'][property] if oldValue['ref'] is 0
+            @[property] -= val
           delete thisSpell.modifications
         when 'clearDebuff', 'clearBuff'
           if a.type is 'clearDebuff'
@@ -429,6 +423,9 @@ class Wizard
           c.pos = a.pos if a.pos?
           cmd.routine?(c)
         when 'dialog' then cmd.routine?({id: 'Dialog', dialogId: a.dialogId})
+        when 'rangeAttackEff'
+          a.effect = level.effect if level.effect?
+          cmd.routine?({id: 'RangeAttackEffect', dey: a.delay, eff: a.effect, src:@, tar: target})
 
     thisSpell.effectCount += 1 if thisSpell?.effectCount?
 
