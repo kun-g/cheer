@@ -145,7 +145,7 @@ class Player extends DBWrapper
 
   getType: () -> 'player'
 
-  getTotalPkTimes: () -> return 5
+  getTotalPkTimes: () -> return getPrivilege('pkCount')
   claimPkPrice: (callback) ->
     me = @
     helperLib.getPositionOnLeaderboard(helperLib.LeaderboardIdx.Arena, @name, 0, 0, (err, result) ->
@@ -1145,6 +1145,12 @@ class Player extends DBWrapper
 
     switch op
       when 'vipLevel' then return level
+      when 'chest_vip' then return cfg?.privilege?.chest_vip? 0
+      when 'ContinuousRaids' then return cfg?.privilege?.ContinuousRaids? false
+      when 'pkCount' then return cfg?.privilege?.pkCount? 0
+      when 'tuHaoCount' then return cfg?.privilege?.tuHaoCount? 0
+      when 'EquipmentRobbers' then return cfg?.privilege?.EquipmentRobbers? 0
+      when 'EvilChieftains' then return cfg?.privilege?.EvilChieftains? 0
       when 'blueStarCost' then return cfg?.blueStarCost ? 0
       when 'goldAdjust' then return cfg?.goldAdjust ? 0
       when 'expAdjust' then return cfg?.expAdjust ? 0
@@ -1157,6 +1163,7 @@ class Player extends DBWrapper
   expAdjust: () -> @vipOperation('expAdjust')
   wxpAdjust: () -> @vipOperation('wxpAdjust')
   energyLimit: () -> @vipOperation('energyLimit')
+  getPrivilege: (name) -> @vipOperation(name)
 
   hireFriend: (name, handler) ->
     return false unless handler?
@@ -1754,6 +1761,8 @@ getVip = (rmb) ->
   level = -1
   for i, lv of tbl.requirement when lv.rmb <= rmb
     level = i
+  levelCfg = tbl.levels[level];
+  levelCfg.privilege = tbl.requirement[level].privilege;
   return {level: level, cfg: tbl.levels[level]}
 
 registerConstructor(Player)

@@ -323,7 +323,9 @@ exports.events = {
       storeType: "player",
       id: 0,
       actived: 1,
-      count: 3,
+      count: (obj, util) ->
+        return obj.getPrivilege('tuHaoCount')
+      ,
       canReset: (obj, util) ->
         return util.diffDay(obj.timestamp.goblin, util.today)
       ,
@@ -336,7 +338,9 @@ exports.events = {
       storeType: "player",
       id: 1,
       actived: 1,
-      count: 3,
+      count: (obj, util) ->
+        return obj.getPrivilege('EvilChieftains')
+      ,
       canReset: (obj, util) ->
         return ( util.diffDay(obj.timestamp.enhance, util.today)) and (
           util.today.weekday() is 2 or
@@ -354,7 +358,9 @@ exports.events = {
       storeType: "player",
       id: 2,
       actived: 1,
-      count: 3,
+      count: (obj, util) ->
+        return obj.getPrivilege('EquipmentRobbers')
+      ,
       canReset: (obj, util) ->
         return (util.diffDay(obj.timestamp.weapon, util.today)) and (
           util.today.weekday() is 1 or
