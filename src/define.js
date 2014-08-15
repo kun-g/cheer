@@ -205,6 +205,42 @@ initStageConfig = function (cfg) {
   return ret;
 };
 
+function initVipConfig (cfg){
+  var ret = {};
+  var VIP = {};
+  var requirement = [];
+  var levels = [];
+  VIP.requirement = requirement;
+  VIP.levels = levels;
+  ret.VIP = VIP;
+  if (cfg.VIP){
+    var c = cfg;
+    if (c.VIP.requirement) {
+      var requirementCount = c.VIP.requirement.length;
+      //init
+      for (var kk in c.VIP.requirement){
+        ret.VIP.requirement[kk] = {};
+        ret.VIP.requirement[kk].rmb = c.VIP.requirement[kk].rmb;
+        ret.VIP.requirement[kk].privilege = [];
+      }
+      //
+      for (var k = 0;k < c.VIP.requirement.length;k++){
+        var privil = c.VIP.requirement[k].privilege;
+        if (privil){
+          for (var i = 0;i < privil.length;i++)
+            for (var j = k;j < requirementCount;j++){
+                ret.VIP.requirement[j].privilege[privil[i].name] = privil[i].data;
+            }
+        }
+      }
+    }
+    if (c.VIP.levels){
+      ret.VIP.levels = c.VIP.levels;
+    }
+  }
+  return ret;
+}
+
 prepareForABtest = function (cfg) {
   var ret = [];
   var maxABIndex = 0;
@@ -285,7 +321,7 @@ initGlobalConfig = function (path, callback) {
     {name:TABLE_ROLE}, {name:TABLE_LEVEL}, {name:TABLE_VERSION}, {name:TABLE_FACTION},
     {name:TABLE_ITEM}, {name:TABLE_CARD}, {name:TABLE_DUNGEON, func:varifyDungeonConfig},
     {name:TABLE_STAGE, func: initStageConfig}, {name:TABLE_QUEST}, {name: TABLE_COSTS},
-    {name:TABLE_UPGRADE}, {name:TABLE_ENHANCE}, {name: TABLE_CONFIG}, {name: TABLE_VIP},
+    {name:TABLE_UPGRADE}, {name:TABLE_ENHANCE}, {name: TABLE_CONFIG}, {name: TABLE_VIP, func:initVipConfig},
     {name:TABLE_SKILL}, {name:TABLE_CAMPAIGN}, {name: TABLE_DROP}, {name: TABLE_TRIGGER},
     {name:TABLE_DP},{name:TABLE_ARENA},{name:TABLE_BOUNTY}
   ];
