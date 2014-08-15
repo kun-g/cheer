@@ -167,8 +167,10 @@ initCampaign = (me, allCampaign, abIndex) ->
         if typeof actived is 'function' then actived = actived(me, util)
         evt = { NTF: Event_BountyUpdate, arg: { bid: e.id, sta: actived} }
         count = me.counters[key] ? 0
-        if typeof count is 'function' then count = count(me, util)
-        if e.count then evt.arg.cnt = e.count - count
+        totalCount = e.count
+        if typeof totalCount is 'function'
+          totalCount = totalCount(me, util)
+        if e.count then evt.arg.cnt = totalCount - count
         if key is 'hunting'
           if not moment().isSame(gHuntingInfo.timestamp, 'day') or
              not gHuntingInfo.timestamp?
