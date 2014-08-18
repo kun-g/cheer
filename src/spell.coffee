@@ -35,6 +35,9 @@ class Wizard
     @wSpellMutex = {}
     @wPreBuffState = { rs : BUFF_TYPE_NONE, ds : BUFF_TYPE_NONE, hs : BUFF_TYPE_NONE }
 
+  isAlive: () ->
+    return @health > 0
+
   installSpell: (spellID, level, cmd, delay = 0) ->
     cfg = getSpellConfig(spellID)
     level = 1 unless level? > 0
@@ -151,7 +154,7 @@ class Wizard
     thisSpell = @wSpellDB[spellID]
     return [false, 'NotLearned'] unless thisSpell
     return [true, 'NoCD'] unless cfg.triggerCondition
-    return [false, 'Dead'] unless @health > 0
+    return [false, 'Dead'] unless @isAlive()
 
     cdConfig = (c for c in cfg.triggerCondition when c.type == 'countDown')
     return [true, 'NoCD'] unless cdConfig.length > 0
@@ -161,7 +164,7 @@ class Wizard
     preCD = thisSpell.cd
     if isReset
       thisSpell.cd = cd
-    else if @health <= 0
+    else if not @isAlive()
       thisSpell.cd = -1
     else
       thisSpell.cd -= 1 unless thisSpell.cd == 0
@@ -261,7 +264,7 @@ class Wizard
       switch limit.type
         when 'chance' then return [false, 'NotFortunate'] unless env.chanceCheck(getProperty(limit.chance, level.chance))
         when 'card' then return [false, 'NoCard'] unless env.haveCard(limit.id)
-        when 'alive' then return [false, 'Dead'] unless @health > 0
+        when 'alive' then return [false, 'Dead'] unless @isAlive()
         when 'visible' then return [false, 'visible'] unless @isVisible
         when 'needTarget' then return [false, 'No target'] unless target?
         when 'countDown'
