@@ -250,7 +250,7 @@ class Player extends DBWrapper
           r = []
           for k, v of p
             r = r.concat(v)
-          r = r.filter((e) => not (e.type >=1 and e.type <= 4 and e.count <= 0))
+          r = r.filter((e) => not (e.type >= PRIZETYPE_GOLD and e.type <= PRIZETYPE_WXP and e.count <= 0))
           prize.push(r)
           ret = ret.concat(@claimPrize(r))
         @log('sweepDungeon', { stage: stage, multiple: multiple, reward: prize })
@@ -964,6 +964,7 @@ class Player extends DBWrapper
     if @isEquiped(slot) then return { ret: RET_Unknown }
 
     item = @getItemAt(slot)
+    return { ret: RET_Unknown } unless item?
     count = item.count
     if item?.transPrize or item?.sellprice
       ret = @removeItem(null, null, slot)

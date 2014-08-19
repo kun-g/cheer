@@ -106,7 +106,7 @@ class Hero extends Unit
     @level = 0
     @levelUp()
     @gearUp()
-    if @health <= 0 then @health = 1
+    if not @isAlive() then @health = 1
     if @attack <= 0 then @attack = 1
     @maxHP = @health
 

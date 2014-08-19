@@ -581,6 +581,11 @@ RIGHT = 1;
 DOWN  = 2;
 LEFT  = 3;
 
+ExploreResult_Explored = 0
+ExploreResult_Entrance = 1
+ExploreResult_DeadEnd = -1
+
+
 isInstantAction = function (act) { return act > 100; };
 
 RPC_GameStartDungeon = 1;
