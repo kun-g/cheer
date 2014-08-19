@@ -1110,7 +1110,14 @@ dungeonCSConfig = {
     output: (env) ->
       e = env.variable('unit')
       return [] if e.dead
-      eEv = {id: ACT_Enemy, pos: e.pos, rid: e.id, hp: e.health, ref: e.ref, typ: e.type, keyed: e.keyed}
+      eEv = {
+        id: ACT_Enemy,
+        pos: e.pos,
+        rid: e.id,
+        hp: e.health,
+        ref: e.ref,
+        typ: e.type,
+        keyed: e.keyed}
       eEv.dc = e.attack if e.attack?
       eEv.eff = e.effect if e.effect?
       if getBasicInfo(e) then eEv.role = getBasicInfo(e)
@@ -1464,7 +1471,8 @@ dungeonCSConfig = {
       else
         onEvent(damageType+'Damage', @, env.variable('src'), env.variable('tar'))
 
-      onEvent('DeathStrike', @, env.variable('src'), env.variable('tar')) if env.variable('tar').health <= env.variable('damage')
+      if env.variable('tar').health <= env.variable('damage')
+        onEvent('DeathStrike', @, env.variable('src'), env.variable('tar'))
       env.variable('tar').health -= env.variable('damage')
 
       onEvent('CriticalDamage', @, env.variable('src'), env.variable('tar')) if env.variable('critical')
