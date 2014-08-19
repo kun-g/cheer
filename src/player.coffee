@@ -403,32 +403,54 @@ class Player extends DBWrapper
     @purchasedCount[id] = 0 unless @purchasedCount[id]?
     @purchasedCount[id] += count
 
-  createHero: (heroData) ->
+  createPlayer: (arg, account, cb) ->
+    @setName(arg.nam)
+    @accountID = account
+    @initialize()
+    @createHero({
+      name: arg.nam
+      class: arg.cid
+      gender: arg.gen
+      hairStyle: arg.hst
+      hairColor: arg.hcl
+      })
+    prize = queryTable(TABLE_CONFIG, 'InitialEquipment')
+    for k, p of prize
+      @claimPrize(p.filter((e) => isClassMatch(arg.cid, e.classLimit)))
+    logUser({
+      name: arg.nam
+      action: 'register'
+      class: arg.cid
+      gender: arg.gen
+      hairStyle: arg.hst
+      hairColor: arg.hcl
+      })
+    @saveDB(cb)
+
+  createHero: (heroData, isSwitch) ->
     if heroData?
       return null if @heroBase[heroData.class]?
-      heroData.xp = 0
-      heroData.equipment = []
-      @heroBase[heroData.class] = heroData
-      @switchHero(heroData.class)
+      if isSwitch is true
+        heroData.xp = @hero.xp
+        prize = queryTable(TABLE_CONFIG, 'InitialEquipment')
+        heroData.equipment = []
+        @heroBase[heroData.class] = heroData
+        @switchHero(heroData.class)
+        for k, p of prize
+          @claimPrize(p.filter((e) => isClassMatch(heroData.class, e.classLimit)))
+      else
+        heroData.xp = 0
+        heroData.equipment = []
+        @heroBase[heroData.class] = heroData
+        @switchHero(heroData.class)
       return @createHero()
     else if @hero
       bag = @inventory
       equip = []
-      equip.push({ cid: bag.get(e).classId, eh: bag.get(e).enhancement }) for i, e of @equipment when bag.get(e)?
-      if @hero.wSpellDB #TODO: remove this
-        @hero = {
-          xp: @hero.xp,
-          name: @name,
-          class: @hero.class,
-          gender: @hero.gender,
-          hairStyle: @hero.hairStyle,
-          hairColor: @hero.hairColor,
-          equipment: equip
-          equipSlot: @equipment
-        }
-        @save()
-      else
-        @hero['equipment'] = equip
+      equip.push({ 
+        cid: bag.get(e).classId
+        eh: bag.get(e).enhancement }) for i, e of @equipment when bag.get(e)?
+      @hero['equipment'] = equip
 
       hero = new Hero(@hero)
       bf = hero.calculatePower()

@@ -195,15 +195,16 @@ exports.route = {
         (account, cb) -> dbLib.createNewPlayer(account, gServerName, name, cb),
         (account, cb) ->
           player = new Player()
-          player.setName(name)
-          player.accountID = account
-          player.initialize()
-          player.createHero({ name: name, class: arg.cid, gender: arg.gen, hairStyle: arg.hst, hairColor: arg.hcl })
-          prize = queryTable(TABLE_CONFIG, 'InitialEquipment')
-          for k, p of prize
-            player.claimPrize(p.filter((e) => isClassMatch(arg.cid, e.classLimit)))
-          logUser({ name: name, action: 'register', class: arg.cid, gender: arg.gen, hairStyle: arg.hst, hairColor: arg.hcl })
-          player.saveDB(cb)
+          player.createPlayer(arg, account, cb)
+          #player.setName(name)
+          #player.accountID = account
+          #player.initialize()
+          #player.createHero({ name: name, class: arg.cid, gender: arg.gen, hairStyle: arg.hst, hairColor: arg.hcl })
+          #prize = queryTable(TABLE_CONFIG, 'InitialEquipment')
+          #for k, p of prize
+          #  player.claimPrize(p.filter((e) => isClassMatch(arg.cid, e.classLimit)))
+          #logUser({ name: name, action: 'register', class: arg.cid, gender: arg.gen, hairStyle: arg.hst, hairColor: arg.hcl })
+          #player.saveDB(cb)
       ], (err, result) ->
         if err
           handle([{REQ: rpcID, RET: +err.message}])
@@ -212,6 +213,21 @@ exports.route = {
       )
     ,
     args: {'pid':'string', 'nam':'string', 'cid':'number', 'gen':'number', 'hst':'number', 'hcl':'number'}
+  },
+  RPC_SwitchHero: {
+    id: 106,
+    func: (arg, player, handler, rpcID, socket) ->
+      oldHero = player.createHero()
+      player.createHero({
+        name: oldHero.name
+        class: arg.cid
+        gender: oldHero.gender
+        hairStyle: oldHero.hairStyle
+        hairColor: oldHero.hairColor
+        }, true)
+      handle([{REQ: rpcID, RET: RET_OK}]);
+    ,
+    args: {'cid':'number'}
   },
   RPC_ValidateName: {
     id: 102,
