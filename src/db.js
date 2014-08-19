@@ -404,7 +404,13 @@ exports.initializeDB = function (cfg,finishCb) {
     logError({info:'Parse Message Error', message:message});
   });
 
-  dbClient.on('error', function (err) { logError({type: 'DB_Error', error: err.error}); });
+  dbClient.on('error', function (err) { 
+      var msg = err.error;
+      if (msg == null) {
+          msg = err;
+      }
+      logError({type: 'DB_Error', error: err}); 
+  });
   publisher.on('error', function (err) { logError({type: 'Publisher_Error', error: err.error}); });
   subscriber.on('error', function (err) { logError({type: 'Subscriber_Error', error: err.error}); });
   accountDBClient.on('error', function (err) { logError({type: 'AccountDB_Error', error: err.error}); });
