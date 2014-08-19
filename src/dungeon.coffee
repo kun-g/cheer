@@ -353,25 +353,25 @@ class Dungeon
       @level.blocks[obj.pos]?.addRef(obj)
 
   explore: (tar) ->
-    return 0 if @level.blocks[tar].explored
-    return 1 if tar is @getEntrance()
-    return 1 if Array.isArray(@getEntrance()) and @getEntrance().indexOf(tar) isnt -1
+    return ExploreResult_Explored if @level.blocks[tar].explored
+    return ExploreResult_Entrance if tar is @getEntrance()
+    return ExploreResult_Entrance if Array.isArray(@getEntrance()) and @getEntrance().indexOf(tar) isnt -1
 
     access = false
     for i in [0..3]
       nx = tar%DG_LEVELWIDTH
       ny = Math.floor(tar/DG_LEVELWIDTH)
       switch (i)
-        when 0 then ny--
-        when 1 then nx++
-        when 2 then ny++
-        when 3 then nx--
+        when UP then ny--
+        when RIGHT then nx++
+        when DOWN then ny++
+        when LEFT then nx--
 
       n = nx + ny*DG_LEVELWIDTH
-      return 1 if @level.blocks[n]?.explored
+      return ExploreResult_Entrance if @level.blocks[n]?.explored
 
     @onReplayMissMatch()
-    return -1
+    return ExploreResult_DeadEnd
 
   getRank: () -> @level?.rank
 
@@ -1050,8 +1050,8 @@ dungeonCSConfig = {
     ,
     output: (env) ->
       switch env.variable('exploreResult')
-        when -1 then {id : ACT_POPTEXT, arg : 'Invalid move'}
-        when 0 then {id : ACT_POPTEXT, arg : 'Explored block'}
+        when ExploreResult_DeadEnd then {id : ACT_POPTEXT, arg : 'Invalid move'}
+        when ExploreResult_Explored then {id : ACT_POPTEXT, arg : 'Explored block'}
         else []
   },
   SpellCD: {
