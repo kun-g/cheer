@@ -1006,16 +1006,10 @@ dungeonCSConfig = {
 
         o.onEvent('onEnterLevel', @) for o in env.getObjects()
 
-      @routine({id: 'TickSpell'})
-    ,
-    output: (env) ->
-      ev = {id: ACT_EnterLevel, "lvl": env.getCurrentLevel()}
-      positions = (h.pos for h in env.getHeroes())
-      ev.pos = positions[0] if env.getHeroes()[0]?.health > 0
-      ev.pos1 = positions[1] if env.getHeroes()[1]?.health > 0
-      ev.pos2 = positions[2] if env.getHeroes()[2]?.health > 0
-      ev.pos3 = positions[3] if env.getHeroes()[3]?.health > 0
 
+
+
+      @routine({id: 'TickSpell'})
       heroInfo = env.getAliveHeroes()
                   .filter((e) -> e?.ref? )
                   .sort((a, b) -> return a.order-b.order)
@@ -1028,6 +1022,18 @@ dungeonCSConfig = {
                   )
                   .map( (h) -> return genUnitInfo(h, true) )
                   .filter( (e) -> e? )
+      env.variable('heroInfo', heroInfo)
+
+    ,
+    output: (env) ->
+      ev = {id: ACT_EnterLevel, "lvl": env.getCurrentLevel()}
+      positions = (h.pos for h in env.getHeroes())
+      ev.pos = positions[0] if env.getHeroes()[0]?.health > 0
+      ev.pos1 = positions[1] if env.getHeroes()[1]?.health > 0
+      ev.pos2 = positions[2] if env.getHeroes()[2]?.health > 0
+      ev.pos3 = positions[3] if env.getHeroes()[3]?.health > 0
+
+      heroInfo = env.variable('heroInfo')
 
       ret = [ev]
       ret = ret.concat(heroInfo)
@@ -1192,7 +1198,7 @@ dungeonCSConfig = {
         tar = env.variable('tar')
         rangeEff = [{
           id: ACT_RangeAttackEffect,
-          dey:env.variable('dey'),
+          dey:env.variable('effDelay'),
           eff:env.variable('eff'),
           src:{act: src.ref, pos: src.pos},
           tar:{act: tar.ref, pos: tar.pos} }]
@@ -1200,7 +1206,7 @@ dungeonCSConfig = {
         rangeEff =[]
 
       flag = if env.variable('hit') then HP_RESULT_TYPE_HIT else HP_RESULT_TYPE_MISS
-      return [{act: env.variable('src').ref, id: ACT_ATTACK, ref: env.variable('tar').ref, res:flag}].concat(rangeEff)
+      return [{act: env.variable('src').ref, id: ACT_ATTACK, ref: env.variable('tar').ref, res:flag, rng:env.variable('isRange')}].concat(rangeEff)
   },
   ShiftOrder: {
     output: (env) -> [{id:ACT_SHIFTORDER}]
@@ -1470,6 +1476,7 @@ dungeonCSConfig = {
 
       if damage > 0
         delay = 0.3
+        delay = env.variable('hurtDelay') if env.variable('hurtDelay')
         delay = env.variable('delay') if env.variable('delay')
         ret.push({act:env.variable('tar').ref, id: ACT_HURT, dey:delay}) unless env.variable('ignoreHurt')
         ret.push({act:env.variable('tar').ref, id: ACT_POPHP, num:damage, flg:flag, dey:delay})
@@ -1556,6 +1563,29 @@ dungeonCSConfig = {
         eff:env.variable('eff'),
         src:{act: src.ref, pos: src.pos},
         tar:tar.map((e) -> return {act: e.ref, pos: e.pos}) }]  if src? and tar?
+  },
+  ShowBubble: {
+    output: (env) ->
+      if env.variable('pos')?
+        [{
+          id:ACT_Bubble,
+          pos:env.variable('pos'),
+          eff:env.variable('eff'),
+          typ:env.variable('typ'),
+          cont:env.variable('cont'),
+          dey:env.variable('dey'),
+          dur:env.variable('dur')
+        }]
+      else
+        [{
+          id:ACT_Bubble,
+          act:env.variable('act'),
+          eff:env.variable('eff'),
+          typ:env.variable('typ'),
+          cont:env.variable('cont'),
+          dey:env.variable('dey'),
+          dur:env.variable('dur')
+        }]
   }
 }
 

@@ -895,7 +895,12 @@ class Player extends DBWrapper
     newItem.enhancement = item.enhancement
     ret = ret.concat(this.aquireItem(newItem))
     eh = newItem.enhancement.map((e) -> {id:e.id, lv:e.level})
-    ret = ret.concat({NTF: Event_InventoryUpdateItem, arg:{syn:this.inventoryVersion, god:this.gold, itm:[{sid: this.queryItemSlot(newItem), stc: 1, eh:eh}]}})
+    ret = ret.concat({
+      NTF: Event_InventoryUpdateItem,
+      arg:{
+        syn:this.inventoryVersion,
+        god:this.gold,
+        itm:[{sid: this.queryItemSlot(newItem), stc: 1, eh:eh, xp: newItem.xp}]}})
   
     @log('levelUpItem', { slot: slot, id: item.id, level: item.rank })
   
@@ -903,7 +908,7 @@ class Player extends DBWrapper
       dbLib.broadcastEvent(BROADCAST_ITEM_LEVEL, {who: @name, what: item.id, many: newItem.rank})
 
     @onEvent('Equipment')
-    return { out: {cid: newItem.id, sid: @queryItemSlot(newItem), stc: 1, sta: 1, eh: eh, xp: newItem.xp}, res: ret }
+    return { out: {cid: newItem.id, sid: @queryItemSlot(newItem), stc: 1, sta: 1, eh: eh}, res: ret }
 
   upgradeItemQuality: (slot) ->
     item = @getItemAt(slot)
@@ -914,7 +919,7 @@ class Player extends DBWrapper
       ret.newItem.enhancement = enhance
       ret.newItem.xp = item.xp
       eh = newItem.enhancement.map((e) -> {id:e.id, lv:e.level})
-      ret.res.push({NTF: Event_InventoryUpdateItem, arg: {syn:this.inventoryVersion, itm:[{sid: @queryItemSlot(newItem), eh:eh}]}})
+      ret.res.push({NTF: Event_InventoryUpdateItem, arg: {syn:this.inventoryVersion, itm:[{sid: @queryItemSlot(newItem), eh:eh, xp: newItem.xp}]}})
     return ret
 
   craftItem: (slot) ->
@@ -949,7 +954,7 @@ class Player extends DBWrapper
     @onEvent('Equipment')
 
     if level >= 32
-      dbLib.broadcastEvent(BROADCAST_ENHANCE, {who: @name, what: equip.id, many: level})
+      dbLib.broadcastEvent(BROADCAST_ENHANCE, {who: @name, what: equip.id, many: level+1})
   
     eh = equip.enhancement.map((e) -> {id:e.id, lv:e.level})
     ret = ret.concat({NTF: Event_InventoryUpdateItem, arg: {syn:this.inventoryVersion, itm:[{sid: itemSlot, eh:eh}]}})

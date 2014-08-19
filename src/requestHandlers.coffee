@@ -261,16 +261,22 @@ exports.route = {
           if result.RET is RET_OK and initialData?
             replay = arg.rep
 
+            logInfo('Creating Dungeon')
             dungeon = new dungeonLib.Dungeon(initialData)
+            logInfo('Initializing Dungeon')
             dungeon.initialize()
             try
+              logInfo('Replay Dungeon')
               dungeon.replayActionLog(replay)
             catch err
               status = 'Replay Failed'
               dungeon.result = DUNGEON_RESULT_FAIL
             finally
+              logInfo('Claim Dungeon Award')
               evt = evt.concat(player.claimDungeonAward(dungeon))
+              logInfo('Releasing Dungeon')
               player.releaseDungeon()
+              logInfo('Saving')
               player.saveDB()
         else
           status = 'No dungeon'
@@ -384,7 +390,7 @@ exports.route = {
       account = -1
       if player then account = player.accountID
       dbLib.bindAuth(account, arg.typ, arg.id, arg.pass, (err, account) ->
-        if account is  -1
+        if account is  -1 or account is '-1'
           handler([{REQ: rpcID, RET: RET_AccountHaveNoHero}])
         else
           handler([{REQ: rpcID, RET: RET_OK, aid: account}])

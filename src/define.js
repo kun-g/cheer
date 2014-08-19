@@ -270,6 +270,7 @@ initGlobalConfig = function (path, callback) {
         switch (type) {
           case TABLE_ITEM:
           case TABLE_ROLE: 
+          case TABLE_DUNGEON: 
             return JSON.parse(JSON.stringify(cfg[index])); //TODO: hotfix
             break;
           default:
@@ -286,7 +287,7 @@ initGlobalConfig = function (path, callback) {
     {name:TABLE_STAGE, func: initStageConfig}, {name:TABLE_QUEST}, {name: TABLE_COSTS},
     {name:TABLE_UPGRADE}, {name:TABLE_ENHANCE}, {name: TABLE_CONFIG}, {name: TABLE_VIP},
     {name:TABLE_SKILL}, {name:TABLE_CAMPAIGN}, {name: TABLE_DROP}, {name: TABLE_TRIGGER},
-    {name:TABLE_DP},{name:TABLE_ARENA}
+    {name:TABLE_DP},{name:TABLE_ARENA},{name:TABLE_BOUNTY}
   ];
   if (!path) path = "./";
   configTable.forEach(function (e) {
@@ -532,6 +533,7 @@ ACT_ChangeBGM = 109;
 ACT_Shock = 110;
 ACT_Blink = 111;
 ACT_Tutorial = 112;
+ACT_Bubble = 113;
 
 ACT_Block = 201;
 ACT_Enemy = 202;
