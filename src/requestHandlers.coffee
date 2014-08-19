@@ -1,7 +1,7 @@
 require('./define')
 dbLib = require('./db')
 helperLib = require('./helper')
-{DBWrapper, updateMercenaryMember, addMercenaryMember, getPlayerHero} = require './dbWrapper'
+{DBWrapper, getPlayerHero} = require './dbWrapper'
 async = require('async')
 http = require('http')
 https = require('https')

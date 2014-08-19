@@ -10,7 +10,7 @@ dbWrapper = require('./dbWrapper');
 http = require('http');
 var domain = require('domain').create();
 domain.on('error', function (err) {
-  console.log("UnhandledError", err.message, err.stack);
+  console.log("UnhandledError", err, err.message, err.stack);
 });
 
 //playerCounter = 0;
@@ -247,10 +247,10 @@ function deliverReceipt (receipt, tunnel, cb) {
         };
 
   async.waterfall([
-    function (cb) { dbWrapper.updateReceipt(receipt, RECEIPT_STATE_AUTHORIZED, cb); },
+    function (cb) { dbLib.updateReceipt(receipt, RECEIPT_STATE_AUTHORIZED, cb); },
     function (_, cb) { dbLib.getPlayerNameByID(receiptInfo.id, serverName, cb); },
     function (name, cb) { dbLib.deliverMessage(name, message, cb, serverName); },
-    function (_, cb) { dbWrapper.updateReceipt(receipt, RECEIPT_STATE_DELIVERED, cb); }
+    function (_, cb) { dbLib.updateReceipt(receipt, RECEIPT_STATE_DELIVERED, cb); }
   ], cb);
 }
 

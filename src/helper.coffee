@@ -4,8 +4,6 @@ moment = require('moment')
 dbLib = require('./db')
 dbWrapper = require('./dbWrapper')
 async = require('async')
-# Leaderboard
-# redis.LOG_WARNING
 
 CONST_MAX_WORLD_BOSS_TIMES = 200
 exports.ConstValue = {WorldBossTimes : CONST_MAX_WORLD_BOSS_TIMES}
@@ -724,6 +722,7 @@ exports.dbScripts = {
     local rank = redis.call('ZRANK', key, name);
 
     local rivalLst = {};
+    --redis.log(redis.LOG_WARNING, rank, 'b', board, '@', count);
     if rank <= count then
       for index = 0, rank-1 do 
         table.insert(rivalLst,redis.call('zrange', key, index, index, 'withscores'));
@@ -753,7 +752,6 @@ exports.dbScripts = {
     local delta, rand, names, retrys = ARGV[4], ARGV[5], ARGV[6], ARGV[7];
     local key = 'Leaderboard.battleforce';
     local myRange = redis.call('ZRANK', key, myName);
-    redis.log(redis.LOG_WARNING, myName, 'my',myRange,'ran',range,'???');
     local from = myRange - range;
     local to = myRange + range;
     local nameMask = {}
@@ -807,6 +805,31 @@ exports.dbScripts = {
       championRank = secondRank;
     end 
     return championRank;
+  """
+
+  updateReceipt: """
+    local receipt, state, time = ARGV[1], ARGV[2], ARGV[3]; 
+    local key = 'Receipt.'..receipt; 
+    local indexKey = '';
+
+    local id, productID, serverID, tunnel = ARGV[4], ARGV[5], ARGV[6], ARGV[7];
+    local year, month, day = ARGV[8], ARGV[9], ARGV[10];
+    redis.call('HSET', key, 'id', id); 
+    redis.call('HSET', key, 'productID', productID);
+    redis.call('HSET', key, 'serverID', serverID);
+    redis.call('HSET', key, 'tunnel', tunnel);
+    redis.call('HSET', key, 'creationTime', time);
+
+    redis.call('sadd', 'receipt_index_by_time:'..year..'_'..month..'_'..day, receipt);
+    redis.call('sadd', 'receipt_index_by_id:'..id, receipt);
+    redis.call('sadd', 'receipt_index_by_product:'..productID, receipt);
+    redis.call('sadd', 'receipt_index_by_tunnel:'..tunnel, receipt);
+    redis.call('sadd', 'receipt_index_by_server:'..serverID, receipt);
+
+    redis.call('sadd', 'receipt_index_by_state:'..state, receipt);
+    redis.call('HSET', key, 'state', state);
+    redis.call('HSET', key, 'time_'..state, time);
+    return state
   """
 
   tryAddLeaderboardMember: """
