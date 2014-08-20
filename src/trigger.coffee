@@ -4,7 +4,7 @@ filterObject = (me, objects, filters, env) ->
   for f in filters
     srcFaction = me.faction ? f.faction
     switch f.type
-      when 'alive' then result = (p for p in result when p.health > 0)
+      when 'alive' then result = (p for p in result when p.isAlive())
       when 'same-faction' then result = (o for o in result when o.faction is srcFaction)
       when 'role-id' then result = (o for o in result when o.roleID is f.roleID)
       when 'visible' then result = (p for p in result when p.isVisible)

@@ -22,7 +22,7 @@ describe('DB', function () {
       "Publisher": { "IP": dbIp, "PORT": 6379},
       "Subscriber": { "IP": dbIp, "PORT": 6379}
     }, function() {
-      initGlobalConfig('../../build/', done);
+      done();
     });
   });
 
@@ -119,24 +119,26 @@ describe('DB', function () {
   describe('updateReceipt', function () {
     it('basic', function (done) {
       var receipt = '0000553801011405638359AppStore';
-      function shouldBeOne(err, result) {
-        result.should.eql(1);
-      }
+      function shouldBeOne(err, result) { result.should.eql(1); }
+      function shouldBeZero(err, result) { result.should.eql(0); }
       async.series([
         function (cb) {
           accountDBClient.del('Receipt.'+receipt, cb);
         },
         function (cb) {
-          dbLib.updateReceipt(receipt, 'New', 5538, 1, 1, 'AppStore', 
+          dbLib.updateReceipt(receipt, 'New', 5538, 1, 1, 'AppStore', helperLib.currentTime(true),
             function (err, result) {
               result.should.eql('New');
+              accountDBClient.sismember('receipt_index_by_state:'+'New', receipt, shouldBeOne);
               cb(err);
             });
         },
         function (cb) {
-          dbLib.updateReceipt(receipt, 'Old', 5538, 1, 1, 'AppStore', 
+          dbLib.updateReceipt(receipt, 'Old', 5538, 1, 1, 'AppStore', helperLib.currentTime(true),
             function (err, result) {
               result.should.eql('Old');
+              accountDBClient.sismember('receipt_index_by_state:'+'Old', receipt, shouldBeOne);
+              accountDBClient.sismember('receipt_index_by_state:'+'New', receipt, shouldBeZero);
               cb(err);
             });
         },

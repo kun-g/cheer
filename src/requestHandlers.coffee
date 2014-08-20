@@ -413,14 +413,12 @@ exports.route = {
   RPC_BindSubAuth: {
     id: 105,
     func: (arg, player, handler, rpcID, socket) ->
-      account = -1
-      if player then account = player.accountID
-      dbLib.bindAuth(account, arg.typ, arg.id, arg.pass, (err, account) ->
-        if account is  -1 or account is '-1'
-          handler([{REQ: rpcID, RET: RET_AccountHaveNoHero}])
-        else
-          handler([{REQ: rpcID, RET: RET_OK, aid: account}])
-      )
+      if player?
+        dbLib.bindAuth(player.accountID, arg.typ, arg.id, arg.pass, (err, account) ->
+            handler([{REQ: rpcID, RET: RET_OK, aid: account}])
+        )
+      else
+        handler([{REQ: rpcID, RET: RET_AccountHaveNoHero}])
     ,
     args: {}
   },

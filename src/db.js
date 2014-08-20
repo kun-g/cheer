@@ -515,7 +515,7 @@ exports.initializeDB = function (cfg,finishCb) {
           var year = m.year();
           var month = m.month();
           var day = m.date();
-          dbClient.evalsha(
+          accountDBClient.evalsha(
             sha,
             0,
             receipt,
@@ -525,10 +525,7 @@ exports.initializeDB = function (cfg,finishCb) {
             productID,
             serverID,
             tunnel,
-            year, month, day,
-            function (err, ret) {
-             if (handler) { handler(err, ret); }
-            });
+            year, month, day, handler);
         }
       }
     },
