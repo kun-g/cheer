@@ -302,7 +302,9 @@ class Dungeon
         ref: ref++
       }) for e in team
     )
-    this.heroes.push(new Hero({}))
+    dummyHero = new Hero({})
+    dummyHero.health =0
+    this.heroes.push(dummyHero)
     this.heroes.forEach( (e) -> e.faction = 'hero' )
 
   getDummyHero: () -> @heroes[@heroes.length-1]
@@ -318,9 +320,9 @@ class Dungeon
 
   getInitialInfo: () -> {syn: 0, pat: @team, stg: @stage}
 
-  getHeroes: (all) -> if all then @heroes else @heroes.slice(0, @heroes.length-1)
+  getHeroes: (withDummy) -> if withDummy then @heroes else @heroes.slice(0, @heroes.length-1)
 
-  getAliveHeroes: () -> @heroes.filter( (h) -> h.isAlive())
+  getAliveHeroes: () -> @getHeroes().filter( (hero) -> hero.isAlive())
 
   getMonsters: () -> @level?.getMonsters().filter( (o) -> o.isAlive())
 
