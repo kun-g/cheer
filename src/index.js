@@ -10,7 +10,7 @@ dbWrapper = require('./dbWrapper');
 http = require('http');
 var domain = require('domain').create();
 domain.on('error', function (err) {
-  console.log("UnhandledError", err.message, err.stack);
+  console.log("UnhandledError", err, err.message, err.stack);
 });
 
 //playerCounter = 0;
@@ -229,7 +229,31 @@ function paymentHandler (request, response) {
       data = null;
       response.end('failed');
     });
-  } else if (request.url.substr(0, 5) === '/jdp?') {
+  } else if (request.url.substr(0, 5) === '/DKP?') {
+    out = urlLib.parse(request.url, true).query;
+    appSecret = 'KvCbUBBpAUvkKkC9844QEb8CB7pHnl5v'
+    var sign = out.amount+out.cardtype+out.orderid+out.result+out.timetamp+appSecret+out.aid;
+    var b = new Buffer(1024);
+    var len = b.write(sign);
+    sign = md5Hash(b.toString('binary', 0, len));
+    var receipt = out.orderid;
+    if (sign === out.client_secret ){ //&& isRMBMatch(out.OrderMoney, receipt)) {
+      if (out.result === '1'){
+          deliverReceipt(receipt, 'DK', function (err) {
+          if (err === null) {
+            logInfo({action: 'AcceptPayment', receipt: receipt, info: out});
+          } else {
+            logError({action: 'AcceptPayment', error:err, info: out, receiptInfo: receiptInfo});
+          }
+        });
+      }
+      return response.end('SUCCESS');
+    } else {
+      logError({action: 'AcceptPayment', error: 'SignMissmatch', info: out, sign: sign});
+      response.end('ERROR_SIGN');
+    }
+    b = null;
+  }else if (request.url.substr(0, 5) === '/jdp?') {
   }
 } 
 
@@ -247,10 +271,10 @@ function deliverReceipt (receipt, tunnel, cb) {
         };
 
   async.waterfall([
-    function (cb) { dbWrapper.updateReceipt(receipt, RECEIPT_STATE_AUTHORIZED, cb); },
+    function (cb) { dbLib.updateReceipt(receipt, RECEIPT_STATE_AUTHORIZED, cb); },
     function (_, cb) { dbLib.getPlayerNameByID(receiptInfo.id, serverName, cb); },
     function (name, cb) { dbLib.deliverMessage(name, message, cb, serverName); },
-    function (_, cb) { dbWrapper.updateReceipt(receipt, RECEIPT_STATE_DELIVERED, cb); }
+    function (_, cb) { dbLib.updateReceipt(receipt, RECEIPT_STATE_DELIVERED, cb); }
   ], cb);
 }
 

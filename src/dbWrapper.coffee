@@ -44,15 +44,6 @@ class DBWrapper extends Serializer
 
 exports.DBWrapper = DBWrapper
 
-exports.updateReceipt = (receipt, state, handler) ->
-  dbKey = makeDBKey([receipt], ReceiptPrefix)
-  accountDBClient.hgetall(dbKey, (err, ret) ->
-    if err then return handler(err)
-    #if not ret?
-    accountDBClient.hmset(dbKey, {time: moment().format('YYYYMMDDHHMMSS'), state: state}, handler)
-    #if state is RECEIPT_STATE_AUTHORIZED
-    #  newPendingReceipt(dbKey)
-  )
 exports.getReceipt = (receipt, handler) ->
   dbKey = makeDBKey([receipt], ReceiptPrefix)
   accountDBClient.hgetall(dbKey, handler)
@@ -84,7 +75,7 @@ mercenaryAdd = (battleForce, member, callback) ->
   dbClient.sadd(mercenaryPrefix+'Keys', battleForce)
 
 mercenaryDemote = (key, member, callback) -> dbClient.zincrby(mercenaryPrefix+key, 1, member, callback)
-
+       
 getPlayerHero = (name, callback) ->
   playerLib = require('./player')
   async.waterfall([
