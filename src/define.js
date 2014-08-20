@@ -569,6 +569,7 @@ ACT_ChangeBGM = 109;
 ACT_Shock = 110;
 ACT_Blink = 111;
 ACT_Tutorial = 112;
+ACT_Bubble = 113;
 
 ACT_Block = 201;
 ACT_Enemy = 202;

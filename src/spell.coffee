@@ -426,6 +426,26 @@ class Wizard
         when 'rangeAttackEff'
           a.effect = level.effect if level.effect?
           cmd.routine?({id: 'RangeAttackEffect', dey: a.delay, eff: a.effect, src:@, tar: target})
+        when 'showBubble'
+          pos = getProperty(a.pos, level.pos)
+          if pos?
+            if pos is 'self'
+              cmd.routine?({id: 'ShowBubble', pos:@pos, eff:a.effect, typ:a.bubbleType, cont:a.content, dey:a.delay, dur:a.duration})
+            else if pos is 'target'
+              for t in target
+                cmd.routine?({id: 'ShowBubble', pos: t.pos, eff:a.effect, typ:a.bubbleType, cont:a.content, dey:a.delay, dur:a.duration})
+            else if typeof pos is 'number'
+              cmd.routine?({id: 'ShowBubble', pos: pos, eff:a.effect, typ:a.bubbleType, cont:a.content, dey:a.delay, dur:a.duration})
+            else if Array.isArray(pos)
+              for pos in pos
+                cmd.routine?({id: 'ShowBubble', pos: pos, eff:a.effect, typ:a.bubbleType, cont:a.content, dey:a.delay, dur:a.duration})
+          else
+            switch a.act
+              when 'self'
+                cmd.routine?({id: 'ShowBubble', act:@ref, eff:a.effect, typ:a.bubbleType, cont:a.content, dey:a.delay, dur:a.duration})
+              when 'target'
+                for t in target
+                  cmd.routine?({id: 'ShowBubble', act:t.ref, eff:a.effect, typ:a.bubbleType, cont:a.content, dey:a.delay, dur:a.duration})
 
     thisSpell.effectCount += 1 if thisSpell?.effectCount?
 
