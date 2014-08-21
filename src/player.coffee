@@ -1148,10 +1148,10 @@ class Player extends DBWrapper
       when 'vipLevel' then return level
       when 'chest_vip' then return cfg?.privilege?.chest_vip ? 0
       when 'ContinuousRaids' then return cfg?.privilege?.ContinuousRaids ? false
-      when 'pkCount' then return cfg?.privilege?.pkCount ? 0
-      when 'tuHaoCount' then return cfg?.privilege?.tuHaoCount ? 0
-      when 'EquipmentRobbers' then return cfg?.privilege?.EquipmentRobbers ? 0
-      when 'EvilChieftains' then return cfg?.privilege?.EvilChieftains ? 0
+      when 'pkCount' then return cfg?.privilege?.pkCount ? 5
+      when 'tuHaoCount' then return cfg?.privilege?.tuHaoCount ? 3
+      when 'EquipmentRobbers' then return cfg?.privilege?.EquipmentRobbers ? 3
+      when 'EvilChieftains' then return cfg?.privilege?.EvilChieftains ? 3
       when 'blueStarCost' then return cfg?.blueStarCost ? 0
       when 'goldAdjust' then return cfg?.goldAdjust ? 0
       when 'expAdjust' then return cfg?.expAdjust ? 0
@@ -1738,12 +1738,13 @@ playerCSConfig = {
     callback: (env) ->
       count = env.variable('count') ? 1
       item = createItem(env.variable('item'))
+      return showMeTheStack() unless item?
       if item.expiration
         item.date = helperLib.currentTime(true).valueOf()
         item.attrSave('date')
-      return showMeTheStack() unless item?
-
-      ret = env.player.inventory.add(item, count, env.variable('allorfail'))
+      #TODO
+      #env.variable('allorfail')
+      ret = env.player.inventory.add(item, count, true)
       @routine({id: 'ItemChange', ret: ret, version: env.player.inventoryVersion})
       if ret
         for e in ret when env.player.getItemAt(e.slot).autoUse
@@ -1762,8 +1763,8 @@ getVip = (rmb) ->
   level = -1
   for i, lv of tbl.requirement when lv.rmb <= rmb
     level = i
-  levelCfg = tbl.levels[level];
-  levelCfg.privilege = tbl.requirement[level].privilege;
+  levelCfg = tbl.levels[level]
+  levelCfg.privilege = tbl.requirement[level].privilege
   return {level: level, cfg: tbl.levels[level]}
 
 registerConstructor(Player)
