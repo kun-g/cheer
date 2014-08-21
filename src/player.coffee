@@ -557,14 +557,14 @@ class Player extends DBWrapper
       @logError('startDungeon', {reason: 'InvalidStageConfig', stage: stage, stageConfig: stageConfig?, dungeonConfig: dungeonConfig?})
       return handler(null, RET_ServerError)
     async.waterfall([
-     (cb) =>
-        if stageConfig.pvp? and pkr?
-          @counters.currentPKCount ?= 0
-          @counters.totalPKCount ?= 5
-          if @counters.currentPKCount >= @counters.totalPKCount
-            cb(RET_NotEnoughTimes)
-        cb()
-      ,
+      #     (cb) =>
+      #        if stageConfig.pvp? and pkr?
+      #          @counters.currentPKCount ?= 0
+      #          @counters.totalPKCount ?= 5
+      #          if @counters.currentPKCount >= @counters.totalPKCount
+      #            cb(RET_NotEnoughTimes)
+      #        cb()
+      #,
       (cb) => if @dungeonData.stage? then cb('OK') else cb(),
       (cb) => if @stageIsUnlockable(stage) then cb() else cb(RET_StageIsLocked),
       (cb) => if @costEnergy(stageConfig.cost) then cb() else cb(RET_NotEnoughEnergy),
@@ -622,8 +622,6 @@ class Player extends DBWrapper
         if stageConfig.pvp? and pkr?
           getPlayerHero(pkr, wrapCallback(this, (err, heroData) ->
             @dungeonData.PVP_Pool = if heroData? then [getBasicInfo(heroData)]
-            @counters.currentPKCount++
-            @saveDB()
             cb('OK')
           ))
         else
