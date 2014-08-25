@@ -271,10 +271,28 @@ function deliverReceipt (receipt, tunnel, cb) {
         };
 
   async.waterfall([
-    function (cb) { dbLib.updateReceipt(receipt, RECEIPT_STATE_AUTHORIZED, cb); },
-    function (_, cb) { dbLib.getPlayerNameByID(receiptInfo.id, serverName, cb); },
-    function (name, cb) { dbLib.deliverMessage(name, message, cb, serverName); },
-    function (_, cb) { dbLib.updateReceipt(receipt, RECEIPT_STATE_DELIVERED, cb); }
+          function (cb) {
+              dbLib.updateReceipt(
+                  receipt,
+                  RECEIPT_STATE_AUTHORIZED,
+                  receiptInfo.id,
+                  receiptInfo.productID,
+                  receiptInfo.serverID,
+                  receiptInfo.tunnel,
+                  cb); 
+          },
+          function (_, cb) { dbLib.getPlayerNameByID(receiptInfo.id, serverName, cb); },
+          function (name, cb) { dbLib.deliverMessage(name, message, cb, serverName); },
+          function (_, cb) {
+              dbLib.updateReceipt(
+                  receipt,
+                  RECEIPT_STATE_DELIVERED,
+                  receiptInfo.id,
+                  receiptInfo.productID,
+                  receiptInfo.serverID,
+                  receiptInfo.tunnel,
+                  cb); 
+          }
   ], cb);
 }
 
