@@ -12,6 +12,26 @@ loginBy = (arg, token, callback) ->
   passportType = arg.tp
   passport = arg.id
   switch passportType
+    when LOGIN_ACCOUNT_TYPE_TB_IOS, LOGIN_ACCOUNT_TYPE_TB_Android
+      switch passportType
+        when LOGIN_ACCOUNT_TYPE_TB_IOS
+          teebikURL = 'sdk.ios.teebik.com'
+        when LOGIN_ACCOUNT_TYPE_TB_Android
+          teebikURL = 'sdk.android.teebik.com'
+
+      sign = md5Hash(token+passport)
+      path = 'http://'+teebikURL+'/check/user?token='+appID+'&uid='+passport+'&Sign='+sign
+      http.get(path, (res) ->
+        res.setEncoding('utf8')
+        res.on('data', (chunk) ->
+          result = JSON.parse(chunk)
+          logInfo({action: 'login', type: passportType, code: result})
+          if result.success is 1
+            callback(null)
+          else
+            callback(Error(RET_LoginFailed))
+        )
+      ).on('error', (e) -> logError({action: 'login', type:  LOGIN_ACCOUNT_TYPE_TB, error: e}))
     when LOGIN_ACCOUNT_TYPE_DK_Android
       appID = '3319334'
       appKey = 'kavpXwRFFa4rjcUy1idmAkph'
