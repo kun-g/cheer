@@ -31,7 +31,7 @@ loginBy = (arg, token, callback) ->
           else
             callback(Error(RET_LoginFailed))
         )
-      ).on('error', (e) -> logError({action: 'login', type:  LOGIN_ACCOUNT_TYPE_TB, error: e}))
+      ).on('error', (e) -> logError({action: 'login', type:  "LOGIN_ACCOUNT_TYPE_TB", error: e}))
     when LOGIN_ACCOUNT_TYPE_DK_Android
       appID = '3319334'
       appKey = 'kavpXwRFFa4rjcUy1idmAkph'
@@ -49,7 +49,7 @@ loginBy = (arg, token, callback) ->
           else
             callback(Error(RET_LoginFailed))
         )
-      ).on('error', (e) -> logError({action: 'login', type:  LOGIN_ACCOUNT_TYPE_DK, error: e}))
+      ).on('error', (e) -> logError({action: 'login', type:  "LOGIN_ACCOUNT_TYPE_DK", error: e}))
     when LOGIN_ACCOUNT_TYPE_91_Android, LOGIN_ACCOUNT_TYPE_91_iOS
       switch passportType
         when LOGIN_ACCOUNT_TYPE_91_Android
@@ -71,7 +71,7 @@ loginBy = (arg, token, callback) ->
           else
             callback(Error(RET_LoginFailed))
         )
-      ).on('error', (e) -> logError({action: 'login', type:  LOGIN_ACCOUNT_TYPE_91, error: e}))
+      ).on('error', (e) -> logError({action: 'login', type:  "LOGIN_ACCOUNT_TYPE_91", error: e}))
     when LOGIN_ACCOUNT_TYPE_KY
       appID = '4032'
       appKey = '42e50a13d86cda48be215d3f64856cd3'
@@ -88,7 +88,7 @@ loginBy = (arg, token, callback) ->
           else
             callback(Error(RET_LoginFailed))
         )
-      ).on('error', (e) -> logError({action: 'login', type:  LOGIN_ACCOUNT_TYPE_91, error: e}))
+      ).on('error', (e) -> logError({action: 'login', type:  "LOGIN_ACCOUNT_TYPE_KY", error: e}))
     when LOGIN_ACCOUNT_TYPE_PP
       options = {
         host: 'passport_i.25pp.com',
@@ -108,7 +108,7 @@ loginBy = (arg, token, callback) ->
             callback(Error(RET_LoginFailed))
         )
       )
-      req.on('error', (e) -> logError({action: 'login', type:  LOGIN_ACCOUNT_TYPE_PP, error: e}))
+      req.on('error', (e) -> logError({action: 'login', type:  "LOGIN_ACCOUNT_TYPE_PP", error: e}))
       req.write(token)
       req.end()
     #when LOGIN_ACCOUNT_TYPE_TG
