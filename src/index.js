@@ -265,7 +265,7 @@ function paymentHandler (request, response) {
     var len = b.write(sign);
     sign = md5Hash(b.toString('binary', 0, len));
     var receipt = out.orderid;
-    if (sign === out.md5) && isRMBMatch(out.order_money, receipt)) {
+    if ((sign === out.md5) && isRMBMatch(out.order_money, receipt)) {
       if (out.pay_status === 0){
           deliverReceipt(receipt, 'DK', function (err) {
           if (err === null) {
