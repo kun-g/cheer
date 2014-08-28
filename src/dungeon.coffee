@@ -1083,14 +1083,20 @@ dungeonCSConfig = {
       env.getBlock(env.variable('block')).explored = true
       @routine({id: 'BlockInfo', block: env.variable('block')})
       block = env.getBlock(env.variable('block'))
+      aliveHeroes = env.getAliveHeroes().filter( (h) -> return h? ).sort( (a,b) -> return a.order - b.order )
+ 
+      blockType = block.getType()
       if block.getType() is Block_Npc or block.getType() is Block_Enemy
         if block.getRef(-1) isnt null
+          who = if blockType is Block_Npc then 'Npc' else 'Monster'
           for npc in block.getRef(-1)
             @routine({id: 'UnitInfo', unit: npc})
             env.variable('monster', npc)
             env.variable('tar', npc)
             npc.onEvent('onShow', @)
-            env.onEvent('onMonsterShow', @)
+            for hero in aliveHeroes
+              onEvent(who+'Show', this, hero,npc)
+            env.onEvent('on'+who+'Show', @)
             if npc?.isVisible isnt true
               npc.isVisible = true
   },

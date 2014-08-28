@@ -354,7 +354,15 @@ class Player extends DBWrapper
       ret.push({NTF: Event_RoleUpdate, arg: { act: {vip: @vipLevel()}}})
       postPaymentInfo(@createHero().level, myReceipt, payment.paymentType)
       @saveDB()
-      dbLib.updateReceipt(myReceipt, RECEIPT_STATE_CLAIMED, (err) -> cb(err, ret))
+      dbLib.updateReceipt(
+        myReceipt,
+        RECEIPT_STATE_CLAIMED,
+        rec.id,
+        rec.productID,
+        rec.serverID,
+        rec.tunnel,
+
+        (err) -> cb(err, ret))
     else
       cb(Error(RET_InvalidPaymentInfo))
 
