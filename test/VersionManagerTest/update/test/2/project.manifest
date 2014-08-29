@@ -1,0 +1,5 @@
+{
+	"version": "2",
+	"prevVersion": "1",
+	"files" : [ "dir/b.js", "c.js" ]
+}

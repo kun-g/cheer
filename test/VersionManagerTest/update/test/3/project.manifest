@@ -1,0 +1,7 @@
+{
+	"version": "3",
+	"prevVersion": "2",
+	"parentVersion": "2",
+	"files" : [ "dir/b.js" ]
+}
+
