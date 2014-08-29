@@ -5,6 +5,7 @@ helperLib = require('./helper')
 async = require('async')
 http = require('http')
 https = require('https')
+querystring = require('querystring')
 moment = require('moment')
 {Player} = require('./player')
 
@@ -19,8 +20,14 @@ loginBy = (arg, token, callback) ->
         when LOGIN_ACCOUNT_TYPE_TB_Android
           teebikURL = 'sdk.android.teebik.com'
 
-      sign = md5Hash(token+passport)
-      path = 'http://'+teebikURL+'/check/user?token='+appID+'&uid='+passport+'&Sign='+sign
+      sign = md5Hash(token+ '|' +passport)
+      requestObj = {
+        uid : passport,
+        token:token,
+        sign : sign
+      }
+
+      path = 'http://'+teebikURL+'/check/user?'+ querystring.stringify(requestObj)
       http.get(path, (res) ->
         res.setEncoding('utf8')
         res.on('data', (chunk) ->
