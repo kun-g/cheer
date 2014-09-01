@@ -5,6 +5,7 @@ helperLib = require('./helper')
 async = require('async')
 http = require('http')
 https = require('https')
+querystring = require('querystring')
 moment = require('moment')
 {Player} = require('./player')
 
@@ -12,6 +13,32 @@ loginBy = (arg, token, callback) ->
   passportType = arg.tp
   passport = arg.id
   switch passportType
+    when LOGIN_ACCOUNT_TYPE_TB_IOS, LOGIN_ACCOUNT_TYPE_TB_Android
+      switch passportType
+        when LOGIN_ACCOUNT_TYPE_TB_IOS
+          teebikURL = 'sdk.ios.teebik.com'
+        when LOGIN_ACCOUNT_TYPE_TB_Android
+          teebikURL = 'sdk.android.teebik.com'
+
+      sign = md5Hash(token+ '|' +passport)
+      requestObj = {
+        uid : passport,
+        token:token,
+        sign : sign
+      }
+
+      path = 'http://'+teebikURL+'/check/user?'+ querystring.stringify(requestObj)
+      http.get(path, (res) ->
+        res.setEncoding('utf8')
+        res.on('data', (chunk) ->
+          result = JSON.parse(chunk)
+          logInfo({action: 'login', type: passportType, code: result})
+          if result.success is 1
+            callback(null)
+          else
+            callback(Error(RET_LoginFailed))
+        )
+      ).on('error', (e) -> logError({action: 'login', type:  "LOGIN_ACCOUNT_TYPE_TB", error: e}))
     when LOGIN_ACCOUNT_TYPE_DK_Android
       appID = '3319334'
       appKey = 'kavpXwRFFa4rjcUy1idmAkph'
@@ -29,7 +56,7 @@ loginBy = (arg, token, callback) ->
           else
             callback(Error(RET_LoginFailed))
         )
-      ).on('error', (e) -> logError({action: 'login', type:  LOGIN_ACCOUNT_TYPE_DK, error: e}))
+      ).on('error', (e) -> logError({action: 'login', type:  "LOGIN_ACCOUNT_TYPE_DK", error: e}))
     when LOGIN_ACCOUNT_TYPE_91_Android, LOGIN_ACCOUNT_TYPE_91_iOS
       switch passportType
         when LOGIN_ACCOUNT_TYPE_91_Android
@@ -51,7 +78,7 @@ loginBy = (arg, token, callback) ->
           else
             callback(Error(RET_LoginFailed))
         )
-      ).on('error', (e) -> logError({action: 'login', type:  LOGIN_ACCOUNT_TYPE_91, error: e}))
+      ).on('error', (e) -> logError({action: 'login', type:  "LOGIN_ACCOUNT_TYPE_91", error: e}))
     when LOGIN_ACCOUNT_TYPE_KY
       appID = '4032'
       appKey = '42e50a13d86cda48be215d3f64856cd3'
@@ -68,7 +95,7 @@ loginBy = (arg, token, callback) ->
           else
             callback(Error(RET_LoginFailed))
         )
-      ).on('error', (e) -> logError({action: 'login', type:  LOGIN_ACCOUNT_TYPE_91, error: e}))
+      ).on('error', (e) -> logError({action: 'login', type:  "LOGIN_ACCOUNT_TYPE_KY", error: e}))
     when LOGIN_ACCOUNT_TYPE_PP
       options = {
         host: 'passport_i.25pp.com',
@@ -88,7 +115,7 @@ loginBy = (arg, token, callback) ->
             callback(Error(RET_LoginFailed))
         )
       )
-      req.on('error', (e) -> logError({action: 'login', type:  LOGIN_ACCOUNT_TYPE_PP, error: e}))
+      req.on('error', (e) -> logError({action: 'login', type:  "LOGIN_ACCOUNT_TYPE_PP", error: e}))
       req.write(token)
       req.end()
     #when LOGIN_ACCOUNT_TYPE_TG
