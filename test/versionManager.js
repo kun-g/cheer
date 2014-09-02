@@ -5,7 +5,7 @@ describe('VersionManager', function () {
 	var basePath = 'test/VersionManagerTest/';
 	var searchPath = basePath+'update/';
 	var masterPath = basePath+'base/';
-	var subPath = searchPath+'base/';
+	var subPath = searchPath+'master/';
 	var derivedPath = searchPath+'test/';
 	var fileUtil = {
 		loadJSON: function (path, cb) {
@@ -17,31 +17,39 @@ describe('VersionManager', function () {
 		},
 	};
 	var versionConfig = {
-		base: {
+		master: {
+			version: '2'
 		},
-		derived: {
-			parentBranch: 'base',
+		test: {
+			version: '3',
+			parentBranch: 'master'
 		}
 	};
 	libVersion.setFileUtil(fileUtil);
 
 	var createManager = function () {
-		return new libVersion.VersionManager(versionConfig);
+		var manager = new libVersion.VersionManager(versionConfig);
+		manager.setRootPath(masterPath);
+		manager.setSearchPath(searchPath);
+		return manager;
 	};
 
 	var masterConfig = {
 		"0": {
+			"branch": "master",
 			"version": "0",
 			"path": masterPath,
 			"files": [ "a.js", "dir/a.js" ]
 		},
 		"1": {
+			"branch": "master",
 			"version": "1",
 			"path": subPath+"1/",
 			"prevVersion": "0",
 			"files" : [ "b.js", "dir/b.js", "dir/a.js" ]
 		},
 		"2": {
+			"branch": "master",
 			"version": "2",
 			"path": subPath+"2/",
 			"prevVersion": "1",
@@ -51,18 +59,21 @@ describe('VersionManager', function () {
 
 	var derivedConfig = {
 		"1": {
+			"branch": "test",
 			"version": "1",
 			"path": derivedPath+"1/",
 			"parentVersion" : "1",
 			"files" : [ "d.js" ]
 		},
 		"2": {
+			"branch": "test",
 			"version": "2",
 			"path": derivedPath+"2/",
 			"prevVersion": "1",
 			"files" : [ "dir/b.js", "c.js" ]
 		},
 		"3": {
+			"branch": "test",
 			"version": "3",
 			"path": derivedPath+"3/",
 			"prevVersion": "2",
@@ -75,7 +86,7 @@ describe('VersionManager', function () {
 		{
 			version: 0,
 			config: masterConfig,
-			branch: 'base',
+			branch: 'master',
 			result: {
 				"a.js": masterPath+"a.js",
 				"dir/a.js": masterPath+"dir/a.js"
@@ -84,7 +95,7 @@ describe('VersionManager', function () {
 		{
 			version: 1,
 			config: masterConfig,
-			branch: 'base',
+			branch: 'master',
 			result: {
 				"a.js": masterPath+"a.js",
 				"b.js": subPath+"1/"+"b.js",
@@ -95,7 +106,7 @@ describe('VersionManager', function () {
 		{
 			version: 2,
 			config: masterConfig,
-			branch: 'base',
+			branch: 'master',
 			result: {
 				"a.js": masterPath+"a.js",
 				"b.js": subPath+"1/"+"b.js",
@@ -108,7 +119,7 @@ describe('VersionManager', function () {
 			version: 1,
 			config: derivedConfig,
 			baseConfig: masterConfig,
-			branch: 'derived',
+			branch: 'test',
 			result: {
 				"a.js": masterPath+"a.js",
 				"b.js": subPath+"1/"+"b.js",
@@ -121,7 +132,7 @@ describe('VersionManager', function () {
 			version: 2,
 			config: derivedConfig,
 			baseConfig: masterConfig,
-			branch: 'derived',
+			branch: 'test',
 			result: {
 				"a.js": masterPath+"a.js",
 				"b.js": subPath+"1/"+"b.js",
@@ -134,7 +145,7 @@ describe('VersionManager', function () {
 		{
 			version: 3,
 			config: derivedConfig,
-			branch: 'derived',
+			branch: 'test',
 			baseConfig: masterConfig,
 			result: {
 				"a.js": masterPath+"a.js",
@@ -147,93 +158,18 @@ describe('VersionManager', function () {
 		}
 	];
 
-	it('generateFileList', function () {
-		var manager = createManager();
-		tests.forEach(function (e) {
-			shall(manager.generateFileList(e.config, e.baseConfig, e.version, e.branch)).eql(e.result);
-		});
-	});
 
-	it('loadVersionConfig@sub', function (done) {
+	it('init', function (done) {
 		var manager = createManager();
-		manager.setBaseConfig({});
-		manager.loadVersionConfig(
-			subPath,
-			2,
-			{ "0": { "version": 0, "path": masterPath, "files": [ "a.js", "dir/a.js" ] } },
-			function (err, result) {
-				shall(result).eql(masterConfig);
-				done();
-			}
-		);
-	});
-
-	it('loadVersionConfig@master', function (done) {
-		var manager = createManager();
-		manager.setBaseConfig({});
-		manager.loadVersionConfig(
-			masterPath,
-			null,
-			{},
-			function (err, result) {
-				shall(result).eql({ "0": { version: 0, path: masterPath, files: [ "a.js", "dir/a.js" ] } });
-				done();
-			}
-		);
-	});
-
-	it('loadVersionConfig@derived', function (done) {
-		var manager = createManager();
-		manager.loadVersionConfig(
-			derivedPath,
-			3,
-			{},
-			function (err, result) {
-				shall(result).eql(derivedConfig);
-				done();
-			}
-		);
-	});
-
-	it('generateVersionFileList@master', function (done) {
-		var manager = createManager();
-		manager.setBaseConfig();
-		var t = tests[2];
-		manager.generateVersionFileList(
-			subPath,
-			t.version, 
-			{ "0": { "path": masterPath, "files": [ "a.js", "dir/a.js" ] } },
-			'base',
-			function (err, list) {
-				shall(list).eql(t.result);
-				done(err);
-			})
-	});
-
-	it('generateVersionFileList@derived', function (done) {
-		var manager = createManager();
-		manager.setBaseConfig(masterConfig);
-		var t = tests[tests.length-1];
-		manager.generateVersionFileList(derivedPath, t.version, {}, 'derived', function (err, list) {
-			shall(list).eql(t.result);
+		manager.init('test', function (err) {
+			shall(manager.getVersion('master', 0)).eql(tests[0].result);
+			shall(manager.getVersion('master', 1)).eql(tests[1].result);
+			shall(manager.getVersion('master', 2)).eql(tests[2].result);
+			shall(manager.getVersion('master', 1)).eql(tests[1].result);
+			shall(manager.getVersion('test', 1)).eql(tests[3].result);
+			shall(manager.getVersion('test', 2)).eql(tests[4].result);
+			shall(manager.getVersion('test', 3)).eql(tests[5].result);
 			done(err);
-		})
-	});
-
-	it('getVersion', function (done) {
-		var manager = createManager();
-		manager.setBaseConfig();
-		manager.generateVersionFileList(
-			subPath,
-			2,
-			{ "0": { "path": masterPath, "files": [ "a.js", "dir/a.js" ] } },
-			'base',
-			function (err, list) {
-				shall(manager.getVersion('base', 0)).eql(tests[0].result);
-				shall(manager.getVersion('base', 1)).eql(tests[1].result);
-				shall(manager.getVersion('base', 2)).eql(tests[2].result);
-				done(err);
-			}
-		);
+		});
 	});
 });

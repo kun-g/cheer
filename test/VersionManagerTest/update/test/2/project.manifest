@@ -1,5 +1,6 @@
 {
 	"version": "2",
+	"branch": "test",
 	"prevVersion": "1",
 	"files" : [ "dir/b.js", "c.js" ]
 }
