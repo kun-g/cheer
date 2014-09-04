@@ -272,7 +272,7 @@ exports.route = {
       replay = []
       status = 'OK'
       fileList = ["define", "serializer", "spell", "unit", "container",
-            "item", "seed-random", "commandStream", "dungeon", "trigger"]
+            "item", "seed_random", "commandStream", "dungeon", "trigger"]
 
       doVerify = () ->
         if player.dungeon

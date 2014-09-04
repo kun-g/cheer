@@ -1,7 +1,7 @@
 require('./define')
 splLib = require('./spell')
 
-debug = false
+isDebug = false
 
 class CommandStream
   constructor: (@cmd, @parent, @config, @environment) ->
@@ -30,7 +30,7 @@ class CommandStream
   
   process: () ->
     if @active and @getCallback(@cmd.id)?
-      console.log('Processing:', @cmd.id) if debug
+      console.log('Processing:', @cmd.id) if isDebug
       @getEnvironment().setVariableField(@cmd) if @getEnvironment()?
       @getCallback(@cmd.id).apply(@, [@getEnvironment()])
 

@@ -354,7 +354,15 @@ class Player extends DBWrapper
       ret.push({NTF: Event_RoleUpdate, arg: { act: {vip: @vipLevel()}}})
       postPaymentInfo(@createHero().level, myReceipt, payment.paymentType)
       @saveDB()
-      dbLib.updateReceipt(myReceipt, RECEIPT_STATE_CLAIMED, (err) -> cb(err, ret))
+      dbLib.updateReceipt(
+        myReceipt,
+        RECEIPT_STATE_CLAIMED,
+        rec.id,
+        rec.productID,
+        rec.serverID,
+        rec.tunnel,
+
+        (err) -> cb(err, ret))
     else
       cb(Error(RET_InvalidPaymentInfo))
 
@@ -557,14 +565,14 @@ class Player extends DBWrapper
       @logError('startDungeon', {reason: 'InvalidStageConfig', stage: stage, stageConfig: stageConfig?, dungeonConfig: dungeonConfig?})
       return handler(null, RET_ServerError)
     async.waterfall([
-     (cb) =>
-        if stageConfig.pvp? and pkr?
-          @counters.currentPKCount ?= 0
-          @counters.totalPKCount ?= 5
-          if @counters.currentPKCount >= @counters.totalPKCount
-            cb(RET_NotEnoughTimes)
-        cb()
-      ,
+      #     (cb) =>
+      #        if stageConfig.pvp? and pkr?
+      #          @counters.currentPKCount ?= 0
+      #          @counters.totalPKCount ?= 5
+      #          if @counters.currentPKCount >= @counters.totalPKCount
+      #            cb(RET_NotEnoughTimes)
+      #        cb()
+      #,
       (cb) => if @dungeonData.stage? then cb('OK') else cb(),
       (cb) => if @stageIsUnlockable(stage) then cb() else cb(RET_StageIsLocked),
       (cb) => if @costEnergy(stageConfig.cost) then cb() else cb(RET_NotEnoughEnergy),
@@ -622,8 +630,6 @@ class Player extends DBWrapper
         if stageConfig.pvp? and pkr?
           getPlayerHero(pkr, wrapCallback(this, (err, heroData) ->
             @dungeonData.PVP_Pool = if heroData? then [getBasicInfo(heroData)]
-            @counters.currentPKCount++
-            @saveDB()
             cb('OK')
           ))
         else
@@ -1148,10 +1154,10 @@ class Player extends DBWrapper
       when 'vipLevel' then return level
       when 'chest_vip' then return cfg?.privilege?.chest_vip ? 0
       when 'ContinuousRaids' then return cfg?.privilege?.ContinuousRaids ? false
-      when 'pkCount' then return cfg?.privilege?.pkCount ? 0
-      when 'tuHaoCount' then return cfg?.privilege?.tuHaoCount ? 0
-      when 'EquipmentRobbers' then return cfg?.privilege?.EquipmentRobbers ? 0
-      when 'EvilChieftains' then return cfg?.privilege?.EvilChieftains ? 0
+      when 'pkCount' then return cfg?.privilege?.pkCount ? 5
+      when 'tuHaoCount' then return cfg?.privilege?.tuHaoCount ? 3
+      when 'EquipmentRobbers' then return cfg?.privilege?.EquipmentRobbers ? 3
+      when 'EvilChieftains' then return cfg?.privilege?.EvilChieftains ? 3
       when 'blueStarCost' then return cfg?.blueStarCost ? 0
       when 'goldAdjust' then return cfg?.goldAdjust ? 0
       when 'expAdjust' then return cfg?.expAdjust ? 0
@@ -1738,12 +1744,13 @@ playerCSConfig = {
     callback: (env) ->
       count = env.variable('count') ? 1
       item = createItem(env.variable('item'))
+      return showMeTheStack() unless item?
       if item.expiration
         item.date = helperLib.currentTime(true).valueOf()
         item.attrSave('date')
-      return showMeTheStack() unless item?
-
-      ret = env.player.inventory.add(item, count, env.variable('allorfail'))
+      #TODO
+      #env.variable('allorfail')
+      ret = env.player.inventory.add(item, count, true)
       @routine({id: 'ItemChange', ret: ret, version: env.player.inventoryVersion})
       if ret
         for e in ret when env.player.getItemAt(e.slot).autoUse
@@ -1762,8 +1769,8 @@ getVip = (rmb) ->
   level = -1
   for i, lv of tbl.requirement when lv.rmb <= rmb
     level = i
-  levelCfg = tbl.levels[level];
-  levelCfg.privilege = tbl.requirement[level].privilege;
+  levelCfg = tbl.levels[level]
+  levelCfg.privilege = tbl.requirement[level].privilege
   return {level: level, cfg: tbl.levels[level]}
 
 registerConstructor(Player)
