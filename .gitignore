@@ -4,3 +4,4 @@
 js
 *.vim
 node_modules
+*.rdb

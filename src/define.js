@@ -38,7 +38,7 @@ initServer = function () {
     log.server = gServerID;
 
     if (logger && type) {
-      logger.emit(type, log, (new Date()).valueOf());
+      logger.emit(type, log, new Date());
     }
     if (logger == null || process.stdout.isTTY || type === 'Error') {
       var util = require('util');
