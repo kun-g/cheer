@@ -120,7 +120,7 @@ loginBy = (arg, token, callback) ->
       req.end()
     #when LOGIN_ACCOUNT_TYPE_TG
     #  dbLib.loadAuth(passport, token, callback)
-    when LOGIN_ACCOUNT_TYPE_AD, LOGIN_ACCOUNT_TYPE_GAMECENTER
+    when LOGIN_ACCOUNT_TYPE_AD, LOGIN_ACCOUNT_TYPE_GAMECENTER, LOGIN_ACCOUNT_TYPE_Android
       callback(null)
     else
       callback(Error(RET_Issue33))
