@@ -84,16 +84,17 @@ class VersionManager
 			return r
 		), {})
 
-		if versionConfig.prevVersion?
+		if versionConfig.prevVersion
 			result = mergeFileList(@getVersion(branch, versionConfig.prevVersion), result)
 
-		if versionConfig.parentVersion?
+		if versionConfig.parentVersion
 			parentBranch = @branchConfig[branch].parentBranch
 			parentVersion = versionConfig.parentVersion
 			temp = @getVersion(parentBranch, parentVersion)
 			result = mergeFileList(temp, result)
 
 		@fileListDB[branch][version] = clone(result)
+		if addSearchPath then addSearchPath(path, true)
 		return result
 
 	setBaseConfig: (@baseConfig) ->
