@@ -646,6 +646,10 @@ class Level
 
     if arg.skill?
       o.installSpell(skill.id,skill.lv) for skill in arg.skill
+
+    if arg.property?.skill?
+      o.installSpell(skill.id,skill.lv) for skill in arg.property.skill
+
     o.installSpell(DUNGEON_DROP_CARD_SPELL, 1)
 
     if arg.property?
