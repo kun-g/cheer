@@ -112,23 +112,24 @@ exports.route = {
     id: 100,
     func: (arg, dummy, handle, rpcID, socket, registerFlag) ->
       async.waterfall([
-        (cb) ->
-          if not arg.bv?
-            cb(Error(RET_AppVersionNotMatch))
-            logError({action: 'login', reason: 'noBinaryVersion'})
-          else
-            current = queryTable(TABLE_VERSION, 'bin_version')
-            limit = queryTable(TABLE_VERSION, 'bin_version_need')
-            unless limit <= arg.bv <= current
-              cb(Error(RET_AppVersionNotMatch))
-            else
-              cb(null)
-        ,
-        (cb) ->
-          if +arg.rv isnt queryTable(TABLE_VERSION, 'resource_version')
-            cb(Error(RET_ResourceVersionNotMatch))
-          else cb(null)
-        ,
+				#TODO:
+				#(cb) ->
+        #  if not arg.bv?
+        #    cb(Error(RET_AppVersionNotMatch))
+        #    logError({action: 'login', reason: 'noBinaryVersion'})
+        #  else
+        #    current = queryTable(TABLE_VERSION, 'bin_version')
+        #    limit = queryTable(TABLE_VERSION, 'bin_version_need')
+        #    unless limit <= arg.bv <= current
+        #      cb(Error(RET_AppVersionNotMatch))
+        #    else
+        #      cb(null)
+        #,
+        #(cb) ->
+        #  if +arg.rv isnt queryTable(TABLE_VERSION, 'resource_version')
+        #    cb(Error(RET_ResourceVersionNotMatch))
+        #  else cb(null)
+        #,
         (cb) -> if registerFlag then cb(null) else loginBy(arg, arg.tk, cb),
         (cb) ->
           tp = arg.tp
@@ -257,6 +258,10 @@ exports.route = {
         evt.rv = queryTable(TABLE_VERSION, 'resource_version')
         evt.rvurl = queryTable(TABLE_VERSION, 'url')
         evt.bvurl = queryTable(TABLE_VERSION, 'bin_url')
+
+        evt.nv = queryTable(TABLE_VERSION, 'needed_version')
+        evt.lv = queryTable(TABLE_VERSION, 'last_version')
+        evt.url = queryTable(TABLE_VERSION, 'url')
       handler([evt])
     ,
     args: {'sign':'string'}
