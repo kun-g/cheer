@@ -633,17 +633,18 @@ class Player extends DBWrapper
         if err isnt 'OK'
           ret = err
           err = new Error(err)
-        else if @dungeon?
-          if stageConfig.initialAction then stageConfig.initialAction(@,  genUtil)
-          if stageConfig.eventName then msg = @syncEvent()
-          @loadDungeon()
-          @log('startDungeon', {dungeonData: @dungeonData, err: err})
-          ret = if startInfoOnly then @dungeon.getInitialData() else @dungeonAction({CMD:RPC_GameStartDungeon})
         else
-          @logError('startDungeon', { reason: 'NoDungeon', err: err, data: @dungeonData, dungeon: @dungeon })
-          @releaseDungeon()
-          err = new Error(RET_Unknown)
-          ret = RET_Unknown
+          @loadDungeon()
+          if @dungeon?
+            if stageConfig.initialAction then stageConfig.initialAction(@,  genUtil)
+            if stageConfig.eventName then msg = @syncEvent()
+            @log('startDungeon', {dungeonData: @dungeonData, err: err})
+            ret = if startInfoOnly then @dungeon.getInitialData() else @dungeonAction({CMD:RPC_GameStartDungeon})
+          else
+            @logError('startDungeon', { reason: 'NoDungeon', err: err, data: @dungeonData, dungeon: @dungeon })
+            @releaseDungeon()
+            err = new Error(RET_Unknown)
+            ret = RET_Unknown
         handler(err, ret, msg) if handler?
       )
 
