@@ -138,6 +138,23 @@ describe('Player', function () {
   });
 
 
+  describe("player", function() {
+      it("powerLimit", function (done) {
+          helpLib.assignLeaderboard = function(a,b){}
+          dbLib.loadPlayer('maomao', function (err, p) {
+              p.startDungeon(110,true,null,function (err,ret) {
+                ret.should.eql(RET_StageIsLocked);
+
+                dbLib.loadPlayer('faruba', function (err, p) {
+                    p.startDungeon(110,true,null,function (err,ret) {
+                        ret.should.not.eql(RET_StageIsLocked);
+                        done();
+                    });
+                });
+              });
+          });
+      });
+  });
 
   describe('Player', function () {
     it('Creation', function () {
