@@ -3,7 +3,7 @@ generateMonitor = (obj) ->
   return (key, val) -> obj.s_attr_dirtyFlag[key] = true
 
 class Serializer
-  constructor: (data, cfg, versionCfg = {}) ->
+  constructor: (data, cfg) ->
     @s_attr_to_save = []
     @s_attr_dirtyFlag = {}
     @s_attr_monitor = generateMonitor(this)
@@ -18,9 +18,6 @@ class Serializer
       this[k] = v
       flags[k] = true
 
-    for k, v of versionCfg
-      @versionControl(k, v)
-
     for k, v of cfg
       @attrSave(k, flags[k])
 
@@ -30,10 +27,6 @@ class Serializer
   attrSave: (key, restoreFlag = false) ->
     return false unless @s_attr_to_save.indexOf(key) is -1
     @s_attr_to_save.push(key)
-
-  versionControl: (versionKey, keys) ->
-    keys = [keys] unless Array.isArray(keys)
-    versionIncr = () => this[versionKey]++
 
   getConstructor: () -> g_attr_constructorTable[this.constructor.name]
 

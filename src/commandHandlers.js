@@ -108,6 +108,7 @@ function handler_doUseItem(arg, player, handler, rpcID) {
   var slot = Math.floor(arg.sid);
   var opn = Math.floor(arg.opn);
 
+  var preVersion = player.inventoryVersion;
   var ret = null;
   switch (opn) {
     case USE_ITEM_OPT_INJECTWXP:
@@ -136,12 +137,19 @@ function handler_doUseItem(arg, player, handler, rpcID) {
       break;
   }
 
+  var ev = {
+      NTF: Event_UpdateVersion, arg: {
+          key: "inventory",
+          preVersion: preVersion,
+          newVersion: player.inventoryVersion
+      }
+  };
   evt = {REQ : rpcID, RET : RET_OK};
   if (ret.ret) evt.RET = ret.ret;
   if (ret.res) evt.RES = ret.res;
   if (ret.prize) evt.prz = ret.prize;
   if (ret.out) evt.out = ret.out;
-  res = [evt];
+  res = [evt, ev];
   if (ret.ntf) res = res.concat(ret.ntf);
   handler(res);
   player.saveDB();
