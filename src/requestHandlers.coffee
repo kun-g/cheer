@@ -382,16 +382,16 @@ exports.route = {
     args: {'stg':'number', 'initialDataOnly':'boolean', 'pkr':{type:'string',opt:true}},
     needPid: true
   },
-  RPC_ChargeDiamond: {
-    id: 15,
-    func: (arg, player, handle, rpcID, socket) ->
-      switch arg.stp
-        when 'AppStore' then throw Error('AppStore Payment')
-        when 'PP25' then throw Error('PP25 Payment')
-    ,
-    args: {'pid':'string', 'rep':'string'},
-    needPid: true
-  },
+#  RPC_ChargeDiamond: {
+#    id: 15,
+#    func: (arg, player, handle, rpcID, socket) ->
+#      switch arg.stp
+#        when 'AppStore' then throw Error('AppStore Payment')
+#        when 'PP25' then throw Error('PP25 Payment')
+#    ,
+#    args: {'pid':'string', 'rep':'string'},
+#    needPid: true
+#  },
   RPC_VerifyPayment: {
     id: 15,
     func: (arg, player, handler, rpcID, socket) ->
