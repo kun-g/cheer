@@ -1064,6 +1064,9 @@ dungeonCSConfig = {
     output: (env) -> [ {id:ACT_SkillCD, cd:env.variable('cdInfo')} ] if env.variable('cdInfo')?
   },
   SpellState: {
+    callback: (env) ->
+      state = env.variable('wizard').calcBuffState()
+      env.variable('state', state)
     output: (env) ->
       ret =  genUnitInfo(env.variable('wizard'), false, env.variable('state'))
       if env.variable('effect')?
