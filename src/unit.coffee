@@ -181,6 +181,7 @@ class Monster extends Unit
   initialize: () ->
     cfg = queryTable(TABLE_ROLE, @id) if @id?
     @initWithConfig(cfg) if cfg?
+    @maxHP = @health
 
     console.log('Monster ', JSON.stringify(@)) if flagCreation
 
