@@ -109,7 +109,7 @@ class Hero extends Unit
     if not @isAlive() then @health = 1
     if @attack <= 0 then @attack = 1
     @maxHP = @health
-
+    @originAttack = @attack
     console.log('Hero ', JSON.stringify(@)) if flagCreation
 
   isHero: () -> true
@@ -164,6 +164,7 @@ class Mirror extends Unit
     @hairColor = heroData.hcl
     @ref = heroData.ref
     @id = cid
+    @originAttack = @attack
 
 class Monster extends Unit
   constructor: (data) ->
