@@ -58,6 +58,25 @@ Request_TutorialStageComplete = 27;
 Request_Stastics = 28;
 RPC_ClaimLoginStreakReward = 300;
 
+function fixNumber(num, len){
+    var str = ""+num;
+    if( str.length > len ){
+        str = str.substr(0, len);
+    }
+    while(str.length < len){
+        str = "0" + str;
+    }
+    return str;
+}
+
+wrapReceipt = function(id, pid, zoneId, sid, time, tunnel) {
+    var actorName = fixNumber(id, 8);
+    var productId = fixNumber(pid, 2);
+    var zoneId = fixNumber(zondId, 2);
+    var time = fixNumber(Math.floor((new Date()).valueOf/1000), 10);
+    return actorName+productId+zoneId+time+tunnel;
+}
+
 unwrapReceipt = function(receipt) {
   var id = receipt.slice(0, 8),
       productID = receipt.slice(8, 10),
