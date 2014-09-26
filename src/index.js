@@ -114,10 +114,10 @@ var config = {
 //});
 
 function isRMBMatch(amount, receipt) {
-  productList = queryTable(TABLE_CONFIG, 'Product_List');
+  productList = queryTable(TABLE_IAP, 'list');
   rec = unwrapReceipt(receipt);
   cfg = productList[rec.productID];
-  return cfg && cfg.rmb == amount;
+  return cfg && cfg.price == amount;
 }
 
 function paymentHandler (request, response) {

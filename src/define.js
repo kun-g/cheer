@@ -323,7 +323,7 @@ initGlobalConfig = function (path, callback) {
     {name:TABLE_STAGE, func: initStageConfig}, {name:TABLE_QUEST}, {name: TABLE_COSTS},
     {name:TABLE_UPGRADE}, {name:TABLE_ENHANCE}, {name: TABLE_CONFIG}, {name: TABLE_VIP, func:initVipConfig},
     {name:TABLE_SKILL}, {name:TABLE_CAMPAIGN}, {name: TABLE_DROP}, {name: TABLE_TRIGGER},
-    {name:TABLE_DP},{name:TABLE_ARENA},{name:TABLE_BOUNTY}
+    {name:TABLE_DP},{name:TABLE_ARENA},{name:TABLE_BOUNTY}, {name:TABLE_IAP},
   ];
   if (!path) path = "./";
   configTable.forEach(function (e) {

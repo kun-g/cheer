@@ -96,7 +96,7 @@ var zlib = require('zlib');
 var http = require('http');
 postPaymentInfo = function (level, orderID) {
   var info = unwrapReceipt(orderID);
-  var productList = queryTable(TABLE_CONFIG, 'Product_List');
+  var productList = queryTable(TABLE_IAP, 'list');
   var cfg = productList[info.productID];
   if (!cfg) return ;
   var currencyAmount = cfg.rmb;
