@@ -108,7 +108,7 @@ class Player extends DBWrapper
     if type and type is 'error'
       logError(msg)
     else
-      #TODO:logUser(msg)
+      logUser(msg)
 
   isEquiped: (slot) ->
     equipment = (e for i, e of @equipment)
