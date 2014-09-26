@@ -241,6 +241,29 @@ function initVipConfig (cfg){
   return ret;
 }
 
+var powerLimitInfo = {};
+function initPowerLimit(cfg) {
+	cfg.forEach(function (bounty) {
+		bounty.level.forEach(function (level) {
+			var powerLimit = 0;
+			if (typeof level.powerLimit == 'number') {
+				powerLimit = level.powerLimit;
+			}
+			powerLimitInfo[level.stage] = powerLimit;
+		})
+	})
+	return cfg;
+}
+
+getPowerLimit = function(stageId){
+	var powerLimit = powerLimitInfo[stageId];
+	if (powerLimit == null) {
+		return 0;
+	}
+	else{
+		return powerLimit;
+	}
+}
 prepareForABtest = function (cfg) {
   var ret = [];
   var maxABIndex = 0;
@@ -323,7 +346,7 @@ initGlobalConfig = function (path, callback) {
     {name:TABLE_STAGE, func: initStageConfig}, {name:TABLE_QUEST}, {name: TABLE_COSTS},
     {name:TABLE_UPGRADE}, {name:TABLE_ENHANCE}, {name: TABLE_CONFIG}, {name: TABLE_VIP, func:initVipConfig},
     {name:TABLE_SKILL}, {name:TABLE_CAMPAIGN}, {name: TABLE_DROP}, {name: TABLE_TRIGGER},
-    {name:TABLE_DP},{name:TABLE_ARENA},{name:TABLE_BOUNTY}, {name:TABLE_IAP},
+    {name:TABLE_DP},{name:TABLE_ARENA},{name:TABLE_BOUNTY, func:initPowerLimit}, {name:TABLE_IAP},
   ];
   if (!path) path = "./";
   configTable.forEach(function (e) {

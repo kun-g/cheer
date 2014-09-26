@@ -1,3 +1,4 @@
+require('./define')
 require('./shop')
 moment = require('moment')
 {Serializer, registerConstructor} = require './serializer'
@@ -360,6 +361,7 @@ class Player extends DBWrapper
         rec.productID,
         rec.serverID,
         rec.tunnel,
+
         (err) -> cb(err, ret))
     else
       cb(Error(RET_InvalidPaymentInfo))
@@ -506,6 +508,7 @@ class Player extends DBWrapper
     @notify(arg.notify.name,arg.notify.arg) if arg.notify?
 
   stageIsUnlockable: (stage) ->
+    return false if getPowerLimit(stage) > @createHero().calculatePower()
     stageConfig = queryTable(TABLE_STAGE, stage, @abIndex)
     if stageConfig.condition then return stageConfig.condition(this, genUtil())
     if stageConfig.event
@@ -563,14 +566,6 @@ class Player extends DBWrapper
       @logError('startDungeon', {reason: 'InvalidStageConfig', stage: stage, stageConfig: stageConfig?, dungeonConfig: dungeonConfig?})
       return handler(null, RET_ServerError)
     async.waterfall([
-      #     (cb) =>
-      #        if stageConfig.pvp? and pkr?
-      #          @counters.currentPKCount ?= 0
-      #          @counters.totalPKCount ?= 5
-      #          if @counters.currentPKCount >= @counters.totalPKCount
-      #            cb(RET_NotEnoughTimes)
-      #        cb()
-      #,
       (cb) => if @dungeonData.stage? then cb('OK') else cb(),
       (cb) => if @stageIsUnlockable(stage) then cb() else cb(RET_StageIsLocked),
       (cb) => if @costEnergy(stageConfig.cost) then cb() else cb(RET_NotEnoughEnergy),
@@ -634,20 +629,21 @@ class Player extends DBWrapper
           cb('OK')
       ], (err) =>
         msg = []
-        if stageConfig.initialAction then stageConfig.initialAction(@,  genUtil)
-        if stageConfig.eventName then msg = @syncEvent()
-        @loadDungeon()
-        @log('startDungeon', {dungeonData: @dungeonData, err: err})
         if err isnt 'OK'
           ret = err
           err = new Error(err)
-        else if @dungeon?
-          ret = if startInfoOnly then @dungeon.getInitialData() else @dungeonAction({CMD:RPC_GameStartDungeon})
         else
-          @logError('startDungeon', { reason: 'NoDungeon', err: err, data: @dungeonData, dungeon: @dungeon })
-          @releaseDungeon()
-          err = new Error(RET_Unknown)
-          ret = RET_Unknown
+          @loadDungeon()
+          if @dungeon?
+            if stageConfig.initialAction then stageConfig.initialAction(@,  genUtil)
+            if stageConfig.eventName then msg = @syncEvent()
+            @log('startDungeon', {dungeonData: @dungeonData, err: err})
+            ret = if startInfoOnly then @dungeon.getInitialData() else @dungeonAction({CMD:RPC_GameStartDungeon})
+          else
+            @logError('startDungeon', { reason: 'NoDungeon', err: err, data: @dungeonData, dungeon: @dungeon })
+            @releaseDungeon()
+            err = new Error(RET_Unknown)
+            ret = RET_Unknown
         handler(err, ret, msg) if handler?
       )
 

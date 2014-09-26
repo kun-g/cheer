@@ -221,6 +221,7 @@ LOGIN_ACCOUNT_TYPE_91_Android =  6;
 LOGIN_ACCOUNT_TYPE_DK_Android =  7;
 LOGIN_ACCOUNT_TYPE_TB_IOS =  8;
 LOGIN_ACCOUNT_TYPE_TB_Android =  9;
+LOGIN_ACCOUNT_TYPE_Android =  10;
 
 Max_tutorialStage = 3;
 

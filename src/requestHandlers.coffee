@@ -120,7 +120,7 @@ loginBy = (arg, token, callback) ->
       req.end()
     #when LOGIN_ACCOUNT_TYPE_TG
     #  dbLib.loadAuth(passport, token, callback)
-    when LOGIN_ACCOUNT_TYPE_AD, LOGIN_ACCOUNT_TYPE_GAMECENTER
+    when LOGIN_ACCOUNT_TYPE_AD, LOGIN_ACCOUNT_TYPE_GAMECENTER, LOGIN_ACCOUNT_TYPE_Android
       callback(null)
     else
       callback(Error(RET_Issue33))
@@ -389,16 +389,16 @@ exports.route = {
     args: {'stg':'number', 'initialDataOnly':'boolean', 'pkr':{type:'string',opt:true}},
     needPid: true
   },
-  RPC_ChargeDiamond: {
-    id: 15,
-    func: (arg, player, handle, rpcID, socket) ->
-      switch arg.stp
-        when 'AppStore' then throw Error('AppStore Payment')
-        when 'PP25' then throw Error('PP25 Payment')
-    ,
-    args: {'pid':'string', 'rep':'string'},
-    needPid: true
-  },
+#  RPC_ChargeDiamond: {
+#    id: 15,
+#    func: (arg, player, handle, rpcID, socket) ->
+#      switch arg.stp
+#        when 'AppStore' then throw Error('AppStore Payment')
+#        when 'PP25' then throw Error('PP25 Payment')
+#    ,
+#    args: {'pid':'string', 'rep':'string'},
+#    needPid: true
+#  },
   RPC_VerifyPayment: {
     id: 15,
     func: (arg, player, handler, rpcID, socket) ->

@@ -84,7 +84,7 @@ class Wizard
 
   spellStateChanged: (spellID, cmd) ->
     return false unless cmd?
-    cmd.routine?({id: 'SpellState', wizard:@, state: @calcBuffState(), effect: @calcEffectState(spellID)})
+    cmd.routine?({id: 'SpellState', wizard:@, effect: @calcEffectState(spellID)})
 
   removeSpell: (spellID, cmd) ->
     cfg = getSpellConfig(spellID)
