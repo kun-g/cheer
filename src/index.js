@@ -282,17 +282,15 @@ function paymentHandler (request, response) {
       sign = md5Hash(b.toString('binary', 0, len));
 
       if ((sign === out.md5) && isRMBMatch(out.order_money, receipt)) {
-          deliverReceipt(receipt, 'TBK', function (err) {
+          deliverReceipt(receipt, 'Teebik', function (err) {
             if (err === null) {
-              logInfo({action: 'AcceptPayment', receipt: receipt, info: info});
-              return response.end('success');
+              logInfo({action: 'AcceptPayment', receipt: receipt, info: out});
+			  return response.end(JSON.stringify({success:1, msg: "OK"}));
             } else {
               logError({action: 'AcceptPayment', error:err, data: data});
-              response.end('fail');
+              return response.end('fail');
             }
           });
-          logInfo({action: 'AcceptPayment', receipt: receipt, info: info});
-          response.end(JSON.stringify({success:1, msg: "OK"}));
       } else {
           logError({action: 'AcceptPayment', error: 'Fail', data: data});
           response.end(JSON.stringify({success:0, msg: "Arguments miss match."}));

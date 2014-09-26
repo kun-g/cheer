@@ -181,15 +181,13 @@ class Player extends DBWrapper
     if @loginStreak.date and moment().isSame(@loginStreak.date, 'month')
       if moment().isSame(@loginStreak.date, 'day')
         flag = false
-      else
-        @loginStreak.count += 1
     else
       @loginStreak.count = 0
 
     @log('onLogin', {loginStreak: @loginStreak, date: @lastLogin})
     @onCampaign('RMB')
 
-    ret = [{NTF:Event_CampaignLoginStreak, day: @loginStreak.count, claim: flag}]
+    ret = [{NTF:Event_CampaignLoginStreak, day: @loginStreak.count + 1, claim: flag}]
 
     itemsNeedRemove = @inventory.filter(
       (item) ->
@@ -265,6 +263,7 @@ class Player extends DBWrapper
         @logError('claimLoginReward', {prev: @loginStreak.date, today: currentTime()})
         return {ret: RET_Unknown}
     @loginStreak['date'] = currentTime(true).valueOf()
+    @loginStreak.count += 1
     @log('claimLoginReward', {loginStreak: @loginStreak.count, date: currentTime()})
 
     reward = queryTable(TABLE_DP)[@loginStreak.count].prize
@@ -328,7 +327,7 @@ class Player extends DBWrapper
     @loadDungeon()
 
   handleReceipt: (payment, tunnel, cb) ->
-    productList = queryTable(TABLE_CONFIG, 'Product_List')
+    productList = queryTable(TABLE_IAP, 'list')
     myReceipt = payment.receipt
     rec = unwrapReceipt(myReceipt)
     cfg = productList[rec.productID]
@@ -336,25 +335,32 @@ class Player extends DBWrapper
     #flag = cfg.rmb is payment.rmb
     #flag = payment.productID is cfg.productID if tunnel is 'AppStore'
     @log('charge', {
-      rmb: cfg.rmb,
-      diamond: cfg.diamond,
+      rmb: cfg.price,
+      diamond: cfg.gem,
       tunnel: tunnel,
       action: 'charge',
       match: flag,
       receipt : myReceipt
     })
     if flag
-      ret = [{ NTF: Event_InventoryUpdateItem, arg: { dim : @addDiamond(cfg.diamond) }}]
+      ret = [{ NTF: Event_InventoryUpdateItem, arg: { dim : @addDiamond(cfg.gem) }}]
       if rec.productID is MonthCardID
         @counters['monthCard'] = 30
         ret = ret.concat(@syncEvent())
-      @rmb += cfg.rmb
-      @onCampaign('RMB', cfg.rmb)
+      @rmb += cfg.price
+      @onCampaign('RMB', cfg.price)
       ret.push({NTF: Event_PlayerInfo, arg: { rmb: @rmb, mcc: @counters.monthCard}})
       ret.push({NTF: Event_RoleUpdate, arg: { act: {vip: @vipLevel()}}})
       postPaymentInfo(@createHero().level, myReceipt, payment.paymentType)
       @saveDB()
-      dbLib.updateReceipt(myReceipt, RECEIPT_STATE_CLAIMED, (err) -> cb(err, ret))
+      dbLib.updateReceipt(
+        myReceipt,
+        RECEIPT_STATE_CLAIMED,
+        rec.id,
+        rec.productID,
+        rec.serverID,
+        rec.tunnel,
+        (err) -> cb(err, ret))
     else
       cb(Error(RET_InvalidPaymentInfo))
 
@@ -368,7 +374,7 @@ class Player extends DBWrapper
         handle(null, result)
     switch payment.paymentType
       when 'AppStore' then @handleReceipt(payment, 'AppStore', postResult)
-      when 'PP25', 'ND91', 'KY'
+      when 'PP25', 'ND91', 'KY', 'Teebik'
         myReceipt = payment.receipt
         async.waterfall([
           (cb) ->
