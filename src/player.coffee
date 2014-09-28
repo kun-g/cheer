@@ -179,16 +179,19 @@ class Player extends DBWrapper
         s.level = 0
 
     flag = true
+    loginStreakCount = @loginStreak.count
     if @loginStreak.date and moment().isSame(@loginStreak.date, 'month')
       if moment().isSame(@loginStreak.date, 'day')
         flag = false
+      else
+        loginStreakCount +=1
     else
       @loginStreak.count = 0
 
-    @log('onLogin', {loginStreak: @loginStreak, date: @lastLogin})
+    @log('onLogin', {loginStreak: loginStreakCount, date: @lastLogin})
     @onCampaign('RMB')
 
-    ret = [{NTF:Event_CampaignLoginStreak, day: @loginStreak.count + 1, claim: flag}]
+    ret = [{NTF:Event_CampaignLoginStreak, day: @loginStreak.count, claim: flag}]
 
     itemsNeedRemove = @inventory.filter(
       (item) ->
