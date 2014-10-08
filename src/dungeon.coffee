@@ -758,6 +758,7 @@ class DungeonEnvironment extends Environment
       when 'tutorial' then cmd.routine?({id: 'Tutorial', tutorialId: act.tutorialId})
       when 'modifyEnvVariable' then @variable(a.name, a.value)
       when 'shock' then cmd.routine?({id: 'Shock', time: a.time, delay: a.delay, range: a.range})
+      when 'tremble' then cmd.routine?({id: 'Tremble', time: a.time, delay: a.delay, range: a.range})
       when 'blink' then cmd.routine?({id: 'Blink', time: a.time, delay: a.delay, color: a.color})
       when 'changeBGM' then cmd.routine({id: 'ChangeBGM', music: a.music, repeat: a.repeat})
       when 'whiteScreen' then cmd.routine({id: 'WhiteScreen', mode: a.mode, time: a.time, color: a.color})
@@ -1289,6 +1290,12 @@ dungeonCSConfig = {
   Shock: {
     output: (env) ->
       evt = {id: ACT_Shock, dey: env.variable('delay'), tim: env.variable('time')}
+      evt.rag = env.variable('range') if env.variable('range')?
+      return [evt]
+  },
+  Tremble: {
+    output: (env) ->
+      evt = {id: ACT_Tremble, act:env.variable('act'), dey: env.variable('delay'), tim: env.variable('time')}
       evt.rag = env.variable('range') if env.variable('range')?
       return [evt]
   },

@@ -331,6 +331,13 @@ class Wizard
           else
             cmd.routine?({id: 'Kill', tar: t, cod: a.cod}) for t in target
         when 'shock' then cmd?.routine?({id: 'Shock', time: a.time, delay: a.delay, range: a.range})
+        when 'tremble'
+          switch a.act
+            when 'self'
+              cmd.routine?({id: 'Tremble', act:@ref, time: a.time, delay: a.delay, range: a.range})
+            when 'target'
+              for t in target
+                cmd.routine?({id: 'Tremble', act:t.ref, time: a.time, delay: a.delay, range: a.range})
         when 'blink' then cmd.routine?({id: 'Blink', time: a.time, delay: a.delay, color: a.color})
         when 'changeBGM' then cmd.routine({id: 'ChangeBGM', music: a.music, repeat: a.repeat})
         when 'whiteScreen' then cmd.routine({id: 'WhiteScreen', mode: a.mode, time: a.time, color: a.color})
