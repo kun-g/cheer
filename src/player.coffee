@@ -654,6 +654,7 @@ class Player extends DBWrapper
     return [] if @quests[qid]
     quest = queryTable(TABLE_QUEST, qid, @abIndex)
     @quests[qid] = {counters: (0 for i in quest.objects)}
+    # TODO: implement updateQuestStatus instead
     @onEvent('gold')
     @onEvent('diamond')
     @onEvent('item')
