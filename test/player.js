@@ -113,6 +113,12 @@ describe('Player', function () {
 //  });
 
   describe("player", function() {
+    it("firstChange", function (done) {
+      helpLib.assignLeaderboard = function(a,b){}
+      dbLib.loadPlayer('faruba', function (err, p) {
+          p.onCampaign('RMB','2');
+      });
+    });
     it("requireMercenary", function (done) {
       helpLib.assignLeaderboard = function(a,b){}
       dbLib.loadPlayer('faruba', function (err, p) {
@@ -304,7 +310,7 @@ describe('Player', function () {
           return heroes.filter(function (m) { return m.name != wizard.name; });
         }
       };
-      var  variables ={};
+      var  variables ={tar:monsters[0]};
       env.variable = function() {return variables;}
       env.getAliveHeroes= function() { return heroes;}
       env.getMonsters = function() { return monsters;}
@@ -335,12 +341,19 @@ describe('Player', function () {
       tar[0].should.have.property('name').equal(me.name);
 
       
+      //"levelConfig":[
+      //{ "modifications": {"attack":{func:forTest,c:{level:0.5}}}, "level": 1},
+      //{ "modifications": {"attack":{func:forTest,c:{level:0.8}}}, "level": 1},
+      //{ "modifications": {"attack":{func:forTest,c:{level:0.9}}}, "level": 2},
+      //{ "modifications": {"attack":{func:forTest}}, "level": 3}
+
+      //me.installSpell(271,1,cmd);
+      //me.attack.should.eql('13');
       //it('RangeAttEff', function(done) {
-        console.log('=---------------------');
         var dcmd = dungeonLib.DungeonCommandStream(null, env);
         var thisSpell ={};
         var res = me.doAction(thisSpell,[{type: 'RangeAttEff',dey: 1, eff:2}],{},monsters,dcmd) 
-        console.log(dcmd.print());
+        //console.log(dcmd.print());
        // done();
       //});
     //  // Trigger condition TODO:
