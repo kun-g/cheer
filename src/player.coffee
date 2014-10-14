@@ -179,16 +179,14 @@ class Player extends DBWrapper
         s.level = 0
 
     flag = true
-    loginStreakCount = @loginStreak.count
+    
     if @loginStreak.date and moment().isSame(@loginStreak.date, 'month')
       if moment().isSame(@loginStreak.date, 'day')
         flag = false
-      else
-        loginStreakCount +=1
     else
       @loginStreak.count = 0
 
-    @log('onLogin', {loginStreak: loginStreakCount, date: @lastLogin})
+    @log('onLogin', {loginStreak: @loginStreak.count, date: @lastLogin})
     @onCampaign('RMB')
 
     ret = [{NTF:Event_CampaignLoginStreak, day: @loginStreak.count, claim: flag}]
@@ -267,11 +265,11 @@ class Player extends DBWrapper
         @logError('claimLoginReward', {prev: @loginStreak.date, today: currentTime()})
         return {ret: RET_Unknown}
     @loginStreak['date'] = currentTime(true).valueOf()
-    @loginStreak.count += 1
     @log('claimLoginReward', {loginStreak: @loginStreak.count, date: currentTime()})
 
     reward = queryTable(TABLE_DP)[@loginStreak.count].prize
     ret = @claimPrize(reward.filter((e) => not e.vip or @vipLevel() >= e.vip ))
+    @loginStreak.count += 1
     @loginStreak.count = 0 if @loginStreak.count >= queryTable(TABLE_DP).length
  
     return {ret: RET_OK, res: ret}
@@ -352,7 +350,7 @@ class Player extends DBWrapper
         @counters['monthCard'] = 30
         ret = ret.concat(@syncEvent())
       @rmb += cfg.price
-      @onCampaign('RMB', cfg.price)
+      @onCampaign('RMB', rec.productID)
       ret.push({NTF: Event_PlayerInfo, arg: { rmb: @rmb, mcc: @counters.monthCard}})
       ret.push({NTF: Event_RoleUpdate, arg: { act: {vip: @vipLevel()}}})
       postPaymentInfo(@createHero().level, myReceipt, payment.paymentType)
@@ -1261,7 +1259,7 @@ class Player extends DBWrapper
 
         { config, level } = @getCampaignConfig('FirstCharge')
         if config? and level?
-          rmb = data
+          rmb = String(data)
           if level[rmb]?
             reward.push({cfg: config, lv: level[rmb]})
             @setCampaignState('FirstCharge', false)
@@ -1285,6 +1283,7 @@ class Player extends DBWrapper
           reward.push({cfg: config, lv: level})
 
     for r in reward
+      #console.log('reward', JSON.stringify(reward))
       dbLib.deliverMessage(@name, { type: MESSAGE_TYPE_SystemReward, src: MESSAGE_REWARD_TYPE_SYSTEM, prize: r.lv.award, tit: r.cfg.mailTitle, txt: r.cfg.mailBody })
 
   updateFriendInfo: (handler) ->
