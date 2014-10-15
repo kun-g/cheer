@@ -1,8 +1,0 @@
-{
-	"version": "1",
-	"branch": "master",
-	"prevVersion": "0",
-	"files" : [
-		"b.js", "dir/b.js", "dir/a.js"
-	]
-}

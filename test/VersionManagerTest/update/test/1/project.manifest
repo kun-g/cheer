@@ -1,6 +1,0 @@
-{
-	"version": "1",
-	"branch": "test",
-	"parentVersion" : "1",
-	"files" : [ "d.js" ]
-}
