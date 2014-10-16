@@ -288,6 +288,7 @@ exports.route = {
 
         evt.nv = queryTable(TABLE_VERSION, 'needed_version')
         evt.lv = queryTable(TABLE_VERSION, 'last_version')
+        evt.sv = queryTable(TABLE_VERSION, 'suggest_version')
         evt.url = queryTable(TABLE_VERSION, 'url')
         if queryTable(TABLE_VERSION, 'branch')
           evt.br = queryTable(TABLE_VERSION, 'branch')
