@@ -1,8 +1,0 @@
-{
-	"version": "3",
-	"branch": "test",
-	"prevVersion": "2",
-	"parentVersion": "2",
-	"files" : [ "dir/b.js" ]
-}
-

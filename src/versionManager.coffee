@@ -1,105 +1,76 @@
 clone = (obj) ->
-	if Array.isArray(obj)
-		ret = []
-	else
-		ret = {}
-	for k, v of obj
-		ret[k] = v
-	return ret
+  if Array.isArray(obj)
+    ret = []
+  else
+    ret = {}
+  for k, v of obj
+    ret[k] = v
+  return ret
 
 mergeFileList = (baseFileList, targetFileList) ->
-	ret = clone(baseFileList)
-	for k, v of targetFileList
-		ret[k] = v
+  ret = clone(baseFileList)
+  for k, v of targetFileList
+    ret[k] = v
 
-	return ret
+  return ret
 
 fileUtil = {}
 exports.setFileUtil = (aFileUtil) -> fileUtil = aFileUtil
 
 class VersionManager
-	constructor: (@branchConfig) ->
-		@baseConfig = {}
+  constructor: () ->
+    @fileListDB = {}
+    @versionDB = {}
+    @rootPath = ""
+    @searchPath = ""
+    @fileUtil = {}
 
-		@fileListDB = {}
-		@versionDB = {}
-		@rootPath = ""
-		@searchPath = ""
-		@fileUtil = {}
+  init: (version, cb) ->
+    @initVersion(@rootPath, null, () => @initVersion(@searchPath, version, cb))
 
-		for name, config of @branchConfig
-			@fileListDB[name] = {}
-			@versionDB[name] = {}
+  loadVersionConfig: (basePath, version, cb) ->
+    path = basePath
+    path += version+'/' if version?
 
-	init: (branch, cb) ->
-		@initMasterBranch(() =>
-			@initBranch(@searchPath+branch+'/', branch, @branchConfig[branch].version, cb)
-		)
+    ccb = (err, config) =>
+      return cb(err) unless config?
 
-	loadVersionConfig: (basePath, version, cb) ->
-		path = basePath
-		path += version+'/' if version?
+      config.path = path
+      @versionDB[config.version] = config
 
-		ccb = (err, config) =>
-			return cb(err) unless config?
+      if config.prevVersion?
+        @initVersion(basePath, config.prevVersion, cb)
+      else
+        cb(err)
 
-			config.path = path
-			@versionDB[config.branch][config.version] = config
+    fileUtil.loadJSON(path+'project.manifest', ccb)
 
-			return cb(err, @versionDB[config.branch]) unless config.prevVersion?
-			return cb(err, @versionDB[config.branch]) if @versionDB[config.branch][config.prevVersion]?
+  initVersion: (basePath, version, cb) ->
+    return cb() if @getVersion(version)?
 
-			@loadVersionConfig(basePath, config.prevVersion, cb)
+    @loadVersionConfig(basePath, version, cb)
 
-		fileUtil.loadJSON(path+'project.manifest', ccb)
+  getVersion: (version) ->
+    return @fileListDB[version] if @fileListDB[version]?
 
-	initBranch: (path, branch, version, cb) ->
-		return cb() if @getVersion(branch, version)?
+    versionConfig = @versionDB[version]
+    return null unless versionConfig?
 
-		parentBranch = @branchConfig[branch].parentBranch
-		if parentBranch and not @getVersion(parentBranch, @branchConfig[parentBranch].version)?
-			@initBranch(path, parentBranch, @branchConfig[parentBranch].version, () =>
-				@loadVersionConfig(path, version, cb)
-			)
-		else
-			@loadVersionConfig(path, version, cb)
+    path = versionConfig.path
+    result = versionConfig.files.reduce(((r, e) ->
+      r[e] = path+e
+      return r
+    ), {})
 
-	initMasterBranch: (cb) ->
-		@initBranch(@rootPath, 'master', null, (err, _) =>
-			@initBranch(@searchPath+'master/', 'master', @branchConfig.master.version, cb)
-		)
+    if versionConfig.prevVersion
+      result = mergeFileList(@getVersion(versionConfig.prevVersion), result)
 
-	getVersion: (branch, version) ->
-		return @fileListDB[branch][version] if @fileListDB[branch][version]?
+    @fileListDB[version] = clone(result)
+    if addSearchPath? then addSearchPath(path, true)
+    return result
 
-		config = @versionDB[branch]
-		return null unless config?
-
-		versionConfig = config[version]
-		return null unless versionConfig?
-
-		path = versionConfig.path
-		result = versionConfig.files.reduce(((r, e) ->
-			r[e] = path+e
-			return r
-		), {})
-
-		if versionConfig.prevVersion
-			result = mergeFileList(@getVersion(branch, versionConfig.prevVersion), result)
-
-		if versionConfig.parentVersion
-			parentBranch = @branchConfig[branch].parentBranch
-			parentVersion = versionConfig.parentVersion
-			temp = @getVersion(parentBranch, parentVersion)
-			result = mergeFileList(temp, result)
-
-		@fileListDB[branch][version] = clone(result)
-		if addSearchPath then addSearchPath(path, true)
-		return result
-
-	setBaseConfig: (@baseConfig) ->
-	setRootPath: (@rootPath) ->
-	setSearchPath: (@searchPath) ->
+  setRootPath: (@rootPath) ->
+  setSearchPath: (@searchPath) ->
 
 
 exports.VersionManager = VersionManager

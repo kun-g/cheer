@@ -705,9 +705,6 @@ exports.observers = {
     #TODO:
     exports.assignLeaderboard(obj, exports.LeaderboardIdx.Arena)
   onRestWorldBossCounter: (obj, arg) ->
-    
-
-
 }
 
 exports.initObserveration = (obj) ->

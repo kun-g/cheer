@@ -108,7 +108,7 @@ class Player extends DBWrapper
     if type and type is 'error'
       logError(msg)
     else
-      #TODO:logUser(msg)
+      logUser(msg)
 
   isEquiped: (slot) ->
     equipment = (e for i, e of @equipment)
@@ -652,6 +652,7 @@ class Player extends DBWrapper
     return [] if @quests[qid]
     quest = queryTable(TABLE_QUEST, qid, @abIndex)
     @quests[qid] = {counters: (0 for i in quest.objects)}
+    # TODO: implement updateQuestStatus instead
     @onEvent('gold')
     @onEvent('diamond')
     @onEvent('item')
