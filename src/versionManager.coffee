@@ -45,12 +45,30 @@ class VersionManager
 
     fileUtil.loadJSON(path+'project.manifest', ccb)
 
+  getChangeList: (fromVersion, toVersion) ->
+    version = toVersion
+    res = []
+    while version isnt fromVersion
+      versionConfig = @versionDB[version]
+      unless versionConfig?.prevVersion then return []
+      res = res.concat(versionConfig.files)
+      version = versionConfig.prevVersion
+    return res
+
   initVersion: (basePath, version, cb) ->
-    return cb() if @getVersion(version)?
+    return cb() if @getVersion(version, false)?
 
     @loadVersionConfig(basePath, version, cb)
 
-  getVersion: (version) ->
+  isParentVersion: (thisVersion, parentVersion) ->
+    version = thisVersion
+    while version isnt parentVersion
+      return false unless @versionDB[version].prevVersion
+      version = @versionDB[version].prevVersion
+
+    return true
+
+  getVersion: (version, flag) ->
     return @fileListDB[version] if @fileListDB[version]?
 
     versionConfig = @versionDB[version]
@@ -66,7 +84,7 @@ class VersionManager
       result = mergeFileList(@getVersion(versionConfig.prevVersion), result)
 
     @fileListDB[version] = clone(result)
-    if addSearchPath? then addSearchPath(path, true)
+    if addSearchPath? and not flag then addSearchPath(path, true)
     return result
 
   setRootPath: (@rootPath) ->

@@ -91,6 +91,9 @@ describe('VersionManager', function () {
 			shall(manager.getVersion(1)).eql(tests[1].result);
 			shall(manager.getVersion(2)).eql(tests[2].result);
 			shall(manager.getVersion(1)).eql(tests[1].result);
+			shall(manager.getChangeList('0', '2')).eql(
+                masterConfig[2].files.concat(masterConfig[1].files)
+            );
 			done(err);
 		});
 	});
