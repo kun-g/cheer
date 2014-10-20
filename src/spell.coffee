@@ -25,6 +25,10 @@ plusThemAll = (config, env) ->
   return sum
 
 calcFormular = (e, s, t, config) ->
+  if config.func
+    c = if config.c then config.c else {}
+    return config.func.apply(null,[e, s, t, c])
+
   c = if config.c then config.c else 0
   return Math.ceil(plusThemAll(config.environment, e) + plusThemAll(config.src, s) + plusThemAll(config.tar, t) + c)
 
@@ -394,7 +398,7 @@ class Wizard
           modifications = getProperty(a.modifications, level.modifications)
           thisSpell.modifications = {} unless thisSpell.modifications?
           for property, formular of modifications
-            val = calcFormular(variables, @, null, formular)
+            val = calcFormular(variables, @, target, formular)
             @[property] += val
             thisSpell.modifications[property] = 0 unless thisSpell.modifications[property]?
             thisSpell.modifications[property] += val
