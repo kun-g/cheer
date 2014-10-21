@@ -1,7 +1,20 @@
-require('./define')
-splLib = require('./spell')
-
 isDebug = false
+
+class Command
+  constructor: (@config) ->
+
+  execute: (a , b) ->
+    this.parameters = arguments
+    if @config.execute then @config.execute.apply(@, arguments)
+
+  undo: () ->
+    if @config.undo then @config.undo.apply(@, this.parameters)
+
+  translate: () ->
+    if @config.translate then @config.translate.apply(@, this.parameters)
+
+
+
 
 class CommandStream
   constructor: (@cmd, @parent, @config, @environment) ->
@@ -102,4 +115,5 @@ class Environment
 
 exports.CommandStream = CommandStream
 exports.Environment = Environment
+exports.Command = Command
 exports.fileVersion = -1

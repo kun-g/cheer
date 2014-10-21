@@ -1,5 +1,13 @@
 require('./define')
 {Serializer, registerConstructor} = require './serializer'
+_ = require('./underscore')
+
+class Thing extends Serializer
+  constructor: (@config) ->
+    _.extend(@property, config.property) if config.property
+    _.extend(@enhancement, config.enhancement) if config.enhancement
+
+    #super(config, config.serialize_config)
 
 class Item extends Serializer
   constructor: (data) ->
@@ -43,4 +51,5 @@ registerConstructor(Item)
 
 exports.Item = Item
 exports.Card = Card
+exports.Thing = Thing
 exports.fileVersion = -1
