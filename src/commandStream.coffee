@@ -1,7 +1,10 @@
+_ = require('./underscore')
+
 isDebug = false
 
+# ===============================================================================
 class Command
-  constructor: (@config) ->
+  constructor: (@config, @parent) ->
 
   execute: (a , b) ->
     this.parameters = arguments
@@ -13,9 +16,21 @@ class Command
   translate: () ->
     if @config.translate then @config.translate.apply(@, this.parameters)
 
+  next: (cmd) ->
+    old = @nextCMD
+    newCommand = new Command
+    @nextCMD = new CommandStream(c, @parent, config)
+    @nextCMD.predecessor = @
 
+    if old?
+      @nextCMD.nextCMD = old
+      old.predecessor = @nextCMD
 
+    return @nextCMD
 
+#class 
+
+# ===============================================================================
 class CommandStream
   constructor: (@cmd, @parent, @config, @environment) ->
     @cmdRoutine = []
@@ -113,7 +128,96 @@ class Environment
 
   chanceCheck: (chance) -> @rand() < chance
 
+# ===============================================================================
+command_config = {
+  modify_property: {
+    description: '修改属性',
+    parameters: {
+        property: '属性对象'
+    },
+    execute: (obj, properties) ->
+      @backup = {}
+      for key, p of properties
+        @backup[key] = obj[key]
+        obj[key] = p
+
+    undo: (obj, properties) ->
+      for k, p of @backup
+        if p?
+          obj[k] = p
+        else
+          delete obj[k]
+
+    translate: (obj) ->
+      return JSON.stringify(obj)
+  },
+  incress_property: {
+    execute: (obj, properties) ->
+      originProperty = _(obj).pick(_(properties).keys())
+      for k, v of properties
+        if originProperty[k] then v = originProperty[k] + v
+        originProperty[k] = v
+
+      @cmd_modifyProperty = makeCommand('modify_property')
+      @cmd_modifyProperty.execute(obj, originProperty)
+
+    undo: () -> @cmd_modifyProperty.undo()
+  },
+  change_appearance: {
+    execute: (obj, properties) ->
+      @backup = {}
+      for key, p of properties
+        @backup[key] = obj[key]
+        obj[key] = p
+
+    undo: (obj) ->
+      for k, p of @backup
+        if p?
+          obj[k] = p
+        else
+          delete obj[k]
+
+    translate: (obj) ->
+      return JSON.stringify(obj)
+  },
+}
+
+makeCommand = (name) -> return new Command(command_config[name])
+extention = {
+  requirement: [
+    { field: 'getCommandConfig', type: 'function' }
+  ],
+  interfaces: {
+    makeCommand: (commandName) ->
+      return null unless @getCommandConfig(commandName)
+      return new Command(@getCommandConfig(commandName))
+
+    executeCommand: (commandName) ->
+      command = makeCommand(commandName)
+
+      throw new Error('Command is not supported.') unless command
+
+      args = _(arguments).toArray()
+      args.splice(0, 1, this)
+      command.execute.apply(command, args)
+  }
+}
+isRequirementMatched = (obj, config) ->
+  return true unless config
+  obj = obj.prototype
+  return config.reduce(((r, l) -> return r and typeof obj[l.field] is l.type), true)
+
+installExtention = (obj, config) ->
+  return null unless isRequirementMatched(obj, config.requirement)
+  for field, value of config.interfaces
+    continue if obj.prototype[field]
+    obj.prototype[field] = value
+# ===============================================================================
 exports.CommandStream = CommandStream
 exports.Environment = Environment
 exports.Command = Command
+exports.makeCommand = makeCommand
+exports.command_config = command_config
+exports.installCommandExtention = (obj) -> installExtention(obj, extention)
+
 exports.fileVersion = -1
