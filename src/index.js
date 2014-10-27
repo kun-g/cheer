@@ -262,7 +262,8 @@ function paymentHandler (request, response) {
       data = 'pay?'+data.toString();
       var out = urlLib.parse(data, true).query;
 
-      if (out.app_id == 'com.kddxc.koudaidixiacheng') {
+	  if (out.app_id == 'com.kddxc.koudaidixiacheng' || out.app_id == 'org.kddxc.koudaidixiachengapk') {
+
           var token = "bf0d10d4f9979d3c6aae26011b6ec34b";
       } else {
           var token = "c2a8c153eec815118179f46e0dbfd99e";
