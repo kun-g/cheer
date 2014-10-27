@@ -1505,7 +1505,7 @@ dungeonCSConfig = {
       onEvent('CriticalDamage', @, env.variable('src'), env.variable('tar')) if env.variable('critical')
       @next({id: 'Dead', tar: env.variable('tar'), killer:env.variable('src'), damage: env.variable('damage')}) unless env.variable('tar').isAlive()
 
-      @getPrevCommand('Attack').cmd.critical = env.variable('critical')
+      @getPrevCommand('Attack')?.cmd?.critical = env.variable('critical')
     ,
     output: (env) ->
       flag = if env.variable('critical') then HP_RESULT_TYPE_CRITICAL else HP_RESULT_TYPE_HIT
