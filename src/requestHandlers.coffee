@@ -97,26 +97,42 @@ loginBy = (arg, token, callback) ->
         )
       ).on('error', (e) -> logError({action: 'login', type:  "LOGIN_ACCOUNT_TYPE_KY", error: e}))
     when LOGIN_ACCOUNT_TYPE_PP
+      appID = 2739
+      appKey = '01aee5718a33bcbbe790bc0ca7cfb7ee'
+      postBody = 
+        'id': Math.round((new Date()).getTime()/1000)
+        'service': 'account.verifySession'
+        'game': 
+          'gameId': appID
+        'data': 
+          'sid': token
+        'encrypt': 'MD5'
+        'sign': md5Hash('sid='+token+appKey)
+      strBody = JSON.stringify(postBody)
+
       options = {
         host: 'passport_i.25pp.com',
         port: 8080,
         method: 'POST',
-        path: '/index?tunnel-command=2852126756',
-        headers: { 'Content-Length': 32 }
+        path: '/account?tunnel-command=2852126760',
+        headers: 
+          'Content-Type': 'application/json'
+          'Content-Length': strBody.length
       }
       req = http.request(options, (res) ->
         res.setEncoding('utf8')
         res.on('data', (chunk) ->
-          result = JSON.parse('{'+chunk+'}')
-          logInfo({action: 'login', type:  LOGIN_ACCOUNT_TYPE_PP, code: result.status})
-          if result.status is 0
-            callback(null)
+          result = JSON.parse(chunk)
+          logInfo({action: 'login', type:  LOGIN_ACCOUNT_TYPE_PP, code: result.state})
+          if result.state.code is 1
+            identifier = result.data.creator+result.data.accountId
+            callback(null, identifier)
           else
             callback(Error(RET_LoginFailed))
         )
       )
       req.on('error', (e) -> logError({action: 'login', type:  "LOGIN_ACCOUNT_TYPE_PP", error: e}))
-      req.write(token)
+      req.write(strBody)
       req.end()
     #when LOGIN_ACCOUNT_TYPE_TG
     #  dbLib.loadAuth(passport, token, callback)
@@ -158,10 +174,14 @@ exports.route = {
         #  else cb(null)
         #,
         (cb) -> if registerFlag then cb(null) else loginBy(arg, arg.tk, cb),
-        (cb) ->
+        (identifier, cb) ->
           tp = arg.tp
           tp = arg.atp if arg.atp?
-          loadPlayer(tp, arg.id, cb)
+          id = arg.id
+          if identifier
+            id = identifier
+            arg.id = id
+          loadPlayer(tp, id, cb)
         ,
         (player, cb) ->
           if player
