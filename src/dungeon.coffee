@@ -8,7 +8,7 @@ require('./shared')
 {Bag, CardStack} = require('./container')
 {parse, TriggerManager} = require('./trigger')
 
-seed_random = require('./seed-random')
+seed_random = require('./seed_random')
 speedFormula = { 'a' : 1, 'b' : 60, 'c' : 0.5}
 hitFormula = { 'a' : 1, 'b' : 150, 'c' : 0.75, downLimit : 0.5 }
 criticalFormula = { 'a' : 7, 'b' : 140, 'c' : 0.1, upLimit : 0.4 }
@@ -302,7 +302,9 @@ class Dungeon
         ref: ref++
       }) for e in team
     )
-    this.heroes.push(new Hero({}))
+    dummyHero = new Hero({})
+    dummyHero.health =0
+    this.heroes.push(dummyHero)
     this.heroes.forEach( (e) -> e.faction = 'hero' )
 
   getDummyHero: () -> @heroes[@heroes.length-1]
@@ -318,11 +320,11 @@ class Dungeon
 
   getInitialInfo: () -> {syn: 0, pat: @team, stg: @stage}
 
-  getHeroes: (all) -> if all then @heroes else @heroes.slice(0, @heroes.length-1)
+  getHeroes: (withDummy) -> if withDummy then @heroes else @heroes.slice(0, @heroes.length-1)
 
-  getAliveHeroes: () -> @heroes.filter( (h) -> h.health? and h.health > 0 )
+  getAliveHeroes: () -> @getHeroes().filter( (hero) -> hero.isAlive())
 
-  getMonsters: () -> @level?.getMonsters().filter( (o) -> o.health > 0 )
+  getMonsters: () -> @level?.getMonsters().filter( (o) -> o.isAlive())
 
   getEnemyOf: (obj) ->
     if obj.isMonster?()
@@ -353,25 +355,25 @@ class Dungeon
       @level.blocks[obj.pos]?.addRef(obj)
 
   explore: (tar) ->
-    return 0 if @level.blocks[tar].explored
-    return 1 if tar is @getEntrance()
-    return 1 if Array.isArray(@getEntrance()) and @getEntrance().indexOf(tar) isnt -1
+    return ExploreResult_Explored if @level.blocks[tar].explored
+    return ExploreResult_Entrance if tar is @getEntrance()
+    return ExploreResult_Entrance if Array.isArray(@getEntrance()) and @getEntrance().indexOf(tar) isnt -1
 
     access = false
     for i in [0..3]
       nx = tar%DG_LEVELWIDTH
       ny = Math.floor(tar/DG_LEVELWIDTH)
       switch (i)
-        when 0 then ny--
-        when 1 then nx++
-        when 2 then ny++
-        when 3 then nx--
+        when UP then ny--
+        when RIGHT then nx++
+        when DOWN then ny++
+        when LEFT then nx--
 
       n = nx + ny*DG_LEVELWIDTH
-      return 1 if @level.blocks[n]?.explored
+      return ExploreResult_Entrance if @level.blocks[n]?.explored
 
     @onReplayMissMatch()
-    return -1
+    return ExploreResult_DeadEnd
 
   getRank: () -> @level?.rank
 
@@ -434,7 +436,7 @@ class Dungeon
       when DUNGEON_ACTION_CAST_SPELL
         hero = @heroes[0]
         ret = [] #[{NTF: Event_Fail, arg : {msg:'Main Hero Is Dead'}}]
-        if hero.health > 0
+        if hero.isAlive()
           cmd = DungeonCommandStream({id: 'BeginTurn', type: 'Spell', src: hero}, this)
           cmd.next({id: 'CastSpell', me: hero, spell: hero.activeSpell})
              .next({id: 'EndTurn', type: 'Spell', src: hero})
@@ -511,14 +513,13 @@ class Block extends Wizard
   getRef: (index) ->
     return @refList unless index?
     return @refList[index] unless index is -1
-    for o in @refList when o.health > 0
-      return o
+    objLst = (o for o in @refList when o.isAlive())
 
-    return null
+    return if objLst.length is 0 then null else objLst
 
   getType: () ->
     return @tileType if @tileType is Block_Exit or @tileType is Block_LockedExit or @getRef(-1) is null
-    return @getRef(-1).blockType if @getRef(-1)?
+    return @getRef(-1)[0].blockType if @getRef(-1)?[0]?
 
 #///////////////////// Level
 class Level
@@ -645,6 +646,10 @@ class Level
 
     if arg.skill?
       o.installSpell(skill.id,skill.lv) for skill in arg.skill
+
+    if arg.property?.skill?
+      o.installSpell(skill.id,skill.lv) for skill in arg.property.skill
+
     o.installSpell(DUNGEON_DROP_CARD_SPELL, 1)
 
     if arg.property?
@@ -753,6 +758,7 @@ class DungeonEnvironment extends Environment
       when 'tutorial' then cmd.routine?({id: 'Tutorial', tutorialId: act.tutorialId})
       when 'modifyEnvVariable' then @variable(a.name, a.value)
       when 'shock' then cmd.routine?({id: 'Shock', time: a.time, delay: a.delay, range: a.range})
+      when 'tremble' then cmd.routine?({id: 'Tremble', time: a.time, delay: a.delay, range: a.range})
       when 'blink' then cmd.routine?({id: 'Blink', time: a.time, delay: a.delay, color: a.color})
       when 'changeBGM' then cmd.routine({id: 'ChangeBGM', music: a.music, repeat: a.repeat})
       when 'whiteScreen' then cmd.routine({id: 'WhiteScreen', mode: a.mode, time: a.time, color: a.color})
@@ -823,7 +829,7 @@ class DungeonEnvironment extends Environment
   factionAttack: (src, dst, flag) -> @dungeon.factionAttack(src, dst, flag)
   factionHeal: (src, dst, flag) -> @dungeon.factionHeal(src, dst, flag)
 
-  getObjectAtBlock: (block) -> return @getBlock(block).getRef(-1)
+  getFirstObjectAtBlock: (block) -> return @getBlock(block).getRef(-1)?[0]
 
   getCurrentLevel: () -> return @dungeon?.currentLevel
 
@@ -1028,10 +1034,10 @@ dungeonCSConfig = {
     output: (env) ->
       ev = {id: ACT_EnterLevel, "lvl": env.getCurrentLevel()}
       positions = (h.pos for h in env.getHeroes())
-      ev.pos = positions[0] if env.getHeroes()[0]?.health > 0
-      ev.pos1 = positions[1] if env.getHeroes()[1]?.health > 0
-      ev.pos2 = positions[2] if env.getHeroes()[2]?.health > 0
-      ev.pos3 = positions[3] if env.getHeroes()[3]?.health > 0
+      ev.pos = positions[0] if env.getHeroes()[0]?.isAlive()
+      ev.pos1 = positions[1] if env.getHeroes()[1]?.isAlive()
+      ev.pos2 = positions[2] if env.getHeroes()[2]?.isAlive()
+      ev.pos3 = positions[3] if env.getHeroes()[3]?.isAlive()
 
       heroInfo = env.variable('heroInfo')
 
@@ -1051,14 +1057,17 @@ dungeonCSConfig = {
     ,
     output: (env) ->
       switch env.variable('exploreResult')
-        when -1 then {id : ACT_POPTEXT, arg : 'Invalid move'}
-        when 0 then {id : ACT_POPTEXT, arg : 'Explored block'}
+        when ExploreResult_DeadEnd then {id : ACT_POPTEXT, arg : 'Invalid move'}
+        when ExploreResult_Explored then {id : ACT_POPTEXT, arg : 'Explored block'}
         else []
   },
   SpellCD: {
     output: (env) -> [ {id:ACT_SkillCD, cd:env.variable('cdInfo')} ] if env.variable('cdInfo')?
   },
   SpellState: {
+    callback: (env) ->
+      state = env.variable('wizard').calcBuffState()
+      env.variable('state', state)
     output: (env) ->
       ret =  genUnitInfo(env.variable('wizard'), false, env.variable('state'))
       if env.variable('effect')?
@@ -1082,15 +1091,22 @@ dungeonCSConfig = {
       env.getBlock(env.variable('block')).explored = true
       @routine({id: 'BlockInfo', block: env.variable('block')})
       block = env.getBlock(env.variable('block'))
+      aliveHeroes = env.getAliveHeroes().filter( (h) -> return h? ).sort( (a,b) -> return a.order - b.order )
+ 
+      blockType = block.getType()
       if block.getType() is Block_Npc or block.getType() is Block_Enemy
-        e = block.getRef(-1)
-        @routine({id: 'UnitInfo', unit: e})
-        env.variable('monster', e)
-        env.variable('tar', e)
-        e.onEvent('onShow', @)
-        env.onEvent('onMonsterShow', @)
-        if e?.isVisible isnt true
-          e.isVisible = true
+        if block.getRef(-1) isnt null
+          who = if blockType is Block_Npc then 'Npc' else 'Monster'
+          for npc in block.getRef(-1)
+            @routine({id: 'UnitInfo', unit: npc})
+            env.variable('monster', npc)
+            env.variable('tar', npc)
+            npc.onEvent('onShow', @)
+            for hero in aliveHeroes
+              onEvent(who+'Show', this, hero,npc)
+            env.onEvent('on'+who+'Show', @)
+            if npc?.isVisible isnt true
+              npc.isVisible = true
   },
   BlockInfo: {
     output: (env) ->
@@ -1110,7 +1126,14 @@ dungeonCSConfig = {
     output: (env) ->
       e = env.variable('unit')
       return [] if e.dead
-      eEv = {id: ACT_Enemy, pos: e.pos, rid: e.id, hp: e.health, ref: e.ref, typ: e.type, keyed: e.keyed}
+      eEv = {
+        id: ACT_Enemy,
+        pos: e.pos,
+        rid: e.id,
+        hp: e.health,
+        ref: e.ref,
+        typ: e.type,
+        keyed: e.keyed}
       eEv.dc = e.attack if e.attack?
       eEv.eff = e.effect if e.effect?
       if getBasicInfo(e) then eEv.role = getBasicInfo(e)
@@ -1121,7 +1144,7 @@ dungeonCSConfig = {
       env.onEvent('onTouchBlock', @)
       block = env.getBlock(env.variable('block'))
       if block.explored
-        tar = env.getObjectAtBlock(env.variable('block'))
+        tar = env.getFirstObjectAtBlock(env.variable('block'))
         aliveHeroes = env.getAliveHeroes().filter( (h) -> return h? ).sort( (a,b) -> return a.order - b.order )
         hero = aliveHeroes[0] if aliveHeroes?.length > 0
         if tar? and hero?
@@ -1134,7 +1157,7 @@ dungeonCSConfig = {
   },
   InitiateAttack: {
     callback: (env) ->
-      enemy = env.getObjectAtBlock(env.variable('block'))
+      enemy = env.getFirstObjectAtBlock(env.variable('block'))
       aliveHeroes = env.getAliveHeroes().filter( (h) -> return h? ).sort( (a,b) -> return a.order - b.order )
       hero = aliveHeroes[0] if aliveHeroes?.length > 0
 
@@ -1169,7 +1192,7 @@ dungeonCSConfig = {
     callback: (env) ->
       src = env.variable('src')
       tar = env.variable('tar')
-      return @suicide() unless src.health > 0 and tar.health > 0
+      return @suicide() unless src.isAlive() and tar.isAlive()
 
       env.variable('damage', src.attack)
       onEvent('Target', @, src, tar)
@@ -1205,7 +1228,12 @@ dungeonCSConfig = {
       else
         rangeEff =[]
 
-      flag = if env.variable('hit') then HP_RESULT_TYPE_HIT else HP_RESULT_TYPE_MISS
+      if env.variable('hit')
+        flag = HP_RESULT_TYPE_HIT
+        if env.variable('critical')
+          flag = HP_RESULT_TYPE_CRITICAL
+      else
+        flag = HP_RESULT_TYPE_MISS
       return [{act: env.variable('src').ref, id: ACT_ATTACK, ref: env.variable('tar').ref, res:flag, rng:env.variable('isRange')}].concat(rangeEff)
   },
   ShiftOrder: {
@@ -1270,6 +1298,12 @@ dungeonCSConfig = {
       evt.rag = env.variable('range') if env.variable('range')?
       return [evt]
   },
+  Tremble: {
+    output: (env) ->
+      evt = {id: ACT_Tremble, act:env.variable('act'), dey: env.variable('delay'), tim: env.variable('time')}
+      evt.rag = env.variable('range') if env.variable('range')?
+      return [evt]
+  },
   Dialog: { output: (env) -> [{id: ACT_Dialog, did: env.variable('dialogId')}] },
   Tutorial: { output: (env) -> [{id: ACT_Tutorial, tid: env.variable('tutorialId')}] },
   ChangeBGM: {
@@ -1294,6 +1328,7 @@ dungeonCSConfig = {
   },
   Kill: {
     callback: (env) ->
+      return @suicide() unless env.variable('tar').isAlive()
       env.variable('tar').health = 0
       if not env.variable('tar').isVisible then env.variable('tar').dead = true
       @routine({id:'Dead', tar: env.variable('tar'), cod: env.variable('cod')})
@@ -1307,7 +1342,7 @@ dungeonCSConfig = {
   TeleportObject: {
     callback: (env) ->
       obj = env.variable('obj')
-      return @suicide() unless obj.health > 0
+      return @suicide() unless obj.isAlive()
       slot = env.variable('tarPos')
       if not slot?
         availableSlot = env.getBlock().filter( (e) -> e.getType() is Block_Empty )
@@ -1320,7 +1355,7 @@ dungeonCSConfig = {
       env.getBlock(obj.pos).removeRef(obj)
       env.getBlock(slot).addRef(obj)
       obj.pos = slot
-      return @suicide() unless env.variable('obj').health > 0
+      return @suicide() unless env.variable('obj').isAlive()
       @routine({id: 'BlockInfo', block: env.variable('tarPos')})
     ,
     output: (env) -> [{act: env.variable('obj').ref, id: ACT_TELEPORT, pos: env.variable('tarPos')}]
@@ -1453,7 +1488,7 @@ dungeonCSConfig = {
       damageType = env.variable('damageType')
       isRange = env.variable('isRange')
 
-      return @suicide() unless env.variable('tar')?.health > 0
+      return @suicide() unless env.variable('tar')?.isAlive()
 
       env.variable('critical', env.compete('critical', env.variable('src').critical, env.variable('tar').strong)) if damageType is 'Physical'
       env.variable('damage', env.variable('damage')*2) if env.variable('critical')
@@ -1463,11 +1498,14 @@ dungeonCSConfig = {
       else
         onEvent(damageType+'Damage', @, env.variable('src'), env.variable('tar'))
 
-      onEvent('DeathStrike', @, env.variable('src'), env.variable('tar')) if env.variable('tar').health <= env.variable('damage')
+      if env.variable('tar').health <= env.variable('damage')
+        onEvent('DeathStrike', @, env.variable('src'), env.variable('tar'))
       env.variable('tar').health -= env.variable('damage')
 
       onEvent('CriticalDamage', @, env.variable('src'), env.variable('tar')) if env.variable('critical')
-      @next({id: 'Dead', tar: env.variable('tar'), killer:env.variable('src'), damage: env.variable('damage')}) if env.variable('tar').health <= 0
+      @next({id: 'Dead', tar: env.variable('tar'), killer:env.variable('src'), damage: env.variable('damage')}) unless env.variable('tar').isAlive()
+
+      @getPrevCommand('Attack')?.cmd?.critical = env.variable('critical')
     ,
     output: (env) ->
       flag = if env.variable('critical') then HP_RESULT_TYPE_CRITICAL else HP_RESULT_TYPE_HIT
@@ -1486,7 +1524,7 @@ dungeonCSConfig = {
   UpdateLockStatues: {
     callback: (env) ->
       keys = env.getObjects()
-                .filter( (m) -> return m.health? and m.health > 0 )
+                .filter( (m) -> return m.isAlive())
                 .filter( (m) -> return m.keyed? and m.keyed )
       exit = env.getBlock(env.getExit())
       oldStatues = exit.getType() if exit?
@@ -1523,16 +1561,17 @@ dungeonCSConfig = {
       if src.collectId? then @routine({id: 'CollectID', collectId: src.collectId})
 
       onEvent('Kill', @, killer, src)
-      env.getBlock(src.pos).removeRef(src) if env.getBlock(src.pos) and src.health <= 0
+      env.getBlock(src.pos).removeRef(src) if env.getBlock(src.pos) and not src.isAlive()
 
-      if env.variable('tar').health <= 0 and not env.variable('cod')? and env.variable('tar').dropInfo
+      if not env.variable('tar').isAlive() and not env.variable('cod')? and env.variable('tar').dropInfo
         env.dungeon.killingInfo.push( { dropInfo: env.variable('tar').dropInfo } )
 
       @routine({id: 'BlockInfo', block: src.pos}) if src.isVisible
     ,
     output: (env) ->
       ret = []
-      if env.variable('tar').isVisible and env.variable('tar').health <= 0 then ret.push({act: env.variable('tar').ref, id: ACT_DEAD})
+      if env.variable('tar').isVisible and not env.variable('tar').isAlive()
+        ret.push({act: env.variable('tar').ref, id: ACT_DEAD})
       return ret
   },
   Evade: {
@@ -1551,7 +1590,7 @@ dungeonCSConfig = {
           else
             @routine({id:'EnterLevel'})
         when Block_Npc
-          block.getRef(-1).onEvent('onBeActivate', this)
+          npc.onEvent('onBeActivate', this) for npc in block.getRef(-1)
   },
   RangeAttackEffect: {
     output: (env) ->

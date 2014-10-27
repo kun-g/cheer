@@ -25,6 +25,10 @@ plusThemAll = (config, env) ->
   return sum
 
 calcFormular = (e, s, t, config) ->
+  if config.func
+    c = if config.c then config.c else {}
+    return config.func.apply(null,[e, s, t, c])
+
   c = if config.c then config.c else 0
   return Math.ceil(plusThemAll(config.environment, e) + plusThemAll(config.src, s) + plusThemAll(config.tar, t) + c)
 
@@ -34,6 +38,9 @@ class Wizard
     @wTriggers = {}
     @wSpellMutex = {}
     @wPreBuffState = { rs : BUFF_TYPE_NONE, ds : BUFF_TYPE_NONE, hs : BUFF_TYPE_NONE }
+
+  isAlive: () ->
+    return @health > 0
 
   installSpell: (spellID, level, cmd, delay = 0) ->
     cfg = getSpellConfig(spellID)
@@ -81,7 +88,7 @@ class Wizard
 
   spellStateChanged: (spellID, cmd) ->
     return false unless cmd?
-    cmd.routine?({id: 'SpellState', wizard:@, state: @calcBuffState(), effect: @calcEffectState(spellID)})
+    cmd.routine?({id: 'SpellState', wizard:@, effect: @calcEffectState(spellID)})
 
   removeSpell: (spellID, cmd) ->
     cfg = getSpellConfig(spellID)
@@ -151,7 +158,7 @@ class Wizard
     thisSpell = @wSpellDB[spellID]
     return [false, 'NotLearned'] unless thisSpell
     return [true, 'NoCD'] unless cfg.triggerCondition
-    return [false, 'Dead'] unless @health > 0
+    return [false, 'Dead'] unless @isAlive()
 
     cdConfig = (c for c in cfg.triggerCondition when c.type == 'countDown')
     return [true, 'NoCD'] unless cdConfig.length > 0
@@ -161,7 +168,7 @@ class Wizard
     preCD = thisSpell.cd
     if isReset
       thisSpell.cd = cd
-    else if @health <= 0
+    else if not @isAlive()
       thisSpell.cd = -1
     else
       thisSpell.cd -= 1 unless thisSpell.cd == 0
@@ -261,7 +268,7 @@ class Wizard
       switch limit.type
         when 'chance' then return [false, 'NotFortunate'] unless env.chanceCheck(getProperty(limit.chance, level.chance))
         when 'card' then return [false, 'NoCard'] unless env.haveCard(limit.id)
-        when 'alive' then return [false, 'Dead'] unless @health > 0
+        when 'alive' then return [false, 'Dead'] unless @isAlive()
         when 'visible' then return [false, 'visible'] unless @isVisible
         when 'needTarget' then return [false, 'No target'] unless target?
         when 'countDown'
@@ -328,6 +335,13 @@ class Wizard
           else
             cmd.routine?({id: 'Kill', tar: t, cod: a.cod}) for t in target
         when 'shock' then cmd?.routine?({id: 'Shock', time: a.time, delay: a.delay, range: a.range})
+        when 'tremble'
+          switch a.act
+            when 'self'
+              cmd.routine?({id: 'Tremble', act:@ref, time: a.time, delay: a.delay, range: a.range})
+            when 'target'
+              for t in target
+                cmd.routine?({id: 'Tremble', act:t.ref, time: a.time, delay: a.delay, range: a.range})
         when 'blink' then cmd.routine?({id: 'Blink', time: a.time, delay: a.delay, color: a.color})
         when 'changeBGM' then cmd.routine({id: 'ChangeBGM', music: a.music, repeat: a.repeat})
         when 'whiteScreen' then cmd.routine({id: 'WhiteScreen', mode: a.mode, time: a.time, color: a.color})
@@ -391,7 +405,7 @@ class Wizard
           modifications = getProperty(a.modifications, level.modifications)
           thisSpell.modifications = {} unless thisSpell.modifications?
           for property, formular of modifications
-            val = calcFormular(variables, @, null, formular)
+            val = calcFormular(variables, @, target, formular)
             @[property] += val
             thisSpell.modifications[property] = 0 unless thisSpell.modifications[property]?
             thisSpell.modifications[property] += val

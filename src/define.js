@@ -38,7 +38,7 @@ initServer = function () {
     log.server = gServerID;
 
     if (logger && type) {
-      logger.emit(type, log, (new Date()).valueOf());
+      logger.emit(type, log, new Date());
     }
     if (logger == null || process.stdout.isTTY || type === 'Error') {
       var util = require('util');
@@ -205,6 +205,65 @@ initStageConfig = function (cfg) {
   return ret;
 };
 
+function initVipConfig (cfg){
+  var ret = {};
+  var VIP = {};
+  var requirement = [];
+  var levels = [];
+  VIP.requirement = requirement;
+  VIP.levels = levels;
+  ret.VIP = VIP;
+  if (cfg.VIP){
+    var c = cfg;
+    if (c.VIP.requirement) {
+      var requirementCount = c.VIP.requirement.length;
+      //init
+      for (var kk in c.VIP.requirement){
+        ret.VIP.requirement[kk] = {};
+        ret.VIP.requirement[kk].rmb = c.VIP.requirement[kk].rmb;
+        ret.VIP.requirement[kk].privilege = [];
+      }
+      //
+      for (var k = 0;k < c.VIP.requirement.length;k++){
+        var privil = c.VIP.requirement[k].privilege;
+        if (privil){
+          for (var i = 0;i < privil.length;i++)
+            for (var j = k;j < requirementCount;j++){
+                ret.VIP.requirement[j].privilege[privil[i].name] = privil[i].data;
+            }
+        }
+      }
+    }
+    if (c.VIP.levels){
+      ret.VIP.levels = c.VIP.levels;
+    }
+  }
+  return ret;
+}
+
+var powerLimitInfo = {};
+function initPowerLimit(cfg) {
+	cfg.forEach(function (bounty) {
+		bounty.level.forEach(function (level) {
+			var powerLimit = 0;
+			if (typeof level.powerLimit == 'number') {
+				powerLimit = level.powerLimit;
+			}
+			powerLimitInfo[level.stage] = powerLimit;
+		})
+	})
+	return cfg;
+}
+
+getPowerLimit = function(stageId){
+	var powerLimit = powerLimitInfo[stageId];
+	if (powerLimit == null) {
+		return 0;
+	}
+	else{
+		return powerLimit;
+	}
+}
 prepareForABtest = function (cfg) {
   var ret = [];
   var maxABIndex = 0;
@@ -241,7 +300,14 @@ function initShop (data) {
     }
   }
 }
-
+function initCampaignTable(data) {
+    firstChangeObj = data['FirstCharge']['objective'];
+    firstChangeObj = firstChangeObj.map(function(elm) {
+        return {award:[{type:2,count:elm.gem}]};
+    });
+    data['FirstCharge']['objective'] = firstChangeObj;
+    return data;
+}
 arenaPirze = function (rank) {
   cfg = queryTable(TABLE_ARENA);
   for (var k in cfg) {
@@ -285,9 +351,9 @@ initGlobalConfig = function (path, callback) {
     {name:TABLE_ROLE}, {name:TABLE_LEVEL}, {name:TABLE_VERSION}, {name:TABLE_FACTION},
     {name:TABLE_ITEM}, {name:TABLE_CARD}, {name:TABLE_DUNGEON, func:varifyDungeonConfig},
     {name:TABLE_STAGE, func: initStageConfig}, {name:TABLE_QUEST}, {name: TABLE_COSTS},
-    {name:TABLE_UPGRADE}, {name:TABLE_ENHANCE}, {name: TABLE_CONFIG}, {name: TABLE_VIP},
-    {name:TABLE_SKILL}, {name:TABLE_CAMPAIGN}, {name: TABLE_DROP}, {name: TABLE_TRIGGER},
-    {name:TABLE_DP},{name:TABLE_ARENA},{name:TABLE_BOUNTY}
+    {name:TABLE_UPGRADE}, {name:TABLE_ENHANCE}, {name: TABLE_CONFIG}, {name: TABLE_VIP, func:initVipConfig},
+    {name:TABLE_SKILL}, {name:TABLE_CAMPAIGN, func:initCampaignTable}, {name: TABLE_DROP}, {name: TABLE_TRIGGER},
+    {name:TABLE_DP},{name:TABLE_ARENA},{name:TABLE_BOUNTY, func:initPowerLimit}, {name:TABLE_IAP},
   ];
   if (!path) path = "./";
   configTable.forEach(function (e) {
@@ -534,6 +600,7 @@ ACT_Shock = 110;
 ACT_Blink = 111;
 ACT_Tutorial = 112;
 ACT_Bubble = 113;
+ACT_Tremble = 114;
 
 ACT_Block = 201;
 ACT_Enemy = 202;
@@ -580,6 +647,11 @@ UP = 0;
 RIGHT = 1;
 DOWN  = 2;
 LEFT  = 3;
+
+ExploreResult_Explored = 0
+ExploreResult_Entrance = 1
+ExploreResult_DeadEnd = -1
+
 
 isInstantAction = function (act) { return act > 100; };
 

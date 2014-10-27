@@ -1,13 +1,14 @@
 shall = require('should');
 require('../js/define');
 dbLib = require('../js/db');
+helperLib = require('../js/helper');
 async = require('async');
 
-dbPrefix = 'Develop.';
-dbIp = "10.4.3.41";
+//dbPrefix = 'Develop.';
+//dbIp = "10.4.3.41";
 
-//dbPrefix = 'Local'+'.';
-//dbIp = "127.0.0.1";
+dbPrefix = 'Local'+'.';
+dbIp = "127.0.0.1";
 var shall = require('should');
 
 gServerID = 1;
@@ -21,16 +22,13 @@ describe('DB', function () {
       "Publisher": { "IP": dbIp, "PORT": 6379},
       "Subscriber": { "IP": dbIp, "PORT": 6379}
     }, function() {
-      initGlobalConfig('../../build/', done);
+      done();
     });
-
-
   });
 
   describe('Mercenary', function () {
     it('update', function (done) {
-      var arr = [];
- //     for (i = 0; i < 10000; i++) arr.push(i);
+      var arr = [1,2,3,4,5,6,7,8,9,10];
       async.map(arr,
         function (id, cb) {
           dbClient.zadd('Leaderboard.battleforce', id, 'P'+id, cb);
@@ -44,8 +42,7 @@ describe('DB', function () {
           ];
           async.map(tests,
             function (t, cb) {
-              dbLib.findMercenary('faruba', t.count, 30, 1, t.names, function (err, result) {
-                console.log(err,result);
+              dbLib.findMercenary('P1', t.count, 30, 1, t.names, function (err, result) {
                 shall(result.length).equal(t.count);
                 result.forEach(function (e) {
                   shall(t.names.indexOf(e)).equal(-1);
@@ -60,30 +57,27 @@ describe('DB', function () {
 
   describe('PK', function () {
     it('searchRival', function (done) {
-      for (i = 200; i < 250; i++) {
-        dbLib.tryAddLeaderboardMember('Arena', 'P'+i ,null, function (err, ret){
-          console.log(err,ret) ;
-        });
+      for (var i = 0; i < 250; i++) {
+        dbLib.tryAddLeaderboardMember('Arena', 'P'+i , i);
       }
 
-      
-    //  var arr = [
-    //    { name: 'P6', result: [ [2, 2], [4, 5], [5, 5] ] },
-    //    { name: 'P1', result: [ [0, 0], [2, 2], [3, 3] ] },
-    //    { name: 'P3', result: [ [0, 0], [1, 1], [2, 2] ] },
-    //  //  { name: 'P100', result: [ [44, 54], [81, 87], [92, 96] ] }
-    //  ];
+      var arr = [
+        { name: 'P6', result: [ [2, 2], [4, 5], [5, 5] ] },
+        { name: 'P1', result: [ [0, 0], [2, 2], [3, 3] ] },
+        { name: 'P3', result: [ [0, 0], [1, 1], [2, 2] ] },
+        //{ name: 'P100', result: [ [44, 54], [81, 87], [92, 96] ] }
+      ];
 
-    // async.map(arr, 
-    //     function(e, cb) {
-    //      dbLib.searchRival(e.name, function (err, result) {
-    //        result[0][1].should.be.within(e.result[0][0], e.result[0][1]);
-    //        result[1][1].should.be.within(e.result[1][0], e.result[1][1]);
-    //        result[2][1].should.be.within(e.result[2][0], e.result[2][1]);
-    //        cb();
-    //      });
-    //     }, 
-    //     done);
+      async.map(arr, 
+           function(e, cb) {
+             dbLib.searchRival(e.name, function (err, result) {
+               result[0][1].should.be.within(e.result[0][0], e.result[0][1]);
+               result[1][1].should.be.within(e.result[1][0], e.result[1][1]);
+               result[2][1].should.be.within(e.result[2][0], e.result[2][1]);
+               cb();
+             });
+           }, 
+           done);
     });
   });
 
@@ -122,5 +116,47 @@ describe('DB', function () {
     });
   });
 
+  describe('updateReceipt', function () {
+    it('basic', function (done) {
+      var receipt = '0000553801011405638359AppStore';
+      function shouldBeOne(err, result) { result.should.eql(1); }
+      function shouldBeZero(err, result) { result.should.eql(0); }
+      async.series([
+        function (cb) {
+          accountDBClient.del('Receipt.'+receipt, cb);
+        },
+        function (cb) {
+          dbLib.updateReceipt(receipt, 'New', 5538, 1, 1, 'AppStore', helperLib.currentTime(true),
+            function (err, result) {
+              result.should.eql('New');
+              accountDBClient.sismember('receipt_index_by_state:'+'New', receipt, shouldBeOne);
+              cb(err);
+            });
+        },
+        function (cb) {
+          dbLib.updateReceipt(receipt, 'Old', 5538, 1, 1, 'AppStore', helperLib.currentTime(true),
+            function (err, result) {
+              result.should.eql('Old');
+              accountDBClient.sismember('receipt_index_by_state:'+'Old', receipt, shouldBeOne);
+              accountDBClient.sismember('receipt_index_by_state:'+'New', receipt, shouldBeZero);
+              cb(err);
+            });
+        },
+        function (cb) {
+          var m = helperLib.currentTime(true);
+          var year = m.year();
+          var month = m.month();
+          var day = m.date();
+          accountDBClient.sismember('receipt_index_by_time:'+year+'_'+month+'_'+day, receipt, shouldBeOne);
+          accountDBClient.sismember('receipt_index_by_time:'+year+'_'+month+'_'+day, receipt, shouldBeOne);
+          accountDBClient.sismember('receipt_index_by_id:'+5538, receipt, shouldBeOne);
+          accountDBClient.sismember('receipt_index_by_product:'+1, receipt, shouldBeOne);
+          accountDBClient.sismember('receipt_index_by_tunnel:'+'AppStore', receipt, shouldBeOne);
+          accountDBClient.sismember('receipt_index_by_server:'+1, receipt, shouldBeOne);
+          cb();
+        }
+      ], done);
+    });
+  });
 });
 

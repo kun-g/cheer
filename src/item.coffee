@@ -4,6 +4,10 @@ require('./define')
 class Item extends Serializer
   constructor: (data) ->
     if typeof data is 'number' then data = {id: data}
+#TODO:the 907
+    if data.id is 907
+      console.log("The 907 is comming")
+      showMeTheStack()
     cfg = {
       slot: [],
       count: 1,
@@ -11,10 +15,11 @@ class Item extends Serializer
     }
 
     @id = data.id
-    if @getConfig().category is ITEM_EQUIPMENT
-      cfg.xp = 0
-      cfg.enhancement = []
-    if @getConfig().expiration then cfg.date = -1
+    if @getConfig()
+      if @getConfig().category is ITEM_EQUIPMENT
+        cfg.xp = 0
+        cfg.enhancement = []
+      if @getConfig().expiration then cfg.date = -1
 
     super(data, cfg, {})
     @initialize() if @id?

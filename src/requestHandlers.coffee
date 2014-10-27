@@ -1,10 +1,11 @@
 require('./define')
 dbLib = require('./db')
 helperLib = require('./helper')
-{DBWrapper, updateMercenaryMember, addMercenaryMember, getPlayerHero} = require './dbWrapper'
+{DBWrapper, getPlayerHero} = require './dbWrapper'
 async = require('async')
 http = require('http')
 https = require('https')
+querystring = require('querystring')
 moment = require('moment')
 {Player} = require('./player')
 
@@ -12,6 +13,50 @@ loginBy = (arg, token, callback) ->
   passportType = arg.tp
   passport = arg.id
   switch passportType
+    when LOGIN_ACCOUNT_TYPE_TB_IOS, LOGIN_ACCOUNT_TYPE_TB_Android
+      switch passportType
+        when LOGIN_ACCOUNT_TYPE_TB_IOS
+          teebikURL = 'sdk.ios.teebik.com'
+        when LOGIN_ACCOUNT_TYPE_TB_Android
+          teebikURL = 'sdk.android.teebik.com'
+
+      sign = md5Hash(token+ '|' +passport)
+      requestObj = {
+        uid : passport,
+        token:token,
+        sign : sign
+      }
+
+      path = 'http://'+teebikURL+'/check/user?'+ querystring.stringify(requestObj)
+      http.get(path, (res) ->
+        res.setEncoding('utf8')
+        res.on('data', (chunk) ->
+          result = JSON.parse(chunk)
+          logInfo({action: 'login', type: passportType, code: result})
+          if result.success is 1
+            callback(null)
+          else
+            callback(Error(RET_LoginFailed))
+        )
+      ).on('error', (e) -> logError({action: 'login', type:  "LOGIN_ACCOUNT_TYPE_TB", error: e}))
+    when LOGIN_ACCOUNT_TYPE_DK_Android
+      appID = '3319334'
+      appKey = 'kavpXwRFFa4rjcUy1idmAkph'
+      AppSecret = 'KvCbUBBpAUvkKkC9844QEb8CB7pHnl5v'
+
+      sign = md5Hash(appID+appKey+passport+token+AppSecret)
+      path = 'http://sdk.m.duoku.com/openapi/sdk/checksession?appid='+appID+'&appkey='+appKey+'&uid='+passport+'&sessionid='+token+'&clientsecret='+sign
+      http.get(path, (res) ->
+        res.setEncoding('utf8')
+        res.on('data', (chunk) ->
+          result = JSON.parse(chunk)
+          logInfo({action: 'login', type:  passportType, code: result})
+          if result.error_code is '0'
+            callback(null)
+          else
+            callback(Error(RET_LoginFailed))
+        )
+      ).on('error', (e) -> logError({action: 'login', type:  "LOGIN_ACCOUNT_TYPE_DK", error: e}))
     when LOGIN_ACCOUNT_TYPE_91_Android, LOGIN_ACCOUNT_TYPE_91_iOS
       switch passportType
         when LOGIN_ACCOUNT_TYPE_91_Android
@@ -33,7 +78,7 @@ loginBy = (arg, token, callback) ->
           else
             callback(Error(RET_LoginFailed))
         )
-      ).on('error', (e) -> logError({action: 'login', type:  LOGIN_ACCOUNT_TYPE_91, error: e}))
+      ).on('error', (e) -> logError({action: 'login', type:  "LOGIN_ACCOUNT_TYPE_91", error: e}))
     when LOGIN_ACCOUNT_TYPE_KY
       appID = '4032'
       appKey = '42e50a13d86cda48be215d3f64856cd3'
@@ -50,7 +95,7 @@ loginBy = (arg, token, callback) ->
           else
             callback(Error(RET_LoginFailed))
         )
-      ).on('error', (e) -> logError({action: 'login', type:  LOGIN_ACCOUNT_TYPE_91, error: e}))
+      ).on('error', (e) -> logError({action: 'login', type:  "LOGIN_ACCOUNT_TYPE_KY", error: e}))
     when LOGIN_ACCOUNT_TYPE_PP
       options = {
         host: 'passport_i.25pp.com',
@@ -70,12 +115,12 @@ loginBy = (arg, token, callback) ->
             callback(Error(RET_LoginFailed))
         )
       )
-      req.on('error', (e) -> logError({action: 'login', type:  LOGIN_ACCOUNT_TYPE_PP, error: e}))
+      req.on('error', (e) -> logError({action: 'login', type:  "LOGIN_ACCOUNT_TYPE_PP", error: e}))
       req.write(token)
       req.end()
     #when LOGIN_ACCOUNT_TYPE_TG
     #  dbLib.loadAuth(passport, token, callback)
-    when LOGIN_ACCOUNT_TYPE_AD, LOGIN_ACCOUNT_TYPE_GAMECENTER
+    when LOGIN_ACCOUNT_TYPE_AD, LOGIN_ACCOUNT_TYPE_GAMECENTER, LOGIN_ACCOUNT_TYPE_Android
       callback(null)
     else
       callback(Error(RET_Issue33))
@@ -94,21 +139,30 @@ exports.route = {
     id: 100,
     func: (arg, dummy, handle, rpcID, socket, registerFlag) ->
       async.waterfall([
-        (cb) ->
-          if not arg.bv?
-            cb(Error(RET_AppVersionNotMatch))
-            logError({action: 'login', reason: 'noBinaryVersion'})
-          else
-            current = queryTable(TABLE_VERSION, 'bin_version')
-            limit = queryTable(TABLE_VERSION, 'bin_version_need')
-            unless limit <= arg.bv <= current
-              cb(Error(RET_AppVersionNotMatch))
-            else
-              cb(null)
-        ,
-        (cb) -> if +arg.rv isnt queryTable(TABLE_VERSION, 'resource_version') then cb(Error(RET_ResourceVersionNotMatch)) else cb(null),
+				#TODO:
+				#(cb) ->
+        #  if not arg.bv?
+        #    cb(Error(RET_AppVersionNotMatch))
+        #    logError({action: 'login', reason: 'noBinaryVersion'})
+        #  else
+        #    current = queryTable(TABLE_VERSION, 'bin_version')
+        #    limit = queryTable(TABLE_VERSION, 'bin_version_need')
+        #    unless limit <= arg.bv <= current
+        #      cb(Error(RET_AppVersionNotMatch))
+        #    else
+        #      cb(null)
+        #,
+        #(cb) ->
+        #  if +arg.rv isnt queryTable(TABLE_VERSION, 'resource_version')
+        #    cb(Error(RET_ResourceVersionNotMatch))
+        #  else cb(null)
+        #,
         (cb) -> if registerFlag then cb(null) else loginBy(arg, arg.tk, cb),
-        (cb) -> loadPlayer(arg.tp, arg.id, cb),
+        (cb) ->
+          tp = arg.tp
+          tp = arg.atp if arg.atp?
+          loadPlayer(tp, arg.id, cb)
+        ,
         (player, cb) ->
           if player
             player.log('login', {type: arg.tp, id: arg.id})
@@ -247,6 +301,13 @@ exports.route = {
         evt.rv = queryTable(TABLE_VERSION, 'resource_version')
         evt.rvurl = queryTable(TABLE_VERSION, 'url')
         evt.bvurl = queryTable(TABLE_VERSION, 'bin_url')
+
+        evt.nv = queryTable(TABLE_VERSION, 'needed_version')
+        evt.lv = queryTable(TABLE_VERSION, 'last_version')
+        evt.sv = queryTable(TABLE_VERSION, 'suggest_version')
+        evt.url = queryTable(TABLE_VERSION, 'url')
+        if queryTable(TABLE_VERSION, 'branch')
+          evt.br = queryTable(TABLE_VERSION, 'branch')
       handler([evt])
     ,
     args: {'sign':'string'}
@@ -262,7 +323,7 @@ exports.route = {
       replay = []
       status = 'OK'
       fileList = ["define", "serializer", "spell", "unit", "container",
-            "item", "seed-random", "commandStream", "dungeon", "trigger"]
+            "item", "seed_random", "commandStream", "dungeon", "trigger"]
 
       doVerify = () ->
         if player.dungeon
@@ -345,16 +406,16 @@ exports.route = {
     args: {'stg':'number', 'initialDataOnly':'boolean', 'pkr':{type:'string',opt:true}},
     needPid: true
   },
-  RPC_ChargeDiamond: {
-    id: 15,
-    func: (arg, player, handle, rpcID, socket) ->
-      switch arg.stp
-        when 'AppStore' then throw Error('AppStore Payment')
-        when 'PP25' then throw Error('PP25 Payment')
-    ,
-    args: {'pid':'string', 'rep':'string'},
-    needPid: true
-  },
+#  RPC_ChargeDiamond: {
+#    id: 15,
+#    func: (arg, player, handle, rpcID, socket) ->
+#      switch arg.stp
+#        when 'AppStore' then throw Error('AppStore Payment')
+#        when 'PP25' then throw Error('PP25 Payment')
+#    ,
+#    args: {'pid':'string', 'rep':'string'},
+#    needPid: true
+#  },
   RPC_VerifyPayment: {
     id: 15,
     func: (arg, player, handler, rpcID, socket) ->
@@ -362,8 +423,8 @@ exports.route = {
       switch arg.stp
         when 'AppStore'
           options = {
-            #hostname: 'buy.itunes.apple.com',
-            hostname: 'sandbox.itunes.apple.com',
+            hostname: 'buy.itunes.apple.com',
+            #hostname: 'sandbox.itunes.apple.com',
             port: 443,
             path: '/verifyReceipt',
             method: 'POST'
@@ -403,14 +464,12 @@ exports.route = {
   RPC_BindSubAuth: {
     id: 105,
     func: (arg, player, handler, rpcID, socket) ->
-      account = -1
-      if player then account = player.accountID
-      dbLib.bindAuth(account, arg.typ, arg.id, arg.pass, (err, account) ->
-        if account is  -1 or account is '-1'
-          handler([{REQ: rpcID, RET: RET_AccountHaveNoHero}])
-        else
-          handler([{REQ: rpcID, RET: RET_OK, aid: account}])
-      )
+      if player?
+        dbLib.bindAuth(player.accountID, arg.typ, arg.id, arg.pass, (err, account) ->
+            handler([{REQ: rpcID, RET: RET_OK, aid: account}])
+        )
+      else
+        handler([{REQ: rpcID, RET: RET_AccountHaveNoHero}])
     ,
     args: {}
   },
