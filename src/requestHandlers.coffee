@@ -253,9 +253,10 @@ exports.route = {
           player.accountID = account
           player.initialize()
           player.createHero({ name: name, class: arg.cid, gender: arg.gen, hairStyle: arg.hst, hairColor: arg.hcl })
-          prize = queryTable(TABLE_CONFIG, 'InitialEquipment')
-          for k, p of prize
-            player.claimPrize(p.filter((e) => isClassMatch(arg.cid, e.classLimit)))
+          prize = queryTable(TABLE_ROLE, arg.cid)?.initialEquipment
+          if prize?
+            for p in prize
+              player.claimPrize(p)
           logUser({ name: name, action: 'register', class: arg.cid, gender: arg.gen, hairStyle: arg.hst, hairColor: arg.hcl })
           player.saveDB(cb)
       ], (err, result) ->
