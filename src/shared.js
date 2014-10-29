@@ -30,6 +30,8 @@ TABLE_COSTS = "costs";
 TABLE_DP = "dailyPrize";
 TABLE_ARENA = "arena";
 TABLE_BOUNTY = "bounty";
+TABLE_IAP = "iaplist";
+TABLE_SERVERLIST = "serverlist"
 /*** GAME CONSTANTS ***/
 ItemId_RevivePotion = 540;
 
@@ -220,6 +222,7 @@ LOGIN_ACCOUNT_TYPE_91_Android =  6;
 LOGIN_ACCOUNT_TYPE_DK_Android =  7;
 LOGIN_ACCOUNT_TYPE_TB_IOS =  8;
 LOGIN_ACCOUNT_TYPE_TB_Android =  9;
+LOGIN_ACCOUNT_TYPE_Android =  10;
 
 Max_tutorialStage = 3;
 

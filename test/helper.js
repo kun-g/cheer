@@ -49,7 +49,25 @@ describe('Helper', function () {
 //    shall(marker).eql({ name: 1, age: 2, equip: 4, friend: 3 });
 //  });
 //
+
   describe('Helper', function () {
+		it('version', function(done) {
+			var data = new helpLib.VersionCounter() 
+			data = {a:1};
+			console.log(data.getVersion());
+			data.getVersion().should.eql(0);
+			data = {a :2}
+			data.getVersion().should.eql(1);
+			data.b = [3,4];
+			data.getVersion().should.eql(2);
+			data.b[1] =5;
+			data.getVersion().should.eql(3);
+			data.b[1] =5;
+			data.getVersion().should.eql(3);
+
+
+
+		});
     it('warpRivalLst',function(done){
       var data = [{
         value:[ [ 'P36', '36' ], [ 'P78', '78' ], [ 'P94', '94' ] ],

@@ -58,6 +58,11 @@ class CommandStream
   suicide: () ->
     @active = false
 
+  getPrevCommand: (id) ->
+    return null unless @parent
+    return @parent if @parent.cmd.id is id
+    return @parent.getPrevCommand(id)
+
   next: (c, config) ->
     old = @nextCMD
     @nextCMD = new CommandStream(c, @parent, config)

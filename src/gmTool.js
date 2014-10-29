@@ -205,7 +205,7 @@ function loadReceipt () {
   list.forEach( function (e) {
     var x = unwrapReceipt(e);
     var time = moment(x.time*1000);
-    var rmb = queryTable(TABLE_CONFIG, 'Product_List')[x.productID].rmb;
+    var rmb = queryTable(TABLE_IAP, 'list')[x.productID].price;
     pushPayment(paymentDB, time.format('MM'), {rmb: rmb, tunnel: x.tunnel});
     //if (time.format('MM') < 8) console.log(x.time, rmb, e, x.tunnel);
   });

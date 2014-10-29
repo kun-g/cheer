@@ -120,7 +120,7 @@ loginBy = (arg, token, callback) ->
       req.end()
     #when LOGIN_ACCOUNT_TYPE_TG
     #  dbLib.loadAuth(passport, token, callback)
-    when LOGIN_ACCOUNT_TYPE_AD, LOGIN_ACCOUNT_TYPE_GAMECENTER
+    when LOGIN_ACCOUNT_TYPE_AD, LOGIN_ACCOUNT_TYPE_GAMECENTER, LOGIN_ACCOUNT_TYPE_Android
       callback(null)
     else
       callback(Error(RET_Issue33))
@@ -253,9 +253,10 @@ exports.route = {
           player.accountID = account
           player.initialize()
           player.createHero({ name: name, class: arg.cid, gender: arg.gen, hairStyle: arg.hst, hairColor: arg.hcl })
-          prize = queryTable(TABLE_CONFIG, 'InitialEquipment')
-          for k, p of prize
-            player.claimPrize(p.filter((e) => isClassMatch(arg.cid, e.classLimit)))
+          prize = queryTable(TABLE_ROLE, arg.cid)?.initialEquipment
+          if prize?
+            for p in prize
+              player.claimPrize(p)
           logUser({ name: name, action: 'register', class: arg.cid, gender: arg.gen, hairStyle: arg.hst, hairColor: arg.hcl })
           player.saveDB(cb)
       ], (err, result) ->
@@ -288,7 +289,10 @@ exports.route = {
 
         evt.nv = queryTable(TABLE_VERSION, 'needed_version')
         evt.lv = queryTable(TABLE_VERSION, 'last_version')
+        evt.sv = queryTable(TABLE_VERSION, 'suggest_version')
         evt.url = queryTable(TABLE_VERSION, 'url')
+        if queryTable(TABLE_VERSION, 'branch')
+          evt.br = queryTable(TABLE_VERSION, 'branch')
       handler([evt])
     ,
     args: {'sign':'string'}
@@ -387,16 +391,16 @@ exports.route = {
     args: {'stg':'number', 'initialDataOnly':'boolean', 'pkr':{type:'string',opt:true}},
     needPid: true
   },
-  RPC_ChargeDiamond: {
-    id: 15,
-    func: (arg, player, handle, rpcID, socket) ->
-      switch arg.stp
-        when 'AppStore' then throw Error('AppStore Payment')
-        when 'PP25' then throw Error('PP25 Payment')
-    ,
-    args: {'pid':'string', 'rep':'string'},
-    needPid: true
-  },
+#  RPC_ChargeDiamond: {
+#    id: 15,
+#    func: (arg, player, handle, rpcID, socket) ->
+#      switch arg.stp
+#        when 'AppStore' then throw Error('AppStore Payment')
+#        when 'PP25' then throw Error('PP25 Payment')
+#    ,
+#    args: {'pid':'string', 'rep':'string'},
+#    needPid: true
+#  },
   RPC_VerifyPayment: {
     id: 15,
     func: (arg, player, handler, rpcID, socket) ->

@@ -114,10 +114,10 @@ var config = {
 //});
 
 function isRMBMatch(amount, receipt) {
-  productList = queryTable(TABLE_CONFIG, 'Product_List');
+  productList = queryTable(TABLE_IAP, 'list');
   rec = unwrapReceipt(receipt);
   cfg = productList[rec.productID];
-  return cfg && cfg.rmb == amount;
+  return cfg && cfg.price == amount;
 }
 
 function paymentHandler (request, response) {
@@ -254,33 +254,50 @@ function paymentHandler (request, response) {
     }
     b = null;
   } else if (request.url.substr(0, 5) === '/TBK?') {
-    out = urlLib.parse(request.url, true).query;
-    var token = '';
-    if (out.app_id === 'com.tringame.pocketdungeonTDTB'){
-      token = '';
-    }
-    var sign = out.order_id+'|'+out.app_id+'|'+out.product_name+'|'+out.uid+'|'+out.goods_count
-      +'|'+original_money+'|'+out.order_money+'|'+out.pay_status+'|'+out.create_time+'|'+token;
-    var b = new Buffer(1024);
-    var len = b.write(sign);
-    sign = md5Hash(b.toString('binary', 0, len));
-    var receipt = out.orderid;
-    if ((sign === out.md5) && isRMBMatch(out.order_money, receipt)) {
-      if (out.pay_status === 0){
-          deliverReceipt(receipt, 'TBK', function (err) {
-          if (err === null) {
-            logInfo({action: 'AcceptPayment', receipt: receipt, info: out});
-          } else {
-            logError({action: 'AcceptPayment', error:err, info: out, receiptInfo: receiptInfo});
-          }
-        });
+    var query = urlLib.parse(request.url, true).query;
+    var receipt = query.receipt;
+    var data = new Buffer(0);
+    request.on('data', function (chunk) { data = Buffer.concat([data, chunk]); });
+    request.on('end', function (chunk) {
+      data = 'pay?'+data.toString();
+      var out = urlLib.parse(data, true).query;
+
+	  if (out.app_id == 'com.kddxc.koudaidixiacheng' || out.app_id == 'org.kddxc.koudaidixiachengapk') {
+
+          var token = "bf0d10d4f9979d3c6aae26011b6ec34b";
+      } else {
+          var token = "c2a8c153eec815118179f46e0dbfd99e";
       }
-      return response.end('{"success": 1, "msg": "success"}');
-    } else {
-      logError({action: 'AcceptPayment', error: 'SignMissmatch', info: out, sign: sign});
-      response.end('{"success": 0, "msg": "ERROR_MD5"}');
-    }
-    b = null;
+      if (out.type) {
+          var sign = out.order_id+'|'+out.app_id+'|'+out.product_id+'|'+out.uid
+        +'|'+out.goods_count+'|'+out.original_money+'|'+out.order_money
+        +'|'+out.pay_status+'|'+out.create_time +'|'+out.type+'|'+out.value+'|'+token;
+      } else {
+          var sign = out.order_id+'|'+out.app_id+'|'+out.product_id+'|'+out.uid
+        +'|'+out.goods_count+'|'+out.original_money+'|'+out.order_money
+        +'|'+out.pay_status+'|'+out.create_time +'|'+token;
+      }
+
+      var b = new Buffer(1024);
+      var len = b.write(sign);
+      sign = md5Hash(b.toString('binary', 0, len));
+
+      if ((sign === out.md5) && isRMBMatch(out.order_money, receipt)) {
+          deliverReceipt(receipt, 'Teebik', function (err) {
+            if (err === null) {
+              logInfo({action: 'AcceptPayment', receipt: receipt, info: out});
+			  return response.end(JSON.stringify({success:1, msg: "OK"}));
+            } else {
+              logError({action: 'AcceptPayment', error:err, data: data});
+              return response.end('fail');
+            }
+          });
+      } else {
+          logError({action: 'AcceptPayment', error: 'Fail', data: data});
+          response.end(JSON.stringify({success:0, msg: "Arguments miss match."}));
+      }
+      data = null;
+    });
   } else if (request.url.substr(0, 5) === '/jdp?') {
   }
 } 

@@ -18,15 +18,15 @@ class Bag extends Serializer
   validate: () ->
     @container.map( (item, index) =>
       return null unless item?
+      if not item.id? or not item.getConfig()?
+        logInfo({action: 'clearSlot', index: index})
+        @removeItemAt(index)
       if item.count <= 0
         item.count = 1
         logInfo({action: 'fixCount', index: index})
       if @queryItemSlot(item) isnt index
         logInfo({action: 'fixSlot', index: index, origin: @queryItemSlot(item)})
         item.slot[@type] = index
-      if not item.id?
-        logInfo({action: 'clearSlot', index: index})
-        @removeItemAt(index)
       return item
     )
   getMaxLength: () -> @container.reduce( ((r, l) ->

@@ -646,6 +646,10 @@ class Level
 
     if arg.skill?
       o.installSpell(skill.id,skill.lv) for skill in arg.skill
+
+    if arg.property?.skill?
+      o.installSpell(skill.id,skill.lv) for skill in arg.property.skill
+
     o.installSpell(DUNGEON_DROP_CARD_SPELL, 1)
 
     if arg.property?
@@ -754,6 +758,7 @@ class DungeonEnvironment extends Environment
       when 'tutorial' then cmd.routine?({id: 'Tutorial', tutorialId: act.tutorialId})
       when 'modifyEnvVariable' then @variable(a.name, a.value)
       when 'shock' then cmd.routine?({id: 'Shock', time: a.time, delay: a.delay, range: a.range})
+      when 'tremble' then cmd.routine?({id: 'Tremble', time: a.time, delay: a.delay, range: a.range})
       when 'blink' then cmd.routine?({id: 'Blink', time: a.time, delay: a.delay, color: a.color})
       when 'changeBGM' then cmd.routine({id: 'ChangeBGM', music: a.music, repeat: a.repeat})
       when 'whiteScreen' then cmd.routine({id: 'WhiteScreen', mode: a.mode, time: a.time, color: a.color})
@@ -1060,6 +1065,9 @@ dungeonCSConfig = {
     output: (env) -> [ {id:ACT_SkillCD, cd:env.variable('cdInfo')} ] if env.variable('cdInfo')?
   },
   SpellState: {
+    callback: (env) ->
+      state = env.variable('wizard').calcBuffState()
+      env.variable('state', state)
     output: (env) ->
       ret =  genUnitInfo(env.variable('wizard'), false, env.variable('state'))
       if env.variable('effect')?
@@ -1083,14 +1091,20 @@ dungeonCSConfig = {
       env.getBlock(env.variable('block')).explored = true
       @routine({id: 'BlockInfo', block: env.variable('block')})
       block = env.getBlock(env.variable('block'))
+      aliveHeroes = env.getAliveHeroes().filter( (h) -> return h? ).sort( (a,b) -> return a.order - b.order )
+ 
+      blockType = block.getType()
       if block.getType() is Block_Npc or block.getType() is Block_Enemy
         if block.getRef(-1) isnt null
+          who = if blockType is Block_Npc then 'Npc' else 'Monster'
           for npc in block.getRef(-1)
             @routine({id: 'UnitInfo', unit: npc})
             env.variable('monster', npc)
             env.variable('tar', npc)
             npc.onEvent('onShow', @)
-            env.onEvent('onMonsterShow', @)
+            for hero in aliveHeroes
+              onEvent(who+'Show', this, hero,npc)
+            env.onEvent('on'+who+'Show', @)
             if npc?.isVisible isnt true
               npc.isVisible = true
   },
@@ -1214,7 +1228,12 @@ dungeonCSConfig = {
       else
         rangeEff =[]
 
-      flag = if env.variable('hit') then HP_RESULT_TYPE_HIT else HP_RESULT_TYPE_MISS
+      if env.variable('hit')
+        flag = HP_RESULT_TYPE_HIT
+        if env.variable('critical')
+          flag = HP_RESULT_TYPE_CRITICAL
+      else
+        flag = HP_RESULT_TYPE_MISS
       return [{act: env.variable('src').ref, id: ACT_ATTACK, ref: env.variable('tar').ref, res:flag, rng:env.variable('isRange')}].concat(rangeEff)
   },
   ShiftOrder: {
@@ -1276,6 +1295,12 @@ dungeonCSConfig = {
   Shock: {
     output: (env) ->
       evt = {id: ACT_Shock, dey: env.variable('delay'), tim: env.variable('time')}
+      evt.rag = env.variable('range') if env.variable('range')?
+      return [evt]
+  },
+  Tremble: {
+    output: (env) ->
+      evt = {id: ACT_Tremble, act:env.variable('act'), dey: env.variable('delay'), tim: env.variable('time')}
       evt.rag = env.variable('range') if env.variable('range')?
       return [evt]
   },
@@ -1479,6 +1504,8 @@ dungeonCSConfig = {
 
       onEvent('CriticalDamage', @, env.variable('src'), env.variable('tar')) if env.variable('critical')
       @next({id: 'Dead', tar: env.variable('tar'), killer:env.variable('src'), damage: env.variable('damage')}) unless env.variable('tar').isAlive()
+
+      @getPrevCommand('Attack')?.cmd?.critical = env.variable('critical')
     ,
     output: (env) ->
       flag = if env.variable('critical') then HP_RESULT_TYPE_CRITICAL else HP_RESULT_TYPE_HIT

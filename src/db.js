@@ -596,7 +596,7 @@ exports.initializeDB = function (cfg,finishCb) {
       },
       function (err, result) {
           if (finishCb) finishCb(err, result);
-      };
+      });
 }
 
 exports.releaseDB = function () {
