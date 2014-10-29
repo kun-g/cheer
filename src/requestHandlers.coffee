@@ -178,10 +178,12 @@ exports.route = {
           tp = arg.tp
           tp = arg.atp if arg.atp?
           id = arg.id
-          if identifier
+          if typeof(identifier) is 'function'
+            loadPlayer(tp, id, identifier)
+          else
             id = identifier
             arg.id = id
-          loadPlayer(tp, id, cb)
+            loadPlayer(tp, id, cb)
         ,
         (player, cb) ->
           if player
