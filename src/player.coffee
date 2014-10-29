@@ -36,17 +36,13 @@ class Player extends DBWrapper
       gold: 0,
       diamond: 0,
       equipment: {},
-      inventoryVersion: 0,
       heroBase: {},
       heroIndex: -1,
       #TODO: hero is duplicated
       hero: {},
 
       stage: [],
-      stageVersion: 0,
-
       quests: {},
-      questVersion: 0,
 
       energy: ENERGY_MAX,
       energyTime: now.valueOf(),
@@ -65,12 +61,14 @@ class Player extends DBWrapper
       accountID: -1,
       campaignState: {},
       infiniteTimer: currentTime(),
+
       inventoryVersion: 1,
       heroVersion: 1,
       stageVersion: 1,
       questVersion: 1,
-      abIndex: rand(),
       energyVersion: 1
+
+      abIndex: rand(),
     }
 
     versionCfg = {
@@ -694,6 +692,7 @@ class Player extends DBWrapper
     return null unless haveEnoughtMoney
     ret = []
     for p in prize when p?
+      @inventoryVersion++
       switch p.type
         when PRIZETYPE_ITEM
           retRM = @inventory.remove(p.value, p.count*count, null, true)
@@ -711,6 +710,7 @@ class Player extends DBWrapper
     ret = []
 
     for p in prize when p?
+      @inventoryVersion++
       switch p.type
         when PRIZETYPE_ITEM
           ret = @aquireItem(p.value, p.count, allOrFail)
@@ -1050,6 +1050,7 @@ class Player extends DBWrapper
     if dungeon.revive > 0
       ret = @inventory.removeById(ItemId_RevivePotion, dungeon.revive, true)
       if not ret or ret.length is 0
+        @inventoryVersion++
         return { NTF: Event_DungeonReward, arg : { res : DUNGEON_RESULT_FAIL } }
       ret = this.doAction({id: 'ItemChange', ret: ret, version: @inventoryVersion})
   
