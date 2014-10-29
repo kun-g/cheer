@@ -5,6 +5,23 @@ dbLib = require('./db')
 dbWrapper = require('./dbWrapper')
 async = require('async')
 
+should = require('should')
+
+installVerionCounter = (obj,
+    Object.defineProperty(@,,
+ VersionCounter
+  constructor : () ->
+    versionValue = 0
+    originValue = @
+  getVersion : () ->
+    try
+      this.should.eql(originValue)
+    catch e
+      originValue = JSON.parse(JSON.stringify(this))
+      return versionValue +=1
+    return versionValue
+
+exports.VersionCounter = VersionCounter
 CONST_MAX_WORLD_BOSS_TIMES = 200
 exports.ConstValue = {WorldBossTimes : CONST_MAX_WORLD_BOSS_TIMES}
 exports.initLeaderboard = (config) ->

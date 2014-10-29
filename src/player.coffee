@@ -710,7 +710,6 @@ class Player extends DBWrapper
     ret = []
 
     for p in prize when p?
-      @inventoryVersion++
       switch p.type
         when PRIZETYPE_ITEM
           ret = @aquireItem(p.value, p.count, allOrFail)
@@ -1749,10 +1748,11 @@ playerCSConfig = {
       #TODO
       #env.variable('allorfail')
       ret = env.player.inventory.add(item, count, true)
-      @routine({id: 'ItemChange', ret: ret, version: env.player.inventoryVersion})
       if ret
         for e in ret when env.player.getItemAt(e.slot).autoUse
           @next({id: 'UseItem', slot: e.slot})
+        env.player.inventoryVersion += 1
+      @routine({id: 'ItemChange', ret: ret, version: env.player.inventoryVersion})
   },
   RemoveItem: {
     callback: (env) ->
