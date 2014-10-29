@@ -1,5 +1,8 @@
 require('./define')
 {Wizard} = require('./spell')
+_ = require('./underscore')
+makeBasicCommand = require('./commandStream').makeCommand
+# =============================================================
 
 flagCreation = false
 
@@ -9,9 +12,7 @@ class Unit extends Wizard
     @isVisible = false
 
   calculatePower: () ->
-    ret = @health + @attack*6 + @speed*2 +
-          @critical*2 + @strong*2 + @reactivity*2 +
-          @accuracy*2
+    ret = @health + @attack*6 + @speed*2 + @critical*2 + @strong*2 + @reactivity*2 + @accuracy*2
     return if ret then ret else 0
 
   getActiveSpell: () ->
@@ -69,7 +70,10 @@ class Unit extends Wizard
     return false unless @equipment?
     for k, e of @equipment when queryTable(TABLE_ITEM, e.cid)?
       equipment = queryTable(TABLE_ITEM, e.cid)
-      @modifyProperty(equipment.basic_properties) if equipment.basic_properties?
+      @modifyProperty(equipment.property()) if equipment.property?
+      if equipment.skill?
+        for s in equipment.skill when not s.classLimit? or s.classLimit is @class
+          @installSpell(s.id, s.level)
 
       console.log('Equipment ', JSON.stringify(equipment)) if flagCreation
       if e.eh?
@@ -84,7 +88,14 @@ class Unit extends Wizard
 
   isMonster: () -> false
   isHero: () -> false
+  getCommandConfig: (commandName) -> return unit_command_config[commandName]
 
+installCommandExtention = require('./commandStream').installCommandExtention
+installCommandExtention(Unit)
+
+unit_command_config = {
+}
+# =============================================================
 class Hero extends Unit
   constructor: (heroData) ->
     super

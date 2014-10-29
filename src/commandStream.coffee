@@ -135,13 +135,15 @@ command_config = {
     parameters: {
         property: '属性对象'
     },
-    execute: (obj, properties) ->
+    execute: (parameter) ->
+      obj = parameter.obj
       @backup = {}
-      for key, p of properties
+      for key, p of parameter.property
         @backup[key] = obj[key]
         obj[key] = p
 
-    undo: (obj, properties) ->
+    undo: (parameter) ->
+      obj = parameter.obj
       for k, p of @backup
         if p?
           obj[k] = p
@@ -152,54 +154,38 @@ command_config = {
       return JSON.stringify(obj)
   },
   incress_property: {
-    execute: (obj, properties) ->
-      originProperty = _(obj).pick(_(properties).keys())
-      for k, v of properties
+    execute: (parameter) ->
+      originProperty = _(parameter.obj).pick(_(parameter.property).keys())
+      for k, v of parameter.property
         if originProperty[k] then v = originProperty[k] + v
         originProperty[k] = v
 
       @cmd_modifyProperty = makeCommand('modify_property')
-      @cmd_modifyProperty.execute(obj, originProperty)
+      @cmd_modifyProperty.execute({obj: parameter.obj, property:originProperty})
 
     undo: () -> @cmd_modifyProperty.undo()
-  },
-  change_appearance: {
-    execute: (obj, properties) ->
-      @backup = {}
-      for key, p of properties
-        @backup[key] = obj[key]
-        obj[key] = p
-
-    undo: (obj) ->
-      for k, p of @backup
-        if p?
-          obj[k] = p
-        else
-          delete obj[k]
-
-    translate: (obj) ->
-      return JSON.stringify(obj)
-  },
+  }
 }
 
 makeCommand = (name) -> return new Command(command_config[name])
 extention = {
-  requirement: [
-    { field: 'getCommandConfig', type: 'function' }
-  ],
   interfaces: {
     makeCommand: (commandName) ->
       return null unless @getCommandConfig(commandName)
       return new Command(@getCommandConfig(commandName))
 
-    executeCommand: (commandName) ->
-      command = makeCommand(commandName)
+    executeCommand: (commandName, parameter) ->
+      if _(commandName).isArray()
+        for k, cmd of commandName
+          @executeCommand(cmd.type, cmd)
+      else
+        command = @makeCommand(commandName)
+        throw new Error('Command('+commandName+') is not supported.', commandName) unless command
+        localParameter = _({ obj: this}).extend(parameter)
+        command.execute(localParameter)
 
-      throw new Error('Command is not supported.') unless command
-
-      args = _(arguments).toArray()
-      args.splice(0, 1, this)
-      command.execute.apply(command, args)
+    getCommandConfig: (commandName) ->
+      return @command_config[commandName]
   }
 }
 isRequirementMatched = (obj, config) ->
@@ -208,7 +194,7 @@ isRequirementMatched = (obj, config) ->
   return config.reduce(((r, l) -> return r and typeof obj[l.field] is l.type), true)
 
 installExtention = (obj, config) ->
-  return null unless isRequirementMatched(obj, config.requirement)
+  throw new Error('Install extention failed') unless isRequirementMatched(obj, config.requirement)
   for field, value of config.interfaces
     continue if obj.prototype[field]
     obj.prototype[field] = value

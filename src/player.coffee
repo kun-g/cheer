@@ -1486,6 +1486,17 @@ class Player extends DBWrapper
 
     return {out: reward, res: ret}
 
+  combineItem: (slot, gemSlot) ->
+    equip = @getItemAt(slot)
+    gem = @getItemAt(bookSlot)
+    return { ret: RET_ItemNotExist } unless gem and book
+    retRM = @inventory.removeItemAt(bookSlot, 1, true)
+    if retRM
+      equip.installEnhancement(book)
+      return { res: [] }
+    else
+      return { ret: RET_NoEnhanceStone }
+
   injectWXP: (slot, bookSlot) ->
     equip = @getItemAt(slot)
     book = @getItemAt(bookSlot)

@@ -104,6 +104,7 @@ USE_ITEM_OPT_DECOMPOSE = 5;
 USE_ITEM_OPT_INJECTWXP = 6;
 USE_ITEM_OPT_RECYCLE = 7; // 分解装备
 USE_ITEM_OPT_SELL = 8; // 出售
+USE_ITEM_OPT_COMBINE = 9; // 出售
 function handler_doUseItem(arg, player, handler, rpcID) {
   var slot = Math.floor(arg.sid);
   var opn = Math.floor(arg.opn);
@@ -130,6 +131,9 @@ function handler_doUseItem(arg, player, handler, rpcID) {
       break;
     case USE_ITEM_OPT_CRAFT:
       ret = player.upgradeItemQuality(slot);
+      break;
+    case USE_ITEM_OPT_COMBINE:
+      ret = player.combineItem(slot, arg.opd);
       break;
     default:
       ret = player.useItem(slot, arg.sho);
