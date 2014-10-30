@@ -4,7 +4,7 @@ moment = require('moment')
 {Serializer, registerConstructor} = require './serializer'
 {DBWrapper, getMercenaryMember, updateMercenaryMember, addMercenaryMember, getPlayerHero} = require './dbWrapper'
 {createUnit, Hero} = require './unit'
-{Item, Card} = require './item'
+libItem = require './item'
 {CommandStream, Environment, DungeonEnvironment, DungeonCommandStream} = require('./commandStream')
 {Dungeon} = require './dungeon'
 {Bag, CardStack} = require('./container')
@@ -893,7 +893,7 @@ class Player extends DBWrapper
 
     this.addGold(-cost)
     ret = this.removeItem(null, 1, slot)
-    newItem = new Item(item.upgradeTarget)
+    newItem = libItem.createItem(item.upgradeTarget)
     newItem.enhancement = item.enhancement
     ret = ret.concat(this.aquireItem(newItem))
     eh = newItem.enhancement.map((e) -> {id:e.id, lv:e.level})
@@ -930,7 +930,7 @@ class Player extends DBWrapper
     ret = @claimCost(recipe.forgeID)
     if not ret? then return { ret: RET_InsufficientIngredient }
     return { ret: RET_Unknown } unless recipe.forgeTarget?
-    newItem = new Item(recipe.forgeTarget)
+    newItem = libItem.createItem(recipe.forgeTarget)
     ret = ret.concat(@aquireItem(newItem))
     ret = ret.concat({NTF: Event_InventoryUpdateItem, arg:{syn: @inventoryVersion, god: @gold }})
     @log('craftItem', { slot: slot, id: recipe.id })
@@ -1489,11 +1489,11 @@ class Player extends DBWrapper
 
   combineItem: (slot, gemSlot) ->
     equip = @getItemAt(slot)
-    gem = @getItemAt(bookSlot)
-    return { ret: RET_ItemNotExist } unless gem and book
-    retRM = @inventory.removeItemAt(bookSlot, 1, true)
+    gem = @getItemAt(gemSlot)
+    return { ret: RET_ItemNotExist } unless gem and equip
+    retRM = @inventory.removeItemAt(gemSlot, 1, true)
     if retRM
-      equip.installEnhancement(book)
+      equip.installEnhancement(gem)
       return { res: [] }
     else
       return { ret: RET_NoEnhanceStone }
@@ -1699,7 +1699,7 @@ createItem = (item) ->
   if Array.isArray(item)
     return ({item: createItem(e.item), count: e.count} for e in item)
   else if typeof item is 'number'
-    return new itemLib.Item(item)
+    return libItem.createItem(item)
   else
     return item
 

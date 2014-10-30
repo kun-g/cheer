@@ -21,10 +21,11 @@ class Item extends Serializer
       showMeTheStack()
     Object.defineProperty(this, 'config', {enumerable:false, writable: false})
 
+  getConfig: () -> @config
+
   spaceCount: () -> if @storeOnly then return 0 else return 1
 
   command_config: item_command_config
-
 
 installCommandExtention = require('./commandStream').installCommandExtention
 installCommandExtention(Item)
