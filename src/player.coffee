@@ -131,10 +131,10 @@ class Player extends DBWrapper
           continue
         flag = true
         @sellItem(slot)
-    prize = queryTable(TABLE_CONFIG, 'InitialEquipment')
+    prize = queryTable(TABLE_ROLE, @hero.class)?.initialEquipment
     for slot in [0..5] when not @equipment[slot]?
       flag = true
-      @claimPrize(prize[slot].filter((e) => isClassMatch(@hero.class, e.classLimit)))
+      @claimPrize(prize[slot]) if prize?
     return flag
 
   onDisconnect: () ->
