@@ -454,7 +454,7 @@ class Player extends DBWrapper
     else if @hero
       bag = @inventory
       equip = []
-      equip.push({ 
+      equip.push({
         cid: bag.get(e).classId
         eh: bag.get(e).enhancement }) for i, e of @equipment when bag.get(e)?
       @hero['equipment'] = equip
@@ -478,6 +478,7 @@ class Player extends DBWrapper
 
     for k, v of @heroBase[hClass]
       @hero[k] = JSON.parse(JSON.stringify(v))
+    @save()
 
   addMoney: (type, point) ->
     return this[type] unless point

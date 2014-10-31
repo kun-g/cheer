@@ -279,7 +279,7 @@ exports.route = {
         hairStyle: oldHero.hairStyle
         hairColor: oldHero.hairColor
         }, true)
-      handle([{REQ: rpcID, RET: RET_OK}])
+      handler([{REQ: rpcID, RET: RET_OK}])
     ,
     args: {'cid':'number'}
   },
