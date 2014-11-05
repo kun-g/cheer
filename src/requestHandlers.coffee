@@ -250,15 +250,6 @@ exports.route = {
         (account, cb) ->
           player = new Player()
           player.createPlayer(arg, account, cb)
-          #player.setName(name)
-          #player.accountID = account
-          #player.initialize()
-          #player.createHero({ name: name, class: arg.cid, gender: arg.gen, hairStyle: arg.hst, hairColor: arg.hcl })
-          #prize = queryTable(TABLE_CONFIG, 'InitialEquipment')
-          #for k, p of prize
-          #  player.claimPrize(p.filter((e) => isClassMatch(arg.cid, e.classLimit)))
-          #logUser({ name: name, action: 'register', class: arg.cid, gender: arg.gen, hairStyle: arg.hst, hairColor: arg.hcl })
-          #player.saveDB(cb)
       ], (err, result) ->
         if err
           handle([{REQ: rpcID, RET: +err.message}])
