@@ -421,9 +421,9 @@ class Player extends DBWrapper
       hairStyle: arg.hst
       hairColor: arg.hcl
       })
-    prize = queryTable(TABLE_CONFIG, 'InitialEquipment')
-    for k, p of prize
-      @claimPrize(p.filter((e) => isClassMatch(arg.cid, e.classLimit)))
+    prize = queryTable(TABLE_ROLE, arg.cid)?.initialEquipment
+    for  p in prize
+      @claimPrize(p)
     logUser({
       name: arg.nam
       action: 'register'
@@ -434,17 +434,31 @@ class Player extends DBWrapper
       })
     @saveDB(cb)
 
+  putOnEquipmentAfterSwitched: (heroClass) ->
+    equipmentList = @inventory
+      .reduce((acc, item, index) ->
+        acc.push(index) if item? and item.category is ITEM_EQUIPMENT and item.classLimit?.indexOf(heroClass) isnt -1
+        return acc
+      ,[])
+    if equipmentList.length is 0
+      prize = queryTable(TABLE_ROLE, heroClass)?.initialEquipment
+      for p in prize
+        ret = @claimPrize(p)
+        ret.itm?.forEach((item) ->
+          @useItem(item.sid)
+        )
+    else
+      @equipment = equipmentList
+
   createHero: (heroData, isSwitch) ->
     if heroData?
-      return null if @heroBase[heroData.class]?
-      if isSwitch is true
+      return null if @heroBase[heroData.class]? and heroData.class is @hero.class
+      if isSwitch
         heroData.xp = @hero.xp
-        prize = queryTable(TABLE_CONFIG, 'InitialEquipment')
         heroData.equipment = []
         @heroBase[heroData.class] = heroData
         @switchHero(heroData.class)
-        for k, p of prize
-          @claimPrize(p.filter((e) => isClassMatch(heroData.class, e.classLimit)))
+        @putOnEquipmentAfterSwitched(heroData.class)
       else
         heroData.xp = 0
         heroData.equipment = []
@@ -464,6 +478,7 @@ class Player extends DBWrapper
       if bf isnt @battleForce
         @battleForce = bf
         @notify('battleForceChanged')
+      @save()
       return hero
     else
       throw 'NoHero'
@@ -478,7 +493,6 @@ class Player extends DBWrapper
 
     for k, v of @heroBase[hClass]
       @hero[k] = JSON.parse(JSON.stringify(v))
-    @save()
 
   addMoney: (type, point) ->
     return this[type] unless point
