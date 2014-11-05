@@ -1339,6 +1339,9 @@ dungeonCSConfig = {
       tar.isVisible = true
       @routine({id: 'OpenBlock', block:tar.pos})
   },
+  Hide: {
+    callback: (env) -> @routine({id: 'TeleportObject', hiding: true})
+  },
   TeleportObject: {
     callback: (env) ->
       obj = env.variable('obj')
@@ -1346,12 +1349,18 @@ dungeonCSConfig = {
       slot = env.variable('tarPos')
       if not slot?
         availableSlot = env.getBlock().filter( (e) -> e.getType() is Block_Empty )
+        if env.variable('hiding')
+          backup = availableSlot
+          availableSlot = availableSlot.filter( (e) -> not e.explored )
+          if available.length <= 0 then available = backup
         slot = env.randMember(availableSlot)
         slot = slot.pos if slot?
       return @suicide() unless slot?
+
       env.variable('orgPos', obj.pos)
       env.variable('tarPos', slot)
-      env.getBlock(slot).explored = true
+      if not env.variable('hiding')
+        env.getBlock(slot).explored = true
       env.getBlock(obj.pos).removeRef(obj)
       env.getBlock(slot).addRef(obj)
       obj.pos = slot
