@@ -411,6 +411,9 @@ class Player extends DBWrapper
     @purchasedCount[id] += count
 
   createPlayer: (arg, account, cb) ->
+#add check for switchhero
+    cb({message:'big brother is watching ya'}) if not (0<= arg.cid <= 2)
+
     @setName(arg.nam)
     @accountID = account
     @initialize()
