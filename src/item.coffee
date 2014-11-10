@@ -67,13 +67,17 @@ equipment_command_config = {
   update_appearance: {
     execute: (parameter) ->
       config = parameter.obj.config
-      parameter.obj._appearance = config.effecta
+      appearance = config.effecta
 
       if parameter.gender?
         if parameter.gender and config.effectm
-          parameter.obj._appearance = config.effectm
+          appearance = config.effectm
         else if config.effectf
-          parameter.obj._appearance = config.effectf
+          appearance = config.effectf
+
+      parameter.obj._appearance = {}
+
+      if appearance then parameter.obj._appearance[k] = v for k, v of appearance
   },
   change_appearance: {
     execute: (parameter) ->
