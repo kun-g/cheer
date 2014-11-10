@@ -483,6 +483,13 @@ class Player extends DBWrapper
     else
       throw 'NoHero'
 
+  switchHeroType: (classId) ->
+    # in this situation, the classid of new roles (aka:vertical change ) are more than 200
+    if  Math.abs(classId - @hero.class) > 100
+      return 'verticalChange'
+    else
+      return 'horizonChange'
+
   switchHero: (hClass) ->
     return false unless @heroBase[hClass]?
 
