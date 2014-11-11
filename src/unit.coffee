@@ -68,14 +68,13 @@ class Unit extends Wizard
     
   gearUp: () ->
     return false unless @equipment?
-    for k, e of @equipment when queryTable(TABLE_ITEM, e.cid)?
-      equipment = queryTable(TABLE_ITEM, e.cid)
-      @modifyProperty(equipment.property()) if equipment.property?
-      if equipment.skill?
-        for s in equipment.skill when not s.classLimit? or s.classLimit is @class
+    for k, e of @equipment when e
+      @modifyProperty(e.property()) if e.property?
+      if e.skill?
+        for s in e.skill when not s.classLimit? or s.classLimit is @class
           @installSpell(s.id, s.level)
 
-      console.log('Equipment ', JSON.stringify(equipment)) if flagCreation
+      console.log('Equipment ', JSON.stringify(e)) if flagCreation
       if e.eh?
         for enhancement in e.eh
           enhance = queryTable(TABLE_ENHANCE, enhancement.id)
