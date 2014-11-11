@@ -69,6 +69,7 @@ class Unit extends Wizard
   gearUp: () ->
     return false unless @equipment?
     for k, e of @equipment when e
+      console.log(e.property())
       @modifyProperty(e.property()) if e.property?
       if e.skill?
         for s in e.skill when not s.classLimit? or s.classLimit is @class
@@ -107,6 +108,9 @@ class Hero extends Unit
     this[k] = v for k, v of heroData
     @xp = 0 unless @xp?
     @equipment = [] unless @equipment?
+    {createItem} = require('./item')
+    @equipment = @equipment.map((e) -> createItem({id: e.cid, enhancement: e.eh}))
+    
 
     @initialize()
 

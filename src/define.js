@@ -153,6 +153,10 @@ getBasicInfo = function (hero) {
       var e = hero.equipment[k];
       if (e.eh) {
         item.push({cid:e.cid, eh:e.eh});
+      } else if (e.enhancement) {
+        item.push({cid: e.id, eh:e.enhancement});
+      } else if (typeof e.cid === 'undefined') {
+        item.push({cid: e.id});
       } else {
         item.push({cid:e.cid});
       }
