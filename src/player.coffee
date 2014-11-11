@@ -499,6 +499,7 @@ class Player extends DBWrapper
     if @hero?
       @heroBase[@hero.class] = {}
       for k, v of @hero
+
         @heroBase[@hero.class][k] = JSON.parse(JSON.stringify(v))
 
     for k, v of @heroBase[hClass]

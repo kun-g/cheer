@@ -1192,7 +1192,7 @@ dungeonCSConfig = {
     callback: (env) ->
       src = env.variable('src')
       tar = env.variable('tar')
-      return @suicide() unless src.isAlive() and tar.isAlive()
+      return @suicide() unless src.isAlive() and tar.isAlive() and src.isVisible and tar.isVisible
 
       env.variable('damage', src.attack)
       onEvent('Target', @, src, tar)
@@ -1351,9 +1351,13 @@ dungeonCSConfig = {
       if not slot?
         availableSlot = env.getBlock().filter( (e) -> e.getType() is Block_Empty )
         if isHiding
-          obj.isVisible = false
           hidePlace = availableSlot.filter( (e) -> not e.explored )
-          if hidePlace.length > 0 then availableSlot = hidePlace
+          if hidePlace.length > 0
+            availableSlot = hidePlace
+            obj.isVisible = false
+          else
+            env.variable('hiding', false)
+            isHiding = false
 
         slot = env.randMember(availableSlot)
         slot = slot.pos if slot?
