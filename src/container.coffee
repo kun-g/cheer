@@ -211,6 +211,7 @@ class Bag extends Serializer
   
   map: (func) -> this.container.map(func)
   filter: (func) -> this.container.filter(func)
+  reduce :(func,init =0) -> this.container.reduce(func, init)
   
 CONTAINER_TYPE_BAG = 0
 CONTAINER_TYPE_CARD_STACK = 1
