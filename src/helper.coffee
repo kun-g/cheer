@@ -5,6 +5,50 @@ dbLib = require('./db')
 dbWrapper = require('./dbWrapper')
 async = require('async')
 
+addFeature = (obj, key ,type, hooks) ->
+  config = {
+    enumerable : false,
+    configurable : true,
+  }
+  if key is 'set'
+    func = (val) ->
+      hooks.forEach((fun) ->
+        fun(obj,key,val))
+      obj[key] = value
+  else if key is 'get'
+    func = () ->
+      val = obj[key]
+      hooks.forEach((fun) ->
+        fun(obj,key,val))
+
+  config[key] = func if func?
+  Object.defineProperty(obj, key, config)
+
+makeVersionRecoder = (key) ->
+  return () -> key+=1
+
+registerVersionControl =(obj, versionKeyList, versionRecoderList) ->
+  for versionKey in versionKeyList
+    charIdx = versionKey.indexOf('@')
+    if charIdx is -1
+      addFeature(obj,versionKey,'set', versionRecoderList)
+    else
+      addVersionControl(obj[versionKey],versionKey.substr(charIdx+1), versionRecoderList)
+
+
+addVersionControl = (obj, cfgKey, versionRecoderList =[]) ->
+  cfgInfo = versionDiscribe[cfgKey]?
+  return unless cfgInfo?
+  if typeof cfgInfo is 'object'
+    for versionStore, versionKeyList of cfgInfo
+      obj[versionStore] = 0
+      versionRecoderList.push(makeVersionRecoder(obj[versionStore]))
+      registerVersionControl(obj, versionKeyList, versionRecoderList)
+  else
+    registerVersionControl(obj[cfgKey], cfgInfo, versionRecoderList)
+
+
+
 CONST_MAX_WORLD_BOSS_TIMES = 200
 exports.ConstValue = {WorldBossTimes : CONST_MAX_WORLD_BOSS_TIMES}
 exports.initLeaderboard = (config) ->
