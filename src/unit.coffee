@@ -69,7 +69,6 @@ class Unit extends Wizard
   gearUp: () ->
     return false unless @equipment?
     for k, e of @equipment when e
-      console.log(e.property())
       @modifyProperty(e.property()) if e.property?
       if e.skill?
         for s in e.skill when not s.classLimit? or s.classLimit is @class

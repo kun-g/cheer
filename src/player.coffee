@@ -1595,7 +1595,6 @@ class Player extends DBWrapper
     items = bag.container
       .map(wrapCallback(this, (e, index) =>
         return null unless e? and bag.queryItemSlot(e)?
-        console.log('X', e)
         ret = {sid: bag.queryItemSlot(e), cid: e.id, stc: e.count}
 
         if e.xp? then ret.xp = e.xp
