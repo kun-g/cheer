@@ -119,7 +119,7 @@ class Environment
   randMember: (array, count = 1) ->
     return [] unless Array.isArray(array)
     return [] unless array.length >= count
-    return array if array.length is count
+    return array if array.length is count and count isnt 1
     indexes = [0..array.length-1]
     result = (array[Math.floor(indexes.splice(@rand() * indexes.length, 1)[0])] for i in [1..count])
     result = result[0] if count is 1
