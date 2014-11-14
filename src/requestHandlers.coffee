@@ -704,7 +704,7 @@ exports.route = {
       ret.arg ={
         cmt:player.flags.cmt
       }
-      handler(ret))
+      handler(ret)
     ,
     args: {'cmt':{'cmted':'boolean', 'auto':'boolean'}},
     needPid: true
