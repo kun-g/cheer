@@ -227,4 +227,5 @@ createUnit = (config) ->
 
 exports.createUnit = createUnit
 exports.Hero = Hero
+exports.Unit = Unit
 exports.fileVersion = -1

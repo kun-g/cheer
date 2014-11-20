@@ -13,7 +13,6 @@ class Item extends Serializer
       serverId: -1, #For Client
       id: config.classId
     }
-    if @config.expiration then savingCfg.date = -1
     super(config, _.extend(cfg, additionalConfig))
 #TODO:the 907
     if @config.id is 907
@@ -90,6 +89,7 @@ class Equipment extends Item
 
   constructor: (@config) ->
     savingCfg = {xp: 0, enhancement: [], status: 0}
+    if @config.expiration then savingCfg.date = -1
     super(config, savingCfg)
     @_property = {}
     _.extend(@_property, config.basic_properties) if config.basic_properties
@@ -121,8 +121,9 @@ class Equipment extends Item
 
 # =============================================================
 class Enhance_Stone extends Item
-  constructor: (@config) ->
-    super(config)
+  constructor: (@config) -> super(config)
+
+  getInitialData: () -> @config
 
   getCommandConfig: (commandName) -> return enhance_stone_command_config[commandName]
 

@@ -1,6 +1,5 @@
 var unitLib = require('../js/unit');
 
-
 describe('Unit', function () {
     it('levelUp', function () {
         //var data =[
