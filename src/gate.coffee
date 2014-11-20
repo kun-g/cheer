@@ -107,7 +107,8 @@ initGlobalConfig(null, () ->
 	gServerID = queryTable(TABLE_CONFIG, 'ServerID')
 	gServerConfig = queryTable(TABLE_CONFIG, 'ServerConfig')[gServerID]
 	backendManager.init(gServerConfig.Gate)
-	startTcpServer(7757, backendManager)
+	port =  gServerConfig.gateListenPort ? 7757
+	startTcpServer(port, backendManager)
   #startSocketIOServer(backendManager, 7757)
 )
 
