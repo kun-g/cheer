@@ -693,7 +693,7 @@ exports.route = {
               src:  MESSAGE_REWARD_TYPE_SYSTEM,
               prize: [{ type: 2, count: 100}],
               tit: "Bonus!",
-              txt: "评分奖励"
+              txt: "Thank you for your comment!"
             }
             libs.db.deliverMessage(player.name, mailContent)
           player.flags['cmt'] = arg.cmt
