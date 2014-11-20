@@ -4,50 +4,114 @@ moment = require('moment')
 dbLib = require('./db')
 dbWrapper = require('./dbWrapper')
 async = require('async')
+WatchJS = require('./watch')
+{watch,unwatch} = WatchJS
 
-addFeature = (obj, key ,type, hooks) ->
+#Object.defineProperty(Object.prototype, 'observers', {
+#    enumerable:false,
+#    configurable : false,
+#    value: (key,callback) ->
+#      value = @[key]
+#      #@['___observerd'] = true
+#      console.log('value', key, value, this,'----')
+#      if typeof value is 'object'
+##        console.log('observers', value,'--')
+#        value.observers(k,callback) for k, obj of value
+#      getter = () ->
+##        console.log('--getter', this, key, value)
+#        return value
+#      setter = (val) ->
+#        #console.log('--setter', this, key, value)
+#        this.observers(key,callback)
+#        value = val
+#        callback()
+#      #if(delete @[key])
+#      #console.log('add get/set for', key ,this)
+#      Object.defineProperty(@, key,{
+#        enumerable :true,
+#        configurable :true,
+#        set: setter,
+#        get: getter
+#        toString : () -> return value
+#      })
+#      #delete @['___observerd']
+#})
+
+Object.defineProperty(Object.prototype, 'observers', {
+    enumerable:false,
+    configurable : false,
+    value: (key,callback,singleton=false) ->
+      console.log('add cb ', key, singleton, callback)
+      watch(@,key, callback,1,singleton)
+
+})
+
+addFeature = (obj, key ,hooks, type ='set') ->
+  hookName = '___'+type+'hooks'
+  if  obj.hasOwnProperty(hookName)
+    hooks = obj[hookName].concat(hooks)
+  Object.defineProperty(obj,hookName,{enumerable :false, configurable:true, value:hooks})
+
   config = {
     enumerable : false,
     configurable : true,
+    set: (val) ->
+      obj['___sethooks']?.forEach((fun) ->
+        fun(obj,key,val))
+      return val
+    get: () ->
+      val = this
+      obj['___gethooks']?.forEach((fun) ->
+        fun(obj,key,val))
+      return val
   }
-  if key is 'set'
-    func = (val) ->
-      hooks.forEach((fun) ->
-        fun(obj,key,val))
-      obj[key] = value
-  else if key is 'get'
-    func = () ->
-      val = obj[key]
-      hooks.forEach((fun) ->
-        fun(obj,key,val))
-
-  config[key] = func if func?
   Object.defineProperty(obj, key, config)
 
-makeVersionRecoder = (key) ->
-  return () -> key+=1
 
-registerVersionControl =(obj, versionKeyList, versionRecoderList) ->
-  for versionKey in versionKeyList
-    charIdx = versionKey.indexOf('@')
-    if charIdx is -1
-      addFeature(obj,versionKey,'set', versionRecoderList)
+makeVersionRecoder = (obj,key, msg) ->
+  func =  (pro,act, newv,oldv) ->
+    console.log(pro, act, '---', key)
+    WatchJS.noMore = true
+    obj[key] += 1
+  func.toString =() ->
+    return '[function for :'+key+']'
+  return func
+
+
+exports.addVersionControl = (versionConfig) ->
+  setupVersionControl = (obj, cfgKey, parentVersionRecoder = null) ->
+    cfgInfo = versionConfig[cfgKey]
+    return unless cfgInfo?
+    if typeof cfgInfo is 'object'
+      for versionStore, versionKeyList of cfgInfo
+        obj[versionStore] ?= 0
+        cb = makeVersionRecoder(obj,versionStore, versionStore)
+        #registerVersionControl(obj, versionKeyList, cb)
+        registerVersionControl(obj, versionKeyList, cb, parentVersionRecoder)
     else
-      addVersionControl(obj[versionKey],versionKey.substr(charIdx+1), versionRecoderList)
+      registerVersionControl(obj[cfgKey], cfgInfo,null,parentVersionRecoder)
 
+  registerVersionControl =(obj, versionKeyList, whenChange, notify) ->
+    for versionKey in versionKeyList
+      charIdx = versionKey.indexOf('@')
+      if charIdx is -1
+        if whenChange?
+          obj.observers(versionKey,whenChange,true)
+        if notify?
+          obj.observers(versionKey, notify)
+      else
+        [keyOfObj, cfgKey] = versionKey.split('@')
+        setupVersionControl(obj[keyOfObj],cfgKey, whenChange)
 
-addVersionControl = (obj, cfgKey, versionRecoderList =[]) ->
-  cfgInfo = versionDiscribe[cfgKey]?
-  return unless cfgInfo?
-  if typeof cfgInfo is 'object'
-    for versionStore, versionKeyList of cfgInfo
-      obj[versionStore] = 0
-      versionRecoderList.push(makeVersionRecoder(obj[versionStore]))
-      registerVersionControl(obj, versionKeyList, versionRecoderList)
-  else
-    registerVersionControl(obj[cfgKey], cfgInfo, versionRecoderList)
+  return  setupVersionControl
 
-
+exports.newProperty = (obj, pro, value) ->
+  obj = Object(obj)
+  obj.observers
+#exports.addVeRsionControl = (versionConfig) ->
+#  setupVersionControl = (obj, cfgKey) ->
+#    func = genCallBack(versionConfig, cfgKey)
+#    watch(obj,func, 100)
 
 CONST_MAX_WORLD_BOSS_TIMES = 200
 exports.ConstValue = {WorldBossTimes : CONST_MAX_WORLD_BOSS_TIMES}

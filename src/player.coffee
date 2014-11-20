@@ -1103,7 +1103,7 @@ class Player extends DBWrapper
       ret = this.doAction({id: 'ItemChange', ret: ret, version: @inventoryVersion})
   
     quests = dungeon.quests
-    if quests
+    if quests and dungeon.result isnt DUNGEON_RESULT_FAIL
       @updateQuest(quests)
       @questVersion++
   

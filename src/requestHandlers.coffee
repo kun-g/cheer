@@ -368,6 +368,7 @@ exports.route = {
             catch err
               status = 'Replay Failed'
               dungeon.result = DUNGEON_RESULT_FAIL
+              result.RET = RET_Unknown 
             finally
               logInfo('Claim Dungeon Award')
               evt = evt.concat(player.claimDungeonAward(dungeon))
@@ -476,7 +477,7 @@ exports.route = {
             handler([{REQ: rpcID, RET: RET_InvalidPaymentInfo}])
           )
 
-          req.write(JSON.stringify({"receipt-data": arg.rep}))
+          req.write(JSON.stringify({"receipt-data": JSON.parse(arg.rep).receipt}))
           req.end()
     args: {},
     needPid: true
