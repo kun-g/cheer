@@ -96,9 +96,9 @@ exports.addVersionControl = (versionConfig) ->
       charIdx = versionKey.indexOf('@')
       if charIdx is -1
         if whenChange?
-          obj.observers(versionKey,whenChange,true)
+          obj = obj.observers(versionKey,whenChange,true)
         if notify?
-          obj.observers(versionKey, notify)
+          obj = obj.observers(versionKey, notify)
       else
         [keyOfObj, cfgKey] = versionKey.split('@')
         setupVersionControl(obj[keyOfObj],cfgKey, whenChange)

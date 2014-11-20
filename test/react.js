@@ -49,10 +49,11 @@ describe('React', function () {
     it('new property', function () {
         console.log('---begi----n--');
 		pv();
-        testObject.property.speed = 5; basicVersion += 1; objVersion += 1; checkVersion();
+        testObject.property.newProperty('speed',5); basicVersion += 1; objVersion += 1; checkVersion();
         testObject.power = 1024;  checkVersion();
         nestedObject.power = 1024;  checkVersion();
-        nestedObject.vipItem = new Item(); objVersion += 1; checkVersion();
+        console.log('---new add to vipItem')
+        nestedObject.newProperty('vipItem', new Item()); objVersion += 1; checkVersion();
         nestedObject.vipItem.property = {}; objVersion += 1; checkVersion();
     });
 
