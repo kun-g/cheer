@@ -476,7 +476,7 @@ exports.route = {
             handler([{REQ: rpcID, RET: RET_InvalidPaymentInfo}])
           )
 
-          req.write(JSON.stringify({"receipt-data": arg.rep}))
+          req.write(JSON.stringify({"receipt-data": JSON.parse(arg.rep).receipt}))
           req.end()
     args: {},
     needPid: true
@@ -718,7 +718,7 @@ exports.route = {
       ret.arg ={
         cmt:player.flags.cmt
       }
-      handler(ret))
+      handler(ret)
     ,
     args: {'cmt':{'cmted':'boolean', 'auto':'boolean'}},
     needPid: true
