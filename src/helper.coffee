@@ -82,7 +82,7 @@ exports.addVersionControl = (versionConfig) ->
   setupVersionControl = (obj, cfgKey, parentVersionRecoder = null) ->
     cfgInfo = versionConfig[cfgKey]
     return unless cfgInfo?
-    if typeof cfgInfo is 'object'
+    if typeof cfgInfo is 'object' and not Array.isArray(cfgInfo)
       for versionStore, versionKeyList of cfgInfo
         obj[versionStore] ?= 0
         cb = makeVersionRecoder(obj,versionStore, versionStore)
@@ -96,9 +96,9 @@ exports.addVersionControl = (versionConfig) ->
       charIdx = versionKey.indexOf('@')
       if charIdx is -1
         if whenChange?
-          obj = obj.observers(versionKey,whenChange,true)
+          obj.observers(versionKey,whenChange,true)
         if notify?
-          obj = obj.observers(versionKey, notify)
+          obj.observers(versionKey, notify)
       else
         [keyOfObj, cfgKey] = versionKey.split('@')
         setupVersionControl(obj[keyOfObj],cfgKey, whenChange)
