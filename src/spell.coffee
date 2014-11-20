@@ -6,32 +6,6 @@ getSpellConfig = (spellID) ->
   return null if not cfg?
   return cfg.config
 
-getProperty = (origin, backup) ->
-  return if backup? then backup else origin
-
-getLevelConfig = (cfg, level) ->
-  level -= 1
-  return if cfg.levelConfig and cfg.levelConfig[level]? then cfg.levelConfig[level] else {}
-
-plusThemAll = (config, env) ->
-  return 0 unless config? and env?
-  sum = 0
-  if Array.isArray(env)
-    sum += plusThemAll(config, e) for e in env
-  else
-    sum = config.c ? 0
-    for k, v of config
-      sum += env[k]*v if env[k]?
-  return sum
-
-calcFormular = (e, s, t, config) ->
-  if config.func
-    c = if config.c then config.c else {}
-    return config.func.apply(null,[e, s, t, c])
-
-  c = if config.c then config.c else 0
-  return Math.ceil(plusThemAll(config.environment, e) + plusThemAll(config.src, s) + plusThemAll(config.tar, t) + c)
-
 class Wizard
   constructor: () ->
     @wSpellDB = {}
@@ -39,8 +13,7 @@ class Wizard
     @wSpellMutex = {}
     @wPreBuffState = { rs : BUFF_TYPE_NONE, ds : BUFF_TYPE_NONE, hs : BUFF_TYPE_NONE }
 
-  isAlive: () ->
-    return @health > 0
+  isAlive: () -> return @health > 0
 
   installSpell: (spellID, level, cmd, delay = 0) ->
     cfg = getSpellConfig(spellID)
@@ -53,7 +26,7 @@ class Wizard
 
     @setupTriggerCondition(spellID, cfg.triggerCondition, levelConfig, cmd)
     @setupAvailableCondition(spellID, cfg.availableCondition, levelConfig, cmd)
-    @doAction(@wSpellDB[spellID], cfg.installAction, levelConfig, @selectTarget(cfg, cmd), cmd)
+    @doAction(@wSpellDB[spellID], cfg.installAction, levelConfig, @selectTarget(cfg.targetSelection, cmd), cmd)
     @spellStateChanged(spellID, cmd)
 
   setupAvailableCondition: (spellID, conditions, level, cmd) ->
@@ -100,7 +73,7 @@ class Wizard
       @removeTrigger(spellID, c.event) for c in cfg.availableCondition when c.type is 'event'
 
     if cfg.uninstallAction?
-      @doAction(@wSpellDB[spellID], cfg.uninstallAction, {}, @selectTarget(cfg, cmd), cmd)
+      @doAction(@wSpellDB[spellID], cfg.uninstallAction, {}, @selectTarget(cfg.targetSelection, cmd), cmd)
 
     delete @wSpellDB[spellID]
     @spellStateChanged(spellID, cmd)
@@ -125,7 +98,8 @@ class Wizard
     return 'InvalidLevel' unless level?
     level = getLevelConfig(cfg, level)
 
-    target = @selectTarget(cfg, cmd)
+    @initializeVariable(cfg.variable, thisSpell, cmd)
+    target = @selectTarget(cfg.targetSelection, cmd)
 
     [canTrigger, reason] = @triggerCheck(thisSpell, cfg.triggerCondition, level, target, cmd)
     return reason unless canTrigger
@@ -237,24 +211,33 @@ class Wizard
 
     return res
   
-  selectTarget: (cfg, cmd) ->
-    return [] unless cfg.targetSelection? and cfg.targetSelection.pool
-    return [] unless cfg.targetSelection.pool is 'self' or cmd?
+  initializeVariable: (cfg, thisSpell, cmd) ->
+    for key, val of cfg
+      if val.action
+        switch val.action
+          when 'select-target' then thisSpell.variable[key] = @selectTarget(val, cmd)
+      else
+        thisSpell.variable[key] = val #warnning: could be overwrited
+
+    console.log(cfg)
+  selectTarget: (targetSelection, cmd) ->
+    return [] unless targetSelection? and targetSelection.pool
+    return [] unless targetSelection.pool is 'self' or cmd?
     env = cmd.getEnvironment() if cmd?
-    switch cfg.targetSelection.pool
+    switch targetSelection.pool
       when 'self' then pool = @
       when 'target' then pool = env.variable('tar')
       when 'source' then pool = env.variable('src')
       when 'objects' then pool = env.getObjects()
       when 'blocks'
-        blocks = cfg.targetSelection.blocks
+        blocks = targetSelection.blocks
         pool = if blocks? then (env.getBlock(b) for b in blocks) else env.getBlock()
 
     pool = [] unless pool?
     pool = [pool] unless Array.isArray(pool)
 
-    if cfg.targetSelection.filter? and pool.length > 0
-      pool = triggerLib.filterObject(this, pool, cfg.targetSelection.filter, env)
+    if targetSelection.filter? and pool.length > 0
+      pool = triggerLib.filterObject(this, pool, targetSelection.filter, env)
 
     pool = [] unless pool?
     pool = [pool] unless Array.isArray(pool)
@@ -292,6 +275,12 @@ class Wizard
 
   getActiveSpell: () -> -1
 
+  getTarget: (targetConfig, target, thisSpell, cmd) ->
+    return target unless targetConfig
+    return @selectTarget(targetConfig, cmd) if typeof targetConfig is 'object'
+    return triggerLib.doGetProperty(thisSpell.variable, targetConfig) if typeof targetConfig is 'string'
+    return []
+
   doAction: (thisSpell, actions, level, target, cmd) ->
     return false unless actions?
     env = cmd?.getEnvironment() # some action can't be triggerred when levelup
@@ -323,11 +312,17 @@ class Wizard
         when 'rangeAttack', 'attack'
           a.effect = level.effect if level.effect?
           a.delay = level.delay if level.delay?
-          cmd.routine?({id: 'Attack', src: @, tar: t, isRange: true,hurtDelay:a.hurtDelay, eff:a.effect, effDelay:a.effDelay}) for t in target
+          localTarget = target
+          if a.target
+            localTarget = @selectTarget(a.target, cmd)
+
+          for t in localTarget
+            cmd.routine?({id: 'Attack', src: @, tar: t, isRange: true,hurtDelay:a.hurtDelay, eff:a.effect, effDelay:a.effDelay})
         when 'showUp' then cmd.routine?({id: 'ShowUp', tar: t}) for t in target
         when 'costCard' then cmd.routine?({id: 'CostCard', card: a.card})
         when 'showExit' then cmd.routine?({id: 'ShowExit' })
         when 'resurrect' then cmd.routine?({id: 'Resurrect', tar: target})
+        when 'hide' then cmd.routine?({id: 'Hide', obj: @})
         when 'randTeleport' then cmd.routine?({id: 'TeleportObject', obj: @})
         when 'kill'
           if a.self
@@ -465,3 +460,85 @@ class Wizard
 
 exports.Wizard = Wizard
 exports.fileVersion = -1
+
+getProperty = (origin, backup) -> return if backup? then backup else origin
+
+getLevelConfig = (cfg, level) ->
+  level -= 1
+  return if cfg.levelConfig and cfg.levelConfig[level]? then cfg.levelConfig[level] else {}
+
+plusThemAll = (config, env) ->
+  return 0 unless config? and env?
+  sum = 0
+  if Array.isArray(env)
+    sum += plusThemAll(config, e) for e in env
+  else
+    sum = config.c ? 0
+    for k, v of config
+      sum += env[k]*v if env[k]?
+  return sum
+
+calcFormular = (e, s, t, config) ->
+  if config.func
+    c = if config.c then config.c else {}
+    return config.func.apply(null,[e, s, t, c])
+
+  c = if config.c then config.c else 0
+  return Math.ceil(
+    plusThemAll(config.environment, e) +
+    plusThemAll(config.src, s) +
+    plusThemAll(config.tar, t) + c
+  )
+
+#createSpell = (spellID, level) ->
+#  if _(spellID).isNumber()
+#    cfg = getSpellConfig(spellID)
+#  else
+#    cfg = spellID
+#
+#  return error({ func: 'Wizard.installSpell', reason: 'No Spell Config' }) unless cfg
+#
+#  spell = new Spell(spell)
+#  spell.setLevel(level)
+#
+#  return spell
+#exports.createSpell = createSpell
+#
+#class Spell
+#  constructor: (@config) ->
+#
+#  installOn: (@wizard) ->
+#    @wizard.wSpellDB[@config.id] = @
+#    @setupAvailableCondition()
+#
+#  setLevel: (@level) ->
+#
+#  isAvailable: () ->
+#    conditions = cfg.availableCondition
+#    return true unless conditions
+#
+#    for limit in conditions
+#      switch limit.type
+#        when 'effectCount' then return false unless @effectCount < limit.count
+#        when 'tick' then return false unless @tick[limit.tickType] < limit.ticks
+#        when 'event' then return false unless @eventCounters[limit.event] < limit.eventCount ? 1
+#
+#    return true
+#
+#  setupAvailableCondition: () ->
+#    return false unless @config.availableCondition
+#    for limit in @config.availableCondition
+#      switch limit.type
+#        when 'effectCount' then @effectCount = 0
+#        when 'event' then @installTrigger(spellID, limit.event)
+#        when 'tick'
+#          @tick = {} unless @tick?
+#          @tick[limit.tickType] = 0
+#
+#  setupTriggerCondition: () ->
+#    return false unless @config.triggerConditions?
+#
+#    for limit in conditions
+#      switch limit.type
+#        when 'countDown' then @cd = 0
+#        when 'event' then @installTrigger(spellID, limit.event)
