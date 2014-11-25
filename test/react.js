@@ -3,11 +3,14 @@ require('should');
  
 
 describe('React', function () {
-    function Item() { setupVersionControl({count:1,property:1}, 'item'); }
+    function Item() { 
+        this.count = 1;
+        this.property = 3;
+    }
 
-     var testObject = { xp: 0, peed:0, property: { health: 1 }, item: [], };
+    var testObject = { xp: 0, peed:0, property: { health: 1 }, item: [],vipItem:{count:1,property:2}  };
     var anotherTestObject = {xp:0, property:{health:1},item:[]};
-    var nestedObject = { object: testObject, objVersion: 5, item: [] };
+    var nestedObject = { object: testObject, objVersion: 5, item: [],vipItem:{count:1,property:2} };
     var version_config = {
         test: {
             basicVersion: ['xp', 'property'],
@@ -40,6 +43,9 @@ describe('React', function () {
         testObject = setupVersionControl(testObject, 'test');
         nestedObject = setupVersionControl(nestedObject, 'nest');
         anotherTestObject = setupVersionControl(anotherTestObject, 'nest');
+        arr = [];
+        obj = {item:arr};
+        arr = setupVersionControl(obj,'test');
 
         checkVersion();
     });
@@ -48,18 +54,18 @@ describe('React', function () {
 //    });
 
 
-    it('basic change', function () {
-        testObject.xp = 1; basicVersion += 1; objVersion += 1; checkVersion();
-        testObject.property.health += 3; basicVersion += 1; objVersion += 1; checkVersion();
-    });
-
-    it('new property', function () {
-        testObject.property.speed = 5; basicVersion += 1; objVersion += 1; checkVersion();
-        testObject.power = 1024;  checkVersion();
-        nestedObject.power = 1024;  checkVersion();
-        nestedObject.vipItem = new Item(); dummyVersion += 1; checkVersion();
-        nestedObject.vipItem.property = {}; dummyVersion += 1; checkVersion();
-    });
+//    it('basic change', function () {
+//        testObject.xp = 1; basicVersion += 1; objVersion += 1; checkVersion();
+//        testObject.property.health += 3; basicVersion += 1; objVersion += 1; checkVersion();
+//    });
+//
+//    it('new property', function () {
+//        testObject.property.speed = 5; basicVersion += 1; objVersion += 1; checkVersion();
+//        testObject.power = 1024;  checkVersion();
+//        nestedObject.power = 1024;  checkVersion();
+//        nestedObject.vipItem = new Item(); dummyVersion += 1; checkVersion();
+//        nestedObject.vipItem.property = {}; dummyVersion += 1; checkVersion();
+//    });
 //
 //    it('dont change', function () {
 //        testObject.xp = 1; checkVersion();
@@ -96,21 +102,21 @@ describe('React', function () {
 //            e.should.not.equal("Why don't you fail");
 //        }
 //    });
+//
+
+    it('array', function () {
+
+        nestedObject.item.push(testObject.vipItem); checkVersion();
+        testObject.item.push(testObject.vipItem); itemVersion += 1; objVersion += 1; checkVersion();
+        testObject.item.push(new Item()); itemVersion += 1; objVersion += 1; checkVersion();
+        testObject.item[5] = new Item(); itemVersion += 1; objVersion += 1; checkVersion();
+        testObject.item.pop(); itemVersion += 1; objVersion += 1; checkVersion();
+    });
 
     it('combo', function () {
         nestedObject.vipItem.property.count = 5;
         itemVersion += 1; basicVersion += 1; objVersion += 2; checkVersion();
     });
-
-
-    it('array', function () {
-        nestedObject.item.push(testObject.vipItem); checkVersion();
-        testObject.item.push(testObject.vipItem); itemVersion += 1; objVersion += 1; checkVersion();
-        testObject.item.push(new Item()); itemVersion += 1; objVersion += 1; checkVersion();
-        testObject.item[5] = new Item(); itemVersion += 4; objVersion += 4; checkVersion();
-        testObject.item.pop(); itemVersion += 1; objVersion += 1; checkVersion();
-    });
-
 
 
 //    it('tell me what has changed', function () {
