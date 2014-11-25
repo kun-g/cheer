@@ -14,7 +14,7 @@ describe('React', function () {
     var version_config = {
         test: {
             basicVersion: ['xp', 'property'],
-            itemVersion: ['item','vipItem']
+            itemVersion: ['item',]
         },
         item: ['count', 'property'],
         nest: {objVersion:['object@test'], dummyVersion: ['vipItem']}
@@ -46,10 +46,6 @@ describe('React', function () {
         checkVersion();
     });
     
-//    it('????', function() {
-//        nestedObject.object = anotherTestObject;
-//    });
-
 
     it('basic change', function () {
         testObject.xp = 1; basicVersion += 1; objVersion += 1; checkVersion();
@@ -106,14 +102,27 @@ describe('React', function () {
         testObject.item.push(testObject.vipItem); itemVersion += 1; objVersion += 1; checkVersion();
         testObject.item.push(new Item()); itemVersion += 1; objVersion += 1; checkVersion();
         testObject.item[5] = new Item(); itemVersion += 1; objVersion += 1; checkVersion();
+        var arr = testObject.item;
+        for(var i =0; i< arr.length; i++){
+            console.log('fv', i, arr[i]);
+        }
+        for (idx in arr){
+            console.log('fi',idx, arr[idx]);
+        }
+        console.log('print', arr);
         testObject.item.pop(); itemVersion += 1; objVersion += 1; checkVersion();
+        testObject.vipItem.property.count = 5;
+        itemVersion += 1;  objVersion += 1; checkVersion();
     });
 
     it('combo', function () {
-        console.log('----------------------begin combo');
-        testObject.vipItem.property.count = 5;
-        itemVersion += 1; basicVersion += 1; objVersion += 2; checkVersion();
     });
+
+    it('????', function() {
+        
+        nestedObject.object = anotherTestObject;
+    });
+
 
 
 //    it('tell me what has changed', function () {

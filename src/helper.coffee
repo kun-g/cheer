@@ -53,75 +53,15 @@ defineObjFunction = (obj, name, value) -> defineObjProperty(obj, name,value, fal
 Proxy = require('../../addon/proxy/nodeproxy')
 ProxyHandler = ( target) ->
   return {
-    getOwnPropertyDescriptor : ( name ) ->
-      desc = Object.getOwnPropertyDescriptor( target, name )
-      desc.configurable = true if desc?
-      return desc
-    ,
-    getPropertyDescriptor : ( name ) ->
-      desc    = Object.getOwnPropertyDescriptor( target, name )
-      parent  = Object.getPrototypeOf( target )
-
-      while (desc is undefined and parent?)
-        desc = Object.getOwnPropertyDescriptor( parent, name )
-        parent = Object.getPrototypeOf( parent )
-
-      desc.configurable = true if desc?
-      return desc
-    ,
-		getOwnPropertyNames : () -> return Object.getOwnPropertyNames( target ) ,
-		getPropertyNames : () ->
-      props   = Object.getOwnPropertyNames( target )
-      parent  = Object.getPrototypeOf( target )
-
-      while parent?
-        props = props.concat( Object.getOwnPropertyNames( parent ) )
-        parent = Object.getPrototypeOf( parent )
-      return props
-		,
-		defineProperty : ( name, desc ) ->
-      return Object.defineProperty(target, name, desc)
-    ,
-    "delete" : ( name ) ->
-      console.log('delete', name)
-      return delete target[ name ]
-    ,
-    fix : () ->
-      return undefined unless Object.isFrozen( target )
-      props = {}
-      #for name in target
-      #  props[ name ] = Object.getOwnPropertyDescriptor( target, name )
-      return props
-    ,
-    has : ( name ) -> return name in target ,
+    #this is used for .. in array
     hasOwn : ( name ) ->
-      console.log('hasOwn', name)
       return ({}).hasOwnProperty.call( target, name )
     ,
     enumerate : () ->
       result = []
       result.push( name ) for name of target
-      console.log('enumerable', result)
       return result
     ,
-    iterate : () ->
-      props =target.enumerate()
-      console.log('iterate', props)
-      i = 0
-      return {
-        next: () ->
-          console.log('call iterate next')
-          throw StopIteration if i is props.length
-          i+=1
-          return props[i]
-      }
-    ,
-    keys : () ->
-      keys = Object.keys( target )
-      console.log('keys--',keys)
-      return keys
-    ,
-
     get : ( receiver, name ) ->
       prop = target[name]
       if name is "valueOf" or name is "toString"
@@ -133,8 +73,7 @@ ProxyHandler = ( target) ->
       else if name is 'constructor'
         return target.constructor
 
-      console.log('get','target:', target, 'name:',name, 'type', typeof(target[name]))
-#      return if typeof prop is 'function' then prop.bind(target) else prop
+      #console.log('get','target:', target, 'name:',name, 'type', typeof(target[name]))
       return prop
     ,
     set : ( receiver, name, val ) ->
@@ -145,9 +84,13 @@ ProxyHandler = ( target) ->
       if typeof val is 'object' and not Proxy.isProxy(val)
         val = setupVersionControl(val, update?.sub)
 
-      console.log('set  name:',name, 'value:',val, 'obj:', target)
+      #console.log('set  name:',name, 'value:',val, 'obj:', target)
       oldval = target[name]
       __map = target.__updateVersionMap
+
+
+      oldval?.removeParent?(target,name)
+      val.addParent?(target,name)
 
       if Array.isArray(target)
         if name is 'length'
@@ -166,8 +109,6 @@ ProxyHandler = ( target) ->
 
 updateVersion = (oldval,val,name,__map,target) ->
   update = __map?[name]
-  oldval?.removeParent?(target,name)
-  val.addParent?(target,name)
   if not (__map? and not update?)
     target.onChange(name)
   target.__observerCB?()
@@ -261,7 +202,7 @@ exports.addVersionControl = (versionConfig) ->
 
     defineObjFunction(obj, 'addParent',
       (parent, name) ->
-        console.log('--addParent', name)
+        #console.log('--addParent', name)
         obj.__parentCBLst ?= []
         obj.removeParent(parent, name)
         obj.__parentCBLst.push({obj:parent,key:name})
@@ -269,7 +210,7 @@ exports.addVersionControl = (versionConfig) ->
 
     defineObjFunction(obj, 'removeParent',
       (parent, name) ->
-        console.log('removeParent befor',name, obj.__parentCBLst.length)
+        #console.log('removeParent befor',name, obj.__parentCBLst.length)
         # cbList = cbList.filter(isSameObj) is not work.
         # the only way is using splice. but indexOf is not work for object element 
         idx = -1
@@ -279,7 +220,7 @@ exports.addVersionControl = (versionConfig) ->
             break
 
         obj.__parentCBLst.splice(idx,1)
-        console.log('removeParent after',name, obj.__parentCBLst.length)
+        #console.log('removeParent after',name, obj.__parentCBLst.length)
     )
 
     defineObjFunction(obj, 'observe',
@@ -297,7 +238,7 @@ exports.addVersionControl = (versionConfig) ->
         obj.__updateVersionMap?[name]?()
         #console.log('--before call ',obj.__parentCBLst.length)
         obj.__parentCBLst.forEach((cb)->
-        #  console.log('-----onChange', name, cb.key,cb.obj)
+          #console.log('-----onChange', name, cb.key,cb.obj)
           cb.obj.onChange(cb.key))
     )
 
@@ -316,22 +257,30 @@ exports.addVersionControl = (versionConfig) ->
             obj[propName] = setupVersionControl(obj[propName],subVer)
             obj[propName].addParent(obj,propName)
             #obj[propName] = createProxy(obj[propName])
-            
           versionCBMap[propName] = cb
+    else
+      for propName of obj
+        if typeof obj[propName] is 'object'
+          obj[propName] = setupVersionControl(obj[propName])
+          obj[propName].addParent(obj,propName)
 
     defineHideProperty(obj, '__updateVersionMap',versionCBMap)
-    return createProxy(obj,false)
+    return createProxy(obj)
 
   createProxy = (obj,onlyThisLevel = true) ->
-    #return obj unless typeof obj is 'object'
+    return obj unless typeof obj is 'object'
+    return obj if Proxy.isProxy(obj)
     #if onlyThisLevel
-    #  return obj if Proxy.isProxy(obj)
     #else
     #  for key, value of obj
-    #    obj[key] = createProxy(obj[key],false)
+    #    #obj[key] = createProxy(obj[key],false)
+    #    obj[key] = setupVersionControl(obj[key]) if typeof obj[key] is 'object'
 
-    return obj if Proxy.isProxy(obj)
-    objProxy = Proxy.create(ProxyHandler(obj), obj.constructor.prototype) unless Proxy.isProxy(obj)
+    #if Proxy.isProxy(obj)
+    #  objProxy = obj
+    #else
+    #  objProxy = Proxy.create(ProxyHandler(obj), obj.constructor.prototype) unless Proxy.isProxy(obj)
+    objProxy = Proxy.create(ProxyHandler(obj), obj.constructor.prototype)
     return objProxy
 
 
