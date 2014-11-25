@@ -82,7 +82,10 @@ ProxyHandler = ( target) ->
 		defineProperty : ( name, desc ) ->
       return Object.defineProperty(target, name, desc)
     ,
-    "delete" : ( name ) -> return delete target[ name ] ,
+    "delete" : ( name ) ->
+      console.log('delete', name)
+      return delete target[ name ]
+    ,
     fix : () ->
       return undefined unless Object.isFrozen( target )
       props = {}
@@ -130,45 +133,44 @@ ProxyHandler = ( target) ->
       else if name is 'constructor'
         return target.constructor
 
-      #console.log('get','target:', target, 'name:',name, 'type', typeof(target[name]))
+      console.log('get','target:', target, 'name:',name, 'type', typeof(target[name]))
 #      return if typeof prop is 'function' then prop.bind(target) else prop
       return prop
     ,
     set : ( receiver, name, val ) ->
+      if name is '__updateVersionMap' or name is '__parentCBLst'
+        target[name] =val
+        return true
+
+      if typeof val is 'object' and not Proxy.isProxy(val)
+        val = setupVersionControl(val, update?.sub)
+
+      console.log('set  name:',name, 'value:',val, 'obj:', target)
+      oldval = target[name]
       __map = target.__updateVersionMap
-      update = __map?[name]
+
       if Array.isArray(target)
-        console.log('set  name:',name, 'value:',val, 'obj:', target)
         if name is 'length'
           target.length = val
+          if oldval >  val #that means pop was called 
+            updateVersion(oldval,val,name,__map,target)
           return true
-        if not (__map? and not update?)
-          target.onChange(name)
-        target.__observerCB?()
-        target[name] = val
-        console.log(name, typeof target[name])
-      else
-        if name is '__updateVersionMap' or name is '__parentCBLst'
-          target[name] =val
-          return true
-        console.log('set  name:',name, 'value:',val, 'obj:', target)
-        oldval = target[name]
 
-
-        if typeof val is 'object' and not Proxy.isProxy(val)
-          val = setupVersionControl(val, update?.sub)
-
-        if oldval isnt val
-          oldval?.removeParent?(target,name)
-          val.addParent?(target,name)
-          if not (__map? and not update?)
-            target.onChange(name)
-          target.__observerCB?()
-        target[ name ] = val
+      if oldval isnt val #data changed ,
+        #if target is an Array and the function which was called isnt pop, will excute here
+        updateVersion(oldval, val, name, __map,target)
+      target[ name ] = val
 
       return true
   }
 
+updateVersion = (oldval,val,name,__map,target) ->
+  update = __map?[name]
+  oldval?.removeParent?(target,name)
+  val.addParent?(target,name)
+  if not (__map? and not update?)
+    target.onChange(name)
+  target.__observerCB?()
 
 
 #exports.registVersionStore = (obj,storeCfg) ->
@@ -318,11 +320,18 @@ exports.addVersionControl = (versionConfig) ->
           versionCBMap[propName] = cb
 
     defineHideProperty(obj, '__updateVersionMap',versionCBMap)
-    return createProxy(obj)
+    return createProxy(obj,false)
 
-  createProxy = (obj) ->
+  createProxy = (obj,onlyThisLevel = true) ->
+    #return obj unless typeof obj is 'object'
+    #if onlyThisLevel
+    #  return obj if Proxy.isProxy(obj)
+    #else
+    #  for key, value of obj
+    #    obj[key] = createProxy(obj[key],false)
+
     return obj if Proxy.isProxy(obj)
-    objProxy = Proxy.create(ProxyHandler(obj), obj.constructor.prototype)
+    objProxy = Proxy.create(ProxyHandler(obj), obj.constructor.prototype) unless Proxy.isProxy(obj)
     return objProxy
 
 

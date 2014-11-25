@@ -8,13 +8,13 @@ describe('React', function () {
         this.property = 3;
     }
 
-    var testObject = { xp: 0, peed:0, property: { health: 1 }, item: [],vipItem:{count:1,property:2}  };
+    var testObject = { xp: 0, peed:0, property: { health: 1 }, item: [],vipItem:{count:1,property:{count:2}}};
     var anotherTestObject = {xp:0, property:{health:1},item:[]};
-    var nestedObject = { object: testObject, objVersion: 5, item: [],vipItem:{count:1,property:2} };
+    var nestedObject = { object: testObject, objVersion: 5, item: [], };
     var version_config = {
         test: {
             basicVersion: ['xp', 'property'],
-            itemVersion: ['item']
+            itemVersion: ['item','vipItem']
         },
         item: ['count', 'property'],
         nest: {objVersion:['object@test'], dummyVersion: ['vipItem']}
@@ -43,66 +43,62 @@ describe('React', function () {
         testObject = setupVersionControl(testObject, 'test');
         nestedObject = setupVersionControl(nestedObject, 'nest');
         anotherTestObject = setupVersionControl(anotherTestObject, 'nest');
-        arr = [];
-        obj = {item:arr};
-        arr = setupVersionControl(obj,'test');
-
         checkVersion();
     });
+    
 //    it('????', function() {
 //        nestedObject.object = anotherTestObject;
 //    });
 
 
-//    it('basic change', function () {
-//        testObject.xp = 1; basicVersion += 1; objVersion += 1; checkVersion();
-//        testObject.property.health += 3; basicVersion += 1; objVersion += 1; checkVersion();
-//    });
-//
-//    it('new property', function () {
-//        testObject.property.speed = 5; basicVersion += 1; objVersion += 1; checkVersion();
-//        testObject.power = 1024;  checkVersion();
-//        nestedObject.power = 1024;  checkVersion();
-//        nestedObject.vipItem = new Item(); dummyVersion += 1; checkVersion();
-//        nestedObject.vipItem.property = {}; dummyVersion += 1; checkVersion();
-//    });
-//
-//    it('dont change', function () {
-//        testObject.xp = 1; checkVersion();
-//        testObject.xp = '1'; basicVersion += 1; objVersion += 1; checkVersion();
-//        testObject.xp = '1'; checkVersion();
-//    });
-//
-//    it('new object property', function () {
-//        testObject.property.appearance = {hair:1}; basicVersion += 1; objVersion += 1; checkVersion();
-//        testObject.property.appearance = {hair:1}; basicVersion += 1; objVersion += 1; checkVersion();
-//        testObject.property.appearance.hair += 1; basicVersion += 1; objVersion += 1; checkVersion();
-//    });
-//
-//    it('observe', function () {
-//        var xpVersion = 0;
-//        testObject.observe('xp', function () { xpVersion += 1});
-//        testObject.xp += 1; 
-//        basicVersion += 1; objVersion += 1; checkVersion();
-//        xpVersion.should.equal(1);
-//    });
-//
-//    it('this observer should fail', function () {
-//        try {
-//            testObject.observe('xp', 'function_that_not_exist');
-//            throw "Why don't you fail";
-//        } catch (e) {
-//            e.should.not.equal("Why don't you fail");
-//        }
-//
-//        try {
-//            testObject.observe('key_that_not_exist', console.log);
-//            throw "Why don't you fail";
-//        } catch (e) {
-//            e.should.not.equal("Why don't you fail");
-//        }
-//    });
-//
+    it('basic change', function () {
+        testObject.xp = 1; basicVersion += 1; objVersion += 1; checkVersion();
+        testObject.property.health += 3; basicVersion += 1; objVersion += 1; checkVersion();
+    });
+
+    it('new property', function () {
+        testObject.property.speed = 5; basicVersion += 1; objVersion += 1; checkVersion();
+        testObject.power = 1024;  checkVersion();
+        nestedObject.power = 1024;  checkVersion();
+        nestedObject.vipItem = new Item(); dummyVersion += 1; checkVersion();
+        nestedObject.vipItem.property = {}; dummyVersion += 1; checkVersion();
+    });
+
+    it('dont change', function () {
+        testObject.xp = 1; checkVersion();
+        testObject.xp = '1'; basicVersion += 1; objVersion += 1; checkVersion();
+        testObject.xp = '1'; checkVersion();
+    });
+
+    it('new object property', function () {
+        testObject.property.appearance = {hair:1}; basicVersion += 1; objVersion += 1; checkVersion();
+        testObject.property.appearance = {hair:1}; basicVersion += 1; objVersion += 1; checkVersion();
+        testObject.property.appearance.hair += 1; basicVersion += 1; objVersion += 1; checkVersion();
+    });
+
+    it('observe', function () {
+        var xpVersion = 0;
+        testObject.observe('xp', function () { xpVersion += 1});
+        testObject.xp += 1; 
+        basicVersion += 1; objVersion += 1; checkVersion();
+        xpVersion.should.equal(1);
+    });
+
+    it('this observer should fail', function () {
+        try {
+            testObject.observe('xp', 'function_that_not_exist');
+            throw "Why don't you fail";
+        } catch (e) {
+            e.should.not.equal("Why don't you fail");
+        }
+
+        try {
+            testObject.observe('key_that_not_exist', console.log);
+            throw "Why don't you fail";
+        } catch (e) {
+            e.should.not.equal("Why don't you fail");
+        }
+    });
 
     it('array', function () {
 
@@ -114,7 +110,8 @@ describe('React', function () {
     });
 
     it('combo', function () {
-        nestedObject.vipItem.property.count = 5;
+        console.log('----------------------begin combo');
+        testObject.vipItem.property.count = 5;
         itemVersion += 1; basicVersion += 1; objVersion += 2; checkVersion();
     });
 
