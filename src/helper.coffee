@@ -4,38 +4,7 @@ moment = require('moment')
 dbLib = require('./db')
 dbWrapper = require('./dbWrapper')
 async = require('async')
-WatchJS = require('./watch')
-{watch,unwatch} = WatchJS
 
-#Object.defineProperty(Object.prototype, 'observers', {
-#    enumerable:false,
-#    configurable : false,
-#    value: (key,callback) ->
-#      value = @[key]
-#      #@['___observerd'] = true
-#      console.log('value', key, value, this,'----')
-#      if typeof value is 'object'
-##        console.log('observers', value,'--')
-#        value.observers(k,callback) for k, obj of value
-#      getter = () ->
-##        console.log('--getter', this, key, value)
-#        return value
-#      setter = (val) ->
-#        #console.log('--setter', this, key, value)
-#        this.observers(key,callback)
-#        value = val
-#        callback()
-#      #if(delete @[key])
-#      #console.log('add get/set for', key ,this)
-#      Object.defineProperty(@, key,{
-#        enumerable :true,
-#        configurable :true,
-#        set: setter,
-#        get: getter
-#        toString : () -> return value
-#      })
-#      #delete @['___observerd']
-#})
 
 defineObjProperty = (obj, name, value, configurable) ->
   return if obj.hasOwnProperty(name) and not configurable
@@ -44,13 +13,10 @@ defineObjProperty = (obj, name, value, configurable) ->
     configurable : configurable,
     value : value
   })
-#has:       (name) -> boolean                  // name in proxy
-#hasOwn:    (name) -> boolean                  // ({}).hasOwnProperty.call(proxy, name)
-#enumerate: () -> [string]                     // for (name in proxy) (return array of enumerable own and inherited properties)
-#keys:      () -> [string]                     // Object.keys(proxy)  (return array of enumerable own properties only)
 defineHideProperty = (obj, name, value) -> defineObjProperty(obj, name,value, true)
 defineObjFunction = (obj, name, value) -> defineObjProperty(obj, name,value, false)
-Proxy = require('../../addon/proxy/nodeproxy')
+
+Proxy = require('../addon/proxy/nodeproxy')
 ProxyHandler = ( target) ->
   return {
     #this is used for .. in array
@@ -73,7 +39,6 @@ ProxyHandler = ( target) ->
       else if name is 'constructor'
         return target.constructor
 
-      #console.log('get','target:', target, 'name:',name, 'type', typeof(target[name]))
       return prop
     ,
     set : ( receiver, name, val ) ->
@@ -84,7 +49,6 @@ ProxyHandler = ( target) ->
       if typeof val is 'object' and not Proxy.isProxy(val)
         val = setupVersionControl(val, update?.sub)
 
-      #console.log('set  name:',name, 'value:',val, 'obj:', target)
       oldval = target[name]
       __map = target.__updateVersionMap
 
@@ -114,95 +78,21 @@ updateVersion = (oldval,val,name,__map,target) ->
   target.__observerCB?()
 
 
-#exports.registVersionStore = (obj,storeCfg) ->
-#  defineProperty(obj, '__lastChanged',{})
-#  defineProperty(obj, '__parentList',[])
-#  defineObjFunction(obj, 'observe',
-#    (key,callback) ->
-#      throw 'why? where is my function?' unless typeof callback is 'function'
-#      value = obj[key]
-#      throw 'why? where is my key?' unless value?
-#      oldValue = value
-#      
-#      console.log('add cb ', key, callback)
-#      Object.defineProperty(obj, key, {
-#        enumerable:false,
-#        configurable : true,
-#        get: () ->
-#          console.log('get---')
-#          value
-#        set: (val) ->
-#          console.log('set ', oldValue,'to', val)
-#          oldValue = value
-#          value = val
-#          callback(obj, key, oldValue, value)
-#          #obj.__parentList.forEach((fun) ->
-#          #  fun(key,value))
-#      })
-#  )
-#  return obj
-#
-#  defineObjFunction(obj, 'addParentRef',
-#    (parent)->
-#      obj.__parentList.push(parent)
-#  )
-#  defineObjFunction(obj, 'getChangeInfo',
-#    ()->
-#      value = obj.__lastChanged
-#      obj.__lastChanged ={}
-#      return value
-#  )
-
-#Object.defineProperty(Object.prototype, 'observers', {
-#    enumerable:false,
-#    configurable : false,
-#    value: (key,callback,singleton=false) ->
-#      @[key] ?= 0
-#      console.log('add cb ', key, singleton, callback)
-#      watch(@,key, callback,1,singleton)
-#
-#})
-#
-#addFeature = (obj, key ,hooks, type ='set') ->
-#  hookName = '___'+type+'hooks'
-#  if  obj.hasOwnProperty(hookName)
-#    hooks = obj[hookName].concat(hooks)
-#  Object.defineProperty(obj,hookName,{enumerable :false, configurable:true, value:hooks})
-#
-#  config = {
-#    enumerable : false,
-#    configurable : true,
-#    set: (val) ->
-#      obj['___sethooks']?.forEach((fun) ->
-#        fun(obj,key,val))
-#      return val
-#    get: () ->
-#      val = this
-#      obj['___gethooks']?.forEach((fun) ->
-#        fun(obj,key,val))
-#      return val
-#  }
-#  Object.defineProperty(obj, key, config)
-#
-
 makeVersionRecoder = (obj,key) ->
   func =  (pro,act, newv,oldv) ->
-#    console.log(pro, act, '---', key)
     obj[key] += 1
-  func.toString =() ->
-    return '[function for :'+key+']'
+#  func.toString =() ->
+#    return '[function for :'+key+']'
   return func
 
 exports.addVersionControl = (versionConfig) ->
   setupVersionControl =(obj,cfgKey) ->
     versionCfg = versionConfig[cfgKey]
-    #return unless versionCfg?
     obj = obj ||{}
     defineHideProperty(obj, '__parentCBLst',[])
 
     defineObjFunction(obj, 'addParent',
       (parent, name) ->
-        #console.log('--addParent', name)
         obj.__parentCBLst ?= []
         obj.removeParent(parent, name)
         obj.__parentCBLst.push({obj:parent,key:name})
@@ -210,9 +100,9 @@ exports.addVersionControl = (versionConfig) ->
 
     defineObjFunction(obj, 'removeParent',
       (parent, name) ->
-        #console.log('removeParent befor',name, obj.__parentCBLst.length)
         # cbList = cbList.filter(isSameObj) is not work.
         # the only way is using splice. but indexOf is not work for object element 
+        # so the codes down below is used for get index of the same element
         idx = -1
         for element in obj.__parentCBLst
           if element.obj is parent and element.key is name
@@ -220,7 +110,6 @@ exports.addVersionControl = (versionConfig) ->
             break
 
         obj.__parentCBLst.splice(idx,1)
-        #console.log('removeParent after',name, obj.__parentCBLst.length)
     )
 
     defineObjFunction(obj, 'observe',
@@ -236,9 +125,7 @@ exports.addVersionControl = (versionConfig) ->
     defineObjFunction(obj, 'onChange',
       (name) ->
         obj.__updateVersionMap?[name]?()
-        #console.log('--before call ',obj.__parentCBLst.length)
         obj.__parentCBLst.forEach((cb)->
-          #console.log('-----onChange', name, cb.key,cb.obj)
           cb.obj.onChange(cb.key))
     )
 
@@ -256,7 +143,6 @@ exports.addVersionControl = (versionConfig) ->
           if typeof obj[propName] is 'object'
             obj[propName] = setupVersionControl(obj[propName],subVer)
             obj[propName].addParent(obj,propName)
-            #obj[propName] = createProxy(obj[propName])
           versionCBMap[propName] = cb
     else
       for propName of obj
@@ -270,54 +156,12 @@ exports.addVersionControl = (versionConfig) ->
   createProxy = (obj,onlyThisLevel = true) ->
     return obj unless typeof obj is 'object'
     return obj if Proxy.isProxy(obj)
-    #if onlyThisLevel
-    #else
-    #  for key, value of obj
-    #    #obj[key] = createProxy(obj[key],false)
-    #    obj[key] = setupVersionControl(obj[key]) if typeof obj[key] is 'object'
+    return  Proxy.create(ProxyHandler(obj), obj.constructor.prototype)
 
-    #if Proxy.isProxy(obj)
-    #  objProxy = obj
-    #else
-    #  objProxy = Proxy.create(ProxyHandler(obj), obj.constructor.prototype) unless Proxy.isProxy(obj)
-    objProxy = Proxy.create(ProxyHandler(obj), obj.constructor.prototype)
-    return objProxy
-
-
-#  setupVersionControl1 = (obj, cfgKey, parentVersionRecoder = null) ->
-#    cfgInfo = versionConfig[cfgKey]
-#    return unless cfgInfo?
-#    if typeof cfgInfo is 'object' and not Array.isArray(cfgInfo)
-#      for versionStore, versionKeyList of cfgInfo
-#        obj[versionStore] ?= 0
-#        #cb = makeVersionRecoder(obj,versionStore, versionStore)
-#        #registerVersionControl(obj, versionKeyList, cb)
-#        registerVersionControl(obj, versionKeyList, cb, parentVersionRecoder)
-#    else
-#      registerVersionControl(obj[cfgKey], cfgInfo,null,parentVersionRecoder)
-#
-#  registerVersionControl =(obj, versionKeyList, whenChange, notify) ->
-#    for versionKey in versionKeyList
-#      charIdx = versionKey.indexOf('@')
-#      if charIdx is -1
-#        if whenChange?
-#          obj.observe(versionKey,whenChange,true)
-#        if notify?
-#          obj.observe(versionKey, notify)
-#      else
-#        [keyOfObj, cfgKey] = versionKey.split('@')
-#        setupVersionControl(obj[keyOfObj],cfgKey, whenChange)
 
   return  setupVersionControl
 
   
-exports.newProperty = (obj, pro, value) ->
-  obj = Object(obj)
-  obj.observe
-#exports.addVeRsionControl = (versionConfig) ->
-#  setupVersionControl = (obj, cfgKey) ->
-#    func = genCallBack(versionConfig, cfgKey)
-#    watch(obj,func, 100)
 
 CONST_MAX_WORLD_BOSS_TIMES = 200
 exports.ConstValue = {WorldBossTimes : CONST_MAX_WORLD_BOSS_TIMES}

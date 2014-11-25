@@ -1,4 +1,4 @@
-helper =  require('../js/helper.js');
+helper =  require('../../build/helper.js');
 require('should');
  
 
@@ -102,6 +102,15 @@ describe('React', function () {
         testObject.item.push(testObject.vipItem); itemVersion += 1; objVersion += 1; checkVersion();
         testObject.item.push(new Item()); itemVersion += 1; objVersion += 1; checkVersion();
         testObject.item[5] = new Item(); itemVersion += 1; objVersion += 1; checkVersion();
+        testObject.item.pop(); itemVersion += 1; objVersion += 1; checkVersion();
+        testObject.vipItem.property.count = 5;
+        itemVersion += 1;  objVersion += 1; checkVersion();
+    });
+
+    it('combo', function () {
+    });
+
+    it('array print', function() {
         var arr = testObject.item;
         for(var i =0; i< arr.length; i++){
             console.log('fv', i, arr[i]);
@@ -110,12 +119,6 @@ describe('React', function () {
             console.log('fi',idx, arr[idx]);
         }
         console.log('print', arr);
-        testObject.item.pop(); itemVersion += 1; objVersion += 1; checkVersion();
-        testObject.vipItem.property.count = 5;
-        itemVersion += 1;  objVersion += 1; checkVersion();
-    });
-
-    it('combo', function () {
     });
 
     it('????', function() {
