@@ -49,21 +49,19 @@ ProxyHandler = ( target,setup, filter) ->
       return prop
     ,
     set : ( receiver, name, val ) ->
-      console.log('--------set', name, val)
       if name is '__updateVersionMap' or name is '__parentCBLst'
         target[name] =val
         return true
 
       __map = target.__updateVersionMap
-      if typeof val is 'object' and not Proxy.isProxy(val) and isInVersion(filter)
-        console.log('setup -----------', name)
+      if val? and typeof val is 'object' and not Proxy.isProxy(val) and isInVersion(filter)
         val = setup(val,  __map?[name]?.sub)
 
       oldval = target[name]
 
 
       oldval?.removeParent?(target,name)
-      val.addParent?(target,name)
+      val?.addParent?(target,name)
 
       if Array.isArray(target)
         if name is 'length'
@@ -163,7 +161,7 @@ exports.addVersionControl = (versionConfig) ->
     return createProxy(obj, versionCfg)
 
   createProxy = (obj,  versionCfg) ->
-    return obj unless typeof obj is 'object'
+    return obj unless obj? and typeof obj is 'object'
     return obj if Proxy.isProxy(obj)
     return  Proxy.create(ProxyHandler(obj,setupVersionControl, versionCfg), obj.constructor.prototype)
 

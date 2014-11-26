@@ -109,6 +109,9 @@ describe('React', function () {
     it('combo', function () {
     });
 
+    it('set null should not crash', function () {
+        testObject.xp = null;
+    });
 //    it('array print', function() {
 //        var arr = testObject.item;
 //        for(var i =0; i< arr.length; i++){
