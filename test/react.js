@@ -29,7 +29,6 @@ describe('React', function () {
         testObject.should.have.property('basicVersion').equal(basicVersion);
         testObject.should.have.property('itemVersion').equal(itemVersion);
         nestedObject.should.have.property('objVersion').equal(objVersion);
-        nestedObject.should.have.property('dummyVersion').equal(dummyVersion);
     }
 	function pv() {
 		console.log({
@@ -110,16 +109,19 @@ describe('React', function () {
     it('combo', function () {
     });
 
-    it('array print', function() {
-        var arr = testObject.item;
-        for(var i =0; i< arr.length; i++){
-            console.log('fv', i, arr[i]);
-        }
-        for (idx in arr){
-            console.log('fi',idx, arr[idx]);
-        }
-        console.log('print', arr);
-    });
+//    it('array print', function() {
+//        var arr = testObject.item;
+//        for(var i =0; i< arr.length; i++){
+//            console.log('fv', i, arr[i]);
+//        }
+//        for (idx in arr){
+//            console.log('fi',idx, arr[idx]);
+//        }
+//        console.log('print', arr);
+//    });
+//    it('json', function() {
+//        console.log(JSON.stringify(testObject));
+//    });
 
     it('????', function() {
         
