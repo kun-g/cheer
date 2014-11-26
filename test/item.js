@@ -59,25 +59,26 @@ describe('Item', function () {
 
       it('套装', function () {
           var suitConfig = {
+              'suitId':1,
               '2': [ { type: 'incress_property', property: { attack: 10 } } ],
               '4': [ { type: 'incress_property', property: { attack: 10 } },
                      { type: 'change_appearance', appearance: { head: 10 } }]
           };
           var unit = new Unit();
-          unit.equip(createItem({suit_config: suitConfig, basic_properties: { attack : 1 }}));
+          unit.equip(createItem({suit_config: suitConfig, subcategory: 0, basic_properties: { attack : 1 }}));
           unit.attack.should.equal(1);
 
-          unit.equip(createItem({suit_config: suitConfig, appearance: { head : 1 }}));
+          unit.equip(createItem({suit_config: suitConfig, subcategory: 1, appearance: { head : 1 }}));
           unit.attack.should.equal(11);
-          unit.appearance.should.equal({ head: 1});
+          unit.appearance.should.eql({ head: 1});
 
-          unit.equip(createItem({suit_config: suitConfig, appearance: { body : 1 }}));
+          unit.equip(createItem({suit_config: suitConfig, subcategory: 2, appearance: { body : 1 }}));
           unit.attack.should.equal(11);
-          unit.appearance.should.equal({ body: 1, head: 1});
+          unit.appearance.should.eql({ body: 1, head: 1});
 
-          unit.equip(createItem({suit_config: suitConfig}));
+          unit.equip(createItem({suit_config: suitConfig, subcategory: 3}));
           unit.attack.should.equal(21);
-          unit.appearance.should.equal({ body: 1, head: 10});
+          unit.appearance.should.eql({ body: 1, head: 10});
       });
 
       //it('强化:时间限制', function () {

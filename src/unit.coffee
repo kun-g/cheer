@@ -10,6 +10,9 @@ class Unit extends Wizard
   constructor: () ->
     super
     @isVisible = false
+    @unitProperty = {}
+    @unitAppearance = {}
+    @uniform = {}
 
   calculatePower: () ->
     ret = @health + @attack*6 + @speed*2 + @critical*2 + @strong*2 + @reactivity*2 + @accuracy*2
@@ -84,6 +87,118 @@ class Unit extends Wizard
             console.log('Enhancement ',
               JSON.stringify(enhance.property[enhancement.level])
             )
+
+  modifyAppearance: (appearance) ->
+    return false unless appearance?
+    this.appearance ?= {}
+    for k, v of appearance
+      this.appearance[k] = v
+
+  subProperty: (properties) ->
+    return false unless properties?
+    for k, v of properties
+      if this[k]?
+        this[k] -= v
+
+  gearOn: () ->
+    return false unless @uniform?
+    for k, e of @uniform when e
+      @modifyProperty(e.basic_properties) if e.basic_properties?
+      @modifyAppearance(e.appearance) if e.appearance?
+      if e.skill?
+        for s in e.skill when not s.classLimit? or s.classLimit is @class
+          @installSpell(s.id, s.level)
+
+      console.log('Equipment ', JSON.stringify(e)) if flagCreation
+      if e.eh?
+        for enhancement in e.eh
+          enhance = queryTable(TABLE_ENHANCE, enhancement.id)
+          continue unless enhance?.property?[enhancement.level]?
+          @modifyProperty(enhance.property[enhancement.level])
+          if flagCreation
+            console.log('Enhancement ',
+              JSON.stringify(enhance.property[enhancement.level])
+            )
+
+  gearDown: () ->
+    return false unless @uniform?
+    for k, e of @uniform when e
+      @subProperty(e.basic_properties) if e.basic_properties?
+      if e.skill?
+        for s in e.skill when not s.classLimit? or s.classLimit is @class
+          @removeSpell(s.id, s.level)
+
+      console.log('Equipment ', JSON.stringify(e)) if flagCreation
+      if e.eh?
+        for enhancement in e.eh
+          enhance = queryTable(TABLE_ENHANCE, enhancement.id)
+          continue unless enhance?.property?[enhancement.level]?
+          @subProperty(enhance.property[enhancement.level])
+          if flagCreation
+            console.log('Enhancement ',
+              JSON.stringify(enhance.property[enhancement.level])
+            )
+
+    return false unless @unitProperty?
+    for k, v of @unitProperty
+      if this[k]?
+        this[k] -= v
+    return false unless @unitAppearance?
+    for k, v of @unitAppearance
+      if v?
+        this.appearance[k] = v
+
+  clearUnitPro: () ->
+    return false unless @unitProperty?
+    for k of @unitProperty
+      @unitProperty[k] = 0
+    return false unless @unitAppearance?
+    for k of @unitAppearance
+      @unitAppearance[k] = null
+
+  addUnitPro: (unitPro) ->
+    return false unless unitPro?
+    for q, u of unitPro
+      switch u.type
+        when 'incress_property'
+          for k, v of u.property
+            if @unitProperty[k]?
+              @unitProperty[k] += v
+            else
+              @unitProperty[k] = v
+        when 'change_appearance'
+          for k, v of u.appearance
+            @unitAppearance[k] = this.appearance[k]
+            this.appearance[k] = v
+
+  caculateUnitPro: () ->
+    return false unless @uniform?
+    suitArr = {}
+    for k, e of @uniform when e
+      if e.suit_config?.suitId?
+        if suitArr[e.suit_config.suitId]?
+          suitArr[e.suit_config.suitId].count++
+        else
+          suitArr[e.suit_config.suitId] = e.suit_config
+          suitArr[e.suit_config.suitId].count = 1
+
+    @clearUnitPro()
+    for k, v of suitArr
+      for l, s of v
+        if isNaN(parseInt(l, 10)) == false and parseInt(l, 10) <= v.count
+          @addUnitPro(s)
+
+    for k, v of @unitProperty
+      if this[k]?
+        this[k] += v
+      else
+        this[k] = v
+
+  equip: (equipItem) ->
+    @gearDown()
+    @uniform[equipItem.getConfig().subcategory] = equipItem
+    @gearOn()
+    @caculateUnitPro()
 
   isMonster: () -> false
   isHero: () -> false
