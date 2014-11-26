@@ -17,7 +17,14 @@ defineHideProperty = (obj, name, value) -> defineObjProperty(obj, name,value, tr
 defineObjFunction = (obj, name, value) -> defineObjProperty(obj, name,value, false)
 
 Proxy = require('../addon/proxy/nodeproxy')
-ProxyHandler = ( target) ->
+isInVersion = (filter, key) ->
+  return true unless filter?
+  for _versionName, keyLst of filter
+    if keyLst.indexOf(key) isnt -1
+      return true
+  return false
+
+ProxyHandler = ( target,setup, filter) ->
   return {
     #this is used for .. in array
     hasOwn : ( name ) ->
@@ -42,15 +49,17 @@ ProxyHandler = ( target) ->
       return prop
     ,
     set : ( receiver, name, val ) ->
+      console.log('--------set', name, val)
       if name is '__updateVersionMap' or name is '__parentCBLst'
         target[name] =val
         return true
 
-      if typeof val is 'object' and not Proxy.isProxy(val)
-        val = setupVersionControl(val, update?.sub)
+      __map = target.__updateVersionMap
+      if typeof val is 'object' and not Proxy.isProxy(val) and isInVersion(filter)
+        console.log('setup -----------', name)
+        val = setup(val,  __map?[name]?.sub)
 
       oldval = target[name]
-      __map = target.__updateVersionMap
 
 
       oldval?.removeParent?(target,name)
@@ -151,12 +160,12 @@ exports.addVersionControl = (versionConfig) ->
           obj[propName].addParent(obj,propName)
 
     defineHideProperty(obj, '__updateVersionMap',versionCBMap)
-    return createProxy(obj)
+    return createProxy(obj, versionCfg)
 
-  createProxy = (obj,onlyThisLevel = true) ->
+  createProxy = (obj,  versionCfg) ->
     return obj unless typeof obj is 'object'
     return obj if Proxy.isProxy(obj)
-    return  Proxy.create(ProxyHandler(obj), obj.constructor.prototype)
+    return  Proxy.create(ProxyHandler(obj,setupVersionControl, versionCfg), obj.constructor.prototype)
 
 
   return  setupVersionControl
