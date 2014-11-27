@@ -7,7 +7,7 @@ http = require('http')
 https = require('https')
 querystring = require('querystring')
 moment = require('moment')
-{Player} = require('./player')
+{newPlayer} = require('./player')
 
 loginBy = (arg, token, callback) ->
   passportType = arg.tp
@@ -270,7 +270,7 @@ exports.route = {
         #TODO: accelerate this
         (account, cb) -> dbLib.createNewPlayer(account, gServerName, name, cb),
         (account, cb) ->
-          player = new Player()
+          player = newPlayer()
           player.createPlayer(arg, account, cb)
       ], (err, result) ->
         if err
@@ -694,6 +694,7 @@ exports.route = {
     ,
     args: {},
     needPid: true
-  }
+  },
+
 
 }

@@ -8,7 +8,7 @@ libItem = require './item'
 {CommandStream, Environment, DungeonEnvironment, DungeonCommandStream} = require('./commandStream')
 {Dungeon} = require './dungeon'
 {Bag, CardStack} = require('./container')
-{diffDate, currentTime, genUtil} = require ('./helper')
+{diffDate, currentTime, genUtil,addVersionControl } = require ('./helper')
 helperLib = require ('./helper')
 
 dbLib = require('./db')
@@ -62,23 +62,10 @@ class Player extends DBWrapper
       campaignState: {},
       infiniteTimer: currentTime(),
 
-      inventoryVersion: 1,
-      heroVersion: 1,
-      stageVersion: 1,
-      questVersion: 1,
-      energyVersion: 1
-
       abIndex: rand(),
     }
 
-    versionCfg = {
-      inventoryVersion: ['gold', 'diamond', 'inventory', 'equipment'],
-      heroVersion: ['heroIndex', 'hero', 'heroBase'],
-      stageVersion: 'stage',
-      questVersion: 'quests',
-      energyVersion: ['energy', 'energyTime']
-    }
-    super(data, cfg, versionCfg)
+    super(data, cfg)
 
   setName: (@name) ->
     @dbKeyName = playerPrefix+@name
@@ -564,7 +551,7 @@ class Player extends DBWrapper
 
   changeStage: (stage, state) ->
     stg = queryTable(TABLE_STAGE, stage)
-    @stageVersion++
+    #@stageVersion++
     if stg
       chapter = stg.chapter
 
@@ -702,7 +689,7 @@ class Player extends DBWrapper
     @onEvent('gold')
     @onEvent('diamond')
     @onEvent('item')
-    @questVersion++
+    #@questVersion++
 
     return packQuestEvent(@quests, qid, @questVersion)
 
@@ -740,7 +727,7 @@ class Player extends DBWrapper
     return null unless haveEnoughtMoney
     ret = []
     for p in prize when p?
-      @inventoryVersion++
+      #@inventoryVersion++
       switch p.type
         when PRIZETYPE_ITEM
           retRM = @inventory.remove(p.value, p.count*count, null, true)
@@ -758,7 +745,7 @@ class Player extends DBWrapper
     ret = []
 
     for p in prize when p?
-      @inventoryVersion++
+      #@inventoryVersion++
       switch p.type
         when PRIZETYPE_ITEM
           ret = @aquireItem(p.value, p.count, allOrFail)
@@ -817,7 +804,7 @@ class Player extends DBWrapper
     if not prize or prize.length is 0 then return RET_InventoryFull
     ret = ret.concat(prize)
 
-    @questVersion++
+    #@questVersion++
     for obj in quest.objects when obj.consume
       switch obj.type
         when QUEST_TYPE_GOLD then ret = ret.concat({NTF: Event_InventoryUpdateItem, arg: {syn:@inventoryVersion, god: @addGold(-obj.count)}})
@@ -1098,14 +1085,14 @@ class Player extends DBWrapper
     if dungeon.revive > 0
       ret = @inventory.removeById(ItemId_RevivePotion, dungeon.revive, true)
       if not ret or ret.length is 0
-        @inventoryVersion++
+        #@inventoryVersion++
         return { NTF: Event_DungeonReward, arg : { res : DUNGEON_RESULT_FAIL } }
       ret = this.doAction({id: 'ItemChange', ret: ret, version: @inventoryVersion})
   
     quests = dungeon.quests
     if quests and dungeon.result isnt DUNGEON_RESULT_FAIL
       @updateQuest(quests)
-      @questVersion++
+      #@questVersion++
   
     {goldPrize, xpPrize, wxPrize, otherPrize} = @generateDungeonAward(dungeon)
 
@@ -1830,7 +1817,19 @@ getVip = (rmb) ->
   levelCfg.privilege = tbl.requirement[level].privilege
   return {level: level, cfg: tbl.levels[level]}
 
+versionCfg = {
+  'player':{
+    inventoryVersion: ['gold', 'diamond', 'inventory', 'equipment'],
+    heroVersion: ['heroIndex', 'hero', 'heroBase'],
+    stageVersion: 'stage',
+    questVersion: 'quests',
+    energyVersion: ['energy', 'energyTime']
+  }
+}
+setupVersionControl = addVersionControl(versionCfg)
 registerConstructor(Player)
-exports.Player = Player
+exports.newPlayer = (attributes) ->
+  #new Player(attributes)
+  setupVersionControl( new Player(attributes), 'player')
 exports.playerMessageFilter = playerMessageFilter
 exports.getVip = getVip

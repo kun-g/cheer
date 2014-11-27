@@ -261,7 +261,7 @@ function loadPlayer(name, handler) {
         }
       }
       var playerLib = require('./player');
-      p = new playerLib.Player(attributes);
+      p = playerLib.newPlayer(attributes);
       p.initialize();
     }
     if (handler) handler(err, p);
