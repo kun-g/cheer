@@ -56,6 +56,7 @@ exports.loadAccount = function (id, handler) { accountDBClient.hgetall(makeDBKey
 exports.getPlayerNameByID = function (id, serverName, cb)  { accountDBClient.hget(makeDBKey([accPrefix, id]), serverName, cb); };
 // TODO: creation after creation
 exports.updateAccount = function (id, key, val, cb){ accountDBClient.hset(makeDBKey([accPrefix, id]), key, val, cb); };
+exports.setNameOfAccount = function (id, name, cb){ accountDBClient.hset(makeDBKey([accPrefix, id]), gServerName, name, cb); };
 //////////////// Player Creation ////////////////
 
 function createNewPlayer (account, server, name, handle) {
@@ -270,7 +271,22 @@ function loadPlayer(name, handler) {
 }
 
 exports.loadPlayer = loadPlayer;
- 
+
+function getAccountByPlayerName(name, callback){
+  dbClient.hget(makeDBKey([playerPrefix, name]), 'accountID', callback)
+}
+exports.getAccountByPlayerName = getAccountByPlayerName;
+
+function updatePlayer(name, key, value, callback){
+  dbClient.hset(makeDBKey([playerPrefix, name]), key, value, callback);
+}
+exports.updatePlayer = updatePlayer;
+
+function setAccountOfPlayer(name, account, callback){
+  updatePlayer(name, 'accountID', account, callback);
+}
+exports.setAccountOfPlayer = setAccountOfPlayer;
+
 ////////////// Player Manipulation //////////////
 function incrBluestarBy (name, point, handler) {
   async.parallel([

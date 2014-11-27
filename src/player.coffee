@@ -1158,7 +1158,7 @@ class Player extends DBWrapper
     async.series([
       (cb) ->
         if id?
-          dbLib.getPlayerNameByID(id, (err, theName) ->
+          dbLib.getPlayerNameByID(id, gServerName, (err, theName) ->
             if theName then name = theName
             cb(err)
           )
