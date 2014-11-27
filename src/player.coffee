@@ -881,7 +881,10 @@ class Player extends DBWrapper
     item = @getItemAt(slot)
     return { ret: RET_ItemNotExist } unless item?
     return { ret: RET_EquipCantUpgrade } unless item.upgradeTarget? and @createHero().level > item.rank
-    upConfig = queryTable(TABLE_UPGRADE, item.rank, @abIndex)
+    if item.getConfig().upgradeId?
+      upConfig = queryTable(TABLE_UPGRADE, item.getConfig().upgradeId, @abIndex)
+    else
+      upConfig = queryTable(TABLE_UPGRADE, item.rank, @abIndex)
     return { ret: RET_EquipCantUpgrade } unless upConfig
     exp = upConfig.xp
     cost = upConfig.cost
