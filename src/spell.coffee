@@ -6,12 +6,12 @@ getSpellConfig = (spellID) ->
   return null if not cfg?
   return cfg.config
 
-getProperty = (origin, backup) ->
-  return if backup? then backup else origin
-
-getLevelConfig = (cfg, level) ->
+getSpellProperty = (config, key, level) -> #getSpellProperty 
   level -= 1
-  return if cfg.levelConfig and cfg.levelConfig[level]? then cfg.levelConfig[level] else {}
+  if config['#'+key]
+    return config['#'+key][level]
+  else
+    return config[key]
 
 plusThemAll = (config, env) ->
   return 0 unless config? and env?
@@ -24,13 +24,18 @@ plusThemAll = (config, env) ->
       sum += env[k]*v if env[k]?
   return sum
 
-calcFormular = (e, s, t, config) ->
+calcFormular = (e, s, t, config, level) ->
   if config.func
     c = if config.c then config.c else {}
     return config.func.apply(null,[e, s, t, c])
 
   c = if config.c then config.c else 0
-  return Math.ceil(plusThemAll(config.environment, e) + plusThemAll(config.src, s) + plusThemAll(config.tar, t) + c)
+  return Math.ceil(
+    plusThemAll(config.environment, e) +
+    plusThemAll(config.src, s) +
+    plusThemAll(config.tar, t) +
+    c
+  )
 
 class Wizard
   constructor: () ->
@@ -46,17 +51,16 @@ class Wizard
     cfg = getSpellConfig(spellID)
     level = 1 unless level? > 0
     return false unless cfg?
-    levelConfig = getLevelConfig(cfg, level)
 
     @removeSpell(spellID, cmd) if @wSpellDB[spellID]
     @wSpellDB[spellID] = {level: level, delay: delay}
 
-    @setupTriggerCondition(spellID, cfg.triggerCondition, levelConfig, cmd)
-    @setupAvailableCondition(spellID, cfg.availableCondition, levelConfig, cmd)
-    @doAction(@wSpellDB[spellID], cfg.installAction, levelConfig, @selectTarget(cfg, cmd), cmd)
+    @setupTriggerCondition(spellID, cfg.triggerCondition,  cmd)
+    @setupAvailableCondition(spellID, cfg.availableCondition,  cmd)
+    @doAction(@wSpellDB[spellID], cfg.installAction,  @selectTarget(cfg, cmd), cmd)
     @spellStateChanged(spellID, cmd)
 
-  setupAvailableCondition: (spellID, conditions, level, cmd) ->
+  setupAvailableCondition: (spellID, conditions, cmd) ->
     return false unless conditions
     thisSpell = @wSpellDB[spellID]
     for limit in conditions
@@ -67,7 +71,7 @@ class Wizard
           thisSpell.tick[limit.tickType] = 0
         when 'event' then @installTrigger(spellID, limit.event)
 
-  setupTriggerCondition: (spellID, conditions, level, cmd) ->
+  setupTriggerCondition: (spellID, conditions, cmd) ->
     return false unless conditions?
     thisSpell = @wSpellDB[spellID]
 
@@ -91,6 +95,7 @@ class Wizard
     cmd.routine?({id: 'SpellState', wizard:@, effect: @calcEffectState(spellID)})
 
   removeSpell: (spellID, cmd) ->
+    return false unless @wSpellDB[spellID]
     cfg = getSpellConfig(spellID)
 
     if cfg.triggerCondition?
@@ -100,7 +105,7 @@ class Wizard
       @removeTrigger(spellID, c.event) for c in cfg.availableCondition when c.type is 'event'
 
     if cfg.uninstallAction?
-      @doAction(@wSpellDB[spellID], cfg.uninstallAction, {}, @selectTarget(cfg, cmd), cmd)
+      @doAction(@wSpellDB[spellID], cfg.uninstallAction, @selectTarget(cfg, cmd), cmd)
 
     delete @wSpellDB[spellID]
     @spellStateChanged(spellID, cmd)
@@ -118,19 +123,16 @@ class Wizard
     @wTriggers[event] = (id for id in @wTriggers[event] when id != spellID)
     delete @wTriggers[event] unless @wTriggers[event].length > 0
 
-  castSpell: (spellID, level, cmd) ->
+  castSpell: (spellID, cmd) ->
     cfg = getSpellConfig(spellID)
     thisSpell = @wSpellDB[spellID]
-    level = thisSpell.level if thisSpell?
-    return 'InvalidLevel' unless level?
-    level = getLevelConfig(cfg, level)
 
     target = @selectTarget(cfg, cmd)
 
-    [canTrigger, reason] = @triggerCheck(thisSpell, cfg.triggerCondition, level, target, cmd)
+    [canTrigger, reason] = @triggerCheck(thisSpell, cfg.triggerCondition, target, cmd)
     return reason unless canTrigger
 
-    @doAction(thisSpell, cfg.action, level, target, cmd)
+    @doAction(thisSpell, cfg.action, target, cmd)
     @updateCDOfSpell(spellID, true, cmd)
     @removeSpell(spellID, cmd) unless @availableCheck(spellID, cfg, cmd)
     delay = 0
@@ -144,7 +146,7 @@ class Wizard
     for id in @wTriggers[event]
       thisSpell = @wSpellDB[id]
       thisSpell.eventCounters[event]++ if thisSpell?
-      @castSpell(id, null, cmd)
+      @castSpell(id, cmd)
 
   clearSpellCD: (spellID, cmd) ->
     return false unless spellID? and @wSpellDB[spellID]?
@@ -162,9 +164,7 @@ class Wizard
 
     cdConfig = (c for c in cfg.triggerCondition when c.type == 'countDown')
     return [true, 'NoCD'] unless cdConfig.length > 0
-    cdConfig = cdConfig[0]
-    level = getLevelConfig(cfg, thisSpell.level)
-    cd = getProperty(cdConfig.cd, level.cd)
+    cd = getSpellProperty(cdConfig[0], 'cd', thisSpell.level)
     preCD = thisSpell.cd
     if isReset
       thisSpell.cd = cd
@@ -201,13 +201,14 @@ class Wizard
     conditions = cfg.availableCondition
     return true unless conditions
 
-    level = getLevelConfig(cfg, thisSpell.level)
     for limit in conditions
       switch limit.type
-        when 'effectCount' then return false unless thisSpell.effectCount < getProperty(limit.count, level.count)
-        when 'tick' then return false unless thisSpell.tick[limit.tickType] < getProperty(limit.ticks, level.ticks)
+        when 'effectCount'
+          return false unless thisSpell.effectCount < getSpellProperty(limit, 'count', thisSpell.level)
+        when 'tick'
+          return false unless thisSpell.tick[limit.tickType] < getSpellProperty(limit, 'ticks', thisSpell.level)
         when 'event'
-          count = getProperty(limit.eventCount, level.eventCount) ? 1
+          count = getSpellProperty(limit, 'eventCount', thisSpell.level) ? 1
           return false unless thisSpell.eventCounters[limit.event] < count
 
     return true
@@ -261,12 +262,14 @@ class Wizard
 
     return pool
 
-  triggerCheck: (thisSpell, conditions, level, target, cmd) ->
+  triggerCheck: (thisSpell, conditions, target, cmd) ->
     return [true] unless conditions?
     env = cmd.getEnvironment()
     for limit in conditions
       switch limit.type
-        when 'chance' then return [false, 'NotFortunate'] unless env.chanceCheck(getProperty(limit.chance, level.chance))
+        when 'chance'
+          unless env.chanceCheck(getSpellProperty(limit, 'chance', thisSpell.level))
+            return [false, 'NotFortunate']
         when 'card' then return [false, 'NoCard'] unless env.haveCard(limit.id)
         when 'alive' then return [false, 'Dead'] unless @isAlive()
         when 'visible' then return [false, 'visible'] unless @isVisible
@@ -292,7 +295,7 @@ class Wizard
 
   getActiveSpell: () -> -1
 
-  doAction: (thisSpell, actions, level, target, cmd) ->
+  doAction: (thisSpell, actions, target, cmd) ->
     return false unless actions?
     env = cmd?.getEnvironment() # some action can't be triggerred when levelup
     for a in actions
@@ -302,7 +305,13 @@ class Wizard
         variables.heroCount = env.getAliveHeroes().length
         variables.totalMonsterCount = env.getMonsters().length
         variables.visibleMonsterCount = env.getMonsters().filter( (m) -> m.isVisible ).length
-      formularResult = calcFormular(variables, @, target, getProperty(a.formular, level.formular)) if getProperty(a.formular, level.formular)?
+      if getSpellProperty(a, 'formular', thisSpell.level)?
+        formularResult = calcFormular(
+          variables,
+          @,
+          target,
+          getSpellProperty(a, 'formular', thisSpell.level)
+        )
 
       delay = 0
       delay = thisSpell.delay if thisSpell?
@@ -313,8 +322,17 @@ class Wizard
         when 'modifyVar' then env.variable(a.x, formularResult)
         when 'ignoreHurt' then env.variable('ignoreHurt', true)
         when 'replaceTar' then env.variable('tar', @)
-        when 'setTargetMutex' then t.setMutex(getProperty(a.mutex, level.mutex), getProperty(a.count, level.count)) for t in target
-        when 'setMyMutex' then @setMutex(getProperty(a.mutex, level.mutex), getProperty(a.count, level.count))
+        when 'setTargetMutex'
+          for t in target
+            t.setMutex(
+              getSpellProperty(a, 'mutex', thisSpell.level),
+              getSpellProperty(a, 'count', thisSpell.level)
+            )
+        when 'setMyMutex'
+          @setMutex(
+            getSpellProperty(a, 'mutex', thisSpell.level),
+            getSpellProperty(a, 'count', thisSpell.level)
+          )
         when 'resetSpellCD' then t.clearSpellCD(t.getActiveSpell(), cmd) for t in target
         when 'ignoreCardCost' then env.variable('ignoreCardCost', true)
         when 'dropItem' then cmd.routine?({id:'DropItem', list: a.dropList})
@@ -349,7 +367,7 @@ class Wizard
         when 'openBlock' then cmd.routine({id: 'OpenBlock', block: a.block})
         when 'playSound' then cmd.routine({id: 'SoundEffect', sound: a.sound})
         when 'chainBlock' then cmd.routine({id: 'ChainBlock', src: src, tar: a.target}) for src in a.source
-        when 'castSpell' then @castSpell(a.spell, a.level ? 1, cmd)
+        when 'castSpell' then @castSpell(a.spell, cmd)
         when 'newFaction' then env.newFaction(a.name)
         when 'changeFaction' then t.faction = a.faction for t in target
         when 'factionAttack' then env.factionAttack(a.src, a.tar, a.flag)
@@ -366,7 +384,12 @@ class Wizard
             delay = thisSpell.delay if thisSpell?
             if a.delay?
               delay += if typeof a.delay is 'number' then a.delay else a.delay.base + env.rand()*a.delay.range
-            t.installSpell(getProperty(a.spell, level.spell), getProperty(a.level, level.level), cmd, delay)
+            t.installSpell(
+              getSpellProperty(a, 'spell', thisSpell.level),
+              getSpellProperty(a, 'level', thisSpell.level),
+              cmd,
+              delay
+            )
         when 'damage'
           cmd.routine?({id: 'Damage', src: @, tar: t, damageType: a.damageType, isRange: a.isRange, damage: formularResult, delay: delay}) for t in target
         when 'playAction'
@@ -377,8 +400,8 @@ class Wizard
         when 'tutorial' then cmd.routine?({id: 'Tutorial', tutorialId: a.tutorialId})
         when 'playEffect'
           continue unless env?
-          effect = getProperty(a.effect, level.effect)
-          pos = getProperty(a.pos, level.pos)
+          effect = getSpellProperty(a, 'effect', thisSpell.level)
+          pos = getSpellProperty(a, 'pos', thisSpell.level)
           if pos?
             if pos is 'self'
               cmd.routine?({id: 'Effect', delay: delay, effect: effect, pos: @pos})
@@ -402,7 +425,7 @@ class Wizard
           if a.delay? then c.delay = a.delay
           cmd = cmd.next(c)
         when 'setProperty'
-          modifications = getProperty(a.modifications, level.modifications)
+          modifications = getSpellProperty(a, 'modifications', thisSpell.level)
           thisSpell.modifications = {} unless thisSpell.modifications?
           for property, formular of modifications
             val = calcFormular(variables, @, target, formular)
@@ -427,11 +450,11 @@ class Wizard
         when 'createMonster'
           c = {
             id: 'CreateObject',
-            classID: getProperty(a.monsterID, level.monsterID),
-            count: getProperty(a.objectCount, level.objectCount),
-            withKey: getProperty(a.withKey, level.withKey),
-            collectID: getProperty(a.collectID, level.collectID),
-            effect: getProperty(a.effect, level.effect)
+            classID: getSpellProperty(a, 'monsterID', thisSpell.level),
+            count: getSpellProperty(a, 'objectCount', thisSpell.level),
+            withKey: getSpellProperty(a, 'withKey', thisSpell.level),
+            collectID: getSpellProperty(a, 'collectID', thisSpell.level),
+            effect: getSpellProperty(a, 'effect', thisSpell.level)
           }
           c.pos = @pos unless a.randomPos
           c.pos = a.pos if a.pos?
@@ -441,7 +464,7 @@ class Wizard
           a.effect = level.effect if level.effect?
           cmd.routine?({id: 'RangeAttackEffect', dey: a.delay, eff: a.effect, src:@, tar: target})
         when 'showBubble'
-          pos = getProperty(a.pos, level.pos)
+          pos = getSpellProperty(a, 'pos', thisSpell.level)
           if pos?
             if pos is 'self'
               cmd.routine?({id: 'ShowBubble', pos:@pos, eff:a.effect, typ:a.bubbleType, cont:a.content, dey:a.delay, dur:a.duration})

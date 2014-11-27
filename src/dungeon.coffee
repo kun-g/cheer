@@ -849,7 +849,7 @@ class DungeonEnvironment extends Environment
   nextLevel: () -> @dungeon?.nextLevel()
   isDungeonFinished: () -> return @dungeon.currentLevel >= @dungeon.getConfig().levelCount
   createObject: (cfg) -> @dungeon?.level?.createObject(cfg)
-  useItem: (spell, level, cmd) -> @dungeon.getDummyHero().castSpell(spell, level, cmd)
+  useItem: (spell, level, cmd) -> @dungeon.getDummyHero().castSpell(spell, cmd)
   getReviveCount: () -> @dungeon?.revive
   createSpellMsg: (actor, spell, delay) ->
     return [] unless actor? and spell?
@@ -1416,7 +1416,7 @@ dungeonCSConfig = {
   },
   CastSpell: {
     callback: (env) ->
-      env.variable('me').castSpell(env.variable('spell'), null, @)
+      env.variable('me').castSpell(env.variable('spell'), @)
   },
   UseItem: {
     callback: (env) ->
