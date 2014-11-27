@@ -16,6 +16,20 @@ defineObjProperty = (obj, name, value, configurable) ->
 defineHideProperty = (obj, name, value) -> defineObjProperty(obj, name,value, true)
 defineObjFunction = (obj, name, value) -> defineObjProperty(obj, name,value, false)
 
+#i don't know f*ing why, but it just happend: 
+#i revert all the code about versionCtrl . and create a new role.
+#but Bag.container still not a Array and crashed for can't find method map. 
+#serializer.coffee :52 has never been modified since 2014/3 .
+#i give up, i give every shit you need
+#defineObjFunction(Object.prototype, 'map',
+#  (func) ->
+#    throw 'need a function' unless typeof func is 'function'
+#    result ={}
+#    for key, value of @
+#      result[key] = func(value, key)
+#)
+#something wrong with serializer. 
+
 Proxy = require('../addon/proxy/nodeproxy')
 isInVersion = (filter, key) ->
   return true unless filter?
@@ -140,7 +154,7 @@ exports.addVersionControl = (versionConfig) ->
     if versionCfg?
       versionCBMap = {}
       for versionStoreName, keyLst of versionCfg
-        obj[versionStoreName] ?= 0
+        obj[versionStoreName] ?= 1
         cb = makeVersionRecoder(obj,versionStoreName)
         for propName in keyLst
           subVer = null

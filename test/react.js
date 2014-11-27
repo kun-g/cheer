@@ -21,10 +21,10 @@ describe('React', function () {
     };
 
     setupVersionControl =  helper.addVersionControl(version_config);
-    var basicVersion = 0;
-    var itemVersion = 0;
+    var basicVersion = 1;
+    var itemVersion = 1;
     var objVersion = 5;
-    var dummyVersion= 0;
+    var dummyVersion= 1;
     function checkVersion() {
         testObject.should.have.property('basicVersion').equal(basicVersion);
         testObject.should.have.property('itemVersion').equal(itemVersion);
@@ -112,6 +112,14 @@ describe('React', function () {
     it('set null should not crash', function () {
         testObject.xp = null;
     });
+    it('array function should be ok', function () {
+        arr = testObject.item;
+        arr[6] = 3;
+        testObject.item.map(function(e) {
+            console.log(e);
+        });
+    });
+
 //    it('array print', function() {
 //        var arr = testObject.item;
 //        for(var i =0; i< arr.length; i++){
