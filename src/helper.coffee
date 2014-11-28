@@ -16,20 +16,6 @@ defineObjProperty = (obj, name, value, configurable) ->
 defineHideProperty = (obj, name, value) -> defineObjProperty(obj, name,value, true)
 defineObjFunction = (obj, name, value) -> defineObjProperty(obj, name,value, false)
 
-#i don't know f*ing why, but it just happend: 
-#i revert all the code about versionCtrl . and create a new role.
-#but Bag.container still not a Array and crashed for can't find method map. 
-#serializer.coffee :52 has never been modified since 2014/3 .
-#i give up, i give every shit you need
-#defineObjFunction(Object.prototype, 'map',
-#  (func) ->
-#    throw 'need a function' unless typeof func is 'function'
-#    result ={}
-#    for key, value of @
-#      result[key] = func(value, key)
-#)
-#something wrong with serializer. 
-
 Proxy = require('../addon/proxy/nodeproxy')
 isInVersion = (filter, key) ->
   return true unless filter?
@@ -38,29 +24,24 @@ isInVersion = (filter, key) ->
       return true
   return false
 
+canProxy = (obj) ->
+  return obj? and typeof obj is 'object' and not Proxy.isProxy(obj)
 ProxyHandler = ( target,setup, filter) ->
   return {
     #this is used for .. in array
     hasOwn : ( name ) ->
       return ({}).hasOwnProperty.call( target, name )
     ,
-    enumerate : () ->
-      result = []
-      result.push( name ) for name of target
-      return result
-    ,
+    enumerate : () -> v =(name for name of  target) ,
     get : ( receiver, name ) ->
       prop = target[name]
-      if name is "valueOf" or name is "toString"
-        return  () ->
-          return target[name]()
-      else if name is 'inspect'
-        return  () ->
-          return target
-      else if name is 'constructor'
-        return target.constructor
-
-      return prop
+      switch name
+        when 'valueOf' ,'toString' then return  () -> return target[name]()
+        when 'isArray' then return Array.isArray(target)
+        when 'inspect' then return  () -> return target
+        when 'constructor' then return target.constructor
+        when '__originObj' then return target
+        else return prop
     ,
     set : ( receiver, name, val ) ->
       if name is '__updateVersionMap' or name is '__parentCBLst'
@@ -68,7 +49,7 @@ ProxyHandler = ( target,setup, filter) ->
         return true
 
       __map = target.__updateVersionMap
-      if val? and typeof val is 'object' and not Proxy.isProxy(val) and isInVersion(filter)
+      if canProxy(val) and isInVersion(filter)
         val = setup(val,  __map?[name]?.sub)
 
       oldval = target[name]
@@ -87,8 +68,8 @@ ProxyHandler = ( target,setup, filter) ->
       if oldval isnt val #data changed ,
         #if target is an Array and the function which was called isnt pop, will excute here
         updateVersion(oldval, val, name, __map,target)
-      target[ name ] = val
 
+      target[name] =val
       return true
   }
 
@@ -101,6 +82,7 @@ updateVersion = (oldval,val,name,__map,target) ->
 
 makeVersionRecoder = (obj,key) ->
   func =  (pro,act, newv,oldv) ->
+    console.log('version change ', key)
     obj[key] += 1
 #  func.toString =() ->
 #    return '[function for :'+key+']'
@@ -108,6 +90,7 @@ makeVersionRecoder = (obj,key) ->
 
 exports.addVersionControl = (versionConfig) ->
   setupVersionControl =(obj,cfgKey) ->
+    return obj unless canProxy(obj)
     versionCfg = versionConfig[cfgKey]
     obj = obj ||{}
     defineHideProperty(obj, '__parentCBLst',[])
@@ -175,8 +158,7 @@ exports.addVersionControl = (versionConfig) ->
     return createProxy(obj, versionCfg)
 
   createProxy = (obj,  versionCfg) ->
-    return obj unless obj? and typeof obj is 'object'
-    return obj if Proxy.isProxy(obj)
+    return obj unless canProxy(obj)
     return  Proxy.create(ProxyHandler(obj,setupVersionControl, versionCfg), obj.constructor.prototype)
 
 
