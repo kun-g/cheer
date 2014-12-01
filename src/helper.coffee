@@ -24,8 +24,9 @@ isInVersion = (filter, key) ->
       return true
   return false
 
-canProxy = (obj) ->
-  return obj? and typeof obj is 'object' and not Proxy.isProxy(obj)
+isNotNulObj = (obj) -> obj? and typeof obj is 'object'
+
+canProxy = (obj) -> isNotNulObj(obj) and not Proxy.isProxy(obj)
 ProxyHandler = ( target,setup, filter) ->
   return {
     #this is used for .. in array
@@ -144,13 +145,13 @@ exports.addVersionControl = (versionConfig) ->
           if propName.indexOf('@') isnt -1
             [propName,subVer] = propName.split('@')
             cb.sub = subVer
-          if typeof obj[propName] is 'object'
+          if isNotNulObj(obj[propName])
             obj[propName] = setupVersionControl(obj[propName],subVer)
             obj[propName].addParent(obj,propName)
           versionCBMap[propName] = cb
     else
       for propName of obj
-        if typeof obj[propName] is 'object'
+        if isNotNulObj(obj[propName])
           obj[propName] = setupVersionControl(obj[propName])
           obj[propName].addParent(obj,propName)
 
