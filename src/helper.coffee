@@ -34,6 +34,7 @@ ProxyHandler = ( target,setup, filter) ->
       return ({}).hasOwnProperty.call( target, name )
     ,
     enumerate : () -> v =(name for name of  target) ,
+    "delete" : (name) -> return delete target[ name ],
     get : ( receiver, name ) ->
       prop = target[name]
       switch name
