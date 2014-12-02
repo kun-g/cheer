@@ -339,9 +339,9 @@ class Wizard
         when 'dropPrize'
           cmd.routine?({ id:'DropPrize', dropID: a.dropID, me: @, showPrize: a.showPrize, motion: a.motion, ref: @.ref, effect: a.effect, pos:@pos})
         when 'rangeAttack', 'attack'
-          a.effect = level.effect if level.effect?
-          a.delay = level.delay if level.delay?
-          cmd.routine?({id: 'Attack', src: @, tar: t, isRange: true,hurtDelay:a.hurtDelay, eff:a.effect, effDelay:a.effDelay}) for t in target
+          aeffect = getSpellProperty(a, 'effect', thisSpell.level)
+          adelay = getSpellProperty(a, 'delay', thisSpell.level)
+          cmd.routine?({id: 'Attack', src: @, tar: t, isRange: true,hurtDelay:a.hurtDelay, eff:aeffect, effDelay:a.effDelay}) for t in target
         when 'showUp' then cmd.routine?({id: 'ShowUp', tar: t}) for t in target
         when 'costCard' then cmd.routine?({id: 'CostCard', card: a.card})
         when 'showExit' then cmd.routine?({id: 'ShowExit' })
