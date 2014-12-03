@@ -321,6 +321,7 @@ class Wizard
       switch a.type
         when 'modifyVar' then env.variable(a.x, formularResult)
         when 'ignoreHurt' then env.variable('ignoreHurt', true)
+        when 'ignoreAttack' then env.variable('ignoreAttack', true)
         when 'replaceTar' then env.variable('tar', @)
         when 'setTargetMutex'
           for t in target
