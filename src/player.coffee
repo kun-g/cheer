@@ -261,7 +261,7 @@ class Player extends DBWrapper
       dis = diffDate(@loginStreak.date)
       if dis is 0
         @logError('claimLoginReward', {prev: @loginStreak.date, today: currentTime()})
-        return {ret: RET_Unknown}
+        return {ret: RET_RewardAlreadyReceived}
     @loginStreak['date'] = currentTime(true).valueOf()
     @log('claimLoginReward', {loginStreak: @loginStreak.count, date: currentTime()})
 
@@ -688,8 +688,8 @@ class Player extends DBWrapper
           else
             @logError('startDungeon', { reason: 'NoDungeon', err: err, data: @dungeonData, dungeon: @dungeon })
             @releaseDungeon()
-            err = new Error(RET_Unknown)
-            ret = RET_Unknown
+            err = new Error(RET_DungeonNotExist)
+            ret = RET_DungeonNotExist
         handler(err, ret, msg) if handler?
       )
 
@@ -808,9 +808,11 @@ class Player extends DBWrapper
   claimQuest: (qid) ->
     quest = queryTable(TABLE_QUEST, qid, @abIndex)
     ret = []
-    return RET_Unknown unless quest? and @quests[qid]? and not @quests[qid].complete
+    return RET_QuestNotExists unless quest?
+    return RET_QuestNotAccepted unless @quests[qid]?
+    return RET_QuestCompleted if @quests[qid].complete
     @checkQuestStatues(qid)
-    return RET_Unknown unless @isQuestAchieved(qid)
+    return RET_QuestNotCompleted unless @isQuestAchieved(qid)
 
     prize = @claimPrize(quest.prize.filter((e) => isClassMatch(@hero.class, e.classLimit)))
     if not prize or prize.length is 0 then return RET_InventoryFull
@@ -897,7 +899,7 @@ class Player extends DBWrapper
         return { ret: RET_OK, ntf: [ret] }
 
     logError({action: 'useItem', reason: 'unknow', catogory: item.category, subcategory: item.subcategory, id: item.id})
-    return {ret: RET_Unknown}
+    return {ret: RET_UseItemFailed}
 
   doAction: (routine) ->
     cmd = new playerCommandStream(routine, this)
@@ -916,7 +918,7 @@ class Player extends DBWrapper
 
   transformGem: (tarID, count) ->
     cfg = queryTable(TABLE_ITEM, tarID)
-    return { ret: RET_Unknown } unless cfg?
+    return { ret: RET_TargetNotExists } unless cfg?
 
     ret = @claimCost(cfg.synthesizeID, count)
     if not ret? then return { ret: RET_InsufficientIngredient }
@@ -979,7 +981,7 @@ class Player extends DBWrapper
     return { ret: RET_NeedReceipt } unless recipe?
     ret = @claimCost(recipe.forgeID)
     if not ret? then return { ret: RET_InsufficientIngredient }
-    return { ret: RET_Unknown } unless recipe.forgeTarget?
+    return { ret: RET_TargetNotExists } unless recipe.forgeTarget?
     newItem = new Item(recipe.forgeTarget)
     ret = ret.concat(@aquireItem(newItem))
     ret = ret.concat({NTF: Event_InventoryUpdateItem, arg:{syn: @inventoryVersion, god: @gold }})
@@ -997,7 +999,7 @@ class Player extends DBWrapper
 
     enhance = queryTable(TABLE_ENHANCE, equip.enhanceID)
     ret = @claimCost(enhance.costList[level])
-    if not ret? then return { ret: RET_Unknown }
+    if not ret? then return { ret: RET_ClaimCostFailed }
 
     equip.enhancement[0].level = level
 
@@ -1013,10 +1015,10 @@ class Player extends DBWrapper
     return { out: {cid: equip.id, sid: itemSlot, stc: 1, eh: eh, xp: equip.xp}, res: ret }
 
   sellItem: (slot) ->
-    if @isEquiped(slot) then return { ret: RET_Unknown }
+    if @isEquiped(slot) then return { ret: RET_EquipedItemCannotBeSold }
 
     item = @getItemAt(slot)
-    return { ret: RET_Unknown } unless item?
+    return { ret: RET_ItemNotExist } unless item?
     count = item.count
     if item?.transPrize or item?.sellprice
       ret = @removeItem(null, null, slot)
@@ -1029,7 +1031,7 @@ class Player extends DBWrapper
       @log('sellItem', { itemId: item.id, price: item.sellprice, count: count, slot: slot })
       return { ret: RET_OK, ntf: [{ NTF: Event_InventoryUpdateItem, arg: {syn:this.inventoryVersion, 'god': this.gold} }].concat(ret)}
     else
-      return { ret: RET_Unknown }
+      return { ret: RET_ItemSoldFailed }
 
   haveItem: (itemID) ->
     itemConfig = queryTable(TABLE_ITEM, itemID, @abIndex)
@@ -1221,7 +1223,7 @@ class Player extends DBWrapper
 
   hireFriend: (name, handler) ->
     return false unless handler?
-    return handler(RET_Unknown) if this.contactBook.book.indexOf(name) is -1
+    return handler(RET_FriendNotExists) if this.contactBook.book.indexOf(name) is -1
 
     myIndex = @mercenary.reduce((r, e, index) ->
       return index if e.name is name
