@@ -35,7 +35,7 @@ function handler_queryRoleInfo(arg, player, handler, rpcID) {
     if (hero) {
       handler([{REQ : rpcID, RET : RET_OK, arg: getBasicInfo(hero)}]);
     } else {
-      handler([{REQ : rpcID, RET : RET_Unknown}]);
+      handler([{REQ : rpcID, RET : RET_PlayerNotExists}]);
     }
   });
 }
@@ -156,7 +156,7 @@ function handler_doRequireMercenaryList(arg, player, handler, rpcID) {
       handler([{REQ : rpcID, RET : RET_OK},
         {NTF: Event_MercenaryList, arg : lst.map(getBasicInfo)}]);
     } else {
-      handler({REQ : rpcID, RET : RET_Unknown});
+      handler({REQ : rpcID, RET : RET_RequireMercenaryFailed});
     }
   });
   player.saveDB();
@@ -335,7 +335,7 @@ function handler_doHireFriend(arg, player, handler, rpcID) {
       handler([{REQ : rpcID, RET : RET_OK},
         {NTF: Event_MercenaryList, arg : lst.map(getBasicInfo)}]);
     } else {
-      handler({REQ : rpcID, RET : RET_Unknown});
+      handler({REQ : rpcID, RET : RET_HireFriendFailed});
     }
   });
 }

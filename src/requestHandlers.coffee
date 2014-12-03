@@ -441,7 +441,7 @@ exports.route = {
               result = JSON.parse(chunk)
               logInfo({action: 'VerifyPayment', type: 'Apple', code: result, receipt: arg.bill})
               if result.status isnt 0 or result.original_transaction_id
-                return handler([{REQ: rpcID, RET: RET_Unknown}])
+                return handler([{REQ: rpcID, RET: RET_InvalidPaymentInfo}])
 
               receipt = arg.bill
               #receiptInfo = unwrapReceipt(result.transaction_id)
@@ -674,7 +674,7 @@ exports.route = {
               me:{cnt:+killTimes, rnk: +result.position}}
             handler(ret)
           else
-            handler([{REQ: rpcID, RET: RET_Unknown}])
+            handler([{REQ: rpcID, RET: RET_GetLeaderboardInfoFailed}])
       )
     ,
     args: {},

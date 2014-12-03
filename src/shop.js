@@ -15,8 +15,8 @@ Shop.prototype.removeProduct = function (index) {
 };
 
 Shop.prototype.sellProduct = function (index, count, version, player) {
-  if (this.version !== version) return RET_Unknown;
-  if (!player) return RET_Unknown;
+  if (this.version !== version) return RET_ShopVersionNotMatch;
+  if (!player) return RET_PlayerInfoError;
   if (!count || count < 0) count = 1;
   var p = this.stock[index];
 
