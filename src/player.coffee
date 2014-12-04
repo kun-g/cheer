@@ -131,10 +131,10 @@ class Player extends DBWrapper
           continue
         flag = true
         @sellItem(slot)
-    prize = queryTable(TABLE_CONFIG, 'InitialEquipment')
+    prize = queryTable(TABLE_ROLE, @hero.class)?.initialEquipment
     for slot in [0..5] when not @equipment[slot]?
       flag = true
-      @claimPrize(prize[slot].filter((e) => isClassMatch(@hero.class, e.classLimit)))
+      @claimPrize(prize[slot]) if prize?
     return flag
 
   onDisconnect: () ->
@@ -410,41 +410,88 @@ class Player extends DBWrapper
     @purchasedCount[id] = 0 unless @purchasedCount[id]?
     @purchasedCount[id] += count
 
-  createHero: (heroData) ->
+  createPlayer: (arg, account, cb) ->
+#add check for switchhero
+    cb({message:'big brother is watching ya'}) if not (0<= arg.cid <= 2)
+
+    @setName(arg.nam)
+    @accountID = account
+    @initialize()
+    @createHero({
+      name: arg.nam
+      class: arg.cid
+      gender: arg.gen
+      hairStyle: arg.hst
+      hairColor: arg.hcl
+      })
+    prize = queryTable(TABLE_ROLE, arg.cid)?.initialEquipment
+    for  p in prize
+      @claimPrize(p)
+    logUser({
+      name: arg.nam
+      action: 'register'
+      class: arg.cid
+      gender: arg.gen
+      hairStyle: arg.hst
+      hairColor: arg.hcl
+      })
+    @saveDB(cb)
+
+  putOnEquipmentAfterSwitched: (heroClass) ->
+    equipmentList = @inventory
+      .reduce((acc, item, index) ->
+        acc.push(index) if item? and item.category is ITEM_EQUIPMENT and item.classLimit?.indexOf(heroClass) isnt -1
+        return acc
+      ,[])
+    if equipmentList.length is 0
+      prize = queryTable(TABLE_ROLE, heroClass)?.initialEquipment
+      for p in prize
+        ret = @claimPrize(p)
+        ret.itm?.forEach((item) ->
+          @useItem(item.sid)
+        )
+    else
+      @equipment = equipmentList
+
+  createHero: (heroData, isSwitch) ->
     if heroData?
-      return null if @heroBase[heroData.class]?
-      heroData.xp = 0
-      heroData.equipment = []
-      @heroBase[heroData.class] = heroData
-      @switchHero(heroData.class)
+      return null if @heroBase[heroData.class]? and heroData.class is @hero.class
+      if isSwitch
+        heroData.xp = @hero.xp
+        heroData.equipment = []
+        @heroBase[heroData.class] = heroData
+        @switchHero(heroData.class)
+        @putOnEquipmentAfterSwitched(heroData.class)
+      else
+        heroData.xp = 0
+        heroData.equipment = []
+        @heroBase[heroData.class] = heroData
+        @switchHero(heroData.class)
       return @createHero()
     else if @hero
       bag = @inventory
       equip = []
-      equip.push({ cid: bag.get(e).classId, eh: bag.get(e).enhancement }) for i, e of @equipment when bag.get(e)?
-      if @hero.wSpellDB #TODO: remove this
-        @hero = {
-          xp: @hero.xp,
-          name: @name,
-          class: @hero.class,
-          gender: @hero.gender,
-          hairStyle: @hero.hairStyle,
-          hairColor: @hero.hairColor,
-          equipment: equip
-          equipSlot: @equipment
-        }
-        @save()
-      else
-        @hero['equipment'] = equip
+      equip.push({
+        cid: bag.get(e).classId
+        eh: bag.get(e).enhancement }) for i, e of @equipment when bag.get(e)?
+      @hero['equipment'] = equip
 
       hero = new Hero(@hero)
       bf = hero.calculatePower()
       if bf isnt @battleForce
         @battleForce = bf
         @notify('battleForceChanged')
+      @save()
       return hero
     else
       throw 'NoHero'
+
+  switchHeroType: (classId) ->
+    # in this situation, the classid of new roles (aka:vertical change ) are more than 200
+    if  Math.abs(classId - @hero.class) > 100
+      return 'verticalChange'
+    else
+      return 'horizonChange'
 
   switchHero: (hClass) ->
     return false unless @heroBase[hClass]?

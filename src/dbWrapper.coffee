@@ -115,6 +115,8 @@ exports.getMercenaryMember = (name, count, range, delta, names, handler) ->
           ,
           () -> handler(err, heros)
         )
+      else
+        handler('find nothing', null)
   )
 
 exports.removeMercenaryMember = (battleForce, member, handler) -> mercenaryDel(battleForce, member, handler)
