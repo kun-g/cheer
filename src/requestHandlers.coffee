@@ -271,15 +271,7 @@ exports.route = {
         (account, cb) -> dbLib.createNewPlayer(account, gServerName, name, cb),
         (account, cb) ->
           player = new Player()
-          player.setName(name)
-          player.accountID = account
-          player.initialize()
-          player.createHero({ name: name, class: arg.cid, gender: arg.gen, hairStyle: arg.hst, hairColor: arg.hcl })
-          prize = queryTable(TABLE_CONFIG, 'InitialEquipment')
-          for k, p of prize
-            player.claimPrize(p.filter((e) => isClassMatch(arg.cid, e.classLimit)))
-          logUser({ name: name, action: 'register', class: arg.cid, gender: arg.gen, hairStyle: arg.hst, hairColor: arg.hcl })
-          player.saveDB(cb)
+          player.createPlayer(arg, account, cb)
       ], (err, result) ->
         if err
           handle([{REQ: rpcID, RET: +err.message}])
@@ -288,6 +280,28 @@ exports.route = {
       )
     ,
     args: {'pid':'string', 'nam':'string', 'cid':'number', 'gen':'number', 'hst':'number', 'hcl':'number'}
+  },
+  RPC_SwitchHero: {
+    id: 106,
+    func: (arg, player, handler, rpcID, socket) ->
+      type = player.switchHeroType(arg.cid)
+      if player.flags[type]
+        player.flags[type] = false
+        oldHero = player.createHero()
+        player.createHero({
+          name: oldHero.name
+          class: arg.cid
+          gender: oldHero.gender
+          hairStyle: oldHero.hairStyle
+          hairColor: oldHero.hairColor
+          }, true)
+        ret = [{REQ: rpcID, RET: RET_OK}]
+        ret.concat(player.syncFlags(true))
+      else
+        ret = [{REQ: rpcID, RET: RET_NotEnoughItem}]
+      handler(ret)
+    ,
+    args: {'cid':'number'}
   },
   RPC_ValidateName: {
     id: 102,
@@ -441,7 +455,7 @@ exports.route = {
               result = JSON.parse(chunk)
               logInfo({action: 'VerifyPayment', type: 'Apple', code: result, receipt: arg.bill})
               if result.status isnt 0 or result.original_transaction_id
-                return handler([{REQ: rpcID, RET: RET_Unknown}])
+                return handler([{REQ: rpcID, RET: RET_InvalidPaymentInfo}])
 
               receipt = arg.bill
               #receiptInfo = unwrapReceipt(result.transaction_id)
@@ -674,7 +688,7 @@ exports.route = {
               me:{cnt:+killTimes, rnk: +result.position}}
             handler(ret)
           else
-            handler([{REQ: rpcID, RET: RET_Unknown}])
+            handler([{REQ: rpcID, RET: RET_GetLeaderboardInfoFailed}])
       )
     ,
     args: {},
@@ -688,14 +702,7 @@ exports.route = {
           player.flags.cmt.auto = arg.cmt.auto
         else
           if player.flags.cmt?.cmted is false and arg.cmt.cmted is true
-            mailContent = {
-              type: MESSAGE_TYPE_SystemReward,
-              src:  MESSAGE_REWARD_TYPE_SYSTEM,
-              prize: [{ type: 2, count: 100}],
-              tit: "Bonus!",
-              txt: "Thank you for your comment!"
-            }
-            libs.db.deliverMessage(player.name, mailContent)
+            player.quests?['183']?[counters] = [1]
           player.flags['cmt'] = arg.cmt
       else
         player.flags.cmt = {cmted:false, auto: true} unless player.flags.cmt?
