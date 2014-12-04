@@ -298,6 +298,7 @@ class Wizard
   doAction: (thisSpell, actions, target, cmd) ->
     return false unless actions?
     env = cmd?.getEnvironment() # some action can't be triggerred when levelup
+    bakTarget = target
     for a in actions
       variables = {}
       if env?
@@ -317,6 +318,10 @@ class Wizard
       delay = thisSpell.delay if thisSpell?
       if a.delay
         delay += if typeof a.delay is 'number' then a.delay else env.rand() * a.delay.base + env.rand()*a.delay.range
+
+      target = bakTarget
+      if a.target
+        target = @selectTarget({targetSelection: a.target}, cmd)
 
       switch a.type
         when 'modifyVar' then env.variable(a.x, formularResult)
