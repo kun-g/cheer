@@ -702,14 +702,7 @@ exports.route = {
           player.flags.cmt.auto = arg.cmt.auto
         else
           if player.flags.cmt?.cmted is false and arg.cmt.cmted is true
-            mailContent = {
-              type: MESSAGE_TYPE_SystemReward,
-              src:  MESSAGE_REWARD_TYPE_SYSTEM,
-              prize: [{ type: 2, count: 100}],
-              tit: "Bonus!",
-              txt: "Thank you for your comment!"
-            }
-            libs.db.deliverMessage(player.name, mailContent)
+            player.quests?['183']?[counters] = [1]
           player.flags['cmt'] = arg.cmt
       else
         player.flags.cmt = {cmted:false, auto: true} unless player.flags.cmt?
