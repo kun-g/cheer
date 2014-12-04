@@ -285,7 +285,7 @@ exports.route = {
     id: 106,
     func: (arg, player, handler, rpcID, socket) ->
       type = player.switchHeroType(arg.cid)
-      if player.flags[type] or true
+      if player.flags[type]
         player.flags[type] = false
         oldHero = player.createHero()
         player.createHero({
