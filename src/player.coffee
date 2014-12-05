@@ -10,9 +10,11 @@ moment = require('moment')
 {Bag, CardStack} = require('./container')
 {diffDate, currentTime, genUtil} = require ('./helper')
 helperLib = require ('./helper')
-
+underscore = require('./underscore')
 dbLib = require('./db')
 async = require('async')
+
+G_PRIZE_MODIFIER = 1000
 
 class Player extends DBWrapper
   constructor: (data) ->
@@ -411,7 +413,6 @@ class Player extends DBWrapper
     @purchasedCount[id] += count
 
   createPlayer: (arg, account, cb) ->
-#add check for switchhero
     cb({message:'big brother is watching ya'}) if not (0<= arg.cid <= 2)
 
     @setName(arg.nam)
@@ -437,28 +438,18 @@ class Player extends DBWrapper
       })
     @saveDB(cb)
 
-  putOnEquipmentAfterSwitched: (heroClass) ->
-    equipmentList = @inventory
-      .reduce((acc, item, index) ->
-        acc.push(index) if item? and item.category is ITEM_EQUIPMENT and item.classLimit?.indexOf(heroClass) isnt -1
-        return acc
-      ,[])
-    if equipmentList.length is 0
-      prize = queryTable(TABLE_ROLE, heroClass)?.initialEquipment
-      for p in prize
-        ret = @claimPrize(p)
-        ret.itm?.forEach((item) ->
-          @useItem(item.sid)
-        )
-    else
-      @equipment = equipmentList
+  putOnEquipmentAfterSwitched: (heroClass)->
+    return unless underscore.isEmpty(@heroBase[heroClass].equipment)
+    prize = queryTable(TABLE_ROLE, heroClass)?.initialEquipment
+    for p in prize
+      ret = @claimPrize(p)
 
   createHero: (heroData, isSwitch) ->
     if heroData?
       return null if @heroBase[heroData.class]? and heroData.class is @hero.class
       if isSwitch
         heroData.xp = @hero.xp
-        heroData.equipment = []
+        heroData.equipment = @heroBase[heroData.class]?.equipment or {}
         @heroBase[heroData.class] = heroData
         @switchHero(heroData.class)
         @putOnEquipmentAfterSwitched(heroData.class)
@@ -466,6 +457,7 @@ class Player extends DBWrapper
         heroData.xp = 0
         heroData.equipment = []
         @heroBase[heroData.class] = heroData
+
         @switchHero(heroData.class)
       return @createHero()
     else if @hero
@@ -499,10 +491,12 @@ class Player extends DBWrapper
     if @hero?
       @heroBase[@hero.class] = {}
       for k, v of @hero
-        @heroBase[@hero.class][k] = JSON.parse(JSON.stringify(v))
+        @heroBase[@hero.class][k] = JSON.parse(JSON.stringify(v)) if k isnt 'equipment'
+      @heroBase[@hero.class].equipment = JSON.parse(JSON.stringify(@equipment))
 
     for k, v of @heroBase[hClass]
       @hero[k] = JSON.parse(JSON.stringify(v))
+    @equipment = JSON.parse(JSON.stringify(@heroBase[hClass].equipment))
 
   addMoney: (type, point) ->
     return this[type] unless point
@@ -762,9 +756,9 @@ class Player extends DBWrapper
         when PRIZETYPE_ITEM
           ret = @aquireItem(p.value, p.count, allOrFail)
           return [] unless ret and ret.length > 0
-        when PRIZETYPE_GOLD then ret.push({NTF: Event_InventoryUpdateItem, arg: {syn: @inventoryVersion, god: @addGold(p.count)}}) if p.count > 0
-        when PRIZETYPE_DIAMOND then ret.push({NTF: Event_InventoryUpdateItem, arg: {syn: @inventoryVersion, dim: @addDiamond(p.count)}}) if p.count > 0
-        when PRIZETYPE_EXP then ret.push({NTF: Event_RoleUpdate, arg: {syn: @heroVersion, act: {exp: @addHeroExp(p.count)}}}) if p.count > 0
+        when PRIZETYPE_GOLD then ret.push({NTF: Event_InventoryUpdateItem, arg: {syn: @inventoryVersion, god: @addGold(p.count * G_PRIZE_MODIFIER)}}) if p.count > 0
+        when PRIZETYPE_DIAMOND then ret.push({NTF: Event_InventoryUpdateItem, arg: {syn: @inventoryVersion, dim: @addDiamond(p.count * G_PRIZE_MODIFIER)}}) if p.count > 0
+        when PRIZETYPE_EXP then ret.push({NTF: Event_RoleUpdate, arg: {syn: @heroVersion, act: {exp: @addHeroExp(p.count * G_PRIZE_MODIFIER)}}}) if p.count > 0
         when PRIZETYPE_WXP
           continue unless p.count
           equipUpdate = []
@@ -774,7 +768,7 @@ class Player extends DBWrapper
               logError({action: 'claimPrize', reason: 'equipmentNotExist', name: @name, equipSlot: k, index: i})
               delete @equipment[k]
               continue
-            e.xp = e.xp+p.count
+            e.xp = e.xp+p.count*G_PRIZE_MODIFIER
             equipUpdate.push({sid: k, xp: e.xp})
           if equipUpdate.length > 0
             ret.push({NTF: Event_InventoryUpdateItem, arg: {syn: @inventoryVersion, itm: equipUpdate}})
@@ -982,9 +976,14 @@ class Player extends DBWrapper
     ret = @claimCost(recipe.forgeID)
     if not ret? then return { ret: RET_InsufficientIngredient }
     return { ret: RET_TargetNotExists } unless recipe.forgeTarget?
-    newItem = new Item(recipe.forgeTarget)
-    ret = ret.concat(@aquireItem(newItem))
-    ret = ret.concat({NTF: Event_InventoryUpdateItem, arg:{syn: @inventoryVersion, god: @gold }})
+    item = recipe
+    item.id = recipe.forgeTarget
+    newItem = item
+    ret = ret.concat({NTF: Event_InventoryUpdateItem, arg:{
+      itm: [{sid: slot, cid: item.id}],
+      syn: @inventoryVersion,
+      god: @gold
+    }})
     @log('craftItem', { slot: slot, id: recipe.id })
 
     if newItem.rank >= 8 then dbLib.broadcastEvent(BROADCAST_CRAFT, {who: @name, what: newItem.id})
@@ -1591,6 +1590,7 @@ class Player extends DBWrapper
         ret = {sid: bag.queryItemSlot(e), cid: e.id, stc: e.count}
 
         if e.xp? then ret.xp = e.xp
+
         for i, equip of this.equipment when equip is index
           ret.sta = 1
 

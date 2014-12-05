@@ -287,7 +287,7 @@ exports.route = {
       type = player.switchHeroType(arg.cid)
       if player.flags[type]
         player.flags[type] = false
-        oldHero = player.createHero()
+        oldHero = player.hero
         player.createHero({
           name: oldHero.name
           class: arg.cid
@@ -347,11 +347,11 @@ exports.route = {
 
       doVerify = () ->
         if player.dungeon
-          for f in fileList
-            if require('./'+f).fileVersion isnt arg.fileVersion[f]
-              #logError({type:'fileVersion', file: f, version: arg.fileVersion[f], expect: require('./'+f).fileVersion})
-              #result.RET = RET_Issue41
-              status = 'FileVersionConflict'
+          #for f in fileList
+          #  if require('./'+f).fileVersion isnt arg.fileVersion[f]
+          #    #logError({type:'fileVersion', file: f, version: arg.fileVersion[f], expect: require('./'+f).fileVersion})
+          #    #result.RET = RET_Issue41
+          #    status = 'FileVersionConflict'
 
           logInfo(player.dungeonData)
           initialData = player.dungeonData

@@ -1196,7 +1196,6 @@ dungeonCSConfig = {
 
       env.variable('damage', src.attack)
       onEvent('Target', @, src, tar)
-
       env.variable('hit', env.compete('hit', src.accuracy, tar.reactivity))
       onEvent('Hit', @, env.variable('src'), env.variable('tar'))
 
@@ -1213,7 +1212,7 @@ dungeonCSConfig = {
           isRange:env.variable('isRange')
         })
       else
-        @routine({id:'Evade', src:tar})
+        @routine({id:'Evade', src:tar, tar: src})
     ,
     output: (env) ->
       if env.variable('isRange')  and env.variable('eff')?
@@ -1234,7 +1233,10 @@ dungeonCSConfig = {
           flag = HP_RESULT_TYPE_CRITICAL
       else
         flag = HP_RESULT_TYPE_MISS
-      return [{act: env.variable('src').ref, id: ACT_ATTACK, ref: env.variable('tar').ref, res:flag, rng:env.variable('isRange')}].concat(rangeEff)
+      if env.variable('ignoreAttack')
+        return [].concat(rangeEff)
+      else
+        return [{act: env.variable('src').ref, id: ACT_ATTACK, ref: env.variable('tar').ref, res:flag, rng:env.variable('isRange')}].concat(rangeEff)
   },
   ShiftOrder: {
     output: (env) -> [{id:ACT_SHIFTORDER}]
@@ -1506,6 +1508,7 @@ dungeonCSConfig = {
       @next({id: 'Dead', tar: env.variable('tar'), killer:env.variable('src'), damage: env.variable('damage')}) unless env.variable('tar').isAlive()
 
       @getPrevCommand('Attack')?.cmd?.critical = env.variable('critical')
+      @getPrevCommand('Attack')?.cmd?.ignoreAttack = env.variable('ignoreAttack')
     ,
     output: (env) ->
       flag = if env.variable('critical') then HP_RESULT_TYPE_CRITICAL else HP_RESULT_TYPE_HIT
@@ -1575,6 +1578,7 @@ dungeonCSConfig = {
       return ret
   },
   Evade: {
+    callback: (env) -> onEvent('Dodge', @, env.variable('src'), env.variable('tar'))
     output: (env) -> return [{act: env.variable('src').ref, id: ACT_EVADE, dey: 0}] # TODO:delay
   },
   ActivateMechanism: {
