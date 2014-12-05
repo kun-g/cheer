@@ -14,7 +14,7 @@ underscore = require('./underscore')
 dbLib = require('./db')
 async = require('async')
 
-G_PRIZE_MODIFIER = 1000
+G_PRIZE_MODIFIER = 1
 
 class Player extends DBWrapper
   constructor: (data) ->
