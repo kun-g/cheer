@@ -1212,7 +1212,7 @@ dungeonCSConfig = {
           isRange:env.variable('isRange')
         })
       else
-        @routine({id:'Evade', src:tar})
+        @routine({id:'Evade', src:tar, tar: src})
     ,
     output: (env) ->
       if env.variable('isRange')  and env.variable('eff')?
@@ -1578,6 +1578,7 @@ dungeonCSConfig = {
       return ret
   },
   Evade: {
+    callback: (env) -> onEvent('Dodge', @, env.variable('src'), env.variable('tar'))
     output: (env) -> return [{act: env.variable('src').ref, id: ACT_EVADE, dey: 0}] # TODO:delay
   },
   ActivateMechanism: {
