@@ -4,10 +4,6 @@ require('./define')
 class Item extends Serializer
   constructor: (data) ->
     if typeof data is 'number' then data = {id: data}
-#TODO:the 907
-    if data.id is 907
-      console.log("The 907 is comming")
-      showMeTheStack()
     cfg = {
       slot: [],
       count: 1,

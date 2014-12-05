@@ -287,7 +287,7 @@ exports.route = {
       type = player.switchHeroType(arg.cid)
       if player.flags[type]
         player.flags[type] = false
-        oldHero = player.createHero()
+        oldHero = player.hero
         player.createHero({
           name: oldHero.name
           class: arg.cid
