@@ -702,7 +702,7 @@ exports.route = {
           player.flags.cmt.auto = arg.cmt.auto
         else
           if player.flags.cmt?.cmted is false and arg.cmt.cmted is true
-            player.quests?['183']?[counters] = [1]
+            player.quests?['183']?['counters'] = [1]
           player.flags['cmt'] = arg.cmt
       else
         player.flags.cmt = {cmted:false, auto: true} unless player.flags.cmt?
