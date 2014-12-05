@@ -14,6 +14,8 @@ underscore = require('./underscore')
 dbLib = require('./db')
 async = require('async')
 
+G_PRIZE_MODIFIER = 1000
+
 class Player extends DBWrapper
   constructor: (data) ->
     @type = 'player'
@@ -755,9 +757,9 @@ class Player extends DBWrapper
         when PRIZETYPE_ITEM
           ret = @aquireItem(p.value, p.count, allOrFail)
           return [] unless ret and ret.length > 0
-        when PRIZETYPE_GOLD then ret.push({NTF: Event_InventoryUpdateItem, arg: {syn: @inventoryVersion, god: @addGold(p.count)}}) if p.count > 0
-        when PRIZETYPE_DIAMOND then ret.push({NTF: Event_InventoryUpdateItem, arg: {syn: @inventoryVersion, dim: @addDiamond(p.count)}}) if p.count > 0
-        when PRIZETYPE_EXP then ret.push({NTF: Event_RoleUpdate, arg: {syn: @heroVersion, act: {exp: @addHeroExp(p.count)}}}) if p.count > 0
+        when PRIZETYPE_GOLD then ret.push({NTF: Event_InventoryUpdateItem, arg: {syn: @inventoryVersion, god: @addGold(p.count * G_PRIZE_MODIFIER)}}) if p.count > 0
+        when PRIZETYPE_DIAMOND then ret.push({NTF: Event_InventoryUpdateItem, arg: {syn: @inventoryVersion, dim: @addDiamond(p.count * G_PRIZE_MODIFIER)}}) if p.count > 0
+        when PRIZETYPE_EXP then ret.push({NTF: Event_RoleUpdate, arg: {syn: @heroVersion, act: {exp: @addHeroExp(p.count * G_PRIZE_MODIFIER)}}}) if p.count > 0
         when PRIZETYPE_WXP
           continue unless p.count
           equipUpdate = []
@@ -767,7 +769,7 @@ class Player extends DBWrapper
               logError({action: 'claimPrize', reason: 'equipmentNotExist', name: @name, equipSlot: k, index: i})
               delete @equipment[k]
               continue
-            e.xp = e.xp+p.count
+            e.xp = e.xp+p.count*G_PRIZE_MODIFIER
             equipUpdate.push({sid: k, xp: e.xp})
           if equipUpdate.length > 0
             ret.push({NTF: Event_InventoryUpdateItem, arg: {syn: @inventoryVersion, itm: equipUpdate}})
@@ -975,9 +977,14 @@ class Player extends DBWrapper
     ret = @claimCost(recipe.forgeID)
     if not ret? then return { ret: RET_InsufficientIngredient }
     return { ret: RET_TargetNotExists } unless recipe.forgeTarget?
-    newItem = new Item(recipe.forgeTarget)
-    ret = ret.concat(@aquireItem(newItem))
-    ret = ret.concat({NTF: Event_InventoryUpdateItem, arg:{syn: @inventoryVersion, god: @gold }})
+    item = recipe
+    item.id = recipe.forgeTarget
+    newItem = item
+    ret = ret.concat({NTF: Event_InventoryUpdateItem, arg:{
+      itm: [{sid: slot, cid: item.id}],
+      syn: @inventoryVersion,
+      god: @gold
+    }})
     @log('craftItem', { slot: slot, id: recipe.id })
 
     if newItem.rank >= 8 then dbLib.broadcastEvent(BROADCAST_CRAFT, {who: @name, what: newItem.id})
