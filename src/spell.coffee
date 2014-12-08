@@ -298,6 +298,7 @@ class Wizard
   doAction: (thisSpell, actions, target, cmd) ->
     return false unless actions?
     env = cmd?.getEnvironment() # some action can't be triggerred when levelup
+    bakTarget = target
     for a in actions
       variables = {}
       if env?
@@ -318,9 +319,14 @@ class Wizard
       if a.delay
         delay += if typeof a.delay is 'number' then a.delay else env.rand() * a.delay.base + env.rand()*a.delay.range
 
+      target = bakTarget
+      if a.target
+        target = @selectTarget({targetSelection: a.target}, cmd)
+
       switch a.type
         when 'modifyVar' then env.variable(a.x, formularResult)
         when 'ignoreHurt' then env.variable('ignoreHurt', true)
+        when 'ignoreAttack' then env.variable('ignoreAttack', true)
         when 'replaceTar' then env.variable('tar', @)
         when 'setTargetMutex'
           for t in target
@@ -339,9 +345,9 @@ class Wizard
         when 'dropPrize'
           cmd.routine?({ id:'DropPrize', dropID: a.dropID, me: @, showPrize: a.showPrize, motion: a.motion, ref: @.ref, effect: a.effect, pos:@pos})
         when 'rangeAttack', 'attack'
-          a.effect = level.effect if level.effect?
-          a.delay = level.delay if level.delay?
-          cmd.routine?({id: 'Attack', src: @, tar: t, isRange: true,hurtDelay:a.hurtDelay, eff:a.effect, effDelay:a.effDelay}) for t in target
+          aeffect = getSpellProperty(a, 'effect', thisSpell.level)
+          adelay = getSpellProperty(a, 'delay', thisSpell.level)
+          cmd.routine?({id: 'Attack', src: @, tar: t, isRange: true,hurtDelay:a.hurtDelay, eff:aeffect, effDelay:a.effDelay}) for t in target
         when 'showUp' then cmd.routine?({id: 'ShowUp', tar: t}) for t in target
         when 'costCard' then cmd.routine?({id: 'CostCard', card: a.card})
         when 'showExit' then cmd.routine?({id: 'ShowExit' })
