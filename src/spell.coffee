@@ -155,6 +155,10 @@ class Wizard
       thisSpell.cd = 0
       cmd.routine?({id: 'SpellCD', cdInfo: thisSpell.cd}) if @isHero()
 
+  getSpellCD:() ->
+    for spellID, thisSpell of @wSpellDB
+      return thisSpell.cd if thisSpell.cd?
+
   updateCDOfSpell: (spellID, isReset, cmd) ->
     cfg = getSpellConfig(spellID)
     thisSpell = @wSpellDB[spellID]
