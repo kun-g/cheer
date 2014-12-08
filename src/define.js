@@ -425,8 +425,10 @@ wrapCallback = function() {
 
       if (err.stack) errMsg.stack = err.stack;
 
-      var caller = arguments.callee.caller;
-      if (caller && caller.name) errMsg.caller = caller.name;
+      // in strict mode , arguments.callee is no longer supported
+      // 
+      //var caller = arguments.callee.caller;
+      //if (caller && caller.name) errMsg.caller = caller.name;
 
       logError(errMsg);
 

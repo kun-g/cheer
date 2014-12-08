@@ -137,12 +137,12 @@ function handler_doUseItem(arg, player, handler, rpcID) {
       break;
   }
 
-  evt = {REQ : rpcID, RET : RET_OK};
+  var evt = {REQ : rpcID, RET : RET_OK};
   if (ret.ret) evt.RET = ret.ret;
   if (ret.res) evt.RES = ret.res;
   if (ret.prize) evt.prz = ret.prize;
   if (ret.out) evt.out = ret.out;
-  res = [evt];
+  var res = [evt];
   if (ret.ntf) res = res.concat(ret.ntf);
   handler(res);
   player.saveDB();
@@ -167,7 +167,7 @@ addHandler(RPC_RequireMercenaryList,  handler_doRequireMercenaryList,
 
 function handler_doClaimLoginStreakReward(arg, player, handler, rpcID) {
   var ret = player.claimLoginReward();
-  res = [{REQ: rpcID, RET: ret.ret}];
+  var res = [{REQ: rpcID, RET: ret.ret}];
   if (ret.res) res = res.concat(ret.res);
   if (ret.ret === RET_OK) player.saveDB();
   handler(res);

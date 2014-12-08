@@ -28,7 +28,7 @@ plusThemAll = (config, env) ->
 calcFormular = (e, s, t, config, level) ->
   if config.func
     c = if config.c then config.c else {}
-    return config.func.apply(null,[e, s, t, c])
+    return Math.ceil(config.func.apply(null,[e, s, t, c]))
 
   c = if config.c then config.c else 0
   return Math.ceil(

@@ -259,6 +259,7 @@ class Dungeon
         @xpRate *= 1.1
 
     if @PVP_Pool
+      cfg = JSON.parse(JSON.stringify(cfg))
       cfg.pool.PVP ={}
       cfg.pool.PVP.objects = @PVP_Pool.map((e) ->
         e.weight = 10

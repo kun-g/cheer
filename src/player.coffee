@@ -1815,14 +1815,16 @@ playerCSConfig = {
 }
 
 getVip = (rmb) ->
-  tbl = queryTable(TABLE_VIP, "VIP", @abIndex)
+  tbl = queryTable(TABLE_VIP, "VIP")
   return {level: 0, cfg: {}} unless tbl?
   level = -1
   for i, lv of tbl.requirement when lv.rmb <= rmb
     level = i
-  levelCfg = tbl.levels[level]
+
+  levelCfg = JSON.parse(JSON.stringify(tbl.levels[level]))
   levelCfg.privilege = tbl.requirement[level].privilege
-  return {level: level, cfg: tbl.levels[level]}
+  
+  return {level: level, cfg: levelCfg}
 
 registerConstructor(Player)
 exports.Player = Player
