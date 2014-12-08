@@ -1,3 +1,4 @@
+"use strict"
 require('./globals')
 dbLib = require './db'
 moment = require 'moment'

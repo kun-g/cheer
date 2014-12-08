@@ -1,3 +1,4 @@
+"use strict";
 moment = require('./moment');
 var libTime = require('./timeUtils.js');
 

@@ -1,3 +1,4 @@
+"use strict"
 {conditionCheck} = require('./trigger')
 moment = require('moment')
 

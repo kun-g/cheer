@@ -1,3 +1,4 @@
+"use strict";
 var dbLib = require('./db');
 require('./shop');
 
@@ -96,14 +97,14 @@ addHandler(Request_DungeonCard, handler_doCardSpell, ['slt', 'number'], 'do Card
   * sid 位置
   * opn 操作
  */
-USE_ITEM_OPT_EQUIP = 1;
-USE_ITEM_OPT_ENHANCE = 2;
-USE_ITEM_OPT_LEVELUP = 3;
-USE_ITEM_OPT_CRAFT = 4;
-USE_ITEM_OPT_DECOMPOSE = 5;
-USE_ITEM_OPT_INJECTWXP = 6;
-USE_ITEM_OPT_RECYCLE = 7; // 分解装备
-USE_ITEM_OPT_SELL = 8; // 出售
+var USE_ITEM_OPT_EQUIP = 1;
+var USE_ITEM_OPT_ENHANCE = 2;
+var USE_ITEM_OPT_LEVELUP = 3;
+var USE_ITEM_OPT_CRAFT = 4;
+var USE_ITEM_OPT_DECOMPOSE = 5;
+var USE_ITEM_OPT_INJECTWXP = 6;
+var USE_ITEM_OPT_RECYCLE = 7; // 分解装备
+var USE_ITEM_OPT_SELL = 8; // 出售
 function handler_doUseItem(arg, player, handler, rpcID) {
   var slot = Math.floor(arg.sid);
   var opn = Math.floor(arg.opn);

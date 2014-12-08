@@ -1,3 +1,4 @@
+"use strict"
 require('./define')
 net = require('net')
 parseLib = require('./requestStream')

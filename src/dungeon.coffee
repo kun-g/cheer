@@ -1,3 +1,4 @@
+"use strict"
 require('./define')
 require('./shared')
 {Wizard} = require './spell'
@@ -989,6 +990,8 @@ dungeonCSConfig = {
       env.onEvent('onEnterLevel', @)
       if env.isLevelInitialized()
         @routine({id: 'OpenBlock', block: e}) for e in [0..DG_BLOCKCOUNT-1] when env.getBlock(e).explored
+        @routine({id: 'SpellCD', cdInfo:h.getSpellCD()}) for h in env.getObjects() when h.isHero()
+        
       else
         env.levelInitialized()
         if Array.isArray(entrance)
@@ -1011,11 +1014,9 @@ dungeonCSConfig = {
         env.moveHeroes(newPosition)
 
         o.onEvent('onEnterLevel', @) for o in env.getObjects()
+        @routine({id: 'TickSpell'})
 
 
-
-
-      @routine({id: 'TickSpell'})
       heroInfo = env.getAliveHeroes()
                   .filter((e) -> e?.ref? )
                   .sort((a, b) -> return a.order-b.order)
