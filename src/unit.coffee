@@ -1,3 +1,4 @@
+"use strict"
 require('./define')
 {Wizard} = require('./spell')
 

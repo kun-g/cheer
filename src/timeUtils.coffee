@@ -1,3 +1,4 @@
+"use strict"
 moment = require('./moment')
 _s = require("./underscore.string.js")
 _ = require("./underscore.js")

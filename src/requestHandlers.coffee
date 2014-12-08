@@ -1,3 +1,4 @@
+"use strict"
 require('./define')
 dbLib = require('./db')
 helperLib = require('./helper')

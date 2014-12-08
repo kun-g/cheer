@@ -1,3 +1,4 @@
+"use strict"
 require('./define')
 require('./shop')
 moment = require('moment')
@@ -32,7 +33,6 @@ class Player extends DBWrapper
       timestamp: {},
       counters: {},
       flags: {},
-      globalPrizeFlag: {},
 
       inventory: Bag(InitialBagSize),
       gold: 0,

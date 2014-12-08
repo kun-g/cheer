@@ -1,3 +1,4 @@
+"use strict"
 
 generateMonitor = (obj) ->
   return (key, val) -> obj.s_attr_dirtyFlag[key] = true

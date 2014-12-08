@@ -1,3 +1,4 @@
+"use strict";
 var dbLib = require('./db');
 var define = require("./define");
 var async = require('async');
@@ -18,8 +19,8 @@ function route(handler, request, socket, callBack) {
   if (request != null) dispatchCommand(handler, request, socket, handleReturnVal);
 }
 
-backupTable = require('./requestHandlers.js').route;
-reverseTable = { };
+var backupTable = require('./requestHandlers.js').route;
+var reverseTable = { };
 for (var k in backupTable) {
   reverseTable[backupTable[k].id] = k;
 }

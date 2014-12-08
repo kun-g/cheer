@@ -1,4 +1,4 @@
-
+"use strict"
 
 filterObject = (me, objects, filters, env) ->
   filters = [filters] unless Array.isArray(filters)
