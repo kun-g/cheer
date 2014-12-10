@@ -5,14 +5,14 @@ require('./globals');
 
 players = ['jvf','oakk'];
 
-//serverName = 'Develop';
-serverName = 'Master';
+serverName = 'Develop';
+//serverName = 'Master';
 
 var config = {
   Develop: {
     ip: '10.4.3.41',
-    port: 6379,
-    port2: 6379
+    port: 6380,
+    port2: 6380
   },
   Master: {
     ip: '10.4.4.188',
@@ -228,10 +228,10 @@ function loadReceipt () {
 }
 
 initGlobalConfig(null, function () {
-  var e = '0000623707011406112252ND91';
-  var x = unwrapReceipt(e);
-  var time = moment(x.time*1000);
-  dbLib.updateReceipt(e, 'CLAIMED', x.id, x.productID, x.serverID, x.tunnel, /*time,*/ console.log);
+  //var e = '0000623707011406112252ND91';
+  //var x = unwrapReceipt(e);
+  //var time = moment(x.time*1000);
+  //dbLib.updateReceipt(e, 'CLAIMED', x.id, x.productID, x.serverID, x.tunnel, /*time,*/ console.log);
   //loadReceipt ();
 });
 
@@ -241,3 +241,86 @@ initGlobalConfig(null, function () {
 //  console.log('Done');
 //  dbLib.releaseDB();
 //});
+
+var fs = require('fs');
+function removeUpdateItem(name, filename){
+        
+
+    async.waterfall([
+        function (cb) { dbClient.hget(name, 'inventory', cb); },
+        function (data, cb) {  
+			fs.appendFileSync(filename, '<old>'+name+'=>'+data+'\n');
+			cb(null, genId2StrMap(data)); },
+        function (data, cb) {
+            getRemoveIdList(data, cb);
+		},
+		function (list, data, cb){
+            save(list, data);
+			cb(null, 'done'+name);
+        } ],function(err,result) {
+            console.log(err,result);
+        });
+    function getItemCfg(id){
+        return queryTable(TABLE_ITEM, id);
+    }
+    function genId2StrMap(dataStr){
+        return JSON.parse(dataStr);
+    }
+    function  getRemoveIdList(data, cb){
+		if(data == null){
+			cb('no need for'+name);
+			return;
+		}
+        var equip = data.save.container.reduce(function(acc, item) {
+			if (item != null){
+            var cfg = getItemCfg(item.save.id);
+				if(cfg.category == 1 && typeof(cfg.forgeTarget) == 'number' ){
+                if (!Array.isArray(acc.equipSolt[cfg.subcategory])){
+                    acc.equipSolt[cfg.subcategory] = [];
+                    acc.check[cfg.subcategory] = {};
+                }
+                acc.equipSolt[cfg.subcategory].push(item.save.id);
+                acc.check[cfg.subcategory][item.save.id] = cfg.forgeTarget
+            }
+			}
+            return acc;
+        },{equipSolt:{}, check:{}});
+        var ret = [];
+        //check item and get remove itemid
+        for (var slot in equip.equipSolt){
+            var  itemIDs = equip.equipSolt[slot];
+            var check = equip.check[slot];
+            itemIDs.sort(function(a,b){return a-b;});
+            for(var i=0; i< itemIDs.length -1; i++){//last no need check
+                if (typeof(check[itemIDs[i]]) != 'number'){
+                    cb('item['+itemIDs[i] +'] nextGen is empty');
+                }
+            }
+            if (itemIDs.length > 1){
+                var rm = itemIDs.splice(0,itemIDs.length -1);
+                ret = ret.concat(rm);
+            }
+        }
+		cb(null, ret, data);
+    }
+    function save(rmLst, data,cb){
+        var newData = data.save.container.filter(function(item) {
+			if (item == null){
+				return true;
+			}
+			return rmLst.indexOf(item.save.id) == -1;
+		});
+        data.save.container = newData;
+        var str = JSON.stringify(data);
+		fs.appendFileSync(filename, '<new>'+name+'=>'+str+'\n');
+        dbClient.hset(name, 'inventory', str, cb);
+    }
+}
+function runFixItem(){
+	dbClient.keys(dbPrefix+"player.*", function (err, list) {
+		list.forEach(function(name) {
+			removeUpdateItem(name, 'dbbackup.txt');
+		});
+	});
+}
+runFixItem();
