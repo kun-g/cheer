@@ -996,7 +996,7 @@ class Player extends DBWrapper
     equip.enhancement[0] = { id: equip.enhanceID, level: -1 } unless equip.enhancement[0]?
     level = equip.enhancement[0].level + 1
     return { ret: RET_EquipCantUpgrade } unless level < 40 and equip.enhanceID?
-
+    return { ret: RET_EquipCantUpgrade } unless equip.quality? and level < 8*(equip.quality+1)
     enhance = queryTable(TABLE_ENHANCE, equip.enhanceID)
     ret = @claimCost(enhance.costList[level])
     if not ret? then return { ret: RET_ClaimCostFailed }
