@@ -5,8 +5,8 @@ require('./globals');
 
 players = ['jvf','oakk'];
 
-serverName = 'Develop';
-//serverName = 'Master';
+//serverName = 'Develop';
+serverName = 'Master';
 
 var config = {
   Develop: {
@@ -250,14 +250,11 @@ function removeUpdateItem(name, filename){
         function (cb) { dbClient.hget(name, 'inventory', cb); },
         function (data, cb) {  
 			fs.appendFileSync(filename, '<old>'+name+'=>'+data+'\n');
-			cb(null, genId2StrMap(data)); },
-        function (data, cb) {
-            getRemoveIdList(data, cb);
+			cb(null, genId2StrMap(data)); 
 		},
-		function (list, data, cb){
-            save(list, data);
-			cb(null, 'done'+name);
-        } ],function(err,result) {
+		getRemoveIdList,
+		save,
+		fixEquipment ],function(err,result) {
             console.log(err,result);
         });
     function getItemCfg(id){
@@ -313,8 +310,24 @@ function removeUpdateItem(name, filename){
         data.save.container = newData;
         var str = JSON.stringify(data);
 		fs.appendFileSync(filename, '<new>'+name+'=>'+str+'\n');
-        dbClient.hset(name, 'inventory', str, cb);
+        dbClient.hset(name, 'inventory', str, function(err,ret) {
+			cb(err, data.save.container);
+		});
+		
     }
+	function fixEquipment(data, cb){
+		var ret = data.reduce(function(acc, item, idx) {
+			if(item == null) return acc;
+			var cfg = getItemCfg(item.save.id);
+			if(cfg.category == 1 && cfg.subcategory >=0 && cfg.subcategory <=5 ){
+				acc[cfg.subcategory] = idx;
+			}
+			return acc;
+		}, {});
+		dbClient.hset(name, 'equipment', JSON.stringify(ret), function(err,ret) {
+			cb(err, 'done '+ name)
+		});
+	}
 }
 function runFixItem(){
 	dbClient.keys(dbPrefix+"player.*", function (err, list) {
@@ -323,4 +336,15 @@ function runFixItem(){
 		});
 	});
 }
+
+//removeUpdateItem('Master.player.黄家驹', 'test.txt');
 runFixItem();
+
+//data = require('./a').data;
+//
+//data.forEach(function(d) {
+////	console.log(d.name, d.value);
+//	dbClient.hset(d.name, 'inventory', d.value,function(err, ret){
+//		console.log(err, ret);
+//	});
+//});
