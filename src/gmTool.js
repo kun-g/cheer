@@ -3,7 +3,7 @@ var dbLib = require('./db');
 var async = require('async');
 require('./globals');
 
-players = ['jvf','oakk'];
+players = ['大岛优子'];
 
 //serverName = 'Develop';
 serverName = 'Master';
@@ -38,6 +38,8 @@ var rewardMessage = {
     //{type: PRIZETYPE_WXP, count: 10000},
     //{type: PRIZETYPE_GOLD, count: 100000},
     //{type: PRIZETYPE_DIAMOND, count: 150}
+    {type: PRIZETYPE_ITEM, value: 551, count: 1},
+    {type: PRIZETYPE_ITEM, value: 552, count: 1},
   ]
 };
 
@@ -271,7 +273,7 @@ function removeUpdateItem(name, filename){
         var equip = data.save.container.reduce(function(acc, item) {
 			if (item != null){
             var cfg = getItemCfg(item.save.id);
-				if(cfg.category == 1 && typeof(cfg.forgeTarget) == 'number' ){
+				if(cfg.category == 1 && cfg.subcategory >=0 && cfg.subcategory <=5 ){
                 if (!Array.isArray(acc.equipSolt[cfg.subcategory])){
                     acc.equipSolt[cfg.subcategory] = [];
                     acc.check[cfg.subcategory] = {};
@@ -320,7 +322,7 @@ function removeUpdateItem(name, filename){
 			if(item == null) return acc;
 			var cfg = getItemCfg(item.save.id);
 			if(cfg.category == 1 && cfg.subcategory >=0 && cfg.subcategory <=5 ){
-				acc[cfg.subcategory] = idx;
+				acc[cfg.subcategory] = item.save.slot[0];
 			}
 			return acc;
 		}, {});
@@ -332,13 +334,15 @@ function removeUpdateItem(name, filename){
 function runFixItem(){
 	dbClient.keys(dbPrefix+"player.*", function (err, list) {
 		list.forEach(function(name) {
-			removeUpdateItem(name, 'dbbackup.txt');
+			removeUpdateItem(name, 'dbbackup3.txt');
 		});
 	});
 }
 
+//removeUpdateItem('Master.player.名字很重要', 'test.txt');
+//removeUpdateItem('Master.player.大功率排骨', 'test.txt');
 //removeUpdateItem('Master.player.黄家驹', 'test.txt');
-runFixItem();
+//runFixItem();
 
 //data = require('./a').data;
 //
@@ -346,5 +350,6 @@ runFixItem();
 ////	console.log(d.name, d.value);
 //	dbClient.hset(d.name, 'inventory', d.value,function(err, ret){
 //		console.log(err, ret);
+//      removeUpdateItem(name, 'test.txt');
 //	});
 //});
