@@ -761,6 +761,7 @@ class Player extends DBWrapper
           ret = @aquireItem(p.value, p.count, allOrFail)
           if not (ret? and ret.length >0)
             return [] if allOrFail
+
         when PRIZETYPE_GOLD then ret.push({NTF: Event_InventoryUpdateItem, arg: {syn: @inventoryVersion, god: @addGold(p.count)}}) if p.count > 0
         when PRIZETYPE_DIAMOND then ret.push({NTF: Event_InventoryUpdateItem, arg: {syn: @inventoryVersion, dim: @addDiamond(p.count)}}) if p.count > 0
         when PRIZETYPE_EXP then ret.push({NTF: Event_RoleUpdate, arg: {syn: @heroVersion, act: {exp: @addHeroExp(p.count)}}}) if p.count > 0
@@ -773,7 +774,7 @@ class Player extends DBWrapper
               logError({action: 'claimPrize', reason: 'equipmentNotExist', name: @name, equipSlot: k, index: i})
               delete @equipment[k]
               continue
-            e.xp = e.xp+p.count*G_PRIZE_MODIFIER
+            e.xp = e.xp+p.count
             equipUpdate.push({sid: k, xp: e.xp})
           if equipUpdate.length > 0
             ret.push({NTF: Event_InventoryUpdateItem, arg: {syn: @inventoryVersion, itm: equipUpdate}})
@@ -969,10 +970,15 @@ class Player extends DBWrapper
     ret = @craftItem(slot)
     newItem = ret.newItem
     if newItem
-      ret.newItem.enhancement = enhance
-      ret.newItem.xp = item.xp
+      newItem.enhancement = enhance
+      newItem.xp = item.xp
+      newItem.slot = item.slot
       eh = newItem.enhancement.map((e) -> {id:e.id, lv:e.level})
-      ret.res.push({NTF: Event_InventoryUpdateItem, arg: {syn:this.inventoryVersion, itm:[{sid: @queryItemSlot(newItem), eh:eh, xp: newItem.xp}]}})
+      @inventory.container[slot] = newItem
+      ret.res.push({NTF: Event_InventoryUpdateItem, arg: {
+        syn:this.inventoryVersion,
+        itm:[{sid: @queryItemSlot(newItem), cid: newItem.id, eh:eh, xp: newItem.xp}]
+      }})
     return ret
 
   craftItem: (slot) ->
@@ -981,11 +987,8 @@ class Player extends DBWrapper
     ret = @claimCost(recipe.forgeID)
     if not ret? then return { ret: RET_InsufficientIngredient }
     return { ret: RET_TargetNotExists } unless recipe.forgeTarget?
-    item = recipe
-    item.id = recipe.forgeTarget
-    newItem = item
+    newItem = new Item(recipe.forgeTarget)
     ret = ret.concat({NTF: Event_InventoryUpdateItem, arg:{
-      itm: [{sid: slot, cid: item.id}],
       syn: @inventoryVersion,
       god: @gold
     }})
@@ -1000,7 +1003,7 @@ class Player extends DBWrapper
     equip.enhancement[0] = { id: equip.enhanceID, level: -1 } unless equip.enhancement[0]?
     level = equip.enhancement[0].level + 1
     return { ret: RET_EquipCantUpgrade } unless level < 40 and equip.enhanceID?
-
+    return { ret: RET_EquipCantUpgrade } unless equip.quality? and level < 8*(equip.quality+1)
     enhance = queryTable(TABLE_ENHANCE, equip.enhanceID)
     ret = @claimCost(enhance.costList[level])
     if not ret? then return { ret: RET_ClaimCostFailed }
@@ -1059,7 +1062,7 @@ class Player extends DBWrapper
       return r
     ), [])
 
-    percentage = 1
+    percentage = 1 * G_PRIZE_MODIFIER
     if result is DUNGEON_RESULT_WIN
       if dungeon.isSweep?
         dropInfo = dropInfo.concat(cfg.dropID) if cfg.dropID
