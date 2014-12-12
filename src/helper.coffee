@@ -814,6 +814,22 @@ exports.dbScripts = {
     return championRank;
   """
 
+  diffPKRank: """
+    local board, player, rival = ARGV[1], ARGV[2], ARGV[3]; 
+    local key = 'Leaderboard.'..board; 
+    local playerRank = redis.call('ZRANK', key, player); 
+    local rivalRank = redis.call('ZRANK', key, rival); 
+    local result = {};
+    if playerRank > rivalRank then 
+      table.insert(result, playerRank - rivalRank);
+    else
+      table.insert(result, 0);
+    end 
+    table.insert(result, playerRank);
+    return result;
+  """
+
+
   updateReceipt: """
     local receipt, state, time = ARGV[1], ARGV[2], ARGV[3]; 
     local key = 'Receipt.'..receipt; 

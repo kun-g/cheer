@@ -663,8 +663,12 @@ class Player extends DBWrapper
         if stageConfig.pvp? and pkr?
           getPlayerHero(pkr, wrapCallback(this, (err, heroData) ->
             @dungeonData.PVP_Pool = if heroData? then [getBasicInfo(heroData)]
-            cb('OK')
-          ))
+            dbLib.diffPKRank(@name, pkr,wrapCallback(this, (err, result) ->
+              result = [0,0]  unless Array.isArray(result)
+              @dungeonData.PVP_Score_diff = result[0]
+              @dungeonData.PVP_Score_origin = result[1]
+              cb('OK')
+            ))))
         else
           cb('OK')
       ], (err) =>
@@ -1086,6 +1090,10 @@ class Player extends DBWrapper
         else
           prize.push(iPrize)
   
+    if dungeon.PVP_Pool? and dungeon.result is DUNGEON_RESULT_WIN
+      @updatePkInof(dungeon)
+      prize = prize.concat(@getPKReward(dungeon))
+
     return helperLib.splicePrize(prize)
 
   updateQuest: (quests) ->
@@ -1144,7 +1152,6 @@ class Player extends DBWrapper
     prize = otherPrize.filter( (e) -> return not ( e.count? and e.count is 0 ) )
     if prize.length > 0 then rewardMessage.arg.prize = prize.filter((f) -> f.type isnt  PRIZETYPE_FUNCTION)
     ret = ret.concat(this.claimPrize(prize, false))
-    @updatePkInof(dungeon)
 
     if isSweep
     else
@@ -1152,13 +1159,14 @@ class Player extends DBWrapper
       @releaseDungeon()
     return ret
 
+  getPKReward: (dungeon) ->
+    return getPKRewardByDiff(dungeon.PVP_Score_diff, dungeon.PVP_Score_origin)
+
   updatePkInof: (dungeon) ->
-    if dungeon.PVP_Pool?
-      myName = @name
-      rivalName = dungeon.PVP_Pool[0].nam
-      if dungeon.result is DUNGEON_RESULT_WIN
-        dbLib.saveSocre(myName, rivalName, (err, result) ->
-        )
+    myName = @name
+    rivalName = dungeon.PVP_Pool[0].nam
+    dbLib.saveSocre(myName, rivalName, (err, result) ->
+    )
   whisper: (name, message, callback) ->
     myName = this.name
     dbLib.deliverMessage(
