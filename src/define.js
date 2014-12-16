@@ -551,6 +551,21 @@ updateQuestStatus = function (questStatus, player, abindex) {
   return ret;
 };
 
+function swap(array, indexA, indexB) {
+    indexA = Math.floor(indexA);
+    indexB = Math.floor(indexB);
+    var tmp = array[indexA];
+    array[indexA] = array[indexB];
+    array[indexB] = tmp;
+}
+
+newShuffle = function (array, randFunc) {
+    for (var i = 0; i < array.length; i++) {
+        swap(array, i, randFunc()*(array.length-i)+i);
+    }
+    return array;
+};
+
 shuffle = function (array, mask) {
   var indexes = [];
   for (var i = 0; i < array.length; i++) indexes.push(i);

@@ -7,7 +7,6 @@ net = require('net')
 startSocketIOServer = (servers, port) ->
 	io = require('socket.io')
 	io.listen(port).on('connection', (socket) ->
-		console.log('Connection')
 		socket.encoder = new SimpleProtocolEncoder()
 		socket.decoder = new SimpleProtocolDecoder()
 		socket.encoder.setFlag('size')
@@ -19,7 +18,6 @@ startSocketIOServer = (servers, port) ->
 			socket.emit('response', request)
 		)
 		socket.on('request', (request) ->
-			console.log('reqeust', request)
 			socket.encoder.writeObject(request)
 		)
 	).set('log level', 0)
@@ -38,10 +36,7 @@ startTcpServer = (port, backendManager) ->
 		c.decoder.on('request', (request) ->
 			if request
 				if request.CMD is 101
-					console.log({
-						request: request,
-						ip: c.remoteAddress
-					})
+					console.log({ request: request, ip: c.remoteAddress })
 				c.encoder.writeObject(request)
 			else
 				c.destroy()
@@ -60,12 +55,10 @@ backendManager = {
 				s = net.connect(e.port, e.ip)
 				s.on('connect', () ->
 					e.alive = true
-					console.log('Connection On', e)
 				)
 				s.on('error', (err) -> e.alive = false)
 				s.on('end', (err) ->
 					e.alive = false
-					console.log('Connection Lost', e)
 				)
 				s = null
 		)
