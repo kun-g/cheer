@@ -308,6 +308,10 @@ class Dungeon
     dummyHero.health =0
     this.heroes.push(dummyHero)
     this.heroes.forEach( (e) -> e.faction = 'hero' )
+    thiz = @
+    @cardStack.map((card) ->
+      if card?.func?
+        thiz.getDummyHero().installSpell(card.func,1))
 
   getDummyHero: () -> @heroes[@heroes.length-1]
 
