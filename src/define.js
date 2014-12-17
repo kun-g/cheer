@@ -133,7 +133,10 @@ createMirrorHero = function (data) {
 };
 
 getBasicInfo = function (hero) {
-  if (!hero) throw 'Invalid Hero Data';
+  if (!hero) {
+      showMeTheStack();
+      throw 'Invalid Hero Data';
+  }
   var translateTable = {
     name : 'nam',
     gender : 'gen',
@@ -308,6 +311,7 @@ function initCampaignTable(data) {
     data['FirstCharge']['objective'] = firstChangeObj;
     return data;
 }
+
 arenaPirze = function (rank) {
   cfg = queryTable(TABLE_ARENA);
   for (var k in cfg) {
@@ -318,6 +322,36 @@ arenaPirze = function (rank) {
   }
   return []
 }
+
+getPKRewardByDiff = function(diff, stop) {
+	// top5.prize = 150
+	// top15.prize = 50
+	//6->5 =>50 
+	//6->4 =>200
+	var data = queryTable(TABLE_PKREWARD);
+	var begin = stop - diff;
+	var result = data.reduce(function(acc, cfg, idx){
+		//6->5 [{idx:0,count:1}]
+		//6->4 [{idx:0,count:1}, {idx:1,count:1}]
+		if(acc.cur < stop) {
+			if(acc.cur < cfg.top){
+				var newCur = Math.min(stop, cfg.top);
+				var count = newCur - acc.cur;
+				acc.cur = newCur;
+				acc.seg.push({idx:idx,count:count});
+			}
+		}
+		return acc;
+	},{seg:[],cur:begin}).seg.reduce(function(acc,seg) {
+		//{idx:0, count:1} => {prize:[{type:x, count:y*n}]}
+		var prizes  = data[seg.idx].prize.map(function(cfg) {
+			return {type:cfg.type, count:cfg.count * seg.count};
+		})
+		return acc.concat(prizes);
+	},[]);
+	return result;
+}
+
 
 function deepFreeze(o) {
     var prop, propKey;
@@ -362,7 +396,7 @@ initGlobalConfig = function (path, callback) {
     {name:TABLE_STAGE, func: initStageConfig}, {name:TABLE_QUEST}, {name: TABLE_COSTS},
     {name:TABLE_UPGRADE}, {name:TABLE_ENHANCE}, {name: TABLE_CONFIG}, {name: TABLE_VIP, func:initVipConfig},
     {name:TABLE_SKILL}, {name:TABLE_CAMPAIGN, func:initCampaignTable}, {name: TABLE_DROP}, {name: TABLE_TRIGGER},
-    {name:TABLE_DP},{name:TABLE_ARENA},{name:TABLE_BOUNTY, func:initPowerLimit}, {name:TABLE_IAP},
+    {name:TABLE_DP},{name:TABLE_ARENA},{name:TABLE_BOUNTY, func:initPowerLimit}, {name:TABLE_IAP},{name:TABLE_PKREWARD},
   ];
   if (!path) path = "./";
   configTable.forEach(function (e) {

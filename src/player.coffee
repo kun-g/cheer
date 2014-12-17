@@ -663,8 +663,12 @@ class Player extends DBWrapper
         if stageConfig.pvp? and pkr?
           getPlayerHero(pkr, wrapCallback(this, (err, heroData) ->
             @dungeonData.PVP_Pool = if heroData? then [getBasicInfo(heroData)]
-            cb('OK')
-          ))
+            dbLib.diffPKRank(@name, pkr,wrapCallback(this, (err, result) ->
+              result = [0,0]  unless Array.isArray(result)
+              @dungeonData.PVP_Score_diff = result[0]
+              @dungeonData.PVP_Score_origin = result[1]
+              cb('OK')
+            ))))
         else
           cb('OK')
       ], (err) =>
@@ -757,6 +761,7 @@ class Player extends DBWrapper
           ret = @aquireItem(p.value, p.count, allOrFail)
           if not (ret? and ret.length >0)
             return [] if allOrFail
+
         when PRIZETYPE_GOLD then ret.push({NTF: Event_InventoryUpdateItem, arg: {syn: @inventoryVersion, god: @addGold(p.count)}}) if p.count > 0
         when PRIZETYPE_DIAMOND then ret.push({NTF: Event_InventoryUpdateItem, arg: {syn: @inventoryVersion, dim: @addDiamond(p.count)}}) if p.count > 0
         when PRIZETYPE_EXP then ret.push({NTF: Event_RoleUpdate, arg: {syn: @heroVersion, act: {exp: @addHeroExp(p.count)}}}) if p.count > 0
@@ -769,7 +774,7 @@ class Player extends DBWrapper
               logError({action: 'claimPrize', reason: 'equipmentNotExist', name: @name, equipSlot: k, index: i})
               delete @equipment[k]
               continue
-            e.xp = e.xp+p.count*G_PRIZE_MODIFIER
+            e.xp = e.xp+p.count
             equipUpdate.push({sid: k, xp: e.xp})
           if equipUpdate.length > 0
             ret.push({NTF: Event_InventoryUpdateItem, arg: {syn: @inventoryVersion, itm: equipUpdate}})
@@ -965,10 +970,15 @@ class Player extends DBWrapper
     ret = @craftItem(slot)
     newItem = ret.newItem
     if newItem
-      ret.newItem.enhancement = enhance
-      ret.newItem.xp = item.xp
+      newItem.enhancement = enhance
+      newItem.xp = item.xp
+      newItem.slot = item.slot
       eh = newItem.enhancement.map((e) -> {id:e.id, lv:e.level})
-      ret.res.push({NTF: Event_InventoryUpdateItem, arg: {syn:this.inventoryVersion, itm:[{sid: @queryItemSlot(newItem), eh:eh, xp: newItem.xp}]}})
+      @inventory.container[slot] = newItem
+      ret.res.push({NTF: Event_InventoryUpdateItem, arg: {
+        syn:this.inventoryVersion,
+        itm:[{sid: @queryItemSlot(newItem), cid: newItem.id, eh:eh, xp: newItem.xp}]
+      }})
     return ret
 
   craftItem: (slot) ->
@@ -977,11 +987,8 @@ class Player extends DBWrapper
     ret = @claimCost(recipe.forgeID)
     if not ret? then return { ret: RET_InsufficientIngredient }
     return { ret: RET_TargetNotExists } unless recipe.forgeTarget?
-    item = recipe
-    item.id = recipe.forgeTarget
-    newItem = item
+    newItem = new Item(recipe.forgeTarget)
     ret = ret.concat({NTF: Event_InventoryUpdateItem, arg:{
-      itm: [{sid: slot, cid: item.id}],
       syn: @inventoryVersion,
       god: @gold
     }})
@@ -1055,7 +1062,7 @@ class Player extends DBWrapper
       return r
     ), [])
 
-    percentage = 1
+    percentage = 1 * G_PRIZE_MODIFIER
     if result is DUNGEON_RESULT_WIN
       if dungeon.isSweep?
         dropInfo = dropInfo.concat(cfg.dropID) if cfg.dropID
@@ -1086,6 +1093,10 @@ class Player extends DBWrapper
         else
           prize.push(iPrize)
   
+    if dungeon.PVP_Pool? and dungeon.result is DUNGEON_RESULT_WIN
+      @updatePkInof(dungeon)
+      prize = prize.concat(@getPKReward(dungeon))
+
     return helperLib.splicePrize(prize)
 
   updateQuest: (quests) ->
@@ -1144,7 +1155,6 @@ class Player extends DBWrapper
     prize = otherPrize.filter( (e) -> return not ( e.count? and e.count is 0 ) )
     if prize.length > 0 then rewardMessage.arg.prize = prize.filter((f) -> f.type isnt  PRIZETYPE_FUNCTION)
     ret = ret.concat(this.claimPrize(prize, false))
-    @updatePkInof(dungeon)
 
     if isSweep
     else
@@ -1152,13 +1162,14 @@ class Player extends DBWrapper
       @releaseDungeon()
     return ret
 
+  getPKReward: (dungeon) ->
+    return getPKRewardByDiff(dungeon.PVP_Score_diff, dungeon.PVP_Score_origin)
+
   updatePkInof: (dungeon) ->
-    if dungeon.PVP_Pool?
-      myName = @name
-      rivalName = dungeon.PVP_Pool[0].nam
-      if dungeon.result is DUNGEON_RESULT_WIN
-        dbLib.saveSocre(myName, rivalName, (err, result) ->
-        )
+    myName = @name
+    rivalName = dungeon.PVP_Pool[0].nam
+    dbLib.saveSocre(myName, rivalName, (err, result) ->
+    )
   whisper: (name, message, callback) ->
     myName = this.name
     dbLib.deliverMessage(

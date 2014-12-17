@@ -583,6 +583,15 @@ exports.initializeDB = function (cfg,finishCb) {
       });
     };
   });
+  dbClient.script('load', helperLib.dbScripts.diffPKRank, function (err, sha) {
+    exports.diffPKRank = function (player, rival, handler) {
+      dbClient.evalsha(sha, 0, 'Arena', player, rival, function (err, ret) {
+        if (handler) { handler(err, ret); }
+      });
+    };
+  });
+
+
   dbClient.script('load', lua_getPvpInfo, function (err, sha) {
     exports.getPvpInfo = function (name, handler) {
       dbClient.evalsha(sha, 0, 'Arena', name, function (err, ret) {

@@ -287,7 +287,7 @@ exports.route = {
     func: (arg, player, handler, rpcID, socket) ->
       type = player.switchHeroType(arg.cid)
       if player.flags[type]
-        player.flags[type] = false
+        #player.flags[type] = false
         oldHero = player.hero
         player.createHero({
           name: oldHero.name
@@ -605,9 +605,12 @@ exports.route = {
         ret = {REQ: rpcID, RET: RET_OK}
         async.map( rivalLst.name, getPlayerHero, (err, result) ->
           ret.arg = result.map( (e, i) ->
+            return null unless e?
             r = getBasicInfo(e)
             r.rnk = +rivalLst.rnk[i]
             return r
+          ).filter( (e) ->
+            e?
           )
           handler([ret])
         )
