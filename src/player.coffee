@@ -332,6 +332,12 @@ class Player extends DBWrapper
     productList = queryTable(TABLE_IAP, 'list')
     myReceipt = payment.receipt
     rec = unwrapReceipt(myReceipt)
+
+    if tunnel is 'AppStore'
+      for idx , product of  productList
+        if product.productID is payment.productID
+          rec.productID = +idx
+      
     cfg = productList[rec.productID]
     flag = true
     #flag = cfg.rmb is payment.rmb
@@ -346,6 +352,7 @@ class Player extends DBWrapper
     })
     if flag
       ret = [{ NTF: Event_InventoryUpdateItem, arg: { dim : @addDiamond(cfg.gem) }}]
+
       if rec.productID is MonthCardID
         @counters['monthCard'] = 30
         ret = ret.concat(@syncEvent())
