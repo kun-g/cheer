@@ -5,3 +5,5 @@ js
 *.vim
 node_modules
 *.rdb
+auto-generated-dependencies.d
+gulp

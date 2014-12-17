@@ -1,3 +1,4 @@
+"use strict"
 #require('strong-agent').profile()
 util = require 'util'
 require './define'

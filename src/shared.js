@@ -31,8 +31,10 @@ TABLE_DP = "dailyPrize";
 TABLE_ARENA = "arena";
 TABLE_BOUNTY = "bounty";
 TABLE_IAP = "iaplist";
-TABLE_SERVERLIST = "serverlist"
+TABLE_SERVERLIST = "serverlist";
+TABLE_PKREWARD = "pkReward";
 TABLE_FRAGMENT = "fragment";
+
 /*** GAME CONSTANTS ***/
 ItemId_RevivePotion = 540;
 
@@ -51,6 +53,7 @@ RET_NoEquip = 10;
 RET_NoEnhanceStone = 11;
 RET_EquipCantUpgrade = 12;
 RET_Unknown = 13;
+RET_PlayerInfoError = 13;
 RET_NotEnoughItem = 14;
 RET_TooMuchChat = 15;
 RET_ServerError = 16;
@@ -72,8 +75,8 @@ RET_NoKey = 31;
 RET_CantInvite = 32;
 RET_Issue33 = 33;
 RET_LoginFailed = 34;
-RET_Issue35 = 35;
-RET_Issue36 = 36;
+RET_HireFriendFailed = 35;
+RET_RequireMercenaryFailed = 36;
 RET_Issue37 = 37;
 RET_Issue38 = 38;
 RET_VipLevelIsLow = 39;
@@ -89,59 +92,85 @@ RET_InvalidPaymentInfo = 48;
 RET_SweepPowerNotEnough = 49;
 RET_NotEnoughTimes = 50;
 RET_CantReceivePkAward = 51;
+RET_RewardAlreadyReceived = 52;
+RET_QuestNotExists = 53;
+RET_QuestNotAccepted = 54;
+RET_QuestNotCompleted = 55;
+RET_QuestCompleted = 56;
+RET_UseItemFailed = 57;
+RET_TargetNotExists = 58;
+RET_EquipedItemCannotBeSold = 59;
+RET_ItemSoldFailed = 60;
+RET_ClaimCostFailed = 61;
+RET_FriendNotExists = 62;
+RET_GetLeaderboardInfoFailed = 63;
+RET_ShopVersionNotMatch = 64;
 ErrorMsgs = [
-    "操作成功",
+    "操作成功",//0
     "金币数量不足",
     "宝石数量不足",
     "精力值不足",
     "角色职业不符合要求",
-    "角色等级不符合要求",
+    "角色等级不符合要求",//5
     "玩家不存在",
     "道具不存在",
     "背包已满",
     "装备熟练度不足",
-    "缺少装备",
+    "缺少装备",//10
     "缺少强化宝石",
     "装备无法再次升级",
-    "发生了什么错误",
+    "玩家数据有误",
     "道具数量不足",
-    "聊天信息发送过于频繁，请稍等片刻",
+    "聊天信息发送过于频繁，请稍等片刻",//15
     "服务器状态异常，请稍后再试",
     "你的好友列表已经满了",
     "对方的好友列表已经满了",
     "这个属性不能再强化了",
-    "与服务器数据同步出错，请重新登陆",
+    "与服务器数据同步出错，请重新登陆",//20
     "强化失败",
     "副本不存在",
     "关卡尚未解锁",
     "程序版本不匹配",
-    "资源版本不匹配",
+    "资源版本不匹配",//25
     "需要创建角色",
     "错误的登录信息",
     "不允许的名字",
     "角色不存在",
-    "名字已被占用",
+    "名字已被占用",//30
     "没有匹配的钥匙",
     "无法添加对方为好友",
     "错误:33",
     "登录失败",
-    "错误:35",
-    "错误:36",
+    "雇佣队友失败",//35
+    "获取队友列表失败",
     "错误:37",
     "错误:38",
     "VIP等级不足",
-    "物品已经售完",
+    "物品已经售完",//40
     "错误:41",
     "从另外一个设备登录",
     "有新版本更新，请重新登录",
     "与服务器断开连接",
-    "Need Teammate",
+    "Need Teammate",//45
     "缺少配方",
     "缺少材料",
     "付费信息错误，请联系工作人员",
     "战斗力不足",
-    "挑战次数以用尽",
+    "挑战次数以用尽",//50
     "无法领取PK奖励",
+    "奖励已领取",
+    "任务不存在",
+    "任务未领取",
+    "任务未完成",//55
+    "任务已完成",
+    "使用物品失败",
+    "目标不存在",
+    "已装备的道具无法出售",
+    "道具出售失败",//60
+    "获取材料失败",
+    "好友不存在",
+    "获取排名信息失败",
+    "商店版本不匹配"
 ];
 
 /*** ITEM CATEGORY ***/

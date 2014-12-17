@@ -170,6 +170,9 @@ describe('', function () {
           {
             while: {type: 'modifyVariable', name: 'v_i', value: {'+': [1, 'v_i']}},
             condition: {'<': ['v_i', 3]}
+      /*
+       * [ { v_i: { '$lt': 3 } } ]
+       */
           },
           {
             if: {type: 'newVariable', name: 'v_test', value: 2},

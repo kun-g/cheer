@@ -3,7 +3,7 @@ var dbLib = require('./db');
 var async = require('async');
 require('./globals');
 
-players = ['jvf','oakk'];
+players = ['大岛优子'];
 
 //serverName = 'Develop';
 serverName = 'Master';
@@ -11,8 +11,8 @@ serverName = 'Master';
 var config = {
   Develop: {
     ip: '10.4.3.41',
-    port: 6379,
-    port2: 6379
+    port: 6380,
+    port2: 6380
   },
   Master: {
     ip: '10.4.4.188',
@@ -38,6 +38,8 @@ var rewardMessage = {
     //{type: PRIZETYPE_WXP, count: 10000},
     //{type: PRIZETYPE_GOLD, count: 100000},
     //{type: PRIZETYPE_DIAMOND, count: 150}
+    {type: PRIZETYPE_ITEM, value: 551, count: 1},
+    {type: PRIZETYPE_ITEM, value: 552, count: 1},
   ]
 };
 
@@ -228,10 +230,10 @@ function loadReceipt () {
 }
 
 initGlobalConfig(null, function () {
-  var e = '0000623707011406112252ND91';
-  var x = unwrapReceipt(e);
-  var time = moment(x.time*1000);
-  dbLib.updateReceipt(e, 'CLAIMED', x.id, x.productID, x.serverID, x.tunnel, /*time,*/ console.log);
+  //var e = '0000623707011406112252ND91';
+  //var x = unwrapReceipt(e);
+  //var time = moment(x.time*1000);
+  //dbLib.updateReceipt(e, 'CLAIMED', x.id, x.productID, x.serverID, x.tunnel, /*time,*/ console.log);
   //loadReceipt ();
 });
 
@@ -240,4 +242,114 @@ initGlobalConfig(null, function () {
 //}, function (err, result) {
 //  console.log('Done');
 //  dbLib.releaseDB();
+//});
+
+var fs = require('fs');
+function removeUpdateItem(name, filename){
+        
+
+    async.waterfall([
+        function (cb) { dbClient.hget(name, 'inventory', cb); },
+        function (data, cb) {  
+			fs.appendFileSync(filename, '<old>'+name+'=>'+data+'\n');
+			cb(null, genId2StrMap(data)); 
+		},
+		getRemoveIdList,
+		save,
+		fixEquipment ],function(err,result) {
+            console.log(err,result);
+        });
+    function getItemCfg(id){
+        return queryTable(TABLE_ITEM, id);
+    }
+    function genId2StrMap(dataStr){
+        return JSON.parse(dataStr);
+    }
+    function  getRemoveIdList(data, cb){
+		if(data == null){
+			cb('no need for'+name);
+			return;
+		}
+        var equip = data.save.container.reduce(function(acc, item) {
+			if (item != null){
+            var cfg = getItemCfg(item.save.id);
+				if(cfg.category == 1 && cfg.subcategory >=0 && cfg.subcategory <=5 ){
+                if (!Array.isArray(acc.equipSolt[cfg.subcategory])){
+                    acc.equipSolt[cfg.subcategory] = [];
+                    acc.check[cfg.subcategory] = {};
+                }
+                acc.equipSolt[cfg.subcategory].push(item.save.id);
+                acc.check[cfg.subcategory][item.save.id] = cfg.forgeTarget
+            }
+			}
+            return acc;
+        },{equipSolt:{}, check:{}});
+        var ret = [];
+        //check item and get remove itemid
+        for (var slot in equip.equipSolt){
+            var  itemIDs = equip.equipSolt[slot];
+            var check = equip.check[slot];
+            itemIDs.sort(function(a,b){return a-b;});
+            for(var i=0; i< itemIDs.length -1; i++){//last no need check
+                if (typeof(check[itemIDs[i]]) != 'number'){
+                    cb('item['+itemIDs[i] +'] nextGen is empty');
+                }
+            }
+            if (itemIDs.length > 1){
+                var rm = itemIDs.splice(0,itemIDs.length -1);
+                ret = ret.concat(rm);
+            }
+        }
+		cb(null, ret, data);
+    }
+    function save(rmLst, data,cb){
+        var newData = data.save.container.filter(function(item) {
+			if (item == null){
+				return true;
+			}
+			return rmLst.indexOf(item.save.id) == -1;
+		});
+        data.save.container = newData;
+        var str = JSON.stringify(data);
+		fs.appendFileSync(filename, '<new>'+name+'=>'+str+'\n');
+        dbClient.hset(name, 'inventory', str, function(err,ret) {
+			cb(err, data.save.container);
+		});
+		
+    }
+	function fixEquipment(data, cb){
+		var ret = data.reduce(function(acc, item, idx) {
+			if(item == null) return acc;
+			var cfg = getItemCfg(item.save.id);
+			if(cfg.category == 1 && cfg.subcategory >=0 && cfg.subcategory <=5 ){
+				acc[cfg.subcategory] = item.save.slot[0];
+			}
+			return acc;
+		}, {});
+		dbClient.hset(name, 'equipment', JSON.stringify(ret), function(err,ret) {
+			cb(err, 'done '+ name)
+		});
+	}
+}
+function runFixItem(){
+	dbClient.keys(dbPrefix+"player.*", function (err, list) {
+		list.forEach(function(name) {
+			removeUpdateItem(name, 'dbbackup3.txt');
+		});
+	});
+}
+
+//removeUpdateItem('Master.player.名字很重要', 'test.txt');
+//removeUpdateItem('Master.player.大功率排骨', 'test.txt');
+//removeUpdateItem('Master.player.黄家驹', 'test.txt');
+//runFixItem();
+
+//data = require('./a').data;
+//
+//data.forEach(function(d) {
+////	console.log(d.name, d.value);
+//	dbClient.hset(d.name, 'inventory', d.value,function(err, ret){
+//		console.log(err, ret);
+//      removeUpdateItem(name, 'test.txt');
+//	});
 //});

@@ -1,3 +1,4 @@
+"use strict"
 Transform = require('stream').Transform
 msgpack = require('msgpack')
 crypto = require('crypto')

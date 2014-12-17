@@ -1,3 +1,4 @@
+"use strict"
 require('./define')
 {Serializer, registerConstructor, objectlize} = require './serializer'
 
