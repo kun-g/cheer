@@ -722,6 +722,21 @@ exports.route = {
     ,
     args: {'cmt':{'cmted':'boolean', 'auto':'boolean'}},
     needPid: true
+  },
+  Request_LotteryFragment: {
+    id: 38,
+    func: (arg, player, handler, rpcID, socket) ->
+      switch arg.cmd
+        when 0
+          if arg.type?
+            {prize, ret} = player.getFragment(arg.type)
+      res = {REQ: rpcID, RET: ret}
+      if prize
+        res.arg = prize
+        player.saveDB()
+      handler(res)
+    ,
+    args: {'cmd':0,'type':0},
+    needPid: true
   }
-
 }

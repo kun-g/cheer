@@ -62,6 +62,9 @@ class Player extends DBWrapper
       campaignState: {},
       infiniteTimer: currentTime(),
 
+      fragmentTime: [],
+      fragmentTimes: [],
+
       inventoryVersion: 1,
       heroVersion: 1,
       stageVersion: 1,
@@ -1718,6 +1721,32 @@ class Player extends DBWrapper
       arg :versions
     }
 
+  getFragment: (type) ->
+    console.log('type=', type)
+    @fragmentTimes[type] = 0 unless @fragmentTimes[type]
+    @fragmentTime[type] = "2014-10-01" unless @fragmentTime[type]
+    fragInterval = [{"value":5,"unit":"minite"},{"value":24,"unit":"hour"}]
+    hiGradeTimesFrag = [10,10]
+    fragInterval[type] = queryTable(TABLE_FRAGMENT)[type].interval
+    hiGradeTimesFrag[type] = queryTable(TABLE_FRAGMENT)[type].basic_times
+    console.log('fragmentTime=', @fragmentTime[type])
+    console.log('fragmentTimes=', @fragmentTimes[type])
+    console.log('unit=', fragInterval[type].unit)
+    dis = diffDate(@fragmentTime[type],currentTime(),fragInterval[type].unit)
+    if dis >= fragInterval[type].value
+      if fragmentTimes[type] < hiGradeTimesFrag[type]
+        prz = generatePrize(queryTable(TABLE_FRAGMENT).basic_prize, [0..queryTable(TABLE_FRAGMENT).basic_prize-1])
+      else 
+        prz = generatePrize(queryTable(TABLE_FRAGMENT).advanced_prize, [0..queryTable(TABLE_FRAGMENT).advanced_prize-1])
+      fragmentTime[type] = currentTime()
+      fragmentTimes[type]++
+    else
+      return { ret: RET_RewardAlreadyReceived }
+    prize = @claimPrize(prz)
+    return { ret: RET_InventoryFull } unless prize
+    @log('lottery', {type: 'TreasureChest', type: type, prize: prize})
+    return {prize: prz, ret: RET_OK}
+
 playerMessageFilter = (oldMessage, newMessage, name) ->
   message = newMessage
   messageIDMap = {}
@@ -1829,6 +1858,7 @@ getVip = (rmb) ->
   levelCfg = tbl.levels[level]
   levelCfg.privilege = tbl.requirement[level].privilege
   return {level: level, cfg: tbl.levels[level]}
+
 
 registerConstructor(Player)
 exports.Player = Player

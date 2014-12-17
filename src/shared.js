@@ -32,6 +32,7 @@ TABLE_ARENA = "arena";
 TABLE_BOUNTY = "bounty";
 TABLE_IAP = "iaplist";
 TABLE_SERVERLIST = "serverlist"
+TABLE_FRAGMENT = "fragment";
 /*** GAME CONSTANTS ***/
 ItemId_RevivePotion = 540;
 
