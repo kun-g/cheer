@@ -66,7 +66,7 @@ describe('Battle', function () {
             for (var i = dFrom; i < dFrom+length; i++) {
                 for (var j in selector) {
                     mod = modifier[selector[j][0]];
-                    selectLine(x+mod.x*i, y+mod.y*i, selector[j][1], 1, i*adjust, ground);
+                    selectLine(x+mod.x*i, y+mod.y*i, selector[j][1], 0, i*adjust+1, ground);
                 }
             }
         }
@@ -82,6 +82,7 @@ describe('Battle', function () {
                 if (direction%2) {
                     selectLine(x+mod.x*i, y+mod.y*i, localModifier[direction][1], 0, i+1, ground);
                 } else {
+                    console.log(i, x+mod.x*i, y+mod.y*i, localModifier[direction][1], 0, 1+2*i);
                     selectLine(x+mod.x*i, y+mod.y*i, localModifier[direction][1], 0, 1+2*i, ground);
                 }
             }
@@ -90,11 +91,11 @@ describe('Battle', function () {
         it('Ground', function () {
             //var ground = generatePlayground(); selectLine(5, 5, 1, 3, 3, ground); print(ground);
             //var ground = generatePlayground(); selectCross(5, 5, 6, 3, 5, ground); print(ground);
-            //var ground = generatePlayground(); selectSquare(5, 5, 6, 3, 2, ground); print(ground);
-            //var ground = generatePlayground(); selectSquare(5, 5, 1, 3, 2, ground); print(ground);
-            //var ground = generatePlayground(); selectTriangle(5, 5, 6, 1, 2, ground); print(ground);
-            var ground = generatePlayground(); selectTriangle(5, 5, 6, 1, 2, ground); print(ground);
+            //var ground = generatePlayground(); selectSquare(5, 5, 6, 1, 2, ground); print(ground);
+            //var ground = generatePlayground(); selectSquare(5, 5, 6, 0, 3, ground); print(ground);
+            var ground = generatePlayground(); selectTriangle(0, 2, 6, 0, 3, ground); print(ground);
+            //var ground = generatePlayground(); selectTriangle(5, 5, 3, 1, 2, ground); print(ground);
+            //var ground = generatePlayground(); selectTriangle(5, 5, 2, 1, 2, ground); print(ground);
         });
     });
 });
-
