@@ -334,10 +334,12 @@ class Player extends DBWrapper
     rec = unwrapReceipt(myReceipt)
 
     if tunnel is 'AppStore'
+      rec.productID = -1
       for idx , product of  productList
         if product.productID is payment.productID
           rec.productID = +idx
       
+    return cb('show_me_the_real_money',[]) if rec.productID is -1
     cfg = productList[rec.productID]
     flag = true
     #flag = cfg.rmb is payment.rmb
@@ -379,7 +381,10 @@ class Player extends DBWrapper
     postResult = (error, result) =>
       if error
         logError({name: @name, receipt: myReceipt, type: 'handlePayment', error: error, result: result})
-        handle(null, [])
+        if error is 'show_me_the_real_money'
+          handle(Error(RET_InvalidPaymentInfo), [])
+        else
+          handle(null, [])
       else
         handle(null, result)
     switch payment.paymentType
