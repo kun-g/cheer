@@ -58,7 +58,7 @@ class Wizard
 
     @setupTriggerCondition(spellID, cfg.triggerCondition,  cmd)
     @setupAvailableCondition(spellID, cfg.availableCondition,  cmd)
-    @doAction(@wSpellDB[spellID], cfg.installAction,  @selectTarget(cfg, cmd), cmd)
+    @doAction(@wSpellDB[spellID], cfg.installAction,  @selectTarget(cfg, cmd?.getEnvironment()), cmd)
     @spellStateChanged(spellID, cmd)
 
   setupAvailableCondition: (spellID, conditions, cmd) ->
@@ -106,7 +106,7 @@ class Wizard
       @removeTrigger(spellID, c.event) for c in cfg.availableCondition when c.type is 'event'
 
     if cfg.uninstallAction?
-      @doAction(@wSpellDB[spellID], cfg.uninstallAction, @selectTarget(cfg, cmd), cmd)
+      @doAction(@wSpellDB[spellID], cfg.uninstallAction, @selectTarget(cfg, cmd?.getEnvironment()), cmd)
 
     delete @wSpellDB[spellID]
     @spellStateChanged(spellID, cmd)
@@ -128,7 +128,7 @@ class Wizard
     cfg = getSpellConfig(spellID)
     thisSpell = @wSpellDB[spellID]
 
-    target = @selectTarget(cfg, cmd)
+    target = @selectTarget(cfg, cmd?.getEnvironment())
 
     [canTrigger, reason] = @triggerCheck(thisSpell, cfg.triggerCondition, target, cmd)
     return reason unless canTrigger
@@ -243,10 +243,9 @@ class Wizard
 
     return res
   
-  selectTarget: (cfg, cmd) ->
+  selectTarget: (cfg, env) ->
     return [] unless cfg.targetSelection? and cfg.targetSelection.pool
-    return [] unless cfg.targetSelection.pool is 'self' or cmd?
-    env = cmd.getEnvironment() if cmd?
+    return [] unless cfg.targetSelection.pool is 'self' or env?
     switch cfg.targetSelection.pool
       when 'self' then pool = @
       when 'target' then pool = env.variable('tar')
@@ -326,7 +325,7 @@ class Wizard
 
       target = bakTarget
       if a.target
-        target = @selectTarget({targetSelection: a.target}, cmd)
+        target = @selectTarget({targetSelection: a.target}, cmd?.getEnvironment())
 
       switch a.type
         when 'modifyVar' then env.variable(a.x, formularResult)
