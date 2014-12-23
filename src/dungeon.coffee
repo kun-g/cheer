@@ -385,7 +385,9 @@ class Dungeon
     cmd = req?.CMD ? req?.CNF
     switch cmd
       when RPC_GameStartDungeon then action = DUNGEON_ACTION_ENTER_DUNGEON
-      when Request_DungeonSpell then action = DUNGEON_ACTION_CAST_SPELL
+      when Request_DungeonSpell
+        action = DUNGEON_ACTION_CAST_SPELL
+        arg = {i:+req.arg.idx}
       when REQUEST_CancelDungeon then action = DUNGEON_ACTION_CANCEL_DUNGEON
       when Request_DungeonRevive then action = DUNGEON_ACTION_REVIVE
       when Request_DungeonCard
@@ -440,7 +442,7 @@ class Dungeon
         ret = [] #[{NTF: Event_Fail, arg : {msg:'Main Hero Is Dead'}}]
         if hero.isAlive()
           cmd = DungeonCommandStream({id: 'BeginTurn', type: 'Spell', src: hero}, this)
-          spellId = hero.activeSpell[arg.idx]
+          spellId = hero.activeSpell[arg.i]
           cmd.next({id: 'CastSpell', me: hero, spell: spellId})
              .next({id: 'EndTurn', type: 'Spell', src: hero})
              .next({id: 'ResultCheck'})
