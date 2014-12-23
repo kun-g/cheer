@@ -126,6 +126,7 @@ class Wizard
 
   castSpell: (spellID, cmd) ->
     cfg = getSpellConfig(spellID)
+    return false unless cfg?
     thisSpell = @wSpellDB[spellID]
 
     target = @selectTarget(cfg, cmd?.getEnvironment())
@@ -134,6 +135,7 @@ class Wizard
     return reason unless canTrigger
 
     @doAction(thisSpell, cfg.action, target, cmd)
+    return false unless cfg?
     @updateCDOfSpell(spellID, true, cmd)
     @removeSpell(spellID, cmd) unless @availableCheck(spellID, cfg, cmd)
     delay = 0
@@ -149,12 +151,14 @@ class Wizard
       thisSpell.eventCounters[event]++ if thisSpell?
       @castSpell(id, cmd)
 
-  clearSpellCD: (spellID, cmd) ->
-    return false unless spellID? and @wSpellDB[spellID]?
-    thisSpell = @wSpellDB[spellID]
-    if thisSpell.cd? and thisSpell.cd isnt 0
-      thisSpell.cd = 0
-      cmd.routine?({id: 'SpellCD', cdInfo: thisSpell.cd}) if @isHero()
+  clearSpellCD: (spellIDList, cmd) ->
+    return false unless Array.isArray(spellIDList)
+    for spellID in spellIDList
+      continue unless @wSpellDB[spellID]?
+      thisSpell = @wSpellDB[spellID]
+      if thisSpell.cd? and thisSpell.cd isnt 0
+        thisSpell.cd = 0
+        cmd.routine?({id: 'SpellCD', cdInfo: thisSpell.cd}) if @isHero()
 
   getSpellCD:() ->
     for spellID, thisSpell of @wSpellDB
@@ -297,7 +301,7 @@ class Wizard
 
     return [true]
 
-  getActiveSpell: () -> -1
+  getActiveSpell: () -> [-1]
 
   doAction: (thisSpell, actions, target, cmd) ->
     return false unless actions?
