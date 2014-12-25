@@ -1,27 +1,16 @@
 "use strict"
 var conf = {
-  A: {
-    name: "A",
-    speed: 5,
-    strenth: 6,
-    health: 20
-  },
-  B: {
-    _inherit: "A",
-    name: "B",
-    speed: 7
-  },
-  C: {
-    _inherit: "B",
-    name: "C"
-  },
-  D: {
-    _inherit: "E",
-    name: "D"
-  },
+  A: { name: "A", speed: 5, strenth: 6, health: 20 },
+  B: { _inherit: "A", name: "B", speed: 7},
+  C: { _inherit: "B", name: "C", age: -1},
+  D: { _inherit: "E", name: "D", list: [1,2,3] },
   E: {
-    _inherit: "C",
-    name: "E"
+      _inherit: "C",
+      name: "E",
+      list: {
+          _concat: "A",
+          data: [1, 2, 3]
+      }
   }
 };
 
@@ -88,9 +77,4 @@ function compileTable(table) {
   return res;
 }
 
-function showObject(obj) {
-  console.log(JSON.stringify(obj, null, 2));
-}
-
-
-showObject(compileTable(conf));
+exports.compileTable = compileTable;
