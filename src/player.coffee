@@ -164,7 +164,6 @@ class Player extends DBWrapper
         s.level = 0
 
     flag = true
-    
     if @loginStreak.date and moment().isSame(@loginStreak.date, 'month')
       if moment().isSame(@loginStreak.date, 'day')
         flag = false
@@ -240,7 +239,7 @@ class Player extends DBWrapper
           ret = ret.concat(@claimPrize(r))
         @log('sweepDungeon', { stage: stage, multiple: multiple, reward: prize })
         ret = ret.concat(@syncEnergy())
-        
+
     return { code: ret_result, prize: prize, ret: ret }
 
   claimLoginReward: () ->
@@ -256,7 +255,7 @@ class Player extends DBWrapper
     ret = @claimPrize(reward.filter((e) => not e.vip or @vipLevel() >= e.vip ))
     @loginStreak.count += 1
     @loginStreak.count = 0 if @loginStreak.count >= queryTable(TABLE_DP).length
- 
+
     return {ret: RET_OK, res: ret}
 
   onMessage: (msg) ->
@@ -292,7 +291,7 @@ class Player extends DBWrapper
     @installObserver('countersChanged')
     @installObserver('stageChanged')
     @installObserver('winningAnPVP')
-    
+
     helperLib.assignLeaderboard(@,helperLib.LeaderboardIdx.Arena)
     @counters['worldBoss'] ={} unless @counters['worldBoss']?
 
@@ -497,6 +496,7 @@ class Player extends DBWrapper
     return false if point + this[type] < 0
     this[type] = Math.floor(this[type]+point)
     @costedDiamond += point if type is 'diamond'
+    @inventoryVersion += 1
     return this[type]
 
   addDiamond: (point) -> @addMoney('diamond', point)
@@ -745,7 +745,6 @@ class Player extends DBWrapper
     ret = []
 
     for p in prize when p?
-      #@inventoryVersion++
       switch p.type
         when PRIZETYPE_ITEM
           ret = @aquireItem(p.value, p.count, allOrFail)
@@ -938,9 +937,9 @@ class Player extends DBWrapper
         syn:this.inventoryVersion,
         god:this.gold,
         itm:[{sid: this.queryItemSlot(newItem), stc: 1, eh:eh, xp: newItem.xp}]}})
-  
+
     @log('levelUpItem', { slot: slot, id: item.id, level: item.rank })
-  
+
     if newItem.rank >= 8
       dbLib.broadcastEvent(BROADCAST_ITEM_LEVEL, {who: @name, what: item.id, many: newItem.rank})
 
@@ -987,12 +986,12 @@ class Player extends DBWrapper
     equip.enhancement[0].level = level
 
     @log('enhanceItem', { itemId: equip.id, level: level, itemSlot: itemSlot })
-  
+
     @onEvent('Equipment')
 
     if level >= 32
       dbLib.broadcastEvent(BROADCAST_ENHANCE, {who: @name, what: equip.id, many: level+1})
-  
+
     eh = equip.enhancement.map((e) -> {id:e.id, lv:e.level})
     ret = ret.concat({NTF: Event_InventoryUpdateItem, arg: {syn:this.inventoryVersion, itm:[{sid: itemSlot, eh:eh}]}})
     return { out: {cid: equip.id, sid: itemSlot, stc: 1, eh: eh, xp: equip.xp}, res: ret }
@@ -1010,7 +1009,7 @@ class Player extends DBWrapper
         ret = ret.concat(@claimPrize(item.transPrize))
       else if item?.sellprice
         @addGold(item.sellprice*count)
-    
+
       @log('sellItem', { itemId: item.id, price: item.sellprice, count: count, slot: slot })
       return { ret: RET_OK, ntf: [{ NTF: Event_InventoryUpdateItem, arg: {syn:this.inventoryVersion, 'god': this.gold} }].concat(ret)}
     else
@@ -1032,7 +1031,7 @@ class Player extends DBWrapper
     result = dungeon.result
     cfg = dungeon.getConfig()
     if result is DUNGEON_RESULT_DONE or not cfg? then return  helperLib.splicePrize([])
-  
+
     dropInfo = dungeon.killingInfo.reduce( ((r, e) ->
       if e and e.dropInfo then return r.concat(e.dropInfo)
       return r
@@ -1068,7 +1067,7 @@ class Player extends DBWrapper
           prize.push({type: PRIZETYPE_GOLD, count: iPrize.count})
         else
           prize.push(iPrize)
-  
+
     return helperLib.splicePrize(prize)
 
   updateQuest: (quests) ->
@@ -1088,19 +1087,17 @@ class Player extends DBWrapper
         #@inventoryVersion++
         return { NTF: Event_DungeonReward, arg : { res : DUNGEON_RESULT_FAIL } }
       ret = this.doAction({id: 'ItemChange', ret: ret, version: @inventoryVersion})
-  
+
     quests = dungeon.quests
     if quests and dungeon.result isnt DUNGEON_RESULT_FAIL
       @updateQuest(quests)
-      #@questVersion++
-  
     {goldPrize, xpPrize, wxPrize, otherPrize} = @generateDungeonAward(dungeon)
 
     rewardMessage = { NTF: Event_DungeonReward, arg: { res: dungeon.result } }
-  
+
     ret = ret.concat([rewardMessage])
     if dungeon.result isnt DUNGEON_RESULT_FAIL then ret = ret.concat(this.completeStage(dungeon.stage))
-  
+
     # Close Offline reward
     #offlineReward = [
     #  { type: PRIZETYPE_EXP,  count: Math.ceil(xpPrize.count* TEAMMATE_REWARD_RATIO) },
@@ -1117,7 +1114,7 @@ class Player extends DBWrapper
     #  dungeon.team.filter((m) => m.nam != @name).forEach((m) ->
     #    if m then dbLib.deliverMessage(m.nam, teammateRewardMessage)
     #  )
-  
+
     result = 'Lost'
     result = 'Win' if dungeon.result is DUNGEON_RESULT_WIN
 
@@ -1151,7 +1148,7 @@ class Player extends DBWrapper
         @log('whisper', { to : name, err : err, text : message })
 
         if callback then callback(err, result)
-      )
+    )
 
   inviteFriend: (name, id, callback) ->
     msg = {type:  MESSAGE_TYPE_FriendApplication, name: this.name}
@@ -1339,7 +1336,7 @@ class Player extends DBWrapper
             }
           }
           handler(err, ret)
-        )
+      )
     ))
 
   operateMessage: (type, id, operation, callback) ->
@@ -1638,7 +1635,7 @@ class Player extends DBWrapper
       }
     }
     if forceUpdate then ev.arg.clr = true
-    
+
     return ev
 
   syncDungeon: (forceUpdate) ->
@@ -1722,7 +1719,7 @@ playerMessageFilter = (oldMessage, newMessage, name) ->
         if friendMap[msg.name]
           if name then dbLib.removeMessage(name, msg.messageID)
           return false
- 
+
         friendMap[msg.name] = msg
       return true
     )
@@ -1746,6 +1743,7 @@ class PlayerEnvironment extends Environment
     result = {ret: @player?.inventory.remove(item, count, slot, allorfail), version: @player.inventoryVersion}
     if result.ret isnt []
       delete @player.equipment[k] for k, s of @player.equipment when s is slot
+      @inventoryVersion += 1
     return result
   translateAction: (cmd) ->
     return [] unless cmd?
@@ -1795,10 +1793,11 @@ playerCSConfig = {
       #TODO
       #env.variable('allorfail')
       ret = env.player.inventory.add(item, count, true)
-      @routine({id: 'ItemChange', ret: ret, version: env.player.inventoryVersion})
       if ret
         for e in ret when env.player.getItemAt(e.slot).autoUse
           @next({id: 'UseItem', slot: e.slot})
+        env.player.inventoryVersion += 1
+      @routine({id: 'ItemChange', ret: ret, version: env.player.inventoryVersion})
   },
   RemoveItem: {
     callback: (env) ->
