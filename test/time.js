@@ -1,5 +1,4 @@
 require('should');
-moment = require('moment');
 verify = require('../js/timeUtils').verify;
 
 describe('Time', function () {

@@ -1,3 +1,5 @@
+var Counter = require('../js/counter').Counter;
+require('should');
 //var dbLib = require('../db');
 //var should = require('should');
 //require('../define');
@@ -7,8 +9,72 @@
 //var helpLib = require('../helper');
 //
 //events = helpLib.events;
-//
-//describe('Campaign', function () {
+
+describe('Campaign', function () {
+    describe('Counter', function () {
+        var testConfig = {
+          rmb: {
+            initial_value: 0
+          },
+          pvp_win: {
+            initial_value: 0,
+            uplimit: 4,
+            combo: { duration: { minute: 10 }, time: 'time@ThisCounter' }
+          },
+          check_in: {
+            initial_value: 0,
+            count_down: { time: 'time@ThisCounter', units: 'day' },
+            duration: { time: 'time@ThisCounter', units: 'month' }
+          },
+          milionaire_goblin: {
+            initial_value: 0,
+            uplimit: 3,
+            duration: { time: 'time@ThisCounter', units: 'day' }
+          },
+        };
+
+        it('incr && decr', function () {
+            var counter = new Counter(testConfig.rmb);
+            counter.incr(1).counter.should.equal(1);
+            counter.incr(1).counter.should.equal(2);
+            counter.decr(1).counter.should.equal(1);
+            counter.update().counter.should.equal(1);
+        });
+
+        it('combo', function () {
+            var counter = new Counter(testConfig.pvp_win);
+            counter.incr(1, "2012-12-12").counter.should.equal(1);
+            counter.incr(1, "2012-12-12").counter.should.equal(2);
+            counter.incr(1, "2012-12-12T00:11:00").counter.should.equal(1);
+            counter.incr(1, "2012-12-12T00:20:00").counter.should.equal(2);
+            counter.update("2012-12-13").counter.should.equal(0);
+            counter.incr(1, "2012-12-13").counter.should.equal(1);
+            counter.incr(1, "2012-12-13").counter.should.equal(2);
+            counter.incr(1, "2012-12-13").counter.should.equal(3);
+            counter.incr(1, "2012-12-13").counter.should.equal(4);
+            counter.incr(1, "2012-12-13").counter.should.equal(4);
+        });
+
+        it('count down', function () {
+            var counter = new Counter(testConfig.check_in);
+            counter.incr(1, "2012-12-12").counter.should.equal(1);
+            counter.incr(1, "2012-12-12").counter.should.equal(1);
+            counter.incr(1, "2012-12-13").counter.should.equal(2);
+            counter.incr(0, "2013-01-13").counter.should.equal(0);
+            counter.incr(1, "2013-01-19").counter.should.equal(1);
+        });
+
+        it('up limit', function () {
+            var counter = new Counter(testConfig.milionaire_goblin);
+            counter.incr(1, "2012-12-12").counter.should.equal(1);
+            counter.incr(1, "2012-12-12").counter.should.equal(2);
+            counter.incr(1, "2012-12-12").counter.should.equal(3);
+            counter.incr(1, "2012-12-12").counter.should.equal(3);
+            counter.incr(0, "2012-12-13").counter.should.equal(0);
+            counter.incr(0, "2013-01-13").counter.should.equal(0);
+            counter.incr(1, "2013-01-13").counter.should.equal(1);
+        });
+    });
 //  before(function (done) {
 //    initGlobalConfig(done);
 //  });
@@ -82,4 +148,4 @@
 //      should(me.event_daily.status).equal('Ready');
 //    });
 //  });
-//});
+});
