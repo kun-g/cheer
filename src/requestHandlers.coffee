@@ -1,4 +1,3 @@
-"use strict"
 require('./define')
 dbLib = require('./db')
 helperLib = require('./helper')
@@ -286,9 +285,9 @@ exports.route = {
     id: 106,
     func: (arg, player, handler, rpcID, socket) ->
       type = player.switchHeroType(arg.cid)
-      if player.flags[type]
-        #player.flags[type] = false
-        oldHero = player.hero
+      if player.flags[type] or true
+        player.flags[type] = false
+        oldHero = player.createHero()
         player.createHero({
           name: oldHero.name
           class: arg.cid
@@ -348,11 +347,11 @@ exports.route = {
 
       doVerify = () ->
         if player.dungeon
-          #for f in fileList
-          #  if require('./'+f).fileVersion isnt arg.fileVersion[f]
-          #    #logError({type:'fileVersion', file: f, version: arg.fileVersion[f], expect: require('./'+f).fileVersion})
-          #    #result.RET = RET_Issue41
-          #    status = 'FileVersionConflict'
+          for f in fileList
+            if require('./'+f).fileVersion isnt arg.fileVersion[f]
+              #logError({type:'fileVersion', file: f, version: arg.fileVersion[f], expect: require('./'+f).fileVersion})
+              #result.RET = RET_Issue41
+              status = 'FileVersionConflict'
 
           logInfo(player.dungeonData)
           initialData = player.dungeonData
@@ -456,7 +455,7 @@ exports.route = {
               result = JSON.parse(chunk)
               logInfo({action: 'VerifyPayment', type: 'Apple', code: result, receipt: arg.bill})
               if result.status isnt 0 or result.original_transaction_id
-                return handler([{REQ: rpcID, RET: RET_InvalidPaymentInfo}])
+                return handler([{REQ: rpcID, RET: RET_Unknown}])
 
               receipt = arg.bill
               #receiptInfo = unwrapReceipt(result.transaction_id)
@@ -605,12 +604,9 @@ exports.route = {
         ret = {REQ: rpcID, RET: RET_OK}
         async.map( rivalLst.name, getPlayerHero, (err, result) ->
           ret.arg = result.map( (e, i) ->
-            return null unless e?
             r = getBasicInfo(e)
             r.rnk = +rivalLst.rnk[i]
             return r
-          ).filter( (e) ->
-            e?
           )
           handler([ret])
         )
@@ -692,7 +688,7 @@ exports.route = {
               me:{cnt:+killTimes, rnk: +result.position}}
             handler(ret)
           else
-            handler([{REQ: rpcID, RET: RET_GetLeaderboardInfoFailed}])
+            handler([{REQ: rpcID, RET: RET_Unknown}])
       )
     ,
     args: {},
@@ -706,7 +702,14 @@ exports.route = {
           player.flags.cmt.auto = arg.cmt.auto
         else
           if player.flags.cmt?.cmted is false and arg.cmt.cmted is true
-            player.quests?['183']?['counters'] = [1]
+            mailContent = {
+              type: MESSAGE_TYPE_SystemReward,
+              src:  MESSAGE_REWARD_TYPE_SYSTEM,
+              prize: [{ type: 2, count: 100}],
+              tit: "Bonus!",
+              txt: "评分奖励"
+            }
+            libs.db.deliverMessage(player.name, mailContent)
           player.flags['cmt'] = arg.cmt
       else
         player.flags.cmt = {cmted:false, auto: true} unless player.flags.cmt?

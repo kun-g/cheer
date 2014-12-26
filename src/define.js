@@ -133,10 +133,7 @@ createMirrorHero = function (data) {
 };
 
 getBasicInfo = function (hero) {
-  if (!hero) {
-      showMeTheStack();
-      throw 'Invalid Hero Data';
-  }
+  if (!hero) throw 'Invalid Hero Data';
   var translateTable = {
     name : 'nam',
     gender : 'gen',
@@ -156,6 +153,10 @@ getBasicInfo = function (hero) {
       var e = hero.equipment[k];
       if (e.eh) {
         item.push({cid:e.cid, eh:e.eh});
+      } else if (e.enhancement) {
+        item.push({cid: e.id, eh:e.enhancement});
+      } else if (typeof e.cid === 'undefined') {
+        item.push({cid: e.id});
       } else {
         item.push({cid:e.cid});
       }
@@ -311,7 +312,6 @@ function initCampaignTable(data) {
     data['FirstCharge']['objective'] = firstChangeObj;
     return data;
 }
-
 arenaPirze = function (rank) {
   cfg = queryTable(TABLE_ARENA);
   for (var k in cfg) {
@@ -321,53 +321,6 @@ arenaPirze = function (rank) {
     }
   }
   return []
-}
-
-getPKRewardByDiff = function(diff, stop) {
-	// top5.prize = 150
-	// top15.prize = 50
-	//6->5 =>50 
-	//6->4 =>200
-	var data = queryTable(TABLE_PKREWARD);
-	var begin = stop - diff;
-	var result = data.reduce(function(acc, cfg, idx){
-		//6->5 [{idx:0,count:1}]
-		//6->4 [{idx:0,count:1}, {idx:1,count:1}]
-		if(acc.cur < stop) {
-			if(acc.cur < cfg.top){
-				var newCur = Math.min(stop, cfg.top);
-				var count = newCur - acc.cur;
-				acc.cur = newCur;
-				acc.seg.push({idx:idx,count:count});
-			}
-		}
-		return acc;
-	},{seg:[],cur:begin}).seg.reduce(function(acc,seg) {
-		//{idx:0, count:1} => {prize:[{type:x, count:y*n}]}
-		var prizes  = data[seg.idx].prize.map(function(cfg) {
-			return {type:cfg.type, count:cfg.count * seg.count};
-		})
-		return acc.concat(prizes);
-	},[]);
-	return result;
-}
-
-
-function deepFreeze(o) {
-    var prop, propKey;
-    Object.freeze(o); // First freeze the object.
-    for (propKey in o) {
-        prop = o[propKey];
-        if (!o.hasOwnProperty(propKey) || !(typeof prop === 'object') || Object.isFrozen(prop))
-        {
-            // If the object is on the prototype, not an object, or is already frozen,
-            // skip it. Note that this might leave an unfrozen reference somewhere in the
-            // object if there is an already frozen object containing an unfrozen object.
-            continue;
-        }
-
-        deepFreeze(prop); // Recursively call deepFreeze.
-    }
 }
 var gConfigTable = {};
 initGlobalConfig = function (path, callback) {
@@ -384,7 +337,15 @@ initGlobalConfig = function (path, callback) {
       return cfg;
     } else {
       if (cfg[index]) {
-          return cfg[index]
+        switch (type) {
+          case TABLE_ITEM:
+          case TABLE_ROLE: 
+          case TABLE_DUNGEON: 
+            return JSON.parse(JSON.stringify(cfg[index])); //TODO: hotfix
+            break;
+          default:
+            return cfg[index]
+        }
       } else {
         return null;
       }
@@ -396,7 +357,7 @@ initGlobalConfig = function (path, callback) {
     {name:TABLE_STAGE, func: initStageConfig}, {name:TABLE_QUEST}, {name: TABLE_COSTS},
     {name:TABLE_UPGRADE}, {name:TABLE_ENHANCE}, {name: TABLE_CONFIG}, {name: TABLE_VIP, func:initVipConfig},
     {name:TABLE_SKILL}, {name:TABLE_CAMPAIGN, func:initCampaignTable}, {name: TABLE_DROP}, {name: TABLE_TRIGGER},
-    {name:TABLE_DP},{name:TABLE_ARENA},{name:TABLE_BOUNTY, func:initPowerLimit}, {name:TABLE_IAP},{name:TABLE_PKREWARD},
+    {name:TABLE_DP},{name:TABLE_ARENA},{name:TABLE_BOUNTY, func:initPowerLimit}, {name:TABLE_IAP},{name:TABLE_FRAGMENT}
   ];
   if (!path) path = "./";
   configTable.forEach(function (e) {
@@ -404,7 +365,6 @@ initGlobalConfig = function (path, callback) {
     if (!gConfigTable[e.name]) throw Error("Table not found"+e.name);
     if (e.func) gConfigTable[e.name] = e.func(gConfigTable[e.name]);
     gConfigTable[e.name] = prepareForABtest(gConfigTable[e.name]);
-    deepFreeze(gConfigTable[e.name]);
   });
   callback();
 };
@@ -459,10 +419,8 @@ wrapCallback = function() {
 
       if (err.stack) errMsg.stack = err.stack;
 
-      // in strict mode , arguments.callee is no longer supported
-      // 
-      //var caller = arguments.callee.caller;
-      //if (caller && caller.name) errMsg.caller = caller.name;
+      var caller = arguments.callee.caller;
+      if (caller && caller.name) errMsg.caller = caller.name;
 
       logError(errMsg);
 

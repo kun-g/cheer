@@ -1,21 +1,18 @@
-"use strict"
 require('./define')
 require('./shop')
 moment = require('moment')
 {Serializer, registerConstructor} = require './serializer'
 {DBWrapper, getMercenaryMember, updateMercenaryMember, addMercenaryMember, getPlayerHero} = require './dbWrapper'
 {createUnit, Hero} = require './unit'
-{Item, Card} = require './item'
+libItem = require './item'
 {CommandStream, Environment, DungeonEnvironment, DungeonCommandStream} = require('./commandStream')
 {Dungeon} = require './dungeon'
 {Bag, CardStack} = require('./container')
 {diffDate, currentTime, genUtil} = require ('./helper')
 helperLib = require ('./helper')
-underscore = require('./underscore')
+
 dbLib = require('./db')
 async = require('async')
-
-G_PRIZE_MODIFIER = 1
 
 class Player extends DBWrapper
   constructor: (data) ->
@@ -33,6 +30,7 @@ class Player extends DBWrapper
       timestamp: {},
       counters: {},
       flags: {},
+      globalPrizeFlag: {},
 
       inventory: Bag(InitialBagSize),
       gold: 0,
@@ -63,6 +61,9 @@ class Player extends DBWrapper
       accountID: -1,
       campaignState: {},
       infiniteTimer: currentTime(),
+
+      fragmentTime: [],
+      fragmentTimes: [],
 
       inventoryVersion: 1,
       heroVersion: 1,
@@ -263,7 +264,7 @@ class Player extends DBWrapper
       dis = diffDate(@loginStreak.date)
       if dis is 0
         @logError('claimLoginReward', {prev: @loginStreak.date, today: currentTime()})
-        return {ret: RET_RewardAlreadyReceived}
+        return {ret: RET_Unknown}
     @loginStreak['date'] = currentTime(true).valueOf()
     @log('claimLoginReward', {loginStreak: @loginStreak.count, date: currentTime()})
 
@@ -413,6 +414,7 @@ class Player extends DBWrapper
     @purchasedCount[id] += count
 
   createPlayer: (arg, account, cb) ->
+#add check for switchhero
     cb({message:'big brother is watching ya'}) if not (0<= arg.cid <= 2)
 
     @setName(arg.nam)
@@ -438,18 +440,28 @@ class Player extends DBWrapper
       })
     @saveDB(cb)
 
-  putOnEquipmentAfterSwitched: (heroClass)->
-    return unless underscore.isEmpty(@heroBase[heroClass].equipment)
-    prize = queryTable(TABLE_ROLE, heroClass)?.initialEquipment
-    for p in prize
-      ret = @claimPrize(p)
+  putOnEquipmentAfterSwitched: (heroClass) ->
+    equipmentList = @inventory
+      .reduce((acc, item, index) ->
+        acc.push(index) if item? and item.category is ITEM_EQUIPMENT and item.classLimit?.indexOf(heroClass) isnt -1
+        return acc
+      ,[])
+    if equipmentList.length is 0
+      prize = queryTable(TABLE_ROLE, heroClass)?.initialEquipment
+      for p in prize
+        ret = @claimPrize(p)
+        ret.itm?.forEach((item) ->
+          @useItem(item.sid)
+        )
+    else
+      @equipment = equipmentList
 
   createHero: (heroData, isSwitch) ->
     if heroData?
       return null if @heroBase[heroData.class]? and heroData.class is @hero.class
       if isSwitch
         heroData.xp = @hero.xp
-        heroData.equipment = @heroBase[heroData.class]?.equipment or {}
+        heroData.equipment = []
         @heroBase[heroData.class] = heroData
         @switchHero(heroData.class)
         @putOnEquipmentAfterSwitched(heroData.class)
@@ -457,7 +469,6 @@ class Player extends DBWrapper
         heroData.xp = 0
         heroData.equipment = []
         @heroBase[heroData.class] = heroData
-
         @switchHero(heroData.class)
       return @createHero()
     else if @hero
@@ -491,12 +502,11 @@ class Player extends DBWrapper
     if @hero?
       @heroBase[@hero.class] = {}
       for k, v of @hero
-        @heroBase[@hero.class][k] = JSON.parse(JSON.stringify(v)) if k isnt 'equipment'
-      @heroBase[@hero.class].equipment = JSON.parse(JSON.stringify(@equipment))
+
+        @heroBase[@hero.class][k] = JSON.parse(JSON.stringify(v))
 
     for k, v of @heroBase[hClass]
       @hero[k] = JSON.parse(JSON.stringify(v))
-    @equipment = JSON.parse(JSON.stringify(@heroBase[hClass].equipment))
 
   addMoney: (type, point) ->
     return this[type] unless point
@@ -663,12 +673,8 @@ class Player extends DBWrapper
         if stageConfig.pvp? and pkr?
           getPlayerHero(pkr, wrapCallback(this, (err, heroData) ->
             @dungeonData.PVP_Pool = if heroData? then [getBasicInfo(heroData)]
-            dbLib.diffPKRank(@name, pkr,wrapCallback(this, (err, result) ->
-              result = [0,0]  unless Array.isArray(result)
-              @dungeonData.PVP_Score_diff = result[0]
-              @dungeonData.PVP_Score_origin = result[1]
-              cb('OK')
-            ))))
+            cb('OK')
+          ))
         else
           cb('OK')
       ], (err) =>
@@ -686,8 +692,8 @@ class Player extends DBWrapper
           else
             @logError('startDungeon', { reason: 'NoDungeon', err: err, data: @dungeonData, dungeon: @dungeon })
             @releaseDungeon()
-            err = new Error(RET_DungeonNotExist)
-            ret = RET_DungeonNotExist
+            err = new Error(RET_Unknown)
+            ret = RET_Unknown
         handler(err, ret, msg) if handler?
       )
 
@@ -759,9 +765,7 @@ class Player extends DBWrapper
       switch p.type
         when PRIZETYPE_ITEM
           ret = @aquireItem(p.value, p.count, allOrFail)
-          if not (ret? and ret.length >0)
-            return [] if allOrFail
-
+          return [] unless ret and ret.length > 0
         when PRIZETYPE_GOLD then ret.push({NTF: Event_InventoryUpdateItem, arg: {syn: @inventoryVersion, god: @addGold(p.count)}}) if p.count > 0
         when PRIZETYPE_DIAMOND then ret.push({NTF: Event_InventoryUpdateItem, arg: {syn: @inventoryVersion, dim: @addDiamond(p.count)}}) if p.count > 0
         when PRIZETYPE_EXP then ret.push({NTF: Event_RoleUpdate, arg: {syn: @heroVersion, act: {exp: @addHeroExp(p.count)}}}) if p.count > 0
@@ -808,11 +812,9 @@ class Player extends DBWrapper
   claimQuest: (qid) ->
     quest = queryTable(TABLE_QUEST, qid, @abIndex)
     ret = []
-    return RET_QuestNotExists unless quest?
-    return RET_QuestNotAccepted unless @quests[qid]?
-    return RET_QuestCompleted if @quests[qid].complete
+    return RET_Unknown unless quest? and @quests[qid]? and not @quests[qid].complete
     @checkQuestStatues(qid)
-    return RET_QuestNotCompleted unless @isQuestAchieved(qid)
+    return RET_Unknown unless @isQuestAchieved(qid)
 
     prize = @claimPrize(quest.prize.filter((e) => isClassMatch(@hero.class, e.classLimit)))
     if not prize or prize.length is 0 then return RET_InventoryFull
@@ -916,7 +918,7 @@ class Player extends DBWrapper
         
 
     logError({action: 'useItem', reason: 'unknow', catogory: item.category, subcategory: item.subcategory, id: item.id})
-    return {ret: RET_UseItemFailed}
+    return {ret: RET_Unknown}
 
   doAction: (routine) ->
     cmd = new playerCommandStream(routine, this)
@@ -935,7 +937,7 @@ class Player extends DBWrapper
 
   transformGem: (tarID, count) ->
     cfg = queryTable(TABLE_ITEM, tarID)
-    return { ret: RET_TargetNotExists } unless cfg?
+    return { ret: RET_Unknown } unless cfg?
 
     ret = @claimCost(cfg.synthesizeID, count)
     if not ret? then return { ret: RET_InsufficientIngredient }
@@ -947,10 +949,7 @@ class Player extends DBWrapper
     item = @getItemAt(slot)
     return { ret: RET_ItemNotExist } unless item?
     return { ret: RET_EquipCantUpgrade } unless item.upgradeTarget? and @createHero().level > item.rank
-    if item.getConfig().upgradeId?
-      upConfig = queryTable(TABLE_UPGRADE, item.getConfig().upgradeId, @abIndex)
-    else
-      upConfig = queryTable(TABLE_UPGRADE, item.rank, @abIndex)
+    upConfig = queryTable(TABLE_UPGRADE, item.rank, @abIndex)
     return { ret: RET_EquipCantUpgrade } unless upConfig
     exp = upConfig.xp
     cost = upConfig.cost
@@ -962,7 +961,7 @@ class Player extends DBWrapper
 
     this.addGold(-cost)
     ret = this.removeItem(null, 1, slot)
-    newItem = new Item(item.upgradeTarget)
+    newItem = libItem.createItem(item.upgradeTarget)
     newItem.enhancement = item.enhancement
     ret = ret.concat(this.aquireItem(newItem))
     eh = newItem.enhancement.map((e) -> {id:e.id, lv:e.level})
@@ -987,15 +986,10 @@ class Player extends DBWrapper
     ret = @craftItem(slot)
     newItem = ret.newItem
     if newItem
-      newItem.enhancement = enhance
-      newItem.xp = item.xp
-      newItem.slot = item.slot
+      ret.newItem.enhancement = enhance
+      ret.newItem.xp = item.xp
       eh = newItem.enhancement.map((e) -> {id:e.id, lv:e.level})
-      @inventory.container[slot] = newItem
-      ret.res.push({NTF: Event_InventoryUpdateItem, arg: {
-        syn:this.inventoryVersion,
-        itm:[{sid: @queryItemSlot(newItem), cid: newItem.id, eh:eh, xp: newItem.xp}]
-      }})
+      ret.res.push({NTF: Event_InventoryUpdateItem, arg: {syn:this.inventoryVersion, itm:[{sid: @queryItemSlot(newItem), eh:eh, xp: newItem.xp}]}})
     return ret
 
   craftItem: (slot) ->
@@ -1003,12 +997,10 @@ class Player extends DBWrapper
     return { ret: RET_NeedReceipt } unless recipe?
     ret = @claimCost(recipe.forgeID)
     if not ret? then return { ret: RET_InsufficientIngredient }
-    return { ret: RET_TargetNotExists } unless recipe.forgeTarget?
-    newItem = new Item(recipe.forgeTarget)
-    ret = ret.concat({NTF: Event_InventoryUpdateItem, arg:{
-      syn: @inventoryVersion,
-      god: @gold
-    }})
+    return { ret: RET_Unknown } unless recipe.forgeTarget?
+    newItem = libItem.createItem(recipe.forgeTarget)
+    ret = ret.concat(@aquireItem(newItem))
+    ret = ret.concat({NTF: Event_InventoryUpdateItem, arg:{syn: @inventoryVersion, god: @gold }})
     @log('craftItem', { slot: slot, id: recipe.id })
 
     if newItem.rank >= 8 then dbLib.broadcastEvent(BROADCAST_CRAFT, {who: @name, what: newItem.id})
@@ -1020,10 +1012,10 @@ class Player extends DBWrapper
     equip.enhancement[0] = { id: equip.enhanceID, level: -1 } unless equip.enhancement[0]?
     level = equip.enhancement[0].level + 1
     return { ret: RET_EquipCantUpgrade } unless level < 40 and equip.enhanceID?
-    return { ret: RET_EquipCantUpgrade } unless equip.quality? and level < 8*(equip.quality+1)
+
     enhance = queryTable(TABLE_ENHANCE, equip.enhanceID)
     ret = @claimCost(enhance.costList[level])
-    if not ret? then return { ret: RET_ClaimCostFailed }
+    if not ret? then return { ret: RET_Unknown }
 
     equip.enhancement[0].level = level
 
@@ -1039,10 +1031,10 @@ class Player extends DBWrapper
     return { out: {cid: equip.id, sid: itemSlot, stc: 1, eh: eh, xp: equip.xp}, res: ret }
 
   sellItem: (slot) ->
-    if @isEquiped(slot) then return { ret: RET_EquipedItemCannotBeSold }
+    if @isEquiped(slot) then return { ret: RET_Unknown }
 
     item = @getItemAt(slot)
-    return { ret: RET_ItemNotExist } unless item?
+    return { ret: RET_Unknown } unless item?
     count = item.count
     if item?.transPrize or item?.sellprice
       ret = @removeItem(null, null, slot)
@@ -1055,7 +1047,7 @@ class Player extends DBWrapper
       @log('sellItem', { itemId: item.id, price: item.sellprice, count: count, slot: slot })
       return { ret: RET_OK, ntf: [{ NTF: Event_InventoryUpdateItem, arg: {syn:this.inventoryVersion, 'god': this.gold} }].concat(ret)}
     else
-      return { ret: RET_ItemSoldFailed }
+      return { ret: RET_Unknown }
 
   haveItem: (itemID) ->
     itemConfig = queryTable(TABLE_ITEM, itemID, @abIndex)
@@ -1079,7 +1071,7 @@ class Player extends DBWrapper
       return r
     ), [])
 
-    percentage = 1 * G_PRIZE_MODIFIER
+    percentage = 1
     if result is DUNGEON_RESULT_WIN
       if dungeon.isSweep?
         dropInfo = dropInfo.concat(cfg.dropID) if cfg.dropID
@@ -1110,10 +1102,6 @@ class Player extends DBWrapper
         else
           prize.push(iPrize)
   
-    if dungeon.PVP_Pool? and dungeon.result is DUNGEON_RESULT_WIN
-      @updatePkInof(dungeon)
-      prize = prize.concat(@getPKReward(dungeon))
-
     return helperLib.splicePrize(prize)
 
   updateQuest: (quests) ->
@@ -1172,6 +1160,7 @@ class Player extends DBWrapper
     prize = otherPrize.filter( (e) -> return not ( e.count? and e.count is 0 ) )
     if prize.length > 0 then rewardMessage.arg.prize = prize.filter((f) -> f.type isnt  PRIZETYPE_FUNCTION)
     ret = ret.concat(this.claimPrize(prize, false))
+    @updatePkInof(dungeon)
 
     if isSweep
     else
@@ -1179,14 +1168,13 @@ class Player extends DBWrapper
       @releaseDungeon()
     return ret
 
-  getPKReward: (dungeon) ->
-    return getPKRewardByDiff(dungeon.PVP_Score_diff, dungeon.PVP_Score_origin)
-
   updatePkInof: (dungeon) ->
-    myName = @name
-    rivalName = dungeon.PVP_Pool[0].nam
-    dbLib.saveSocre(myName, rivalName, (err, result) ->
-    )
+    if dungeon.PVP_Pool?
+      myName = @name
+      rivalName = dungeon.PVP_Pool[0].nam
+      if dungeon.result is DUNGEON_RESULT_WIN
+        dbLib.saveSocre(myName, rivalName, (err, result) ->
+        )
   whisper: (name, message, callback) ->
     myName = this.name
     dbLib.deliverMessage(
@@ -1251,7 +1239,7 @@ class Player extends DBWrapper
 
   hireFriend: (name, handler) ->
     return false unless handler?
-    return handler(RET_FriendNotExists) if this.contactBook.book.indexOf(name) is -1
+    return handler(RET_Unknown) if this.contactBook.book.indexOf(name) is -1
 
     myIndex = @mercenary.reduce((r, e, index) ->
       return index if e.name is name
@@ -1567,6 +1555,17 @@ class Player extends DBWrapper
 
     return {out: reward, res: ret}
 
+  combineItem: (slot, gemSlot) ->
+    equip = @getItemAt(slot)
+    gem = @getItemAt(gemSlot)
+    return { ret: RET_ItemNotExist } unless gem and equip
+    retRM = @inventory.removeItemAt(gemSlot, 1, true)
+    if retRM
+      equip.installEnhancement(gem)
+      return { res: [] }
+    else
+      return { ret: RET_NoEnhanceStone }
+
   injectWXP: (slot, bookSlot) ->
     equip = @getItemAt(slot)
     book = @getItemAt(bookSlot)
@@ -1619,7 +1618,6 @@ class Player extends DBWrapper
         ret = {sid: bag.queryItemSlot(e), cid: e.id, stc: e.count}
 
         if e.xp? then ret.xp = e.xp
-
         for i, equip of this.equipment when equip is index
           ret.sta = 1
 
@@ -1816,7 +1814,7 @@ createItem = (item) ->
   if Array.isArray(item)
     return ({item: createItem(e.item), count: e.count} for e in item)
   else if typeof item is 'number'
-    return new itemLib.Item(item)
+    return libItem.createItem(item)
   else
     return item
 
@@ -1890,16 +1888,15 @@ playerCSConfig = {
 }
 
 getVip = (rmb) ->
-  tbl = queryTable(TABLE_VIP, "VIP")
+  tbl = queryTable(TABLE_VIP, "VIP", @abIndex)
   return {level: 0, cfg: {}} unless tbl?
   level = -1
   for i, lv of tbl.requirement when lv.rmb <= rmb
     level = i
-
-  levelCfg = JSON.parse(JSON.stringify(tbl.levels[level]))
+  levelCfg = tbl.levels[level]
   levelCfg.privilege = tbl.requirement[level].privilege
-  
-  return {level: level, cfg: levelCfg}
+  return {level: level, cfg: tbl.levels[level]}
+
 
 registerConstructor(Player)
 exports.Player = Player
