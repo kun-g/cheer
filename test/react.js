@@ -1,7 +1,6 @@
-helper =  require('../../build/helper.js');
+helper =  require('../js/helper.js');
 require('should');
  
-
 describe('React', function () {
     function Item() { 
         this.count = 1;

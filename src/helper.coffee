@@ -15,7 +15,7 @@ defineObjProperty = (obj, name, value, configurable) ->
 defineHideProperty = (obj, name, value) -> defineObjProperty(obj, name,value, true)
 defineObjFunction = (obj, name, value) -> defineObjProperty(obj, name,value, false)
 
-Proxy = require('../addon/proxy/nodeproxy')
+Proxy = require('./addon/proxy/nodeproxy')
 isInVersion = (filter, key) ->
   return true unless filter?
   for _versionName, keyLst of filter
@@ -83,7 +83,6 @@ updateVersion = (oldval,val,name,__map,target) ->
 
 makeVersionRecoder = (obj,key) ->
   func =  (pro,act, newv,oldv) ->
-    console.log('version change ', key)
     obj[key] += 1
 #  func.toString =() ->
 #    return '[function for :'+key+']'
@@ -162,51 +161,7 @@ exports.addVersionControl = (versionConfig) ->
     return obj unless canProxy(obj)
     return  Proxy.create(ProxyHandler(obj,setupVersionControl, versionCfg), obj.constructor.prototype)
 
-
   return  setupVersionControl
-
-addFeature = (obj, key ,type, hooks) ->
-  config = {
-    enumerable : false,
-    configurable : true,
-  }
-  if key is 'set'
-    func = (val) ->
-      hooks.forEach((fun) ->
-        fun(obj,key,val))
-      obj[key] = value
-  else if key is 'get'
-    func = () ->
-      val = obj[key]
-      hooks.forEach((fun) ->
-        fun(obj,key,val))
-
-  config[key] = func if func?
-  Object.defineProperty(obj, key, config)
-
-makeVersionRecoder = (key) ->
-  return () -> key+=1
-
-registerVersionControl =(obj, versionKeyList, versionRecoderList) ->
-  for versionKey in versionKeyList
-    charIdx = versionKey.indexOf('@')
-    if charIdx is -1
-      addFeature(obj,versionKey,'set', versionRecoderList)
-    else
-      addVersionControl(obj[versionKey],versionKey.substr(charIdx+1), versionRecoderList)
-
-
-addVersionControl = (obj, cfgKey, versionRecoderList =[]) ->
-  cfgInfo = versionDiscribe[cfgKey]?
-  return unless cfgInfo?
-  if typeof cfgInfo is 'object'
-    for versionStore, versionKeyList of cfgInfo
-      obj[versionStore] = 0
-      versionRecoderList.push(makeVersionRecoder(obj[versionStore]))
-      registerVersionControl(obj, versionKeyList, versionRecoderList)
-  else
-    registerVersionControl(obj[cfgKey], cfgInfo, versionRecoderList)
-
 
 CONST_MAX_WORLD_BOSS_TIMES = 200
 exports.ConstValue = {WorldBossTimes : CONST_MAX_WORLD_BOSS_TIMES}
