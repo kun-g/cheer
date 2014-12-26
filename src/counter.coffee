@@ -15,7 +15,7 @@ class Counter extends Serializer
 
   isFulfiled: (time) ->
     @update(time)
-    return @counter>@counter.uplimit if @config.uplimit
+    return @counter>=@config.uplimit if @config.uplimit
     return false
 
   notFulfiled: (time) -> not @isFulfiled(time)
