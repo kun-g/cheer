@@ -729,12 +729,12 @@ exports.route = {
       switch arg.cmd
         when 0
           if arg.type?
-            {prize, ret} = player.getFragment(arg.type)
-      res = {REQ: rpcID, RET: ret}
+            {prize, res, ret} = player.getFragment(arg.type, arg.count)
+      evt = {REQ: rpcID, RET: ret}
       if prize
-        res.arg = prize
+        evt.arg = prize
         player.saveDB()
-      handler(res)
+      handler([evt].concat(res))
     ,
     args: {'cmd':0,'type':0},
     needPid: true

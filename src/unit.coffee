@@ -12,6 +12,7 @@ class Unit extends Wizard
     @isVisible = false
     @unitProperty = {}
     @unitAppearance = {}
+    @skill = []
     @uniform = {}
 
   calculatePower: () ->
@@ -155,6 +156,7 @@ class Unit extends Wizard
     return false unless @unitAppearance?
     for k of @unitAppearance
       @unitAppearance[k] = null
+    @skill=[]
 
   addUnitPro: (unitPro) ->
     return false unless unitPro?
@@ -170,6 +172,8 @@ class Unit extends Wizard
           for k, v of u.appearance
             @unitAppearance[k] = this.appearance[k]
             this.appearance[k] = v
+        when 'install_skill'
+          @skill.push({id: u.id, level: u.level})
 
   caculateUnitPro: () ->
     return false unless @uniform?

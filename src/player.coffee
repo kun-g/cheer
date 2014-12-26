@@ -899,6 +899,23 @@ class Player extends DBWrapper
 
         this.onEvent('Equipment')
         return { ret: RET_OK, ntf: [ret] }
+      when ITEM_RECIPE
+        switch item.subcategory
+          when RECIPE_SYN
+            recipe = @itemSynthesis(slot)
+            return { ret: recipe.ret } unless recipe.res
+            @log('itemSynthesis ret', {type: 'recipe', recipe: recipe})
+            ripres = recipe.res
+            ripres = ripres.concat(@removeItem(null, 1, slot))
+            @log('recipe', {type: 'recipe', id: item.id, recipe: recipe.out})
+            return {out:recipe.out, ntf:ripres}
+          when RECIPE_DECOM
+            recipe = @itemDecompsite(slot)
+            return { ret: RET_ItemNotExist } unless recipe
+            @log('deposite ret', {type: 'recipe', recipe: recipe})
+            @log('recipe', {type: 'recipe', id: item.id, recipe: recipe.out})
+            return {out:recipe.prize, ntf:recipe.res}
+        
 
     logError({action: 'useItem', reason: 'unknow', catogory: item.category, subcategory: item.subcategory, id: item.id})
     return {ret: RET_Unknown}
@@ -1721,31 +1738,52 @@ class Player extends DBWrapper
       arg :versions
     }
 
-  getFragment: (type) ->
-    console.log('type=', type)
+  getFragment: (type,count) ->
     @fragmentTimes[type] = 0 unless @fragmentTimes[type]
     @fragmentTime[type] = "2014-10-01" unless @fragmentTime[type]
     fragInterval = [{"value":5,"unit":"minite"},{"value":24,"unit":"hour"}]
     hiGradeTimesFrag = [10,10]
     fragInterval[type] = queryTable(TABLE_FRAGMENT)[type].interval
     hiGradeTimesFrag[type] = queryTable(TABLE_FRAGMENT)[type].basic_times
-    console.log('fragmentTime=', @fragmentTime[type])
-    console.log('fragmentTimes=', @fragmentTimes[type])
-    console.log('unit=', fragInterval[type].unit)
     dis = diffDate(@fragmentTime[type],currentTime(),fragInterval[type].unit)
-    if dis >= fragInterval[type].value
-      if fragmentTimes[type] < hiGradeTimesFrag[type]
-        prz = generatePrize(queryTable(TABLE_FRAGMENT).basic_prize, [0..queryTable(TABLE_FRAGMENT).basic_prize-1])
-      else 
-        prz = generatePrize(queryTable(TABLE_FRAGMENT).advanced_prize, [0..queryTable(TABLE_FRAGMENT).advanced_prize-1])
-      fragmentTime[type] = currentTime()
-      fragmentTimes[type]++
+    prz = []
+    if dis >= fragInterval[type].value or true
+      for i in [0..count-1]
+        if @fragmentTimes[type] < hiGradeTimesFrag[type]
+          prz = prz.concat(generatePrize(queryTable(TABLE_FRAGMENT)[type].basic_prize, [0..queryTable(TABLE_FRAGMENT)[type].basic_prize.length-1]))
+          @fragmentTimes[type]++
+        else 
+          prz = prz.concat(generatePrize(queryTable(TABLE_FRAGMENT)[type].advanced_prize, [0..queryTable(TABLE_FRAGMENT)[type].advanced_prize.length-1]))
+          @fragmentTimes[type] = 0
+      @fragmentTime[type] = currentTime()
+      
     else
       return { ret: RET_RewardAlreadyReceived }
     prize = @claimPrize(prz)
+    console.log('prz=', JSON.stringify(prz))
     return { ret: RET_InventoryFull } unless prize
-    @log('lottery', {type: 'TreasureChest', type: type, prize: prize})
-    return {prize: prz, ret: RET_OK}
+    @log('lottery', {type: 'lotteryFragment', prize: prize})
+    return {prize: prz, res: prize, ret: RET_OK}
+
+  itemSynthesis: (slot) ->
+    recipe = @getItemAt(slot)
+    return { ret: RET_ItemNotExist } unless recipe?
+    ret = @claimCost(recipe.recipeCost)
+    if not ret? then return { ret: RET_InsufficientIngredient }
+    return { ret: RET_Unknown } unless recipe.recipeTarget?
+    newItem = libItem.createItem(recipe.recipeTarget)
+    ret = ret.concat(@aquireItem(newItem))
+    @log('itemSynthesis', { slot: slot, id: recipe.id })
+    return { out: { type: PRIZETYPE_ITEM, value: newItem.id, count: 1}, res: ret }
+
+  itemDecompsite: (slot) ->
+    recipe = @getItemAt(slot)
+    return { ret: RET_ItemNotExist } unless recipe?
+    prz = @claimPrize(recipe.recipePrize)
+    if not prz? then return { ret: RET_InsufficientIngredient }
+    ret = prz.concat(@removeItem(null, 1, slot))
+    @log('itemDecompsite', { slot: slot, id: recipe.id })
+    return { prize: prz, res: ret }
 
 playerMessageFilter = (oldMessage, newMessage, name) ->
   message = newMessage
