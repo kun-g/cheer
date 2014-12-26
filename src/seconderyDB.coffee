@@ -1,3 +1,4 @@
+"use strict"
 {SimpleProtocolDecoder, SimpleProtocolEncoder} = require('./requestStream')
 async = require('async')
 redis = require('redis')

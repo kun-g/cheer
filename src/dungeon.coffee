@@ -1,3 +1,4 @@
+"use strict"
 require('./define')
 require('./shared')
 {Wizard} = require './spell'
@@ -258,6 +259,7 @@ class Dungeon
         @xpRate *= 1.1
 
     if @PVP_Pool
+      cfg = JSON.parse(JSON.stringify(cfg))
       cfg.pool.PVP ={}
       cfg.pool.PVP.objects = @PVP_Pool.map((e) ->
         e.weight = 10
@@ -849,7 +851,7 @@ class DungeonEnvironment extends Environment
   nextLevel: () -> @dungeon?.nextLevel()
   isDungeonFinished: () -> return @dungeon.currentLevel >= @dungeon.getConfig().levelCount
   createObject: (cfg) -> @dungeon?.level?.createObject(cfg)
-  useItem: (spell, level, cmd) -> @dungeon.getDummyHero().castSpell(spell, level, cmd)
+  useItem: (spell, level, cmd) -> @dungeon.getDummyHero().castSpell(spell, cmd)
   getReviveCount: () -> @dungeon?.revive
   createSpellMsg: (actor, spell, delay) ->
     return [] unless actor? and spell?
@@ -989,6 +991,8 @@ dungeonCSConfig = {
       env.onEvent('onEnterLevel', @)
       if env.isLevelInitialized()
         @routine({id: 'OpenBlock', block: e}) for e in [0..DG_BLOCKCOUNT-1] when env.getBlock(e).explored
+        @routine({id: 'SpellCD', cdInfo:h.getSpellCD()}) for h in env.getObjects() when h.isHero()
+        
       else
         env.levelInitialized()
         if Array.isArray(entrance)
@@ -1011,11 +1015,9 @@ dungeonCSConfig = {
         env.moveHeroes(newPosition)
 
         o.onEvent('onEnterLevel', @) for o in env.getObjects()
+        @routine({id: 'TickSpell'})
 
 
-
-
-      @routine({id: 'TickSpell'})
       heroInfo = env.getAliveHeroes()
                   .filter((e) -> e?.ref? )
                   .sort((a, b) -> return a.order-b.order)
@@ -1196,7 +1198,6 @@ dungeonCSConfig = {
 
       env.variable('damage', src.attack)
       onEvent('Target', @, src, tar)
-
       env.variable('hit', env.compete('hit', src.accuracy, tar.reactivity))
       onEvent('Hit', @, env.variable('src'), env.variable('tar'))
 
@@ -1213,7 +1214,7 @@ dungeonCSConfig = {
           isRange:env.variable('isRange')
         })
       else
-        @routine({id:'Evade', src:tar})
+        @routine({id:'Evade', src:tar, tar: src})
     ,
     output: (env) ->
       if env.variable('isRange')  and env.variable('eff')?
@@ -1234,7 +1235,10 @@ dungeonCSConfig = {
           flag = HP_RESULT_TYPE_CRITICAL
       else
         flag = HP_RESULT_TYPE_MISS
-      return [{act: env.variable('src').ref, id: ACT_ATTACK, ref: env.variable('tar').ref, res:flag, rng:env.variable('isRange')}].concat(rangeEff)
+      if env.variable('ignoreAttack')
+        return [].concat(rangeEff)
+      else
+        return [{act: env.variable('src').ref, id: ACT_ATTACK, ref: env.variable('tar').ref, res:flag, rng:env.variable('isRange')}].concat(rangeEff)
   },
   ShiftOrder: {
     output: (env) -> [{id:ACT_SHIFTORDER}]
@@ -1432,7 +1436,7 @@ dungeonCSConfig = {
   },
   CastSpell: {
     callback: (env) ->
-      env.variable('me').castSpell(env.variable('spell'), null, @)
+      env.variable('me').castSpell(env.variable('spell'), @)
   },
   UseItem: {
     callback: (env) ->
@@ -1522,6 +1526,7 @@ dungeonCSConfig = {
       @next({id: 'Dead', tar: env.variable('tar'), killer:env.variable('src'), damage: env.variable('damage')}) unless env.variable('tar').isAlive()
 
       @getPrevCommand('Attack')?.cmd?.critical = env.variable('critical')
+      @getPrevCommand('Attack')?.cmd?.ignoreAttack = env.variable('ignoreAttack')
     ,
     output: (env) ->
       flag = if env.variable('critical') then HP_RESULT_TYPE_CRITICAL else HP_RESULT_TYPE_HIT
@@ -1591,6 +1596,7 @@ dungeonCSConfig = {
       return ret
   },
   Evade: {
+    callback: (env) -> onEvent('Dodge', @, env.variable('src'), env.variable('tar'))
     output: (env) -> return [{act: env.variable('src').ref, id: ACT_EVADE, dey: 0}] # TODO:delay
   },
   ActivateMechanism: {

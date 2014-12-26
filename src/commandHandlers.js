@@ -1,3 +1,4 @@
+"use strict";
 var dbLib = require('./db');
 require('./shop');
 
@@ -35,7 +36,7 @@ function handler_queryRoleInfo(arg, player, handler, rpcID) {
     if (hero) {
       handler([{REQ : rpcID, RET : RET_OK, arg: getBasicInfo(hero)}]);
     } else {
-      handler([{REQ : rpcID, RET : RET_Unknown}]);
+      handler([{REQ : rpcID, RET : RET_PlayerNotExists}]);
     }
   });
 }
@@ -96,15 +97,14 @@ addHandler(Request_DungeonCard, handler_doCardSpell, ['slt', 'number'], 'do Card
   * sid 位置
   * opn 操作
  */
-USE_ITEM_OPT_EQUIP = 1;
-USE_ITEM_OPT_ENHANCE = 2;
-USE_ITEM_OPT_LEVELUP = 3;
-USE_ITEM_OPT_CRAFT = 4;
-USE_ITEM_OPT_DECOMPOSE = 5;
-USE_ITEM_OPT_INJECTWXP = 6;
-USE_ITEM_OPT_RECYCLE = 7; // 分解装备
-USE_ITEM_OPT_SELL = 8; // 出售
-USE_ITEM_OPT_COMBINE = 9; // 出售
+var USE_ITEM_OPT_EQUIP = 1;
+var USE_ITEM_OPT_ENHANCE = 2;
+var USE_ITEM_OPT_LEVELUP = 3;
+var USE_ITEM_OPT_CRAFT = 4;
+var USE_ITEM_OPT_DECOMPOSE = 5;
+var USE_ITEM_OPT_INJECTWXP = 6;
+var USE_ITEM_OPT_RECYCLE = 7; // 分解装备
+var USE_ITEM_OPT_SELL = 8; // 出售
 function handler_doUseItem(arg, player, handler, rpcID) {
   var slot = Math.floor(arg.sid);
   var opn = Math.floor(arg.opn);
@@ -132,20 +132,17 @@ function handler_doUseItem(arg, player, handler, rpcID) {
     case USE_ITEM_OPT_CRAFT:
       ret = player.upgradeItemQuality(slot);
       break;
-    case USE_ITEM_OPT_COMBINE:
-      ret = player.combineItem(slot, arg.opd);
-      break;
     default:
       ret = player.useItem(slot, arg.sho);
       break;
   }
 
-  evt = {REQ : rpcID, RET : RET_OK};
+  var evt = {REQ : rpcID, RET : RET_OK};
   if (ret.ret) evt.RET = ret.ret;
   if (ret.res) evt.RES = ret.res;
   if (ret.prize) evt.prz = ret.prize;
   if (ret.out) evt.out = ret.out;
-  res = [evt];
+  var res = [evt];
   if (ret.ntf) res = res.concat(ret.ntf);
   handler(res);
   player.saveDB();
@@ -160,7 +157,7 @@ function handler_doRequireMercenaryList(arg, player, handler, rpcID) {
       handler([{REQ : rpcID, RET : RET_OK},
         {NTF: Event_MercenaryList, arg : lst.map(getBasicInfo)}]);
     } else {
-      handler({REQ : rpcID, RET : RET_Unknown});
+      handler({REQ : rpcID, RET : RET_RequireMercenaryFailed});
     }
   });
   player.saveDB();
@@ -170,7 +167,7 @@ addHandler(RPC_RequireMercenaryList,  handler_doRequireMercenaryList,
 
 function handler_doClaimLoginStreakReward(arg, player, handler, rpcID) {
   var ret = player.claimLoginReward();
-  res = [{REQ: rpcID, RET: ret.ret}];
+  var res = [{REQ: rpcID, RET: ret.ret}];
   if (ret.res) res = res.concat(ret.res);
   if (ret.ret === RET_OK) player.saveDB();
   handler(res);
@@ -339,7 +336,7 @@ function handler_doHireFriend(arg, player, handler, rpcID) {
       handler([{REQ : rpcID, RET : RET_OK},
         {NTF: Event_MercenaryList, arg : lst.map(getBasicInfo)}]);
     } else {
-      handler({REQ : rpcID, RET : RET_Unknown});
+      handler({REQ : rpcID, RET : RET_HireFriendFailed});
     }
   });
 }

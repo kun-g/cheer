@@ -1,3 +1,4 @@
+"use strict"
 clone = (obj) ->
   if Array.isArray(obj)
     ret = []

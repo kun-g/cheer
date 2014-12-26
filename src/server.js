@@ -1,3 +1,4 @@
+"use strict";
 var defLib = require('./define');
 var dbLib = require('./db');
 var parseLib = require('./requestStream');
@@ -105,7 +106,7 @@ Server.prototype.startTcpServer = function (config) {
   };
   this.serverInfo.port = config.port;
 
-  me = this;
+  var me = this;
   dbLib.subscribe('ServerInfo', function (info) {
     info.time = new Date();
     me.serverList[info.serverID] = info;

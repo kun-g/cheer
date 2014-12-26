@@ -41,6 +41,7 @@ TABLE_IAPLIST = "iaplist";
 TABLE_SERVERLIST = "serverlist";
 TABLE_FRAGMENT = "fragment";
 TABLE_IAP = "iaplist";
+TABLE_PKREWARD = "pkReward";
 
 /*** GAME CONSTANTS ***/
 ItemId_RevivePotion = 540;
