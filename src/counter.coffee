@@ -20,6 +20,13 @@ class Counter extends Serializer
 
   notFulfiled: (time) -> not @isFulfiled(time)
 
+  isCounted: (time) ->
+    theData = { ThisCounter: { time: @time } }
+    return libTime.verify(time, @config.count_down, theData) if @config.count_down
+    return false
+
+  notCounted: (time) -> not @isCounted(time)
+
   update: (time) -> @incr(0, time)
 
   decr: (delta, time) -> @incr(-delta, time)
@@ -31,29 +38,25 @@ class Counter extends Serializer
     theData = { ThisCounter: { time: @time } }
 
     time = moment(time)
-    if delta then @time = time.format()
 
-    if @time
-      duration = @config.duration
-      if duration
-        if !libTime.verify(time, duration, theData)
-          @counter = 0
+    duration = @config.duration
+    if duration
+      if !libTime.verify(time, duration, theData)
+        @counter = 0
 
-      combo = @config.combo
-      if combo
-        if !libTime.verify(time, combo, theData)
-          @counter = 0
+    combo = @config.combo
+    if combo
+      if !libTime.verify(time, combo, theData)
+        @counter = 0
 
-      countDown = @config.count_down
-      if countDown
-        if libTime.verify(time, countDown, theData)
-          delta = 0
+    if @config.count_down and @isCounted(time) then delta = 0
 
     uplimit = @config.uplimit
     if uplimit && @counter + delta > uplimit
       delta = uplimit - @counter
 
     @counter += delta
+    if delta then @time = time.format()
     return @
 
   reset: () -> @counter = config.initial_value

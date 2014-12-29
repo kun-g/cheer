@@ -114,7 +114,7 @@ class Player extends DBWrapper
     equipment = (e for i, e of @equipment)
     return equipment.indexOf(+slot) != -1
 
-  migrate: () ->
+  migrate: () -> #TODO:deprecated
     flag = false
     for slot, item of @inventory.container when item?
       if item.transPrize?
@@ -146,14 +146,6 @@ class Player extends DBWrapper
 
   getType: () -> 'player'
 
-  getTotalPkTimes: () -> return @getPrivilege('pkCount')
-  claimPkPrice: (callback) ->
-    me = @
-    helperLib.getPositionOnLeaderboard(helperLib.LeaderboardIdx.Arena, @name, 0, 0, (err, result) ->
-      prize = arenaPirze(result.position + 1 )
-      ret = me.claimPrize(prize)
-      callback(ret)
-    )
   submitCampaign: (campaign, handler) ->
     event = this[campaign]
     if event?
@@ -1238,6 +1230,14 @@ class Player extends DBWrapper
   wxpAdjust: () -> @vipOperation('wxpAdjust')
   energyLimit: () -> @vipOperation('energyLimit')
   getPrivilege: (name) -> @vipOperation(name)
+  getTotalPkTimes: () -> return @getPrivilege('pkCount')
+  claimPkPrice: (callback) ->
+    me = @
+    helperLib.getPositionOnLeaderboard(helperLib.LeaderboardIdx.Arena, @name, 0, 0, (err, result) ->
+      prize = arenaPirze(result.position + 1 )
+      ret = me.claimPrize(prize)
+      callback(ret)
+    )
 
   hireFriend: (name, handler) ->
     return false unless handler?

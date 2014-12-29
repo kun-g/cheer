@@ -96,7 +96,6 @@ verify = (time, durationExp, theData) ->
   return doVerify(time, timeExp)
 
 exports.verify = verify
-
-exports.diff = (to, from) -> return moment.duration({from: from, to: to})
-
+exports.diff = (to, from) -> return moment.duration(moment(to)-moment(from))
 exports.currentTime = () -> moment().format()
+exports.moment = moment
