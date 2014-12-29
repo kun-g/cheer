@@ -11,34 +11,40 @@ moment = require('moment')
 {Player} = require('./player')
 
 checkRequest = (req, player, arg, rpcID, cb) ->
-  req = https.request(req, (res) ->
-    res.setEncoding('utf8')
-    res.on('data', (chunk) ->
-      result = JSON.parse(chunk)
-      logInfo({action: 'VerifyPayment', type: 'Apple', code: result, receipt: arg.bill})
-      if result.status isnt 0 or result.original_transaction_id
-        return cb([{REQ: rpcID, RET: RET_InvalidPaymentInfo}])
-      else
-        receipt = arg.bill
-        #receiptInfo = unwrapReceipt(result.transaction_id)
-        #serverName = 'Master'
-        player.handlePayment({
-          paymentType: 'AppStore',
-          productID: result.receipt.product_id,
-          receipt: receipt
-        }, (err, result) ->
-          ret = RET_OK
-          ret = err.message if err?
-          cb([{REQ: rpcID, RET: ret}].concat(result))
+  dbLib.checkReceiptValidate(arg.rep, (isValidate) ->
+    if isValidate
+      req = https.request(req, (res) ->
+        res.setEncoding('utf8')
+        res.on('data', (chunk) ->
+          result = JSON.parse(chunk)
+          logInfo({action: 'VerifyPayment', type: 'Apple', code: result, receipt: arg.bill})
+          if result.status isnt 0 or result.original_transaction_id
+            return cb([{REQ: rpcID, RET: RET_InvalidPaymentInfo}])
+          else
+            receipt = arg.bill
+            #receiptInfo = unwrapReceipt(result.transaction_id)
+            #serverName = 'Master'
+            player.handlePayment({
+              paymentType: 'AppStore',
+              productID: result.receipt.product_id,
+              receipt: receipt,
+            }, (err, result) ->
+              dbLib.markReceiptInvalidate(arg.rep)
+              ret = RET_OK
+              ret = err.message if err?
+              cb([{REQ: rpcID, RET: ret}].concat(result))
+            )
         )
-    )
-    .on('error', (e) ->
-      logError({action: 'VerifyPayment', type: 'Apple', error: e, rep: arg.rep})
+        .on('error', (e) ->
+          logError({action: 'VerifyPayment', type: 'Apple', error: e, rep: arg.rep})
+          cb([{REQ: rpcID, RET: RET_InvalidPaymentInfo}])
+        )
+      )
+      req.write(JSON.stringify({"receipt-data": JSON.parse(arg.rep).receipt}))
+      req.end()
+    else
       cb([{REQ: rpcID, RET: RET_InvalidPaymentInfo}])
-    )
   )
-  req.write(JSON.stringify({"receipt-data": JSON.parse(arg.rep).receipt}))
-  req.end()
 
 
 
@@ -494,7 +500,7 @@ exports.route = {
                 path: '/verifyReceipt',
                 method: 'POST'
               }
-              checksession(options, rpcID,handler)
+              checkRequest(options, player, arg, rpcID,handler)
             else
               handler(result)
             )
