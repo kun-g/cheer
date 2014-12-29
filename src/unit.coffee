@@ -116,19 +116,26 @@ class Hero extends Unit
   isHero: () -> true
 
 class Mirror extends Unit
-  constructor: (heroData) ->
+  constructor: (heroData, type) ->
     super
     return false unless heroData?
 
     @type = Unit_Mirror
-    @blockType = Block_Enemy
+    if type is 'pk'
+      @blockType = Block_Enemy
+      @isVisible = false
+      @keyed = true
+      transId = 'pkTransId'
 
-    @isVisible = false
-    @keyed = true
+    else
+      @blockType = Unit_Hero
+      @isVisible = true
+      @keyed = false
+      transId = 'teammateTransId'
 
-    @initialize(heroData)
+    @initialize(heroData, transId)
 
-  initialize: (heroData) ->
+  initialize: (heroData, transId) ->
     hero = new Hero({
       name: heroData.nam,
       class: heroData.cid,
@@ -139,10 +146,11 @@ class Mirror extends Unit
       xp: heroData.exp,
     })
     battleForce = hero.calculatePower()
+    
 
     cfg = queryTable(TABLE_ROLE, heroData.cid)
-    cid = cfg.transId
-    cfg = queryTable(TABLE_ROLE, cfg.transId)
+    cid = cfg[transId]
+    cfg = queryTable(TABLE_ROLE, cid)
     @initWithConfig(cfg) if cfg?
     @class = cid
     @level = 0
@@ -166,6 +174,7 @@ class Mirror extends Unit
     @ref = heroData.ref
     @id = cid
     @originAttack = @attack
+    @order = heroData.order if heroData.order?
 
 class Monster extends Unit
   constructor: (data) ->
@@ -204,6 +213,11 @@ class Npc extends Unit
     cfg = queryTable(TABLE_ROLE, @id) if @id?
     @initWithConfig(cfg) if cfg?
 
+canMirror = (cid, type) ->
+  transId = if type is 'pk' then 'pkTransId' else 'teammateTransId'
+  cfg = queryTable(TABLE_ROLE, cid)
+  return cfg[transId]?
+
 createUnit = (config) ->
   cfg = queryTable(TABLE_ROLE, config.id) if config?.id?
   throw Error('No such an unit:'+config?.id + ' cfg: '+ config) unless cfg?
@@ -211,8 +225,14 @@ createUnit = (config) ->
   switch cfg.classType
     when Unit_Enemy then return new Monster(config)
     when Unit_NPC then return new Npc(config)
-    when Unit_Hero then return new Mirror(config)
+    when Unit_Hero then return new exports.Mirror(config)
+
+exports.Hero = Hero
+exports.Mirror = (config, type = 'pk') ->
+  if canMirror(config.cid, type)
+    new Mirror(config, type)
+  else
+    new Hero(config)
 
 exports.createUnit = createUnit
-exports.Hero = Hero
 exports.fileVersion = -1

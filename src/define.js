@@ -145,7 +145,8 @@ getBasicInfo = function (hero) {
     hairColor : 'hcl',
     xp : 'exp',
     isFriend: 'ifn',
-    vipLevel: 'vip'
+    vipLevel: 'vip',
+    isMe: 'isMe',
   };
 
   var ret = grabAndTranslate(hero, translateTable);

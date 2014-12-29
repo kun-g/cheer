@@ -3,7 +3,7 @@ require('./define')
 require('./shared')
 {Wizard} = require './spell'
 {DBWrapper} = require './dbWrapper'
-{createUnit, Hero} = require './unit'
+{createUnit, Hero, Mirror} = require './unit'
 {Item, Card} = require './item'
 {CommandStream, Environment } = require('./commandStream')
 {Bag, CardStack} = require('./container')
@@ -291,18 +291,24 @@ class Dungeon
   initiateHeroes: (team) ->
     team = [] unless team
     ref = 0
-    this.heroes = (
-      new Hero({
-        name: e.nam,
-        class: e.cid,
-        gender: e.gen,
-        hairStyle: e.hst,
-        hairColor: e.hcl,
-        equipment: e.itm,
-        xp: e.exp,
-        order: ref,
-        ref: ref++
-      }) for e in team
+    this.heroes = team.map((e) ->
+      if e.isMe
+        data = {
+          name: e.nam,
+          class: e.cid,
+          gender: e.gen,
+          hairStyle: e.hst,
+          hairColor: e.hcl,
+          equipment: e.itm,
+          xp: e.exp,
+          order: ref,
+          ref :ref++
+        }
+        return new Hero(data)
+      else
+        e.order = ref
+        e.ref = ref++
+        new Mirror(e, 'teammate')
     )
     dummyHero = new Hero({})
     dummyHero.health =0
@@ -387,6 +393,7 @@ class Dungeon
       when RPC_GameStartDungeon then action = DUNGEON_ACTION_ENTER_DUNGEON
       when Request_DungeonSpell
         action = DUNGEON_ACTION_CAST_SPELL
+        req.arg ?={idx:0}
         arg = {i:+req.arg.idx}
       when REQUEST_CancelDungeon then action = DUNGEON_ACTION_CANCEL_DUNGEON
       when Request_DungeonRevive then action = DUNGEON_ACTION_REVIVE
@@ -1075,6 +1082,7 @@ dungeonCSConfig = {
       env.variable('state', state)
     output: (env) ->
       ret =  genUnitInfo(env.variable('wizard'), false, env.variable('state'))
+      return [] unless ret?
       if env.variable('effect')?
         effect = env.variable('effect')
         if ret? then ret = [ret]
@@ -1085,7 +1093,7 @@ dungeonCSConfig = {
         ev.sid = if actor.isBlock then (actor.pos+1)*100+bid else (actor.ref+1)*1000+bid
         if actor.isBlock then ev.pos = +actor.pos else ev.act = actor.ref
         ret.push(ev)
-      return if ret? then ret else []
+      return ret
   },
   TickSpell: {
     callback: (env) -> h.tickSpell(env.variable('tickType'), @) for h in env.getObjects()
