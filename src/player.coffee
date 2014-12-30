@@ -852,7 +852,7 @@ class Player extends DBWrapper
 
   getItemAt: (slot) -> @inventory.get(slot)
 
-  useItem: (slot)->
+  useItem: (slot, opn)->#opn 时装系统装备卸下时需要
     item = @getItemAt(slot)
     myClass = @hero.class
     return { ret: RET_ItemNotExist } unless item?
@@ -884,24 +884,12 @@ class Player extends DBWrapper
                 ret = ret.concat(this.syncEnergy())
             return { ret: RET_OK, ntf: ret }
       when ITEM_EQUIPMENT
-        return { ret: RET_RoleLevelNotMatch } if item.rank? and this.createHero().level < item.rank
-        ret = {NTF: Event_InventoryUpdateItem, arg: {syn:this.inventoryVersion, itm: []}}
-        equip = this.equipment[item.subcategory]
-        tmp = {sid: slot, sta: 0}
-        if equip is slot
-          delete this.equipment[item.subcategory]
-        else
-          if equip? then ret.arg.itm.push({sid: equip, sta: 0})
-          this.equipment[item.subcategory] = slot
-          tmp.sta = 1
-        ret.arg.itm.push(tmp)
-        delete ret.arg.itm if ret.arg.itm.length < 1
-
-        this.onEvent('Equipment')
-        return { ret: RET_OK, ntf: [ret] }
+        @equipItem(slot)
       when ITEM_RECIPE
-        switch item.subcategory
-          when RECIPE_SYN
+        if opn? and opn == 1#USE_ITEM_OPT_EQUIP = 1;
+          @equipItem(slot)
+        else
+          if item.recipeTarget?
             recipe = @itemSynthesis(slot)
             return { ret: recipe.ret } unless recipe.res
             @log('itemSynthesis ret', {type: 'recipe', recipe: recipe})
@@ -909,7 +897,7 @@ class Player extends DBWrapper
             ripres = ripres.concat(@removeItem(null, 1, slot))
             @log('recipe', {type: 'recipe', id: item.id, recipe: recipe.out})
             return {out:recipe.out, ntf:ripres}
-          when RECIPE_DECOM
+          else if item.recipePrize?
             recipe = @itemDecompsite(slot)
             return { ret: RET_ItemNotExist } unless recipe
             @log('deposite ret', {type: 'recipe', recipe: recipe})
@@ -944,6 +932,24 @@ class Player extends DBWrapper
     ret = ret.concat(@aquireItem(tarID, count))
 
     return { res: ret }
+
+  equipItem: (slot) ->
+    item = @getItemAt(slot)
+    return { ret: RET_RoleLevelNotMatch } if item.rank? and this.createHero().level < item.rank
+    ret = {NTF: Event_InventoryUpdateItem, arg: {syn:this.inventoryVersion, itm: []}}
+    equip = this.equipment[item.subcategory]
+    tmp = {sid: slot, sta: 0}
+    if equip is slot
+      delete this.equipment[item.subcategory]
+    else
+      if equip? then ret.arg.itm.push({sid: equip, sta: 0})
+      this.equipment[item.subcategory] = slot
+      tmp.sta = 1
+    ret.arg.itm.push(tmp)
+    delete ret.arg.itm if ret.arg.itm.length < 1
+
+    this.onEvent('Equipment')
+    return { ret: RET_OK, ntf: [ret] }
 
   levelUpItem: (slot) ->
     item = @getItemAt(slot)
