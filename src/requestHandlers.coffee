@@ -409,7 +409,7 @@ exports.route = {
               dungeon.result = DUNGEON_RESULT_FAIL
             finally
               logInfo('Claim Dungeon Award')
-              evt = evt.concat(player.claimDungeonAward(dungeon))
+              evt = evt.concat(player.claimDungeonReward(dungeon))
               logInfo('Releasing Dungeon')
               player.releaseDungeon()
               logInfo('Saving')

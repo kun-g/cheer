@@ -14,9 +14,12 @@ helperLib = require ('./helper')
 underscore = require('./underscore')
 dbLib = require('./db')
 async = require('async')
+libReward = require('./reward')
 
 G_PRIZE_MODIFIER = 1
 
+
+# ======================== Player
 class Player extends DBWrapper
   constructor: (data) ->
     @type = 'player'
@@ -72,7 +75,10 @@ class Player extends DBWrapper
 
       abIndex: rand(),
     }
+    for k,v of libReward.config
+      cfg[k] = v
 
+    @envReward_modifier = gReward_modifier
     versionCfg = {
       inventoryVersion: ['gold', 'diamond', 'inventory', 'equipment'],
       heroVersion: ['heroIndex', 'hero', 'heroBase'],
@@ -82,8 +88,12 @@ class Player extends DBWrapper
     }
     super(data, cfg, versionCfg)
 
-  setName: (@name) ->
-    @dbKeyName = playerPrefix+@name
+  setName: (@name) -> @dbKeyName = playerPrefix+@name
+
+  generateReward: libReward.generateReward
+  getRewardModifier: libReward.getRewardModifier
+  generateDungeonReward: libReward.generateDungeonReward
+  claimDungeonReward: libReward.claimDungeonReward
 
   logout: (reason) ->
     if @socket and @socket.encoder
@@ -246,7 +256,7 @@ class Player extends DBWrapper
         @costEnergy(energyCost)
         ret = ret.concat(itemCostRet)
         for i in [1..count]
-          p = @generateDungeonAward(dungeon, true)
+          p = @generateDungeonReward(dungeon, true)
           r = []
           for k, v of p
             r = r.concat(v)
@@ -608,7 +618,7 @@ class Player extends DBWrapper
   dungeonAction: (action) ->
     return [{NTF: Event_Fail, arg: 'Dungeon not exist.'}] unless @dungeon?
     ret = [].concat(@dungeon.doAction(action))
-    ret = ret.concat(@claimDungeonAward(@dungeon)) if @dungeon.result?
+    ret = ret.concat(@claimDungeonReward(@dungeon)) if @dungeon.result?
     return ret
 
   startDungeon: (stage, startInfoOnly, pkr=null, handler) ->
@@ -762,7 +772,6 @@ class Player extends DBWrapper
 
   claimPrize: (prize, allOrFail = true) ->
     return [] unless prize?
-    prize = @rearragenPrize(prize)
 
     ret = []
 
@@ -879,7 +888,7 @@ class Player extends DBWrapper
             return { ret: RET_OK, ntf: ret.concat(prize) }
           when ItemUse_TreasureChest
             return { ret: RET_NoKey } if item.dropKey? and not @haveItem(item.dropKey)
-            prz = generatePrize(queryTable(TABLE_DROP), [item.dropId])
+            prz = @generateReward(queryTable(TABLE_DROP), [item.dropId])
             prize = @claimPrize(prz)
             return { ret: RET_InventoryFull } unless prize
             @log('openTreasureChest', {type: 'TreasureChest', id: item.id, prize: prize, drop: e.drop})
@@ -1064,52 +1073,7 @@ class Player extends DBWrapper
     else
       return false
 
-  generateDungeonAward: (dungeon) ->
-    result = dungeon.result
-    cfg = dungeon.getConfig()
-    if result is DUNGEON_RESULT_DONE or not cfg? then return  helperLib.splicePrize([])
-  
-    dropInfo = dungeon.killingInfo.reduce( ((r, e) ->
-      if e and e.dropInfo then return r.concat(e.dropInfo)
-      return r
-    ), [])
 
-    percentage = 1 * G_PRIZE_MODIFIER
-    if result is DUNGEON_RESULT_WIN
-      if dungeon.isSweep?
-        dropInfo = dropInfo.concat(cfg.dropID) if cfg.dropID
-    else
-      percentage = (dungeon.currentLevel / cfg.levelCount) * 0.5
-
-    gr = (cfg.goldRate ? 1) * percentage
-    xr = (cfg.xpRate ? 1) * percentage
-    wr = (cfg.wxpRate ? 1) * percentage
-
-    prize = generatePrize(queryTable(TABLE_DROP), dropInfo)
-    prize = prize.concat(dungeon.prizeInfo)
-
-    if not dungeon.isSweep
-      prize.push({type:PRIZETYPE_GOLD, count:Math.floor(gr*cfg.prizeGold)}) if cfg.prizeGold
-      prize.push({type:PRIZETYPE_EXP, count: Math.floor(xr*cfg.prizeXp)}) if cfg.prizeXp
-
-    prize.push({type:PRIZETYPE_WXP, count: Math.floor(wr*cfg.prizeWxp)}) if cfg.prizeWxp
-
-    infiniteLevel = dungeon.infiniteLevel
-    if infiniteLevel? and cfg.infinityPrize and result is DUNGEON_RESULT_WIN
-      iPrize = p for p in cfg.infinityPrize when p.level is infiniteLevel
-      if iPrize?
-        iPrize = { type: iPrize.type, value: iPrize.value, count: iPrize.count }
-
-        if iPrize.type is PRIZETYPE_GOLD
-          prize.push({type: PRIZETYPE_GOLD, count: iPrize.count})
-        else
-          prize.push(iPrize)
-  
-    if dungeon.PVP_Pool? and dungeon.result is DUNGEON_RESULT_WIN
-      @updatePkInof(dungeon)
-      prize = prize.concat(@getPKReward(dungeon))
-
-    return helperLib.splicePrize(prize)
 
   updateQuest: (quests) ->
     for qid, qst of quests
@@ -1118,61 +1082,6 @@ class Player extends DBWrapper
       for k, objective of quest.objects when objective.type is QUEST_TYPE_NPC and qst.counters[k]? and @quests[qid].counters?
         @quests[qid].counters[k] = qst.counters[k]
 
-  claimDungeonAward: (dungeon, isSweep) ->
-    return [] unless dungeon?
-    ret = []
-
-    if dungeon.revive > 0
-      ret = @inventory.removeById(ItemId_RevivePotion, dungeon.revive, true)
-      if not ret or ret.length is 0
-        @inventoryVersion++
-        return { NTF: Event_DungeonReward, arg : { res : DUNGEON_RESULT_FAIL } }
-      ret = this.doAction({id: 'ItemChange', ret: ret, version: @inventoryVersion})
-  
-    quests = dungeon.quests
-    if quests
-      @updateQuest(quests)
-      @questVersion++
-  
-    {goldPrize, xpPrize, wxPrize, otherPrize} = @generateDungeonAward(dungeon)
-
-    rewardMessage = { NTF: Event_DungeonReward, arg: { res: dungeon.result } }
-  
-    ret = ret.concat([rewardMessage])
-    if dungeon.result isnt DUNGEON_RESULT_FAIL then ret = ret.concat(this.completeStage(dungeon.stage))
-  
-    # Close Offline reward
-    #offlineReward = [
-    #  { type: PRIZETYPE_EXP,  count: Math.ceil(xpPrize.count* TEAMMATE_REWARD_RATIO) },
-    #  { type: PRIZETYPE_GOLD, count: Math.ceil(goldPrize.count* TEAMMATE_REWARD_RATIO) },
-    #  { type: PRIZETYPE_WXP,  count: Math.ceil(wxPrize.count* TEAMMATE_REWARD_RATIO) }
-    #].filter( (e) -> e.count > 0)
-
-    #if offlineReward.length > 0
-    #  teammateRewardMessage = {
-    #    type: MESSAGE_TYPE_SystemReward,
-    #    src : MESSAGE_REWARD_TYPE_OFFLINE,
-    #    prize : offlineReward
-    #  }
-    #  dungeon.team.filter((m) => m.nam != @name).forEach((m) ->
-    #    if m then dbLib.deliverMessage(m.nam, teammateRewardMessage)
-    #  )
-  
-    result = 'Lost'
-    result = 'Win' if dungeon.result is DUNGEON_RESULT_WIN
-
-    otherPrize.push(goldPrize)
-    otherPrize.push(xpPrize)
-    otherPrize.push(wxPrize)
-    prize = otherPrize.filter( (e) -> return not ( e.count? and e.count is 0 ) )
-    if prize.length > 0 then rewardMessage.arg.prize = prize.filter((f) -> f.type isnt  PRIZETYPE_FUNCTION)
-    ret = ret.concat(this.claimPrize(prize, false))
-
-    if isSweep
-    else
-      @log('finishDungeon', { stage: dungeon.getInitialData().stage, result: result, reward: prize })
-      @releaseDungeon()
-    return ret
 
   getPKReward: (dungeon) ->
     return getPKRewardByDiff(dungeon.PVP_Score_diff, dungeon.PVP_Score_origin)

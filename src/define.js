@@ -535,21 +535,15 @@ mapContact = function (target, source) {
 
 generatePrize = function (cfg, dropInfo,rand) {
   var reward;
-  if (rand == null || typeof rand == 'undefined') {
-    rand = Math.random;
-  }
-  if (cfg == null || typeof cfg == 'undefined') {
-    return [];
-  }
-  return reward = dropInfo.reduce((function(r, p) {
-    return r.concat(cfg[p]);
-  }), []).filter(function(p) {
-    return p && rand() < p.rate;
-  }).map(function(g) {
-    var e;
-    e = selectElementFromWeightArray(g.prize, rand());
-    return e;
-  });
+  if (rand == null || typeof rand == 'undefined') { rand = Math.random; }
+  if (cfg == null || typeof cfg == 'undefined') { return []; }
+  return dropInfo.reduce((function(r, p) { return r.concat(cfg[p]); }), [])
+                 .filter(function(p) { return p && rand() < p.rate; })
+                 .map(function(g) {
+                     var e;
+                     e = selectElementFromWeightArray(g.prize, rand());
+                     return e;
+                 });
 };
 
 

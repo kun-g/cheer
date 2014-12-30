@@ -200,7 +200,8 @@ class Dungeon
 
     this[k] = v for k, v of data
     @quests = deepCopy(@initialQuests) if @initialQuests?
-    cfg = @getConfig()
+    @config = @getConfig()
+    cfg = @config
     if cfg.triggers
       @triggerManager.installTrigger(t, {}, @) for t in cfg.triggers
 

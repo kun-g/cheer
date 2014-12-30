@@ -415,6 +415,10 @@ if (config) {
       dbLib.getServerConfig('huntingInfo', function (err, arg) {
         if (arg) { gHuntingInfo = JSON.parse(arg); }
       });
+      gReward_modifier = {}
+      dbLib.getServerConfig('reward_modifier', function (err, arg) {
+        if (arg) { gReward_modifier = JSON.parse(arg); }
+      });
     });
   });
 } else {
