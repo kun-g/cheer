@@ -48,6 +48,12 @@ class Campaign
 
   canReset: (object, time) -> @conditionCheck(@config.reset_condition, object, time)
 
+  activate: () ->
+    object = arguments[0]
+    delta = arguments[1]
+    time = arguments[2]
+    object.counters[@config.counter.key].incr(delta, time)
+
   isActive: (object, time) ->
     if @config.storeType and object.type isnt @config.storeType then return false
 
@@ -69,16 +75,22 @@ class Campaign
       counterKey = counterConfig.key
       if !object.counters[counterKey]
         object.counters[counterKey] = new libCounter.Counter(counterConfig)
+      else if object.counters[counterKey] not instanceof libCounter.Counter
+        counter = new libCounter.Counter(counterConfig)
+        counter.counter = object.counters[counterKey].counter
+        counter.time = object.counters[counterKey].time
+        object.counters[counterKey] = counter
+
       result.counter = object.counters[counterKey]
 
     return result
-#
+
 #Campaign.prototype.onEvent = function (object, event) {
 #  if (!this.config.event) return false;
 #  
 #  object.doAction(this.config.event.action);
 #}
-#
+
 #function doAction (actions) {
 #  for (var k in actions) {
 #    var action = actions[k];

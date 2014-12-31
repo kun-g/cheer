@@ -198,7 +198,8 @@ describe('Campaign', function () {
         var counter = {
             key: 'monthCard',
             initial_value: 0,
-            uplimit: 31,
+            //uplimit: 31,
+            uplimit: 3,
             count_down: { time: 'time@ThisCounter', units: 'day' },
             duration: { time: 'time@ThisCounter', units: 'month' }
         };
@@ -208,21 +209,18 @@ describe('Campaign', function () {
             counter: counter,
             available_condition: [ { type: 'counter', func: "notCounted" } ]
         };
-        var player ={ type: 'player', counters:{}, timestamp: {} };
-        var guild = { type: 'guild', counters:{} }
+        var player ={type:'player', counters:{monthCard:{counter:2,time:"2014-06-13"}}, timestamp:{}};
+        var guild = { type: 'guild', counters:{} };
         var campaign = new Campaign(config);
         campaign.isActive(player, "2014-06-14").should.equal(true);
-        //TODO:
-        //campaign.onEvent(player, "check_in", "2014-06-14").should.equal(true);
-        player.counters.monthCard.incr(1, "2014-06-14").counter.should.equal(1);
+        player.counters.monthCard.counter.should.equal(2);
+        campaign.activate(player, 1, "2014-06-14");
+        player.counters.monthCard.counter.should.equal(3);
         campaign.isActive(player, "2014-06-14").should.equal(false);
         campaign.isActive(player, "2014-06-15").should.equal(true);
         campaign.isActive(player, "2014-07-01").should.equal(true);
-        //TODO:
-        //campaign.onEvent(player, "check_in", "2014-06-14")
-        //OR
-        //campaign.activate(player, "2014-07-01")
-        player.counters.monthCard.incr(1, "2014-07-01").counter.should.equal(1);
+        campaign.activate(player, 1, "2014-07-01");
+        player.counters.monthCard.counter.should.equal(1);
     });
     it('PK', function () {
         var counter = {

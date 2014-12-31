@@ -14,6 +14,8 @@ helperLib = require ('./helper')
 underscore = require('./underscore')
 dbLib = require('./db')
 async = require('async')
+libCampaign = require("./campaign")
+campaign_LoginStreak = new libCampaign.Campaign(queryTable(TABLE_DP))
 
 G_PRIZE_MODIFIER = 1
 
@@ -170,18 +172,11 @@ class Player extends DBWrapper
       for s in @stage when s and s.level?
         s.level = 0
 
-    flag = true
-    
-    if @loginStreak.date and moment().isSame(@loginStreak.date, 'month')
-      if moment().isSame(@loginStreak.date, 'day')
-        flag = false
-    else
-      @loginStreak.count = 0
-
-    @log('onLogin', {loginStreak: @loginStreak.count, date: @lastLogin})
     @onCampaign('RMB')
 
-    ret = [{NTF:Event_CampaignLoginStreak, day: @loginStreak.count, claim: flag}]
+    flag = campaign_LoginStreak.isActive(this,  currentTime())
+    ret = [{ NTF:Event_CampaignLoginStreak, day: @counters.check_in.counter, claim: flag }]
+    @log('onLogin', {streak: @counters.check_in.counter, date: @counters.check_in.time})
 
     itemsNeedRemove = @inventory.filter(
       (item) ->
@@ -195,6 +190,16 @@ class Player extends DBWrapper
 
     @createHero()
     return ret
+
+  claimLoginReward: () ->
+    if campaign_LoginStreak.isActive(this)
+      @log('claimLoginReward', {streak: @counters.check_in.counter, date: @counters.check_in.time})
+      reward = queryTable(TABLE_DP).rewards[@loginStreak.count].prize
+      ret = @claimPrize(reward.filter((e) => not e.vip or @vipLevel() >= e.vip ))
+      campaign_LoginStreak.activate(this, 1)
+      return {ret: RET_OK, res: ret}
+    else
+      return {ret: RET_RewardAlreadyReceived}
 
   sweepStage: (stage, multiple) ->
     stgCfg = queryTable(TABLE_STAGE, stage, @abIndex)
@@ -249,22 +254,6 @@ class Player extends DBWrapper
         ret = ret.concat(@syncEnergy())
         
     return { code: ret_result, prize: prize, ret: ret }
-
-  claimLoginReward: () ->
-    if @loginStreak.date
-      dis = diffDate(@loginStreak.date)
-      if dis is 0
-        @logError('claimLoginReward', {prev: @loginStreak.date, today: currentTime()})
-        return {ret: RET_RewardAlreadyReceived}
-    @loginStreak['date'] = currentTime(true).valueOf()
-    @log('claimLoginReward', {loginStreak: @loginStreak.count, date: currentTime()})
-
-    reward = queryTable(TABLE_DP)[@loginStreak.count].prize
-    ret = @claimPrize(reward.filter((e) => not e.vip or @vipLevel() >= e.vip ))
-    @loginStreak.count += 1
-    @loginStreak.count = 0 if @loginStreak.count >= queryTable(TABLE_DP).length
- 
-    return {ret: RET_OK, res: ret}
 
   onMessage: (msg) ->
     switch msg.action

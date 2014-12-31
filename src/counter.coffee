@@ -3,15 +3,11 @@ libTime = require('./timeUtils.js')
 moment = require('./moment')
 {Serializer, registerConstructor} = require './serializer'
 
-class Counter extends Serializer
+class Counter
   constructor: (@config) ->
-    savingCfg = {
-      config: config,
-      counter: config.initial_value,
-      time: moment().format(),
-    }
-
-    super(config, savingCfg, {})
+    @counter = config.initial_value
+    @time = null
+    Object.defineProperty(this, 'config', {enumerable:false, writable: false, configurable: false})
 
   isFulfiled: (time) ->
     @update(time)
