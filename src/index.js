@@ -1,6 +1,6 @@
 //require('strong-agent').profile();
 //require('nodetime').profile({
-//  accountKey: 'c82d52d81e9ed18e8550b58bf36f49d47e50a792', 
+//  accountKey: 'c82d52d81e9ed18e8550b58bf36f49d47e50a792',
 //  appName: 'DR'
 //});
 //var agent = require('webkit-devtools-agent');
@@ -70,7 +70,7 @@ function initiateFluentLogger() {
 }
 
 var config = {
-  port: 7756, 
+  port: 7756,
   type : 'Worker',
   handler: require("./commandHandlers").route,
   init : function () {
@@ -78,11 +78,11 @@ var config = {
 
     var tcpInterval = setInterval(function () {
       appNet.aliveConnections = appNet.aliveConnections
-        .filter(function (c) {return c!==null;})
-        .map(function (c, i) { c.connectionIndex = i; return c;});
-        dbLib.getGlobalPrize(function (err, prize) {
-          gGlobalPrize = JSON.parse(prize);
-        });
+          .filter(function (c) {return c!==null;})
+          .map(function (c, i) { c.connectionIndex = i; return c;});
+      dbLib.getGlobalPrize(function (err, prize) {
+        gGlobalPrize = JSON.parse(prize);
+      });
     }, 100000);
     gServer.serverInfo.type = config.type;
     serverType = config.type;
@@ -123,14 +123,14 @@ function isRMBMatch(amount, receipt) {
 function paymentHandler (request, response) {
   if (request.url.substr(0, 5) === '/pay?') {
     var ppKey = '-----BEGIN PUBLIC KEY-----\n' +
-      'MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEArjB/MQESS9k2Xejv0yN8\n'+
-      't3qQ+IO8UqRTNeqgE4GoPBzmyPY4XJVcijAm7eHkUaF6yxGDh8D03R/yhrQBSdJ1\n'+
-      'GHLEew3KH3VgKNigdN9LGfJuH+k6JgCHwVK+diEQCzkhF6D7qrDvLNkF5iNQr2D+\n'+
-      '3lDAoAhE/PbYvJTH6KGIwx+TJtnNjJMhdE8WmWY5/3OAgyFU6DwVJs4phYWwZsYY\n'+
-      '+Z8s6sq7xKjYeCS0vVonNZ6m9VnYhv1NknxbHDovOMY3Ix/hsu+g2YiJFuUlyyaR\n'+
-      'bM4NUbZfu9OcfAGMo0L2vl6x/x7WzWBRKIGO7ONELfeit3PEPxE0kBvunAMPkQb5\n'+
-      'cwIDAQAB\n'+
-      '-----END PUBLIC KEY-----';
+        'MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEArjB/MQESS9k2Xejv0yN8\n'+
+        't3qQ+IO8UqRTNeqgE4GoPBzmyPY4XJVcijAm7eHkUaF6yxGDh8D03R/yhrQBSdJ1\n'+
+        'GHLEew3KH3VgKNigdN9LGfJuH+k6JgCHwVK+diEQCzkhF6D7qrDvLNkF5iNQr2D+\n'+
+        '3lDAoAhE/PbYvJTH6KGIwx+TJtnNjJMhdE8WmWY5/3OAgyFU6DwVJs4phYWwZsYY\n'+
+        '+Z8s6sq7xKjYeCS0vVonNZ6m9VnYhv1NknxbHDovOMY3Ix/hsu+g2YiJFuUlyyaR\n'+
+        'bM4NUbZfu9OcfAGMo0L2vl6x/x7WzWBRKIGO7ONELfeit3PEPxE0kBvunAMPkQb5\n'+
+        'cwIDAQAB\n'+
+        '-----END PUBLIC KEY-----';
     var data = new Buffer(0);
     request.on('data', function (chunk) { data = Buffer.concat([data, chunk]); });
     request.on('end', function (chunk) {
@@ -168,8 +168,8 @@ function paymentHandler (request, response) {
       appKey = 'd30d9f0f53e2654274505e25c27913fe709eb1ad6265e5c5';
     }
     var sign = out.AppId+out.Act+out.ProductName+out.ConsumeStreamId+out.CooOrderSerial+
-      out.Uin+out.GoodsId+out.GoodsInfo+out.GoodsCount+out.OriginalMoney+out.OrderMoney+
-      out.Note+out.PayStatus+out.CreateTime+appKey;
+        out.Uin+out.GoodsId+out.GoodsInfo+out.GoodsCount+out.OriginalMoney+out.OrderMoney+
+        out.Note+out.PayStatus+out.CreateTime+appKey;
     var b = new Buffer(1024);
     var len = b.write(sign);
     sign = md5Hash(b.toString('binary', 0, len));
@@ -191,11 +191,11 @@ function paymentHandler (request, response) {
     b = null;
   } else if (request.url.substr(0, 4) === '/kyp') {
     var kyKey = '-----BEGIN PUBLIC KEY-----\n' +
-      'MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDhELQrtgj6aE81F8o74lOFg7l6\n'+
-      'bUZqe4VQe0MURr0G0zh/hY/KIIxoYfYWBQMwONy0vV23O5XKJDpAJUBHs92mJdB3\n'+
-      'lk95/RsqP0TCpKikrEySLOz9Kfzbf5VWQLRtP4ANfQZbc5K5yrN9Y5D7Ocl2m7pw\n'+
-      '7g9TLkJT1Ue+Mg+kYwIDAQAB\n'+
-      '-----END PUBLIC KEY-----';
+        'MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDhELQrtgj6aE81F8o74lOFg7l6\n'+
+        'bUZqe4VQe0MURr0G0zh/hY/KIIxoYfYWBQMwONy0vV23O5XKJDpAJUBHs92mJdB3\n'+
+        'lk95/RsqP0TCpKikrEySLOz9Kfzbf5VWQLRtP4ANfQZbc5K5yrN9Y5D7Ocl2m7pw\n'+
+        '7g9TLkJT1Ue+Mg+kYwIDAQAB\n'+
+        '-----END PUBLIC KEY-----';
     var data = new Buffer(0);
     request.on('data', function (chunk) { data = Buffer.concat([data, chunk]); });
     request.on('end', function (chunk) {
@@ -239,7 +239,7 @@ function paymentHandler (request, response) {
     var receipt = out.orderid;
     if (sign === out.client_secret ){ //&& isRMBMatch(out.OrderMoney, receipt)) {
       if (out.result === '1'){
-          deliverReceipt(receipt, 'DK', function (err) {
+        deliverReceipt(receipt, 'DK', function (err) {
           if (err === null) {
             logInfo({action: 'AcceptPayment', receipt: receipt, info: out});
           } else {
@@ -261,21 +261,21 @@ function paymentHandler (request, response) {
     request.on('end', function (chunk) {
       data = 'pay?'+data.toString();
       var out = urlLib.parse(data, true).query;
-
-	  if (out.app_id == 'org.kddxc.koudaidixiachengapk1' || out.app_id == 'org.kddxc.koudaidixiachengapk') {
-
-          var token = "bf0d10d4f9979d3c6aae26011b6ec34b";
-      } else {
-          var token = "c2a8c153eec815118179f46e0dbfd99e";
-      }
+      var token = '';
+      //if (out.app_id == 'org.kddxc.koudaidixiachengapk1' || out.app_id == 'org.kddxc.koudaidixiachengapk') {
+      //  token = "bf0d10d4f9979d3c6aae26011b6ec34b";
+      //} else {
+      //  token = "c2a8c153eec815118179f46e0dbfd99e";
+      //}
+      token = "bf0d10d4f9979d3c6aae26011b6ec34b";
       if (out.type) {
-          var sign = out.order_id+'|'+out.app_id+'|'+out.product_id+'|'+out.uid
-        +'|'+out.goods_count+'|'+out.original_money+'|'+out.order_money
-        +'|'+out.pay_status+'|'+out.create_time +'|'+out.type+'|'+out.value+'|'+token;
+        var sign = out.order_id+'|'+out.app_id+'|'+out.product_id+'|'+out.uid
+            +'|'+out.goods_count+'|'+out.original_money+'|'+out.order_money
+            +'|'+out.pay_status+'|'+out.create_time +'|'+out.type+'|'+out.value+'|'+token;
       } else {
-          var sign = out.order_id+'|'+out.app_id+'|'+out.product_id+'|'+out.uid
-        +'|'+out.goods_count+'|'+out.original_money+'|'+out.order_money
-        +'|'+out.pay_status+'|'+out.create_time +'|'+token;
+        var sign = out.order_id+'|'+out.app_id+'|'+out.product_id+'|'+out.uid
+            +'|'+out.goods_count+'|'+out.original_money+'|'+out.order_money
+            +'|'+out.pay_status+'|'+out.create_time +'|'+token;
       }
 
       var b = new Buffer(1024);
@@ -283,24 +283,24 @@ function paymentHandler (request, response) {
       sign = md5Hash(b.toString('binary', 0, len));
 
       if ((sign === out.md5) && isRMBMatch(out.order_money, receipt)) {
-          deliverReceipt(receipt, 'Teebik', function (err) {
-            if (err === null) {
-              logInfo({action: 'AcceptPayment', receipt: receipt, info: out});
-			  return response.end(JSON.stringify({success:1, msg: "OK"}));
-            } else {
-              logError({action: 'AcceptPayment', error:err, data: data});
-              return response.end('fail');
-            }
-          });
+        deliverReceipt(receipt, 'Teebik', function (err) {
+          if (err === null) {
+            logInfo({action: 'AcceptPayment', receipt: receipt, info: out});
+            return response.end(JSON.stringify({success:1, msg: "OK"}));
+          } else {
+            logError({action: 'AcceptPayment', error:err, data: data});
+            return response.end('fail');
+          }
+        });
       } else {
-          logError({action: 'AcceptPayment', error: 'Fail', data: data});
-          response.end(JSON.stringify({success:0, msg: "Arguments miss match."}));
+        logError({action: 'AcceptPayment', error: 'Fail', data: data});
+        response.end(JSON.stringify({success:0, msg: "Arguments miss match."}));
       }
       data = null;
     });
   } else if (request.url.substr(0, 5) === '/jdp?') {
   }
-} 
+}
 
 function deliverReceipt (receipt, tunnel, cb) {
   var receiptInfo = unwrapReceipt(receipt);
@@ -310,34 +310,34 @@ function deliverReceipt (receipt, tunnel, cb) {
   }
   var serverName = cfg[receiptInfo.serverID].Name;
   var message = {
-          type: MESSAGE_TYPE_ChargeDiamond,
-          paymentType: tunnel,
-          receipt: receipt
-        };
+    type: MESSAGE_TYPE_ChargeDiamond,
+    paymentType: tunnel,
+    receipt: receipt
+  };
 
   async.waterfall([
-          function (cb) {
-              dbLib.updateReceipt(
-                  receipt,
-                  RECEIPT_STATE_AUTHORIZED,
-                  receiptInfo.id,
-                  receiptInfo.productID,
-                  receiptInfo.serverID,
-                  receiptInfo.tunnel,
-                  cb); 
-          },
-          function (_, cb) { dbLib.getPlayerNameByID(receiptInfo.id, serverName, cb); },
-          function (name, cb) { dbLib.deliverMessage(name, message, cb, serverName); },
-          function (_, cb) {
-              dbLib.updateReceipt(
-                  receipt,
-                  RECEIPT_STATE_DELIVERED,
-                  receiptInfo.id,
-                  receiptInfo.productID,
-                  receiptInfo.serverID,
-                  receiptInfo.tunnel,
-                  cb); 
-          }
+    function (cb) {
+      dbLib.updateReceipt(
+          receipt,
+          RECEIPT_STATE_AUTHORIZED,
+          receiptInfo.id,
+          receiptInfo.productID,
+          receiptInfo.serverID,
+          receiptInfo.tunnel,
+          cb);
+    },
+    function (_, cb) { dbLib.getPlayerNameByID(receiptInfo.id, serverName, cb); },
+    function (name, cb) { dbLib.deliverMessage(name, message, cb, serverName); },
+    function (_, cb) {
+      dbLib.updateReceipt(
+          receipt,
+          RECEIPT_STATE_DELIVERED,
+          receiptInfo.id,
+          receiptInfo.productID,
+          receiptInfo.serverID,
+          receiptInfo.tunnel,
+          cb);
+    }
   ], cb);
 }
 
@@ -370,16 +370,16 @@ if (config) {
     var helperLib = require('./helper');
     config = helperLib.intervalEvent;
     async.series([
-        function (cb) {
-          dbLib.getServerProperty('counters', function (err, arg) {
-            if (arg) {
-              gServerObject.counters = arg;
-            } else {
-              gServerObject.counters = {};
-            }
-            cb();
-          });
-        }],
+          function (cb) {
+            dbLib.getServerProperty('counters', function (err, arg) {
+              if (arg) {
+                gServerObject.counters = arg;
+              } else {
+                gServerObject.counters = {};
+              }
+              cb();
+            });
+          }],
         function (err, ret) {
           var helperLib = require('./helper');
           helperLib.initCampaign(gServerObject, helperLib.events);
@@ -400,7 +400,7 @@ if (config) {
           var moment = require('moment');
           if (helperLib.matchDate(now, now, cfg.time) &&
               (!intervalCfg[key] || !moment().isSame(intervalCfg[key], 'day'))
-            ) {
+          ) {
             cfg.func({helper: helperLib, db: require('./db'), sObj: gServerObject});
             intervalCfg[key] = helperLib.currentTime();
             flag = true;
@@ -425,9 +425,9 @@ if (config) {
   throw 'No config';
 }
 /*
-process.on('SIGINT', function () {
-  logInfo('Got SIGINT');
-  gServer.shutDown();
-});
-*/
+ process.on('SIGINT', function () {
+ logInfo('Got SIGINT');
+ gServer.shutDown();
+ });
+ */
 
