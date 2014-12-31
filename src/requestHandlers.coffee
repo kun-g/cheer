@@ -164,7 +164,8 @@ loginBy = (arg, token, callback) ->
           result = JSON.parse(chunk)
           logInfo({action: 'login', type:  LOGIN_ACCOUNT_TYPE_PP, code: result.state})
           if result.state.code is 1
-            identifier = result.data.creator+result.data.accountId
+            #identifier = result.data.creator+result.data.accountId
+            identifier = result.data.nickName
             callback(null, identifier)
           else
             callback(Error(RET_LoginFailed))
