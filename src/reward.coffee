@@ -55,9 +55,9 @@ exports.generateDungeonReward = (dungeon) ->
   if result is DUNGEON_RESULT_WIN and dungeon.isSweep
     dropInfo = dropInfo.concat(cfg.dropID) if cfg.dropID
 
-  gr = (cfg.goldRate ? 1)
-  xr = (cfg.xpRate ? 1)
-  wr = (cfg.wxpRate ? 1)
+  gr = if result is DUNGEON_RESULT_WIN then (cfg.goldRate ? 1) else 0.5
+  xr = if result is DUNGEON_RESULT_WIN then (cfg.xpRate ? 1) else 0.5
+  wr = if result is DUNGEON_RESULT_WIN then (cfg.wxpRate ? 1) else 0.5
 
   prize = @generateReward(queryTable(TABLE_DROP), dropInfo)
   prize = prize.concat(dungeon.prizeInfo)
@@ -129,4 +129,12 @@ exports.claimDungeonReward = (dungeon, isSweep) ->
     @releaseDungeon()
   return ret
 
-exports.config = { reward_modifier: { gold: 0, exp: 0, wxp: 0 } }
+exports.config = {
+  reward_modifier:
+    {
+      dungeon_gold:0,
+      dungeon_exp:0,
+      dungeon_wxp:0,
+      dungeon_item_count:0
+    }
+}
