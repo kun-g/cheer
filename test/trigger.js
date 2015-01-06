@@ -117,7 +117,7 @@ describe("anchor", function () {
         ]);
     });
     it('Triangle', function () {
-        var opt = {type: 'anchor', x:0, y:2, shape: areaShape.Triangle, startDistance: 0, length: 3};
+        var opt = {type: 'anchor', x:0, y:2, shape: areaShape.Triangle, startDistance: 1, length: 3};
         testThis( opt, [
                                     'x:2, y:0',
                         'x:1, y:1', 'x:2, y:1',

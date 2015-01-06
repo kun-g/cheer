@@ -58,7 +58,7 @@ class Wizard
 
     @setupTriggerCondition(spellID, cfg.triggerCondition,  cmd)
     @setupAvailableCondition(spellID, cfg.availableCondition,  cmd)
-    @doAction(@wSpellDB[spellID], cfg.installAction,  @selectTarget(cfg, cmd), cmd)
+    @doAction(@wSpellDB[spellID], cfg.installAction,  @selectTarget(cfg, cmd?.getEnvironment()), cmd)
     @spellStateChanged(spellID, cmd)
 
   setupAvailableCondition: (spellID, conditions, cmd) ->
@@ -106,7 +106,7 @@ class Wizard
       @removeTrigger(spellID, c.event) for c in cfg.availableCondition when c.type is 'event'
 
     if cfg.uninstallAction?
-      @doAction(@wSpellDB[spellID], cfg.uninstallAction, @selectTarget(cfg, cmd), cmd)
+      @doAction(@wSpellDB[spellID], cfg.uninstallAction, @selectTarget(cfg, cmd?.getEnvironment()), cmd)
 
     delete @wSpellDB[spellID]
     @spellStateChanged(spellID, cmd)
@@ -126,14 +126,16 @@ class Wizard
 
   castSpell: (spellID, cmd) ->
     cfg = getSpellConfig(spellID)
+    return false unless cfg?
     thisSpell = @wSpellDB[spellID]
 
-    target = @selectTarget(cfg, cmd)
+    target = @selectTarget(cfg, cmd?.getEnvironment())
 
     [canTrigger, reason] = @triggerCheck(thisSpell, cfg.triggerCondition, target, cmd)
     return reason unless canTrigger
 
     @doAction(thisSpell, cfg.action, target, cmd)
+    return false unless cfg?
     @updateCDOfSpell(spellID, true, cmd)
     @removeSpell(spellID, cmd) unless @availableCheck(spellID, cfg, cmd)
     delay = 0
@@ -149,12 +151,14 @@ class Wizard
       thisSpell.eventCounters[event]++ if thisSpell?
       @castSpell(id, cmd)
 
-  clearSpellCD: (spellID, cmd) ->
-    return false unless spellID? and @wSpellDB[spellID]?
-    thisSpell = @wSpellDB[spellID]
-    if thisSpell.cd? and thisSpell.cd isnt 0
-      thisSpell.cd = 0
-      cmd.routine?({id: 'SpellCD', cdInfo: thisSpell.cd}) if @isHero()
+  clearSpellCD: (spellIDList, cmd) ->
+    return false unless Array.isArray(spellIDList)
+    for spellID in spellIDList
+      continue unless @wSpellDB[spellID]?
+      thisSpell = @wSpellDB[spellID]
+      if thisSpell.cd? and thisSpell.cd isnt 0
+        thisSpell.cd = 0
+        cmd.routine?({id: 'SpellCD', cdInfo: thisSpell.cd}) if @isHero()
 
   getSpellCD:() ->
     for spellID, thisSpell of @wSpellDB
@@ -243,10 +247,9 @@ class Wizard
 
     return res
   
-  selectTarget: (cfg, cmd) ->
+  selectTarget: (cfg, env) ->
     return [] unless cfg.targetSelection? and cfg.targetSelection.pool
-    return [] unless cfg.targetSelection.pool is 'self' or cmd?
-    env = cmd.getEnvironment() if cmd?
+    return [] unless cfg.targetSelection.pool is 'self' or env?
     switch cfg.targetSelection.pool
       when 'self' then pool = @
       when 'target' then pool = env.variable('tar')
@@ -298,7 +301,7 @@ class Wizard
 
     return [true]
 
-  getActiveSpell: () -> -1
+  getActiveSpell: () -> [-1]
 
   doAction: (thisSpell, actions, target, cmd) ->
     return false unless actions?
@@ -326,7 +329,7 @@ class Wizard
 
       target = bakTarget
       if a.target
-        target = @selectTarget({targetSelection: a.target}, cmd)
+        target = @selectTarget({targetSelection: a.target}, cmd?.getEnvironment())
 
       switch a.type
         when 'modifyVar' then env.variable(a.x, formularResult)

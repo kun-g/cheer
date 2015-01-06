@@ -18,6 +18,19 @@ areaShape = {
   Triangle: 3
 }
 
+translatePos = (pos) ->
+  x = pos % Dungeon_Width
+  y = (pos-x) / Dungeon_Width
+  return {x:x,y:y}
+
+maskUnion = (one ,another) ->
+  result = [].concat(one)
+  for idx1, arr of another
+    result[idx1] ?= []
+    result[idx1][idx2] = true for isMask, idx2 in arr when isMask
+  
+  return result
+
 selectLine = (x, y, direction, dFrom, length, result) ->
   mod = modifier[direction]
   result = [] unless result
@@ -91,23 +104,41 @@ filterObject = (me, objects, filters, env) ->
           when 'anchor'
             tmp = result
 
-            f.direction = direction.East unless f.direction
+            f = JSON.parse(JSON.stringify(f))
+            f.direction ?= direction.East
+            f.startDistance ?= 0
+            f.offsetX ?= 0
+            f.offsetY ?= 0
+            if f.anchorPos?
+              if Array.isArray(f.anchorPos)
+                f.anchorPosList = f.anchorPos
+              else
+                f.anchorPosList = me.selectTarget({targetSelection:f.anchorPos}, env).map((e) -> e.pos)
+            else
+              f.anchorPosList = [0]
+
             handlers = {}
             handlers[areaShape.Line] = selectLine
             handlers[areaShape.Cross] = selectCross
             handlers[areaShape.Square] = selectSquare
             handlers[areaShape.Triangle] = selectTriangle
 
-            mask = handlers[f.shape](f.x, f.y, f.direction, f.startDistance, f.length)
-            #console.log(mask)
-            #console.log(result)
+            mask = f.anchorPosList.reduce((acc,pos) ->
+              p = translatePos(pos)
+              mask = handlers[f.shape](p.x + f.offsetX, p.y + f.offsetY,
+              f.direction, f.startDistance, f.length)
+              return maskUnion(acc, mask)
+            ,[])
+            #console.log('aP',f.anchorPosList)
+            #console.log('mask',mask)
+            #console.log('result',result.map((e) ->e.pos))
             result = result.filter((e) ->
-              x = e.pos % Dungeon_Width
-              y = (e.pos-x) / Dungeon_Width
-              return mask[y]?[x]
+              p = translatePos(e.pos)
+              return mask[p.y]?[p.x]
             )
 
   return result
+
 
 exports.filterObject = filterObject
 
