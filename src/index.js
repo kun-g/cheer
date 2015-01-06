@@ -8,10 +8,12 @@ require('./define');
 dbLib = require('./db');
 dbWrapper = require('./dbWrapper');
 http = require('http');
+async = require('async');
 var domain = require('domain').create();
 domain.on('error', function (err) {
   console.log("UnhandledError", err, err.message, err.stack);
 });
+
 
 //playerCounter = 0;
 //memwatch = require('memwatch');
@@ -27,8 +29,8 @@ domain.on('error', function (err) {
 //  tmp = new memwatch.HeapDiff();
 //});
 
-var srvLib = require("./server");
-gServer = new srvLib.Server();
+var libServer = require("./server");
+gServer = new libServer.Server();
 exports.server = gServer;
 
 function initiateLogger() {
@@ -69,49 +71,6 @@ function initiateFluentLogger() {
   });
 }
 
-var config = {
-  port: 7756,
-  type : 'Worker',
-  handler: require("./commandHandlers").route,
-  init : function () {
-    var appNet = gServer.startTcpServer(config);
-
-    var tcpInterval = setInterval(function () {
-      appNet.aliveConnections = appNet.aliveConnections
-          .filter(function (c) {return c!==null;})
-          .map(function (c, i) { c.connectionIndex = i; return c;});
-      dbLib.getGlobalPrize(function (err, prize) {
-        gGlobalPrize = JSON.parse(prize);
-      });
-    }, 100000);
-    gServer.serverInfo.type = config.type;
-    serverType = config.type;
-    dbLib.subscribe('login', function (message) {
-      try {
-        var info = JSON.parse(message);
-        if (gPlayerDB[info.player] && gPlayerDB[info.player].runtimeID !== info.session) {
-          gPlayerDB[info.player].logout(RET_LoginByAnotherDevice);
-          delete gPlayerDB[info.player];
-        }
-      } catch (err) {
-        logError({type: 'loginSubscribe', error:err});
-      }
-    });
-    dbLib.subscribe('broadcast', function (message) {
-      gServer.tcpServer.net.aliveConnections.forEach(function (c) {
-        if (c.playerName) c.encoder.writeObject(message);
-      });
-    });
-    dbLib.subscribe('ServerInfo', function (info) {
-    });
-  }
-};
-
-//process.argv.forEach(function (val, index, array) {
-//  if (handlerConfig[val]) {
-//    config = handlerConfig[val];
-//  }
-//});
 
 function isRMBMatch(amount, receipt) {
   productList = queryTable(TABLE_IAP, 'list');
@@ -304,11 +263,10 @@ function paymentHandler (request, response) {
 
 function deliverReceipt (receipt, tunnel, cb) {
   var receiptInfo = unwrapReceipt(receipt);
-  var cfg = queryTable(TABLE_CONFIG, 'ServerConfig');
-  if (!cfg[receiptInfo.serverID]) {
+  var serverName = ServerNames[receiptInfo.serverID];
+  if (serverName) {
     return cb(Error( 'InvalidServerID' ));
   }
-  var serverName = cfg[receiptInfo.serverID].Name;
   var message = {
     type: MESSAGE_TYPE_ChargeDiamond,
     paymentType: tunnel,
@@ -345,85 +303,153 @@ gServerObject = {
   getType: function () { return 'server'; }
 };
 
-if (config) {
-  initiateLogger();
-  initServer();
-  initGlobalConfig(null, function () {
-    gServerID = queryTable(TABLE_CONFIG, 'ServerID');
-    gServerConfig = queryTable(TABLE_CONFIG, 'ServerConfig')[gServerID];
-    gServerName = gServerConfig.Name;
-    dbPrefix = gServerName+dbSeparator;
-    dbLib.initializeDB(gServerConfig.DB);
-    dbLib.getGlobalPrize(function (err, prize) { gGlobalPrize = JSON.parse(prize); });
-    require('./helper').initLeaderboard(queryTable(TABLE_LEADBOARD));
-    domain.run(config.init);
+function init() {
+    var appNet = gServer.startTcpServer(gServerConfig);
 
-    // Pay
-    urlLib = require('url');
-    cryptoLib = require('crypto');
-    rsaLib = require('ursa');
-
-    paymentServer = require('http').createServer(wrapCallback(paymentHandler));
-    paymentServer.listen(6499);
-
-    var intervalCfg = {};
-    var helperLib = require('./helper');
-    config = helperLib.intervalEvent;
-    async.series([
-          function (cb) {
-            dbLib.getServerProperty('counters', function (err, arg) {
-              if (arg) {
-                gServerObject.counters = arg;
-              } else {
-                gServerObject.counters = {};
-              }
-              cb();
-            });
-          }],
-        function (err, ret) {
-          var helperLib = require('./helper');
-          helperLib.initCampaign(gServerObject, helperLib.events);
-          helperLib.initObserveration(gServerObject);
-
-          gServerObject.installObserver('countersChanged');
-        });
-    dbLib.getServerConfig('Interval', function (err, arg) {
-      if (arg) { intervalCfg = JSON.parse(arg); }
-
-      // TODO: 多个服务器的情况
-      dbLib.setServerConfig('Interval', JSON.stringify(intervalCfg));
-      setInterval(function () {
-        var flag = false;
-        for (var key in config) {
-          var cfg = config[key];
-          var now = helperLib.currentTime();
-          var moment = require('moment');
-          if (helperLib.matchDate(now, now, cfg.time) &&
-              (!intervalCfg[key] || !moment().isSame(intervalCfg[key], 'day'))
-          ) {
-            cfg.func({helper: helperLib, db: require('./db'), sObj: gServerObject});
-            intervalCfg[key] = helperLib.currentTime();
-            flag = true;
-          }
-        }
-        if (flag) {
-          dbLib.setServerConfig('Interval', JSON.stringify(intervalCfg));
-        }
-      }, 6000);
-
-      gHuntingInfo = {};
-      dbLib.getServerConfig('huntingInfo', function (err, arg) {
-        if (arg) { gHuntingInfo = JSON.parse(arg); }
+    var tcpInterval = setInterval(function () {
+      appNet.aliveConnections = appNet.aliveConnections
+          .filter(function (c) {return c!==null;})
+          .map(function (c, i) { c.connectionIndex = i; return c;});
+      dbLib.getGlobalPrize(function (err, prize) {
+        gGlobalPrize = JSON.parse(prize);
       });
-      gReward_modifier = {}
-      dbLib.getServerConfig('reward_modifier', function (err, arg) {
-        if (arg) { gReward_modifier = JSON.parse(arg); }
+    }, 100000);
+    gServer.serverInfo.type = gServerConfig.type;
+    serverType = gServerConfig.type;
+    dbLib.subscribe('login', function (message) {
+      try {
+        var info = JSON.parse(message);
+        if (gPlayerDB[info.player] && gPlayerDB[info.player].runtimeID !== info.session) {
+          gPlayerDB[info.player].logout(RET_LoginByAnotherDevice);
+          delete gPlayerDB[info.player];
+        }
+      } catch (err) {
+        logError({type: 'loginSubscribe', error:err});
+      }
+    });
+    dbLib.subscribe('broadcast', function (message) {
+      gServer.tcpServer.net.aliveConnections.forEach(function (c) {
+        if (c.playerName) c.encoder.writeObject(message);
       });
     });
-  });
-} else {
-  throw 'No config';
+    dbLib.subscribe('ServerInfo', function (info) {
+    });
 }
+
+initiateLogger();
+initServer();
+initGlobalConfig(null, function () {
+
+var dbConfig = queryTable(TABLE_CONFIG, "DB_Config");
+var svConfig = queryTable(TABLE_CONFIG, "Server_Config");
+var ipConfig = queryTable(TABLE_CONFIG, "IP_Config");
+
+ServerNames = [];
+for (var k in svConfig) {
+    if (svConfig[k].ID != -1) {
+        ServerNames[svConfig[k].ID] = svConfig[k].Name;
+    }
+}
+
+var ips = [];
+var networkInterfaces = require("os").networkInterfaces();
+for (var key in networkInterfaces) {
+    ips = ips.concat(networkInterfaces[key].map(function (e) { return e.address; }));
+}
+var ip = ips.filter(function (e) { return ipConfig[e]; })[0];
+
+var index = 0;
+if (process.argv[2]) {
+    index = Number(process.argv[2]);
+}
+
+g_ipConfig = ipConfig[ip][index];
+g_svConfig = svConfig[g_ipConfig.Server];
+g_dbConfig = dbConfig[g_svConfig.DB];
+
+gServerConfig = {
+  type: "Worker",
+  port: g_ipConfig.Port,
+  handler: require("./commandHandlers").route
+};
+gServerID = g_ipConfig.Server;
+gServerName = g_svConfig.Name;
+dbPrefix = g_svConfig.DB_Prefix+dbSeparator;
+dbLib.initializeDB(g_dbConfig);
+dbLib.getGlobalPrize(function (err, prize) { gGlobalPrize = JSON.parse(prize); });
+require('./helper').initLeaderboard(queryTable(TABLE_LEADBOARD));
+domain.run(init);
+
+// Pay
+urlLib = require('url');
+cryptoLib = require('crypto');
+rsaLib = require('ursa');
+
+paymentServer = require('http').createServer(wrapCallback(paymentHandler));
+paymentServer.on('error', function (error) {
+    if (error.code == 'EADDRINUSE') {
+        paymentServer = null;
+    } else {
+        logError({action: 'Startup', error:error });
+    }
+});
+paymentServer.listen(6499);
+
+var intervalCfg = {};
+var helperLib = require('./helper');
+config = helperLib.intervalEvent;
+async.series([
+      function (cb) {
+        dbLib.getServerProperty('counters', function (err, arg) {
+          if (arg) {
+            gServerObject.counters = arg;
+          } else {
+            gServerObject.counters = {};
+          }
+          cb();
+        });
+      }],
+    function (err, ret) {
+      var helperLib = require('./helper');
+      helperLib.initCampaign(gServerObject, helperLib.events);
+      helperLib.initObserveration(gServerObject);
+
+      gServerObject.installObserver('countersChanged');
+    });
+dbLib.getServerConfig('Interval', function (err, arg) {
+  if (arg) { intervalCfg = JSON.parse(arg); }
+
+  // TODO: 多个服务器的情况
+  dbLib.setServerConfig('Interval', JSON.stringify(intervalCfg));
+  setInterval(function () {
+    var flag = false;
+    for (var key in config) {
+      var cfg = config[key];
+      var now = helperLib.currentTime();
+      var moment = require('moment');
+      if (helperLib.matchDate(now, now, cfg.time) &&
+          (!intervalCfg[key] || !moment().isSame(intervalCfg[key], 'day'))
+      ) {
+        cfg.func({helper: helperLib, db: require('./db'), sObj: gServerObject});
+        intervalCfg[key] = helperLib.currentTime();
+        flag = true;
+      }
+    }
+    if (flag) {
+      dbLib.setServerConfig('Interval', JSON.stringify(intervalCfg));
+    }
+  }, 6000);
+
+  gHuntingInfo = {};
+  dbLib.getServerConfig('huntingInfo', function (err, arg) {
+    if (arg) { gHuntingInfo = JSON.parse(arg); }
+  });
+  gReward_modifier = {}
+  dbLib.getServerConfig('reward_modifier', function (err, arg) {
+    if (arg) { gReward_modifier = JSON.parse(arg); }
+  });
+});
+});
 /*
  process.on('SIGINT', function () {
  logInfo('Got SIGINT');

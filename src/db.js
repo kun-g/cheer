@@ -407,6 +407,7 @@ exports.queryLeaderboardLength = function (board, handler) {
 
 dbSeparator = '.';
 exports.initializeDB = function (cfg,finishCb) {
+    console.log(cfg);
   accountDBClient = redis.createClient(cfg.Account.PORT, cfg.Account.IP);
   dbClient = redis.createClient(cfg.Role.PORT, cfg.Role.IP);
   publisher = redis.createClient(cfg.Publisher.PORT, cfg.Publisher.IP);
