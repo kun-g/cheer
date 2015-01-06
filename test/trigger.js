@@ -3,6 +3,31 @@ require("../js/define");
 var shall = require('should');
 describe('', function () {
 
+    it('direction', function() {
+
+        var calcDirection = triggerLib.calcDirection;
+        var translatePos = triggerLib.translatePos;
+        var data = [
+        {psrc:12, ptar: [0,6], res: 7},
+        {psrc:12, ptar: [7,2],res: 8},
+        {psrc:12, ptar: [8,4],res: 9},
+        {psrc:12, ptar: [13,14], res: 6},
+        {psrc:12, ptar: [18,24], res: 3},
+        {psrc:12, ptar: [17,22], res: 2},
+        {psrc:12, ptar: [16,20], res: 1},
+        {psrc:12, ptar: [12], res: 5},
+        {psrc:1, ptar: [22,21,20], res: 2},
+        {psrc:20, ptar: [0,1], res: 8},
+        ];
+        
+        for (var i in data) {
+            cfg  = data[i];
+            cfg.ptar.forEach(function(ptar) {
+                var res = calcDirection(translatePos(cfg.psrc), translatePos(ptar));
+                res.should.equal(cfg.res);
+            });
+        }
+    });
 describe('Filter object', function () {
 function alive() { return this.health > 0; }
 var objects = [
@@ -21,6 +46,7 @@ var fo = triggerLib.filterObject;
 var areaShape = triggerLib.areaShape;
 var direction = triggerLib.direction;
 var blocks;
+var variable = {};
 var env = {
   getFactionConfig: function (src, tar, flag) {
                       if (factionDB[src] == null || factionDB[src][tar] == null) return false;
@@ -28,6 +54,9 @@ var env = {
                     },
   getBlock: function (index) {
       return blocks[index];
+  },
+  variable: function() {
+      return variable;
   }
 };
 var testThis = function (filters, names) {
@@ -64,8 +93,8 @@ describe("Role", function () {
         testThis({type: 'count', count: 3}, ['o1', 'o2', 'o3']);
     });
     it('anchor', function () {
-        var opt = {type: 'anchor', x: 2, y: 3, shape: areaShape.Line, startDistance: 1, length: 3};
-        opt.direction = direction.South;
+        var opt = {type: 'anchor', anchorPos:[17], shape: areaShape.Line, startDistance: 1, length: 3};
+        opt.direction = direction.North;
         testThis(opt, ['o3']);
     });
 });
@@ -88,15 +117,17 @@ describe("anchor", function () {
       fo({}, blocks, filters, env).map(function (e) { return e.name; }).should.eql(names);
     };
     it('Line', function () {
-        var opt = {type: 'anchor', x: 2, y: 3, shape: areaShape.Line, startDistance: 1, length: 3};
+        var opt = {type: 'anchor', anchorPos:[17], shape: areaShape.Line, startDistance: 1, length: 3};
         testThis( opt, ['x:3, y:3', 'x:4, y:3']);
-        opt.direction = direction.SouthEast;
+        opt.direction = direction.NorthEast;
         testThis( opt, ['x:4, y:1', 'x:3, y:2']);
-        opt.direction = direction.North;
+        opt.direction = direction.South;
         testThis( opt, ['x:2, y:4', 'x:2, y:5']);
+        opt.direction = direction.NorthWest;
+        testThis( opt, ['x:0, y:1', 'x:1, y:2' ]);
     });
     it('Cross', function () {
-        var opt = {type: 'anchor', x: 2, y: 3, shape: areaShape.Cross, startDistance: 0, length: 2};
+        var opt = {type: 'anchor', anchorPos:[17], shape: areaShape.Cross, startDistance: 0, length: 2};
         testThis( opt, [
                         'x:2, y:1',
                         'x:2, y:2',
@@ -106,7 +137,7 @@ describe("anchor", function () {
         ]);
     });
     it('Square', function () {
-        var opt = {type: 'anchor', x: 2, y: 3, shape: areaShape.Square, startDistance: 0, length: 3};
+        var opt = {type: 'anchor', anchorPos:[17], shape: areaShape.Square, startDistance: 0, length: 3};
         testThis( opt, [
             'x:0, y:0', 'x:1, y:0', 'x:2, y:0', 'x:3, y:0', 'x:4, y:0',
             'x:0, y:1', 'x:1, y:1', 'x:2, y:1', 'x:3, y:1', 'x:4, y:1',
@@ -117,7 +148,7 @@ describe("anchor", function () {
         ]);
     });
     it('Triangle', function () {
-        var opt = {type: 'anchor', x:0, y:2, shape: areaShape.Triangle, startDistance: 1, length: 3};
+        var opt = {type: 'anchor',  anchorPos:[10], shape: areaShape.Triangle, startDistance: 0, length: 3};
         testThis( opt, [
                                     'x:2, y:0',
                         'x:1, y:1', 'x:2, y:1',
@@ -126,6 +157,15 @@ describe("anchor", function () {
                                     'x:2, y:4'
         ]);
     });
+    it('Triangle', function () {
+        var opt = {type: 'anchor',  anchorPos:[19], direction: 7, shape: areaShape.Triangle, startDistance: 0, length: 3};
+        testThis( opt, [
+                                    'x:4, y:1',
+                        'x:3, y:2', 'x:4, y:2',
+            'x:2, y:3', 'x:3, y:3', 'x:4, y:3' 
+        ]);
+    });
+
 
 });
 });

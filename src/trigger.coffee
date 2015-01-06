@@ -1,9 +1,9 @@
 "use strict"
 
 modifier = {
-  7: { x:-1, y: 1 }, 8: { x: 0, y: 1 }, 9: { x: 1, y: 1 },
+  1: { x:-1, y: 1 }, 2: { x: 0, y: 1 }, 3: { x: 1, y: 1 },
   4: { x:-1, y: 0 }, 5: { x: 0, y: 0 }, 6: { x: 1, y: 0 },
-  1: { x:-1, y:-1 }, 2: { x: 0, y:-1 }, 3: { x: 1, y:-1 }
+  7: { x:-1, y:-1 }, 8: { x: 0, y:-1 }, 9: { x: 1, y:-1 }
 }
 
 direction = {
@@ -23,6 +23,44 @@ translatePos = (pos) ->
   y = (pos-x) / Dungeon_Width
   return {x:x,y:y}
 
+exports.translatePos =translatePos
+
+angle_dir_map = []
+angle_dir_map[direction.East      ] = [0,1, 15, 16]
+angle_dir_map[direction.NorthEast ] = [1,3]
+angle_dir_map[direction.North     ] = [3, 5]
+angle_dir_map[direction.NorthWest ] = [5, 7]
+angle_dir_map[direction.West      ] = [7,9]
+angle_dir_map[direction.SouthWest ] = [9 ,11]
+angle_dir_map[direction.South     ] = [11, 13]
+angle_dir_map[direction.SouthEast ] = [13, 15]
+
+initCalcDirFunc = ( cfg) ->
+  cfg = cfg.map((elm) ->
+    return elm.map((rd) ->
+      return rd/8*Math.PI))
+
+  inRange = (cfg, angle) ->
+    for v, k in cfg
+      if v?
+        return k if v[0] <=angle < v[1]
+        return k if (v.length is 4 ) and (v[0] <= angle < v[1] or v[2] <= angle < v[3])
+    return direction.Center
+  return  (src, tar) ->
+    dx = tar.x - src.x
+    dy = src.y - tar.y
+
+    if dx is 0 and dy is 0
+      return direction.Center
+    
+    angle = Math.atan(dy/dx)
+    angle = Math.PI + angle if angle < 0
+    angle+= Math.PI if  dy < 0
+    return inRange(cfg, angle)
+
+calcDirection = initCalcDirFunc( angle_dir_map)
+exports.calcDirection = calcDirection
+
 maskUnion = (one ,another) ->
   result = [].concat(one)
   for idx1, arr of another
@@ -30,6 +68,17 @@ maskUnion = (one ,another) ->
     result[idx1][idx2] = true for isMask, idx2 in arr when isMask
   
   return result
+
+printMask = (arr) ->
+  for arr1 in arr
+    if arr1?
+      strArr =[]
+      for idx in [0..Dungeon_Width-1]
+        c = if arr1[idx] then '@' else '*'
+        strArr.push(c)
+      console.log(strArr.join('|'))
+    else
+      console.log('*|*|*|*|*')
 
 selectLine = (x, y, direction, dFrom, length, result) ->
   mod = modifier[direction]
@@ -77,6 +126,11 @@ selectTriangle = (x, y, direction, dFrom, length, ground) ->
     else
       selectLine(x+mod.x*i, y+mod.y*i, localModifier[direction][1], 0, 1+2*i, ret)
   return ret
+handlers = {}
+handlers[areaShape.Line] = selectLine
+handlers[areaShape.Cross] = selectCross
+handlers[areaShape.Square] = selectSquare
+handlers[areaShape.Triangle] = selectTriangle
 
 filterObject = (me, objects, filters, env) ->
   filters = [filters] unless Array.isArray(filters)
@@ -105,7 +159,6 @@ filterObject = (me, objects, filters, env) ->
             tmp = result
 
             f = JSON.parse(JSON.stringify(f))
-            f.direction ?= direction.East
             f.startDistance ?= 0
             f.offsetX ?= 0
             f.offsetY ?= 0
@@ -117,26 +170,31 @@ filterObject = (me, objects, filters, env) ->
             else
               f.anchorPosList = [0]
 
-            handlers = {}
-            handlers[areaShape.Line] = selectLine
-            handlers[areaShape.Cross] = selectCross
-            handlers[areaShape.Square] = selectSquare
-            handlers[areaShape.Triangle] = selectTriangle
-
+            dirTarPos = me.selectTarget({targetSelection:f.anchorDirPos}, env)?[0]?.pos if f.anchorDirPos?
+            effectDir = []
             mask = f.anchorPosList.reduce((acc,pos) ->
               p = translatePos(pos)
-              mask = handlers[f.shape](p.x + f.offsetX, p.y + f.offsetY,
-              f.direction, f.startDistance, f.length)
+              if f.direction?
+                dir = f.direction
+              else if dirTarPos?
+                dir = calcDirection(p,translatePos(dirTarPos))
+              else
+                dir = direction.East
+              effectDir.push(dir)
+              mask = handlers[f.shape](p.x + f.offsetX, p.y + f.offsetY, dir, f.startDistance, f.length)
               return maskUnion(acc, mask)
             ,[])
-            #console.log('aP',f.anchorPosList)
-            #console.log('mask',mask)
-            #console.log('result',result.map((e) ->e.pos))
+            console.log('aP',f.anchorPosList, 'dirTarPos',dirTarPos)
+            #printMask(mask)
+            #console.log('result',result.map((e) ->e.pos).join(','))
+
+            env.variable('effdirlst',effectDir)
+            #console.log('filterObject', effectDir)
             result = result.filter((e) ->
               p = translatePos(e.pos)
               return mask[p.y]?[p.x]
             )
-
+            #console.log('result after',result.map((e) ->e.pos).join(','))
   return result
 
 

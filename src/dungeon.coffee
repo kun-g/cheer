@@ -876,6 +876,7 @@ class DungeonEnvironment extends Environment
       delay += spell.delay if spell.delay?
       ev = {id:ACT_EFFECT, dey: delay, eff:spell.effect}
       if actor.isBlock then ev.pos = +actor.pos else ev.act = actor.ref
+      if spell.dir? then ev.dir = spell.dir
       ret.push(ev)
     return ret
 
@@ -1414,20 +1415,27 @@ dungeonCSConfig = {
       tar = env.variable('castee')
       spell = env.variable('spell')
       delay = env.variable('delay')
+      dir = env.variable('effdirlst')
       ret = env.createSpellMsg(src, { motion : spell.spellAction, delay : spell.spellDelay, effect : spell.spellEffect }, delay) if spell? and src?
 
       if tar?
         info = { motion : spell.targetAction, delay : spell.targetDelay, effect : spell.targetEffect }
-        ret = ret.concat(env.createSpellMsg(t, info, delay)) for t in tar
+        for t,idx in tar
+          info.dir = tar[idx] if tar?[idx]?
+          ret = ret.concat(env.createSpellMsg(t, info, delay))
       
       return ret
   },
   Effect: {
     output: (env) ->
       if env.variable('pos')?
-        [{id:ACT_EFFECT, dey: env.variable('delay'), eff: env.variable('effect'), pos: env.variable('pos')}]
+        result = {id:ACT_EFFECT, dey: env.variable('delay'), eff: env.variable('effect'), pos: env.variable('pos')}
       else
-        [{id:ACT_EFFECT, dey: env.variable('delay'), eff: env.variable('effect'), act: env.variable('act')}]
+        result = {id:ACT_EFFECT, dey: env.variable('delay'), eff: env.variable('effect'), act: env.variable('act')}
+      #console.log('Effect', env.variable('effdir'))
+      if env.variable('effdir')?
+        result.dir = env.variable('effdir')
+      [result]
   },
   CastSpell: {
     callback: (env) ->

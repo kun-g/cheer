@@ -416,24 +416,28 @@ class Wizard
           continue unless env?
           effect = getSpellProperty(a, 'effect', thisSpell.level)
           pos = getSpellProperty(a, 'pos', thisSpell.level)
+          dir = getSpellProperty(a, 'dir', thisSpell.level)
+          dir ?= env.variable('effdirlst')
+          dir ?= [5]
+
           if pos?
             if pos is 'self'
-              cmd.routine?({id: 'Effect', delay: delay, effect: effect, pos: @pos})
+              cmd.routine?({id: 'Effect', delay: delay, effect: effect, effdir:dir[0],pos: @pos})
             else if pos is 'target'
-              for t in target
-                cmd.routine?({id: 'Effect', delay: delay, effect: effect, pos: t.pos})
+              for t, idx in target
+                cmd.routine?({id: 'Effect', delay: delay, effect: effect, effdir:dir[idx],pos: t.pos})
             else if typeof pos is 'number'
-              cmd.routine?({id: 'Effect', delay: delay, effect: effect, pos: pos})
+              cmd.routine?({id: 'Effect', delay: delay, effect: effect, effdir:dir[0],pos: pos})
             else if Array.isArray(pos)
-              for pos in pos
-                cmd.routine?({id: 'Effect', delay: delay, effect: effect, pos: pos})
+              for pos, idx in pos
+                cmd.routine?({id: 'Effect', delay: delay, effect: effect, effdir:dir[idx],pos: pos})
           else
             switch a.act
               when 'self'
-                cmd.routine?({id: 'Effect', delay: delay, effect: effect, act: @ref})
+                cmd.routine?({id: 'Effect', delay: delay, effect: effect, effdir:dir[0],act: @ref})
               when 'target'
-                for t in target
-                  cmd.routine?({id: 'Effect', delay: delay, effect: effect, act: t.ref})
+                for t, idx in target
+                  cmd.routine?({id: 'Effect', delay: delay, effect: effect, effdir:dir[idx],act: t.ref})
         when 'delay'
           c = {id: 'Delay'}
           if a.delay? then c.delay = a.delay
