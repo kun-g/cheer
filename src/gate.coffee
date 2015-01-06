@@ -98,10 +98,14 @@ backendManager = {
 }
 
 initGlobalConfig(null, () ->
-	gServerID = queryTable(TABLE_CONFIG, 'ServerID')
-	gServerConfig = queryTable(TABLE_CONFIG, 'ServerConfig')[gServerID]
-	backendManager.init(gServerConfig.Gate)
-	port =  gServerConfig.gateListenPort ? 7757
+  gateConfig = queryTable(TABLE_CONFIG, 'Gate_Config')
+  ips = []
+  networkInterfaces = require("os").networkInterfaces()
+  for k, v of networkInterfaces
+    ips = ipc.concat(v.map((e) -> e.address))
+  ip = ips.filter((e) -> return gateConfig[e]; )[0]
+	backendManager.init(gateConfig[ip])
+	port = 7757
 	startTcpServer(port, backendManager)
   #startSocketIOServer(backendManager, 7757)
 )
