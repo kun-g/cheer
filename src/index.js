@@ -5,6 +5,7 @@
 //});
 //var agent = require('webkit-devtools-agent');
 require('./define');
+require('./shop');
 dbLib = require('./db');
 dbWrapper = require('./dbWrapper');
 http = require('http');
