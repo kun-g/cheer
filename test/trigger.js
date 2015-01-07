@@ -18,6 +18,7 @@ describe('', function () {
         {psrc:12, ptar: [12], res: 5},
         {psrc:1, ptar: [22,21,20], res: 2},
         {psrc:20, ptar: [0,1], res: 8},
+        {psrc:12, ptar: [10,11], res: 4},
         ];
         
         for (var i in data) {

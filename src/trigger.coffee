@@ -55,7 +55,7 @@ initCalcDirFunc = ( cfg) ->
     
     angle = Math.atan(dy/dx)
     angle = Math.PI + angle if angle < 0
-    angle+= Math.PI if  dy < 0
+    angle+= Math.PI if  dy < 0 or (dy is 0 and dx < 0)
     return inRange(cfg, angle)
 
 calcDirection = initCalcDirFunc( angle_dir_map)
