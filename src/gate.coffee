@@ -102,11 +102,11 @@ initGlobalConfig(null, () ->
   ips = []
   networkInterfaces = require("os").networkInterfaces()
   for k, v of networkInterfaces
-    ips = ipc.concat(v.map((e) -> e.address))
-  ip = ips.filter((e) -> return gateConfig[e]; )[0]
-	backendManager.init(gateConfig[ip])
-	port = 7757
-	startTcpServer(port, backendManager)
+    ips = ips.concat(v.map((e) -> e.address))
+  ip = ips.filter((e) -> return gateConfig[e])[0]
+  backendManager.init(gateConfig[ip])
+  port = 7757
+  startTcpServer(port, backendManager)
   #startSocketIOServer(backendManager, 7757)
 )
 
