@@ -22,7 +22,7 @@ dbLib.initializeDB({
   // "Subscriber": { "IP": "localhost", "PORT": 6379}
 });
 
-
+/*
 describe('Unit', function () {
   it('levelUp', function () {
     initGlobalConfig('../../build/', function() {
@@ -60,3 +60,4 @@ describe('Unit', function () {
   });
 });
 
+*/
