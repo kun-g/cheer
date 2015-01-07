@@ -429,8 +429,7 @@ class Player extends DBWrapper
       hairColor: arg.hcl
       })
     prize = queryTable(TABLE_ROLE, arg.cid)?.initialEquipment
-    for  p in prize
-      @claimPrize(p)
+    @claimPrize(prize)
     logUser({
       name: arg.nam
       action: 'register'
@@ -753,6 +752,7 @@ class Player extends DBWrapper
 
   claimPrize: (prize, allOrFail = true) ->
     return [] unless prize?
+    prize = [prize] unless Array.isArray(prize)
 
     ret = []
 
