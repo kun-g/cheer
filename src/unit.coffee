@@ -12,7 +12,7 @@ class Unit extends Wizard
     @isVisible = false
     @unitProperty = {}
     @unitAppearance = {}
-    @skill = []
+    @suitSkill = []
     @uniform = {}
 
   calculatePower: () ->
@@ -156,7 +156,7 @@ class Unit extends Wizard
     return false unless @unitAppearance?
     for k of @unitAppearance
       @unitAppearance[k] = null
-    @skill=[]
+    @suitSkill=[]
 
   addUnitPro: (unitPro) ->
     return false unless unitPro?
@@ -173,7 +173,7 @@ class Unit extends Wizard
             @unitAppearance[k] = this.appearance[k]
             this.appearance[k] = v
         when 'install_skill'
-          @skill.push({id: u.id, level: u.level})
+          @suitSkill.push({id: u.id, level: u.level})
 
   caculateUnitPro: () ->
     return false unless @uniform?
@@ -199,10 +199,12 @@ class Unit extends Wizard
         this[k] = v
 
   equip: (equipItem) ->
+    console.log('unit equip equipItem', JSON.stringify(equipItem))
     @gearDown()
     @uniform[equipItem.getConfig().subcategory] = equipItem
     @gearOn()
     @caculateUnitPro()
+    console.log('unit equip suitSkill', JSON.stringify(@suitSkill))
 
   isMonster: () -> false
   isHero: () -> false
@@ -228,7 +230,6 @@ class Hero extends Unit
     @equipment = [] unless @equipment?
     {createItem} = require('./item')
     @equipment = @equipment.map((e) -> createItem({id: e.cid, enhancement: e.eh}))
-    
 
     @initialize()
 
@@ -237,11 +238,19 @@ class Hero extends Unit
     @initWithConfig(cfg) if cfg?
     @level = 0
     @levelUp()
+    console.log('equipment ', JSON.stringify(@equipment))
     @gearUp()
     if not @isAlive() then @health = 1
     if @attack <= 0 then @attack = 1
     @maxHP = @health
     @originAttack = @attack
+    {createItem} = require('./item')
+    for k, v of @equipment
+      if v.suitId?
+        @equip(createItem({suit_config:queryTable(TABLE_UNIT)[v.suitId],subcategory:v.subcategory,basic_properties:v.basic_properties,appearance:v.appearance}))
+    #for k, v of @unitAppearance#暂时不用
+    for k, v of @suitSkill
+      @installSpell(v.id, v.level)
     console.log('Hero ', JSON.stringify(@)) if flagCreation
 
   isHero: () -> true

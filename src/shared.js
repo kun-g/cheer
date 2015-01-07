@@ -41,6 +41,7 @@ TABLE_IAPLIST = "iaplist";
 TABLE_SERVERLIST = "serverlist";
 TABLE_FRAGMENT = "fragment";
 TABLE_IAP = "iaplist";
+TABLE_UNIT = "units";
 
 /*** GAME CONSTANTS ***/
 ItemId_RevivePotion = 540;
@@ -231,9 +232,7 @@ ENHANCE_REACTIVITY = 9;
 ENHANCE_VOID = 10;
 ENHANCE_COUNT = 11;
 
-/*** Subcategory of ITEM_RECIPE ***/
-RECIPE_SYN = 0;
-RECIPE_DECOM = 1;
+/*** Subcategory of ITEM_RECIPE  the same to ITEM_EQUIPMENT***/
 
 /*** Enhance Result ***/
 RES_ATTACK = 0;

@@ -884,10 +884,12 @@ class Player extends DBWrapper
                 ret = ret.concat(this.syncEnergy())
             return { ret: RET_OK, ntf: ret }
       when ITEM_EQUIPMENT
-        @equipItem(slot)
+        ret = @equipItem(slot)
+        return { ret: RET_OK, ntf: [ret] }
       when ITEM_RECIPE
         if opn? and opn == 1#USE_ITEM_OPT_EQUIP = 1;
-          @equipItem(slot)
+          ret = @equipItem(slot)
+          return { ret: RET_OK, ntf: [ret] }
         else
           if item.recipeTarget?
             recipe = @itemSynthesis(slot)
@@ -949,7 +951,7 @@ class Player extends DBWrapper
     delete ret.arg.itm if ret.arg.itm.length < 1
 
     this.onEvent('Equipment')
-    return { ret: RET_OK, ntf: [ret] }
+    return ret
 
   levelUpItem: (slot) ->
     item = @getItemAt(slot)

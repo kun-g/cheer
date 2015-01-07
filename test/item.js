@@ -80,7 +80,7 @@ describe('Item', function () {
           unit.equip(createItem({suit_config: suitConfig, subcategory: 3}));
           unit.attack.should.equal(21);
           unit.appearance.should.eql({ body: 1, head: 10});
-          unit.skill.should.eql([{id:3, level:3}]);
+          unit.suitSkill.should.eql([{id:3, level:3}]);
       });
 
       //it('强化:时间限制', function () {
