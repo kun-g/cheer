@@ -58,7 +58,7 @@ class Wizard
 
     @setupTriggerCondition(spellID, cfg.triggerCondition,  cmd)
     @setupAvailableCondition(spellID, cfg.availableCondition,  cmd)
-    @doAction(@wSpellDB[spellID], cfg.installAction,  @selectTarget(cfg, cmd), cmd)
+    @doAction(@wSpellDB[spellID], cfg.installAction,  @selectTarget(cfg, cmd?.getEnvironment()), cmd)
     @spellStateChanged(spellID, cmd)
 
   setupAvailableCondition: (spellID, conditions, cmd) ->
@@ -106,7 +106,7 @@ class Wizard
       @removeTrigger(spellID, c.event) for c in cfg.availableCondition when c.type is 'event'
 
     if cfg.uninstallAction?
-      @doAction(@wSpellDB[spellID], cfg.uninstallAction, @selectTarget(cfg, cmd), cmd)
+      @doAction(@wSpellDB[spellID], cfg.uninstallAction, @selectTarget(cfg, cmd?.getEnvironment()), cmd)
 
     delete @wSpellDB[spellID]
     @spellStateChanged(spellID, cmd)
@@ -126,14 +126,16 @@ class Wizard
 
   castSpell: (spellID, cmd) ->
     cfg = getSpellConfig(spellID)
+    return false unless cfg?
     thisSpell = @wSpellDB[spellID]
 
-    target = @selectTarget(cfg, cmd)
+    target = @selectTarget(cfg, cmd?.getEnvironment())
 
     [canTrigger, reason] = @triggerCheck(thisSpell, cfg.triggerCondition, target, cmd)
     return reason unless canTrigger
 
     @doAction(thisSpell, cfg.action, target, cmd)
+    return false unless cfg?
     @updateCDOfSpell(spellID, true, cmd)
     @removeSpell(spellID, cmd) unless @availableCheck(spellID, cfg, cmd)
     delay = 0
@@ -149,12 +151,14 @@ class Wizard
       thisSpell.eventCounters[event]++ if thisSpell?
       @castSpell(id, cmd)
 
-  clearSpellCD: (spellID, cmd) ->
-    return false unless spellID? and @wSpellDB[spellID]?
-    thisSpell = @wSpellDB[spellID]
-    if thisSpell.cd? and thisSpell.cd isnt 0
-      thisSpell.cd = 0
-      cmd.routine?({id: 'SpellCD', cdInfo: thisSpell.cd}) if @isHero()
+  clearSpellCD: (spellIDList, cmd) ->
+    return false unless Array.isArray(spellIDList)
+    for spellID in spellIDList
+      continue unless @wSpellDB[spellID]?
+      thisSpell = @wSpellDB[spellID]
+      if thisSpell.cd? and thisSpell.cd isnt 0
+        thisSpell.cd = 0
+        cmd.routine?({id: 'SpellCD', cdInfo: thisSpell.cd}) if @isHero()
 
   getSpellCD:() ->
     for spellID, thisSpell of @wSpellDB
@@ -243,15 +247,18 @@ class Wizard
 
     return res
   
-  selectTarget: (cfg, cmd) ->
+  selectTarget: (cfg, env) ->
     return [] unless cfg.targetSelection? and cfg.targetSelection.pool
-    return [] unless cfg.targetSelection.pool is 'self' or cmd?
-    env = cmd.getEnvironment() if cmd?
+    return [] unless cfg.targetSelection.pool is 'self' or env?
     switch cfg.targetSelection.pool
       when 'self' then pool = @
       when 'target' then pool = env.variable('tar')
       when 'source' then pool = env.variable('src')
       when 'objects' then pool = env.getObjects()
+      when 'select-object'
+        playerChoice = +env.variable('playerChoice')
+        pool = env.getObjects().filter((obj) -> obj.pos is playerChoice)
+      when 'select-block' then pool = env.getBlock(env.variable('playerChoice'))
       when 'blocks'
         blocks = cfg.targetSelection.blocks
         pool = if blocks? then (env.getBlock(b) for b in blocks) else env.getBlock()
@@ -298,7 +305,7 @@ class Wizard
 
     return [true]
 
-  getActiveSpell: () -> -1
+  getActiveSpell: () -> [-1]
 
   doAction: (thisSpell, actions, target, cmd) ->
     return false unless actions?
@@ -326,7 +333,7 @@ class Wizard
 
       target = bakTarget
       if a.target
-        target = @selectTarget({targetSelection: a.target}, cmd)
+        target = @selectTarget({targetSelection: a.target}, cmd?.getEnvironment())
 
       switch a.type
         when 'modifyVar' then env.variable(a.x, formularResult)
@@ -413,24 +420,28 @@ class Wizard
           continue unless env?
           effect = getSpellProperty(a, 'effect', thisSpell.level)
           pos = getSpellProperty(a, 'pos', thisSpell.level)
+          dir = getSpellProperty(a, 'dir', thisSpell.level)
+          dir ?= env.variable('effdirlst')
+          dir ?= [5]
+
           if pos?
             if pos is 'self'
-              cmd.routine?({id: 'Effect', delay: delay, effect: effect, pos: @pos})
+              cmd.routine?({id: 'Effect', delay: delay, effect: effect, effdir:dir[0],pos: @pos})
             else if pos is 'target'
-              for t in target
-                cmd.routine?({id: 'Effect', delay: delay, effect: effect, pos: t.pos})
+              for t, idx in target
+                cmd.routine?({id: 'Effect', delay: delay, effect: effect, effdir:dir[idx],pos: t.pos})
             else if typeof pos is 'number'
-              cmd.routine?({id: 'Effect', delay: delay, effect: effect, pos: pos})
+              cmd.routine?({id: 'Effect', delay: delay, effect: effect, effdir:dir[0],pos: pos})
             else if Array.isArray(pos)
-              for pos in pos
-                cmd.routine?({id: 'Effect', delay: delay, effect: effect, pos: pos})
+              for pos, idx in pos
+                cmd.routine?({id: 'Effect', delay: delay, effect: effect, effdir:dir[idx],pos: pos})
           else
             switch a.act
               when 'self'
-                cmd.routine?({id: 'Effect', delay: delay, effect: effect, act: @ref})
+                cmd.routine?({id: 'Effect', delay: delay, effect: effect, effdir:dir[0],act: @ref})
               when 'target'
-                for t in target
-                  cmd.routine?({id: 'Effect', delay: delay, effect: effect, act: t.ref})
+                for t, idx in target
+                  cmd.routine?({id: 'Effect', delay: delay, effect: effect, effdir:dir[idx],act: t.ref})
         when 'delay'
           c = {id: 'Delay'}
           if a.delay? then c.delay = a.delay

@@ -3,7 +3,7 @@ require('./define')
 require('./shared')
 {Wizard} = require './spell'
 {DBWrapper} = require './dbWrapper'
-{createUnit, Hero} = require './unit'
+{createUnit, Hero, Mirror} = require './unit'
 {Item, Card} = require './item'
 {CommandStream, Environment } = require('./commandStream')
 {Bag, CardStack} = require('./container')
@@ -292,18 +292,24 @@ class Dungeon
   initiateHeroes: (team) ->
     team = [] unless team
     ref = 0
-    this.heroes = (
-      new Hero({
-        name: e.nam,
-        class: e.cid,
-        gender: e.gen,
-        hairStyle: e.hst,
-        hairColor: e.hcl,
-        equipment: e.itm,
-        xp: e.exp,
-        order: ref,
-        ref: ref++
-      }) for e in team
+    this.heroes = team.map((e) ->
+      if e.isMe
+        data = {
+          name: e.nam,
+          class: e.cid,
+          gender: e.gen,
+          hairStyle: e.hst,
+          hairColor: e.hcl,
+          equipment: e.itm,
+          xp: e.exp,
+          order: ref,
+          ref :ref++
+        }
+        return new Hero(data)
+      else
+        e.order = ref
+        e.ref = ref++
+        new Mirror(e, 'teammate')
     )
     dummyHero = new Hero({})
     dummyHero.health =0
@@ -390,7 +396,12 @@ class Dungeon
     cmd = req?.CMD ? req?.CNF
     switch cmd
       when RPC_GameStartDungeon then action = DUNGEON_ACTION_ENTER_DUNGEON
-      when Request_DungeonSpell then action = DUNGEON_ACTION_CAST_SPELL
+      when Request_DungeonSpell
+        action = DUNGEON_ACTION_CAST_SPELL
+        req.arg ?= {}
+        req.arg.idx ?= 0
+        req.arg.pos ?= -1
+        arg = {i:+req.arg.idx, p:req.arg.pos}
       when REQUEST_CancelDungeon then action = DUNGEON_ACTION_CANCEL_DUNGEON
       when Request_DungeonRevive then action = DUNGEON_ACTION_REVIVE
       when Request_DungeonCard
@@ -445,7 +456,8 @@ class Dungeon
         ret = [] #[{NTF: Event_Fail, arg : {msg:'Main Hero Is Dead'}}]
         if hero.isAlive()
           cmd = DungeonCommandStream({id: 'BeginTurn', type: 'Spell', src: hero}, this)
-          cmd.next({id: 'CastSpell', me: hero, spell: hero.activeSpell})
+          spellId = hero.activeSpell[arg.i]
+          cmd.next({id: 'CastSpell', me: hero, spell: spellId, playerChoice: arg.p})
              .next({id: 'EndTurn', type: 'Spell', src: hero})
              .next({id: 'ResultCheck'})
           cmd.process()
@@ -871,6 +883,7 @@ class DungeonEnvironment extends Environment
       delay += spell.delay if spell.delay?
       ev = {id:ACT_EFFECT, dey: delay, eff:spell.effect}
       if actor.isBlock then ev.pos = +actor.pos else ev.act = actor.ref
+      if spell.dir? then ev.dir = spell.dir
       ret.push(ev)
     return ret
 
@@ -1077,6 +1090,7 @@ dungeonCSConfig = {
       env.variable('state', state)
     output: (env) ->
       ret =  genUnitInfo(env.variable('wizard'), false, env.variable('state'))
+      return [] unless ret?
       if env.variable('effect')?
         effect = env.variable('effect')
         if ret? then ret = [ret]
@@ -1087,7 +1101,7 @@ dungeonCSConfig = {
         ev.sid = if actor.isBlock then (actor.pos+1)*100+bid else (actor.ref+1)*1000+bid
         if actor.isBlock then ev.pos = +actor.pos else ev.act = actor.ref
         ret.push(ev)
-      return if ret? then ret else []
+      return ret
   },
   TickSpell: {
     callback: (env) -> h.tickSpell(env.variable('tickType'), @) for h in env.getObjects()
@@ -1408,20 +1422,27 @@ dungeonCSConfig = {
       tar = env.variable('castee')
       spell = env.variable('spell')
       delay = env.variable('delay')
+      dir = env.variable('effdirlst')
       ret = env.createSpellMsg(src, { motion : spell.spellAction, delay : spell.spellDelay, effect : spell.spellEffect }, delay) if spell? and src?
 
       if tar?
         info = { motion : spell.targetAction, delay : spell.targetDelay, effect : spell.targetEffect }
-        ret = ret.concat(env.createSpellMsg(t, info, delay)) for t in tar
+        for t,idx in tar
+          info.dir = tar[idx] if tar?[idx]?
+          ret = ret.concat(env.createSpellMsg(t, info, delay))
       
       return ret
   },
   Effect: {
     output: (env) ->
       if env.variable('pos')?
-        [{id:ACT_EFFECT, dey: env.variable('delay'), eff: env.variable('effect'), pos: env.variable('pos')}]
+        result = {id:ACT_EFFECT, dey: env.variable('delay'), eff: env.variable('effect'), pos: env.variable('pos')}
       else
-        [{id:ACT_EFFECT, dey: env.variable('delay'), eff: env.variable('effect'), act: env.variable('act')}]
+        result = {id:ACT_EFFECT, dey: env.variable('delay'), eff: env.variable('effect'), act: env.variable('act')}
+      #console.log('Effect', env.variable('effdir'))
+      if env.variable('effdir')?
+        result.dir = env.variable('effdir')
+      [result]
   },
   CastSpell: {
     callback: (env) ->

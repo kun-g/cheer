@@ -1,3 +1,4 @@
+/*
 shall = require('should');
 require('../js/define');
 dbLib = require('../js/db');
@@ -160,3 +161,4 @@ describe('DB', function () {
   });
 });
 
+*/

@@ -64,7 +64,7 @@ describe('Spell', function () {
 //      wizard.onEvent({event: 'onBeDamage', range: true, physical: true});
 //      wizard.wSpellDB.should.not.have.property('1');
 //  });
-});
+//});
 //  var spellConfig = {
 //      variable: {
 //          allies_in_danger : {

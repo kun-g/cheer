@@ -1,5 +1,137 @@
 "use strict"
 
+modifier = {
+  1: { x:-1, y: 1 }, 2: { x: 0, y: 1 }, 3: { x: 1, y: 1 },
+  4: { x:-1, y: 0 }, 5: { x: 0, y: 0 }, 6: { x: 1, y: 0 },
+  7: { x:-1, y:-1 }, 8: { x: 0, y:-1 }, 9: { x: 1, y:-1 }
+}
+
+direction = {
+  NorthWest:7, North:8, NorthEast: 9,
+  West:4,      Center:5,East: 6,
+  SouthWest:1, South:2, SouthEast: 3
+}
+areaShape = {
+  Line: 0,
+  Cross: 1,
+  Square: 2,
+  Triangle: 3
+}
+
+translatePos = (pos) ->
+  x = pos % Dungeon_Width
+  y = (pos-x) / Dungeon_Width
+  return {x:x,y:y}
+
+exports.translatePos =translatePos
+
+angle_dir_map = []
+angle_dir_map[direction.East      ] = [0,1, 15, 16]
+angle_dir_map[direction.NorthEast ] = [1,3]
+angle_dir_map[direction.North     ] = [3, 5]
+angle_dir_map[direction.NorthWest ] = [5, 7]
+angle_dir_map[direction.West      ] = [7,9]
+angle_dir_map[direction.SouthWest ] = [9 ,11]
+angle_dir_map[direction.South     ] = [11, 13]
+angle_dir_map[direction.SouthEast ] = [13, 15]
+
+initCalcDirFunc = ( cfg) ->
+  cfg = cfg.map((elm) ->
+    return elm.map((rd) ->
+      return rd/8*Math.PI))
+
+  inRange = (cfg, angle) ->
+    for v, k in cfg
+      if v?
+        return k if v[0] <=angle < v[1]
+        return k if (v.length is 4 ) and (v[0] <= angle < v[1] or v[2] <= angle < v[3])
+    return direction.Center
+  return  (src, tar) ->
+    dx = tar.x - src.x
+    dy = src.y - tar.y
+
+    if dx is 0 and dy is 0
+      return direction.Center
+    
+    angle = Math.atan(dy/dx)
+    angle = Math.PI + angle if angle < 0
+    angle+= Math.PI if  dy < 0 or (dy is 0 and dx < 0)
+    return inRange(cfg, angle)
+
+calcDirection = initCalcDirFunc( angle_dir_map)
+exports.calcDirection = calcDirection
+
+maskUnion = (one ,another) ->
+  result = [].concat(one)
+  for idx1, arr of another
+    result[idx1] ?= []
+    result[idx1][idx2] = true for isMask, idx2 in arr when isMask
+  
+  return result
+
+printMask = (arr) ->
+  for arr1 in arr
+    if arr1?
+      strArr =[]
+      for idx in [0..Dungeon_Width-1]
+        c = if arr1[idx] then '@' else '*'
+        strArr.push(c)
+      console.log(strArr.join('|'))
+    else
+      console.log('*|*|*|*|*')
+
+selectLine = (x, y, direction, dFrom, length, result) ->
+  mod = modifier[direction]
+  result = [] unless result
+  for i in [dFrom..dFrom+length-1] when 0<=y+mod.y*i<Dungeon_Height and 0<=x+mod.x*i<Dungeon_Width
+    result[y+mod.y*i] = [] unless result[y+mod.y*i]
+    result[y+mod.y*i][x+mod.x*i] = true
+  return result
+
+selectCross = (x, y, direction, dFrom, length) ->
+  selector = [2, 4, 6, 8]
+  if direction%2 then selector = [1, 3, 7, 9]
+  ret = []
+  for sel in selector
+    selectLine(x, y, sel, dFrom, length+1, ret)
+  return ret
+
+selectSquare = (x, y, direction, dFrom, length, ground) ->
+  if direction%2
+    selector = [[8,3], [6,1], [2,7], [4,9]]
+    adjust = 1
+  else
+    selector = [[7,6], [9,2], [1,8], [3,4]]
+    adjust = 2
+
+  ret = []
+  for i in [dFrom..dFrom+length]
+    for sel in selector
+      mod = modifier[sel[0]]
+      selectLine(x+mod.x*i, y+mod.y*i, sel[1], 0, i*adjust+1, ret)
+  return ret
+
+selectTriangle = (x, y, direction, dFrom, length, ground) ->
+  localModifier = {
+    7: [4,9], 8: [7,6], 9: [8,3],
+    4: [1,8], 5: [5,5], 6: [9,2],
+    1: [2,7], 2: [3,4], 3: [6,1]
+  }
+  ret = []
+  for i in [dFrom..dFrom+length-1]
+    mod = localModifier[direction][0]
+    mod = modifier[mod]
+    if direction%2
+      selectLine(x+mod.x*i, y+mod.y*i, localModifier[direction][1], 0, i+1, ret)
+    else
+      selectLine(x+mod.x*i, y+mod.y*i, localModifier[direction][1], 0, 1+2*i, ret)
+  return ret
+handlers = {}
+handlers[areaShape.Line] = selectLine
+handlers[areaShape.Cross] = selectCross
+handlers[areaShape.Square] = selectSquare
+handlers[areaShape.Triangle] = selectTriangle
+
 filterObject = (me, objects, filters, env) ->
   filters = [filters] unless Array.isArray(filters)
   result = (o for o in objects)
@@ -25,15 +157,46 @@ filterObject = (me, objects, filters, env) ->
           when 'shuffle' then result = shuffle(result, env.rand())
           when 'anchor'
             tmp = result
-            result = []
-            for t in tmp
-              if not t.isBlock then t = env.getBlock(t.pos)
-              x = t.pos % Dungeon_Width
-              y = (t.pos-x) / Dungeon_Width
-              for a in f.anchor when 0 <= a.x+x < Dungeon_Width and 0 <= a.y+y < Dungeon_Height
-                result.push(env.getBlock(a.x+x + (a.y+y) * Dungeon_Width ))
 
+            f = JSON.parse(JSON.stringify(f))
+            f.startDistance ?= 0
+            f.offsetX ?= 0
+            f.offsetY ?= 0
+            if f.anchorPos?
+              if Array.isArray(f.anchorPos)
+                f.anchorPosList = f.anchorPos
+              else
+                f.anchorPosList = me.selectTarget({targetSelection:f.anchorPos}, env).map((e) -> e.pos)
+            else
+              f.anchorPosList = [0]
+
+            dirTarPos = me.selectTarget({targetSelection:f.anchorDirPos}, env)?[0]?.pos if f.anchorDirPos?
+            effectDir = []
+            mask = f.anchorPosList.reduce((acc,pos) ->
+              p = translatePos(pos)
+              if f.direction?
+                dir = f.direction
+              else if dirTarPos?
+                dir = calcDirection(p,translatePos(dirTarPos))
+              else
+                dir = direction.East
+              effectDir.push(dir)
+              mask = handlers[f.shape](p.x + f.offsetX, p.y + f.offsetY, dir, f.startDistance, f.length)
+              return maskUnion(acc, mask)
+            ,[])
+            console.log('aP',f.anchorPosList, 'dirTarPos',dirTarPos)
+            #printMask(mask)
+            #console.log('result',result.map((e) ->e.pos).join(','))
+
+            env.variable('effdirlst',effectDir)
+            #console.log('filterObject', effectDir)
+            result = result.filter((e) ->
+              p = translatePos(e.pos)
+              return mask[p.y]?[p.x]
+            )
+            #console.log('result after',result.map((e) ->e.pos).join(','))
   return result
+
 
 exports.filterObject = filterObject
 
@@ -431,3 +594,5 @@ SequalDB = {
 
     return pool
 }
+exports.direction = direction
+exports.areaShape = areaShape
