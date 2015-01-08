@@ -33,12 +33,12 @@ doVerify = (time, config) ->
   range = moment(config.time)
   if range
     if config.units
-      result = result && range.isSame(time, config.units)
+      result = result and range.isSame(time, config.units)
 
     duration = config.duration
     if duration
-      localDuration = moment.duration({to:time, from: range})
-      result = result && localDuration < moment.duration(duration)
+      localDuration = moment.duration(time - range)
+      result = result and localDuration < moment.duration(duration)
 
   from = config.from
   to = config.to
@@ -96,7 +96,6 @@ verify = (time, durationExp, theData) ->
   return doVerify(time, timeExp)
 
 exports.verify = verify
-
-exports.diff = (to, from) -> return moment.duration({from: from, to: to})
-
+exports.diff = (to, from) -> return moment.duration(moment(to)-moment(from))
 exports.currentTime = () -> moment().format()
+exports.moment = moment

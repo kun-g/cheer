@@ -7,7 +7,6 @@ net = require('net')
 startSocketIOServer = (servers, port) ->
 	io = require('socket.io')
 	io.listen(port).on('connection', (socket) ->
-		console.log('Connection')
 		socket.encoder = new SimpleProtocolEncoder()
 		socket.decoder = new SimpleProtocolDecoder()
 		socket.encoder.setFlag('size')
@@ -19,7 +18,6 @@ startSocketIOServer = (servers, port) ->
 			socket.emit('response', request)
 		)
 		socket.on('request', (request) ->
-			console.log('reqeust', request)
 			socket.encoder.writeObject(request)
 		)
 	).set('log level', 0)
@@ -37,11 +35,15 @@ startTcpServer = (port, backendManager) ->
 		c.server.pipe(c)
 		c.decoder.on('request', (request) ->
 			if request
-        request.address = {
-          ip: c.remoteAddress,
-          port: c.remotePort
-        }
-        c.encoder.writeObject(request)
+				request.address = {
+					ip: c.remoteAddress,
+					port: c.remotePort
+				}
+				c.encoder.writeObject(request)
+
+				if request.CMD is 101
+					console.log({ request: request, ip: c.remoteAddress })
+					c.encoder.writeObject(request)
 			else
 				c.destroy()
 				c = null
@@ -59,12 +61,10 @@ backendManager = {
 				s = net.connect(e.port, e.ip)
 				s.on('connect', () ->
 					e.alive = true
-					console.log('Connection On', e)
 				)
 				s.on('error', (err) -> e.alive = false)
 				s.on('end', (err) ->
 					e.alive = false
-					console.log('Connection Lost', e)
 				)
 				s = null
 		)
@@ -104,11 +104,15 @@ backendManager = {
 }
 
 initGlobalConfig(null, () ->
-	gServerID = queryTable(TABLE_CONFIG, 'ServerID')
-	gServerConfig = queryTable(TABLE_CONFIG, 'ServerConfig')[gServerID]
-	backendManager.init(gServerConfig.Gate)
-	port =  gServerConfig.gateListenPort ? 7757
-	startTcpServer(port, backendManager)
+  gateConfig = queryTable(TABLE_CONFIG, 'Gate_Config')
+  ips = []
+  networkInterfaces = require("os").networkInterfaces()
+  for k, v of networkInterfaces
+    ips = ips.concat(v.map((e) -> e.address))
+  ip = ips.filter((e) -> return gateConfig[e])[0]
+  backendManager.init(gateConfig[ip])
+  port = 7757
+  startTcpServer(port, backendManager)
   #startSocketIOServer(backendManager, 7757)
 )
 

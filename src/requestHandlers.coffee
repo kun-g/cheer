@@ -9,6 +9,44 @@ querystring = require('querystring')
 moment = require('moment')
 {Player} = require('./player')
 
+checkRequest = (req, player, arg, rpcID, cb) ->
+  dbLib.checkReceiptValidate(arg.rep, (isValidate) ->
+    if isValidate
+      req = https.request(req, (res) ->
+        res.setEncoding('utf8')
+        res.on('data', (chunk) ->
+          result = JSON.parse(chunk)
+          logInfo({action: 'VerifyPayment', type: 'Apple', code: result, receipt: arg.bill})
+          if result.status isnt 0 or result.original_transaction_id
+            return cb([{REQ: rpcID, RET: RET_InvalidPaymentInfo}])
+          else
+            receipt = arg.bill
+            #receiptInfo = unwrapReceipt(result.transaction_id)
+            #serverName = 'Master'
+            player.handlePayment({
+              paymentType: 'AppStore',
+              productID: result.receipt.product_id,
+              receipt: receipt,
+            }, (err, result) ->
+              dbLib.markReceiptInvalidate(arg.rep)
+              ret = RET_OK
+              ret = err.message if err?
+              cb([{REQ: rpcID, RET: ret}].concat(result))
+            )
+        )
+        .on('error', (e) ->
+          logError({action: 'VerifyPayment', type: 'Apple', error: e, rep: arg.rep})
+          cb([{REQ: rpcID, RET: RET_InvalidPaymentInfo}])
+        )
+      )
+      req.write(JSON.stringify({"receipt-data": JSON.parse(arg.rep).receipt}))
+      req.end()
+    else
+      cb([{REQ: rpcID, RET: RET_InvalidPaymentInfo}])
+  )
+
+
+
 loginBy = (arg, token, callback) ->
   passportType = arg.tp
   passport = arg.id
@@ -125,7 +163,8 @@ loginBy = (arg, token, callback) ->
           result = JSON.parse(chunk)
           logInfo({action: 'login', type:  LOGIN_ACCOUNT_TYPE_PP, code: result.state})
           if result.state.code is 1
-            identifier = result.data.creator+result.data.accountId
+            #identifier = result.data.creator+result.data.accountId
+            identifier = result.data.nickName
             callback(null, identifier)
           else
             callback(Error(RET_LoginFailed))
@@ -370,7 +409,7 @@ exports.route = {
               dungeon.result = DUNGEON_RESULT_FAIL
             finally
               logInfo('Claim Dungeon Award')
-              evt = evt.concat(player.claimDungeonAward(dungeon))
+              evt = evt.concat(player.claimDungeonReward(dungeon))
               logInfo('Releasing Dungeon')
               player.releaseDungeon()
               logInfo('Saving')
@@ -436,6 +475,8 @@ exports.route = {
 #    args: {'pid':'string', 'rep':'string'},
 #    needPid: true
 #  },
+#
+
   RPC_VerifyPayment: {
     id: 15,
     func: (arg, player, handler, rpcID, socket) ->
@@ -443,41 +484,26 @@ exports.route = {
       switch arg.stp
         when 'AppStore'
           options = {
-            hostname: 'buy.itunes.apple.com',
-            #hostname: 'sandbox.itunes.apple.com',
+            #hostname: 'buy.itunes.apple.com',
+            hostname: 'sandbox.itunes.apple.com',
             port: 443,
             path: '/verifyReceipt',
             method: 'POST'
           }
-          req = https.request(options, (res) ->
-            res.setEncoding('utf8')
-            res.on('data', (chunk) ->
-              result = JSON.parse(chunk)
-              logInfo({action: 'VerifyPayment', type: 'Apple', code: result, receipt: arg.bill})
-              if result.status isnt 0 or result.original_transaction_id
-                return handler([{REQ: rpcID, RET: RET_Unknown}])
-
-              receipt = arg.bill
-              #receiptInfo = unwrapReceipt(result.transaction_id)
-              #serverName = 'Master'
-              player.handlePayment({
-                paymentType: 'AppStore',
-                productID: result.product_id,
-                receipt: receipt
-              }, (err, result) ->
-                ret = RET_OK
-                ret = err.message if err?
-                handler([{REQ: rpcID, RET: ret}].concat(result))
-              )
+          checkRequest(options, player,  arg, rpcID, (result) ->
+            if result[0]?.RET is RET_InvalidPaymentInfo
+              #try another
+              options = {
+                hostname: 'buy.itunes.apple.com',
+                #hostname: 'sandbox.itunes.apple.com',
+                port: 443,
+                path: '/verifyReceipt',
+                method: 'POST'
+              }
+              checkRequest(options, player, arg, rpcID,handler)
+            else
+              handler(result)
             )
-          )
-          .on('error', (e) ->
-            logError({action: 'VerifyPayment', type: 'Apple', error: e, rep: arg.rep})
-            handler([{REQ: rpcID, RET: RET_InvalidPaymentInfo}])
-          )
-
-          req.write(JSON.stringify({"receipt-data": JSON.parse(arg.rep).receipt}))
-          req.end()
     args: {},
     needPid: true
   },

@@ -407,6 +407,7 @@ exports.queryLeaderboardLength = function (board, handler) {
 
 dbSeparator = '.';
 exports.initializeDB = function (cfg,finishCb) {
+    console.log(cfg);
   accountDBClient = redis.createClient(cfg.Account.PORT, cfg.Account.IP);
   dbClient = redis.createClient(cfg.Role.PORT, cfg.Role.IP);
   publisher = redis.createClient(cfg.Publisher.PORT, cfg.Publisher.IP);
@@ -435,6 +436,7 @@ exports.initializeDB = function (cfg,finishCb) {
   LeaderboardPrefix = 'Leaderboard';
 
   sessionPrefix = dbPrefix + 'Session';
+  ReceiptHistoryPrefix = dbPrefix + 'ReceiptHistory';
 
   PlayerNameSet = dbPrefix + 'UsedName';
   CurrentAccountID = 'CurrentUID';
@@ -658,3 +660,13 @@ exports.getServerConfig = function (key, handler) {
 exports.setServerConfig = function (key, value, handler) {
   dbClient.hset("ServerConfig", key, value, handler);
 };
+exports.checkReceiptValidate = function(req,cb){
+    dbClient.hexists(ReceiptHistoryPrefix, req, function(err, result){
+            cb(err == null && result != 1);
+            });
+}
+exports.markReceiptInvalidate = function(rep){
+    dbClient.hset(ReceiptHistoryPrefix, rep, 1);
+}
+
+

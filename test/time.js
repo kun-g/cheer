@@ -1,5 +1,4 @@
 require('should');
-moment = require('moment');
 verify = require('../js/timeUtils').verify;
 
 describe('Time', function () {
@@ -174,20 +173,18 @@ describe('Time', function () {
     }
     ];
 
-    var theData = {
-        PLAYER: {
-            created_date: '2014-02-14T12:42:04+08:00'
-        },
-        test: {
-            date0: '2014-09-12T12:42:00',
-            date1: '2014-09-13T12:42:00'
-        }
-    };
-
     for (var k in verifyTests) {
         it('Unit Test#'+k, function () {
             var e =  verifyTests[k];
-            verify(e.time, e.timeExp, theData).should.equal(e.result);
+            verify(e.time, e.timeExp, {
+                    PLAYER: {
+                        created_date: '2014-02-14T12:42:04+08:00'
+                    },
+                    test: {
+                        date0: '2014-09-12T12:42:00',
+                        date1: '2014-09-13T12:42:00'
+                    }
+                }).should.equal(e.result);
         });
     };
 });

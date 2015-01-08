@@ -13,7 +13,14 @@ helperLib = require ('./helper')
 
 dbLib = require('./db')
 async = require('async')
+libReward = require('./reward')
+libCampaign = require("./campaign")
+campaign_LoginStreak = new libCampaign.Campaign(queryTable(TABLE_DP))
 
+G_PRIZE_MODIFIER = 1
+
+
+# ======================== Player
 class Player extends DBWrapper
   constructor: (data) ->
     @type = 'player'
@@ -73,7 +80,10 @@ class Player extends DBWrapper
 
       abIndex: rand(),
     }
+    for k,v of libReward.config
+      cfg[k] = v
 
+    @envReward_modifier = gReward_modifier
     versionCfg = {
       inventoryVersion: ['gold', 'diamond', 'inventory', 'equipment'],
       heroVersion: ['heroIndex', 'hero', 'heroBase'],
@@ -83,8 +93,12 @@ class Player extends DBWrapper
     }
     super(data, cfg, versionCfg)
 
-  setName: (@name) ->
-    @dbKeyName = playerPrefix+@name
+  setName: (@name) -> @dbKeyName = playerPrefix+@name
+
+  generateReward: libReward.generateReward
+  getRewardModifier: libReward.getRewardModifier
+  generateDungeonReward: libReward.generateDungeonReward
+  claimDungeonReward: libReward.claimDungeonReward
 
   logout: (reason) ->
     if @socket and @socket.encoder
@@ -115,7 +129,7 @@ class Player extends DBWrapper
     equipment = (e for i, e of @equipment)
     return equipment.indexOf(+slot) != -1
 
-  migrate: () ->
+  migrate: () -> #TODO:deprecated
     flag = false
     for slot, item of @inventory.container when item?
       if item.transPrize?
@@ -147,14 +161,6 @@ class Player extends DBWrapper
 
   getType: () -> 'player'
 
-  getTotalPkTimes: () -> return @getPrivilege('pkCount')
-  claimPkPrice: (callback) ->
-    me = @
-    helperLib.getPositionOnLeaderboard(helperLib.LeaderboardIdx.Arena, @name, 0, 0, (err, result) ->
-      prize = arenaPirze(result.position + 1 )
-      ret = me.claimPrize(prize)
-      callback(ret)
-    )
   submitCampaign: (campaign, handler) ->
     event = this[campaign]
     if event?
@@ -179,18 +185,11 @@ class Player extends DBWrapper
       for s in @stage when s and s.level?
         s.level = 0
 
-    flag = true
-    
-    if @loginStreak.date and moment().isSame(@loginStreak.date, 'month')
-      if moment().isSame(@loginStreak.date, 'day')
-        flag = false
-    else
-      @loginStreak.count = 0
-
-    @log('onLogin', {loginStreak: @loginStreak.count, date: @lastLogin})
     @onCampaign('RMB')
 
-    ret = [{NTF:Event_CampaignLoginStreak, day: @loginStreak.count, claim: flag}]
+    flag = campaign_LoginStreak.isActive(this,  currentTime())
+    ret = [{ NTF:Event_CampaignLoginStreak, day: @counters.check_in.counter, claim: flag }]
+    @log('onLogin', {streak: @counters.check_in.counter, date: @counters.check_in.time})
 
     itemsNeedRemove = @inventory.filter(
       (item) ->
@@ -204,6 +203,16 @@ class Player extends DBWrapper
 
     @createHero()
     return ret
+
+  claimLoginReward: () ->
+    if campaign_LoginStreak.isActive(this)
+      @log('claimLoginReward', {streak: @counters.check_in.counter, date: @counters.check_in.time})
+      reward = queryTable(TABLE_DP).rewards[@loginStreak.count].prize
+      ret = @claimPrize(reward.filter((e) => not e.vip or @vipLevel() >= e.vip ))
+      campaign_LoginStreak.activate(this, 1)
+      return {ret: RET_OK, res: ret}
+    else
+      return {ret: RET_RewardAlreadyReceived}
 
   sweepStage: (stage, multiple) ->
     stgCfg = queryTable(TABLE_STAGE, stage, @abIndex)
@@ -247,7 +256,7 @@ class Player extends DBWrapper
         @costEnergy(energyCost)
         ret = ret.concat(itemCostRet)
         for i in [1..count]
-          p = @generateDungeonAward(dungeon, true)
+          p = @generateDungeonReward(dungeon, true)
           r = []
           for k, v of p
             r = r.concat(v)
@@ -258,22 +267,6 @@ class Player extends DBWrapper
         ret = ret.concat(@syncEnergy())
         
     return { code: ret_result, prize: prize, ret: ret }
-
-  claimLoginReward: () ->
-    if @loginStreak.date
-      dis = diffDate(@loginStreak.date)
-      if dis is 0
-        @logError('claimLoginReward', {prev: @loginStreak.date, today: currentTime()})
-        return {ret: RET_Unknown}
-    @loginStreak['date'] = currentTime(true).valueOf()
-    @log('claimLoginReward', {loginStreak: @loginStreak.count, date: currentTime()})
-
-    reward = queryTable(TABLE_DP)[@loginStreak.count].prize
-    ret = @claimPrize(reward.filter((e) => not e.vip or @vipLevel() >= e.vip ))
-    @loginStreak.count += 1
-    @loginStreak.count = 0 if @loginStreak.count >= queryTable(TABLE_DP).length
- 
-    return {ret: RET_OK, res: ret}
 
   onMessage: (msg) ->
     switch msg.action
@@ -333,6 +326,14 @@ class Player extends DBWrapper
     productList = queryTable(TABLE_IAP, 'list')
     myReceipt = payment.receipt
     rec = unwrapReceipt(myReceipt)
+
+    if tunnel is 'AppStore'
+      rec.productID = -1
+      for idx , product of  productList
+        if product.productID is payment.productID
+          rec.productID = +idx
+      
+    return cb('show_me_the_real_money',[]) if rec.productID is -1
     cfg = productList[rec.productID]
     flag = true
     #flag = cfg.rmb is payment.rmb
@@ -347,6 +348,7 @@ class Player extends DBWrapper
     })
     if flag
       ret = [{ NTF: Event_InventoryUpdateItem, arg: { dim : @addDiamond(cfg.gem) }}]
+
       if rec.productID is MonthCardID
         @counters['monthCard'] = 30
         ret = ret.concat(@syncEvent())
@@ -373,7 +375,10 @@ class Player extends DBWrapper
     postResult = (error, result) =>
       if error
         logError({name: @name, receipt: myReceipt, type: 'handlePayment', error: error, result: result})
-        handle(null, [])
+        if error is 'show_me_the_real_money'
+          handle(Error(RET_InvalidPaymentInfo), [])
+        else
+          handle(null, [])
       else
         handle(null, result)
     switch payment.paymentType
@@ -428,8 +433,7 @@ class Player extends DBWrapper
       hairColor: arg.hcl
       })
     prize = queryTable(TABLE_ROLE, arg.cid)?.initialEquipment
-    for  p in prize
-      @claimPrize(p)
+    @claimPrize(prize)
     logUser({
       name: arg.nam
       action: 'register'
@@ -606,7 +610,7 @@ class Player extends DBWrapper
   dungeonAction: (action) ->
     return [{NTF: Event_Fail, arg: 'Dungeon not exist.'}] unless @dungeon?
     ret = [].concat(@dungeon.doAction(action))
-    ret = ret.concat(@claimDungeonAward(@dungeon)) if @dungeon.result?
+    ret = ret.concat(@claimDungeonReward(@dungeon)) if @dungeon.result?
     return ret
 
   startDungeon: (stage, startInfoOnly, pkr=null, handler) ->
@@ -756,7 +760,7 @@ class Player extends DBWrapper
 
   claimPrize: (prize, allOrFail = true) ->
     return [] unless prize?
-    prize = @rearragenPrize(prize)
+    prize = [prize] unless Array.isArray(prize)
 
     ret = []
 
@@ -869,7 +873,7 @@ class Player extends DBWrapper
             return { ret: RET_OK, ntf: ret.concat(prize) }
           when ItemUse_TreasureChest
             return { ret: RET_NoKey } if item.dropKey? and not @haveItem(item.dropKey)
-            prz = generatePrize(queryTable(TABLE_DROP), [item.dropId])
+            prz = @generateReward(queryTable(TABLE_DROP), [item.dropId])
             prize = @claimPrize(prz)
             return { ret: RET_InventoryFull } unless prize
             @log('openTreasureChest', {type: 'TreasureChest', id: item.id, prize: prize, drop: e.drop})
@@ -1069,112 +1073,12 @@ class Player extends DBWrapper
     else
       return false
 
-  generateDungeonAward: (dungeon) ->
-    result = dungeon.result
-    cfg = dungeon.getConfig()
-    if result is DUNGEON_RESULT_DONE or not cfg? then return  helperLib.splicePrize([])
-  
-    dropInfo = dungeon.killingInfo.reduce( ((r, e) ->
-      if e and e.dropInfo then return r.concat(e.dropInfo)
-      return r
-    ), [])
-
-    percentage = 1
-    if result is DUNGEON_RESULT_WIN
-      if dungeon.isSweep?
-        dropInfo = dropInfo.concat(cfg.dropID) if cfg.dropID
-    else
-      percentage = (dungeon.currentLevel / cfg.levelCount) * 0.5
-
-    gr = (cfg.goldRate ? 1) * percentage
-    xr = (cfg.xpRate ? 1) * percentage
-    wr = (cfg.wxpRate ? 1) * percentage
-
-    prize = generatePrize(queryTable(TABLE_DROP), dropInfo)
-    prize = prize.concat(dungeon.prizeInfo)
-
-    if not dungeon.isSweep
-      prize.push({type:PRIZETYPE_GOLD, count:Math.floor(gr*cfg.prizeGold)}) if cfg.prizeGold
-      prize.push({type:PRIZETYPE_EXP, count: Math.floor(xr*cfg.prizeXp)}) if cfg.prizeXp
-
-    prize.push({type:PRIZETYPE_WXP, count: Math.floor(wr*cfg.prizeWxp)}) if cfg.prizeWxp
-
-    infiniteLevel = dungeon.infiniteLevel
-    if infiniteLevel? and cfg.infinityPrize and result is DUNGEON_RESULT_WIN
-      iPrize = p for p in cfg.infinityPrize when p.level is infiniteLevel
-      if iPrize?
-        iPrize = { type: iPrize.type, value: iPrize.value, count: iPrize.count }
-
-        if iPrize.type is PRIZETYPE_GOLD
-          prize.push({type: PRIZETYPE_GOLD, count: iPrize.count})
-        else
-          prize.push(iPrize)
-  
-    return helperLib.splicePrize(prize)
-
   updateQuest: (quests) ->
     for qid, qst of quests
       continue unless qst?.counters? and @quests[qid]
       quest = queryTable(TABLE_QUEST, qid, @abIndex)
       for k, objective of quest.objects when objective.type is QUEST_TYPE_NPC and qst.counters[k]? and @quests[qid].counters?
         @quests[qid].counters[k] = qst.counters[k]
-
-  claimDungeonAward: (dungeon, isSweep) ->
-    return [] unless dungeon?
-    ret = []
-
-    if dungeon.revive > 0
-      ret = @inventory.removeById(ItemId_RevivePotion, dungeon.revive, true)
-      if not ret or ret.length is 0
-        @inventoryVersion++
-        return { NTF: Event_DungeonReward, arg : { res : DUNGEON_RESULT_FAIL } }
-      ret = this.doAction({id: 'ItemChange', ret: ret, version: @inventoryVersion})
-  
-    quests = dungeon.quests
-    if quests
-      @updateQuest(quests)
-      @questVersion++
-  
-    {goldPrize, xpPrize, wxPrize, otherPrize} = @generateDungeonAward(dungeon)
-
-    rewardMessage = { NTF: Event_DungeonReward, arg: { res: dungeon.result } }
-  
-    ret = ret.concat([rewardMessage])
-    if dungeon.result isnt DUNGEON_RESULT_FAIL then ret = ret.concat(this.completeStage(dungeon.stage))
-  
-    # Close Offline reward
-    #offlineReward = [
-    #  { type: PRIZETYPE_EXP,  count: Math.ceil(xpPrize.count* TEAMMATE_REWARD_RATIO) },
-    #  { type: PRIZETYPE_GOLD, count: Math.ceil(goldPrize.count* TEAMMATE_REWARD_RATIO) },
-    #  { type: PRIZETYPE_WXP,  count: Math.ceil(wxPrize.count* TEAMMATE_REWARD_RATIO) }
-    #].filter( (e) -> e.count > 0)
-
-    #if offlineReward.length > 0
-    #  teammateRewardMessage = {
-    #    type: MESSAGE_TYPE_SystemReward,
-    #    src : MESSAGE_REWARD_TYPE_OFFLINE,
-    #    prize : offlineReward
-    #  }
-    #  dungeon.team.filter((m) => m.nam != @name).forEach((m) ->
-    #    if m then dbLib.deliverMessage(m.nam, teammateRewardMessage)
-    #  )
-  
-    result = 'Lost'
-    result = 'Win' if dungeon.result is DUNGEON_RESULT_WIN
-
-    otherPrize.push(goldPrize)
-    otherPrize.push(xpPrize)
-    otherPrize.push(wxPrize)
-    prize = otherPrize.filter( (e) -> return not ( e.count? and e.count is 0 ) )
-    if prize.length > 0 then rewardMessage.arg.prize = prize.filter((f) -> f.type isnt  PRIZETYPE_FUNCTION)
-    ret = ret.concat(this.claimPrize(prize, false))
-    @updatePkInof(dungeon)
-
-    if isSweep
-    else
-      @log('finishDungeon', { stage: dungeon.getInitialData().stage, result: result, reward: prize })
-      @releaseDungeon()
-    return ret
 
   updatePkInof: (dungeon) ->
     if dungeon.PVP_Pool?
@@ -1244,6 +1148,14 @@ class Player extends DBWrapper
   wxpAdjust: () -> @vipOperation('wxpAdjust')
   energyLimit: () -> @vipOperation('energyLimit')
   getPrivilege: (name) -> @vipOperation(name)
+  getTotalPkTimes: () -> return @getPrivilege('pkCount')
+  claimPkPrice: (callback) ->
+    me = @
+    helperLib.getPositionOnLeaderboard(helperLib.LeaderboardIdx.Arena, @name, 0, 0, (err, result) ->
+      prize = arenaPirze(result.position + 1 )
+      ret = me.claimPrize(prize)
+      callback(ret)
+    )
 
   hireFriend: (name, handler) ->
     return false unless handler?

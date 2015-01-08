@@ -200,7 +200,8 @@ class Dungeon
 
     this[k] = v for k, v of data
     @quests = deepCopy(@initialQuests) if @initialQuests?
-    cfg = @getConfig()
+    @config = @getConfig()
+    cfg = @config
     if cfg.triggers
       @triggerManager.installTrigger(t, {}, @) for t in cfg.triggers
 
@@ -308,6 +309,10 @@ class Dungeon
     dummyHero.health =0
     this.heroes.push(dummyHero)
     this.heroes.forEach( (e) -> e.faction = 'hero' )
+    thiz = @
+    @cardStack.map((card) ->
+      if card?.func?
+        thiz.getDummyHero().installSpell(card.func,1))
 
   getDummyHero: () -> @heroes[@heroes.length-1]
 
@@ -629,7 +634,7 @@ class Level
 
   setupEnterAndExit: (config) ->
     @entrance = this.rand(DG_BLOCKCOUNT)
-    @entrance = config.entrance if config?.entrance?
+    @entrance = JSON.parse(JSON.stringify(config.entrance)) if config?.entrance?
     @exit = this.rand(DG_BLOCKCOUNT-1)
     @exit = DG_BLOCKCOUNT-1 if @exit is @entrance or (@entrance.indexOf? and @entrance.indexOf(@exit) isnt -1)
     @exit = config.exit if config?.exit?
