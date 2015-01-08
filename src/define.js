@@ -406,9 +406,9 @@ initGlobalConfig = function (path, callback) {
     if (!gConfigTable[e.name]) throw Error("Table not found"+e.name);
     if (e.func) gConfigTable[e.name] = e.func(gConfigTable[e.name]);
     gConfigTable[e.name] = prepareForABtest(gConfigTable[e.name]);
-    for (var k in gConfigTable[e.name]) {
-        gConfigTable[e.name][k] = libTableCompiler.compileTable(gConfigTable[e.name][k]);
-    }
+  //  for (var k in gConfigTable[e.name]) {
+  //      gConfigTable[e.name][k] = libTableCompiler.compileTable(gConfigTable[e.name][k]);
+  //  }
     deepFreeze(gConfigTable[e.name]);
   });
   callback();
