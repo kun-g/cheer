@@ -62,7 +62,6 @@ class Player extends DBWrapper
       lastLogin: currentTime(),
       creationDate: now.valueOf(),
       isNewPlayer: true,
-      loginStreak: {count: 0},
       accountID: -1,
       campaignState: {},
       infiniteTimer: currentTime(),
@@ -206,7 +205,7 @@ class Player extends DBWrapper
   claimLoginReward: () ->
     if campaign_LoginStreak.isActive(this)
       @log('claimLoginReward', {streak: @counters.check_in.counter, date: @counters.check_in.time})
-      reward = queryTable(TABLE_DP).rewards[@loginStreak.count].prize
+      reward = queryTable(TABLE_DP).rewards[@counters.check_in.counter].prize
       ret = @claimPrize(reward.filter((e) => not e.vip or @vipLevel() >= e.vip ))
       campaign_LoginStreak.activate(this, 1)
       return {ret: RET_OK, res: ret}
