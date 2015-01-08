@@ -48,11 +48,20 @@ class Campaign
 
   canReset: (object, time) -> @conditionCheck(@config.reset_condition, object, time)
 
+  update: (object) ->
+    thisData = { object: object }
+    @config.update?(thisData, utils)
+
   activate: () ->
     object = arguments[0]
     delta = arguments[1]
     time = arguments[2]
+    if typeof delta isnt 'number'
+      time = delta
+      delta = 1
     object.counters[@config.counter.key].incr(delta, time)
+    thisData = { object: object }
+    @config.activate?(thisData, utils)
 
   isActive: (object, time) ->
     if @config.storeType and object.type isnt @config.storeType then return false

@@ -248,6 +248,88 @@ describe('Campaign', function () {
         campaign.isActive(player, "2014-06-15").should.equal(true);
         player.counters.monthCard.incr(1, "2014-06-15").counter.should.equal(1);
     });
+    it('Startup', function () {
+        var server = {type:'server', counters:{}, timestamp:{}};
+        var player = {type:'player', counters:{}, timestamp:{}, getServer:function(){return server;}};
+        var configPlayer = {
+            storeType: "player",
+            counter: {
+                key: 'startupReward',
+                initial_value: 0,
+                count_down: { time: 'time@ThisCounter', units: 'day' }
+            },
+            available_condition: [
+                { type: 'counter', func: "notCounted" },
+                {
+                    type: 'function',
+                    func: function (theData, utils) {
+                        return campaignServer.isActive(theData.object.getServer(), theData.time);
+                    }
+                }
+            ],
+            activate: function (theData, util) {
+                var obj = theData.object;
+                var server = obj.getServer();
+                var prize = server.startup_reward;
+                obj.mail = prize;
+            }
+        };
+        var configServer = {
+            storeType: "server",
+            counter: {
+                key: 'startupReward',
+                initial_value: -1,
+                uplimit: 2,
+                count_down: { time: 'time@ThisCounter', units: 'day' }
+            },
+            available_condition: [ { type: 'counter', func: "notFulfiled" } ],
+            update: function (theData, util) {
+                var obj = theData.object;
+                var counter = obj.counters.startupReward;
+                obj.startup_reward = counter.counter;
+            }
+        };
+        var campaignPlayer = new Campaign(configPlayer);
+        var campaignServer = new Campaign(configServer);
+        campaignServer.isActive(server, "2014-06-14").should.equal(true);
+        campaignPlayer.isActive(player, "2014-06-14").should.equal(true);
+        campaignServer.isActive(player, "2014-06-14").should.equal(false);
+        campaignServer.activate(server, 1, "2014-06-14"); campaignServer.update(server);
+        server.startup_reward.should.equal(0);
+        campaignPlayer.activate(player, 1, "2014-06-14"); player.mail.should.equal(0);
+        campaignServer.activate(server, 1, "2014-06-14"); campaignServer.update(server);
+        server.startup_reward.should.equal(0);
+        campaignServer.activate(server, 1, "2014-06-14"); campaignServer.update(server);
+        server.startup_reward.should.equal(0);
+
+        campaignServer.isActive(server, "2014-06-15").should.equal(true);
+        campaignPlayer.isActive(player, "2014-06-15").should.equal(true);
+        campaignServer.activate(server, 1, "2014-06-15"); campaignServer.update(server);
+        campaignPlayer.activate(player, 1, "2014-06-15"); player.mail.should.equal(1);
+        server.startup_reward.should.equal(1);
+        campaignPlayer.activate(player, 1, "2014-06-15"); player.mail.should.equal(1);
+
+        campaignServer.activate(server, 1, "2014-06-16"); campaignServer.update(server);
+        server.startup_reward.should.equal(2);
+        campaignServer.isActive(server, "2014-06-16").should.equal(false);
+        campaignPlayer.isActive(player, "2014-06-16").should.equal(false);
+    });
+
+
+    /*
+    it('FirstCharge', function () {
+        var config = {
+            storeType: "player",
+            counter: {
+                key: 'firstCharge',
+                iniitial_value: 0,
+                uplimit: 1
+            },
+            available_condition: [ { type: 'counter', func: "notFulfiled" } ]
+        };
+    });
+    */
+
     it('Daily Event', function () {
         //  event_daily: {
         //    "flag": "daily",
@@ -605,18 +687,6 @@ describe('Campaign', function () {
       }
     ]
   },
-    "FirstCharge": {
-        "show": true,
-        "title": "首充翻倍大行动",
-        "banner":"event-banner-scfb.png",
-        "description":["首次充值即可获得宝石翻倍的奖励，充多少送多少，妈妈再也不用担心我的宝石了！"],
-        "mailTitle": "《首充翻倍大行动》活动奖励",
-        "mailBody": "恭喜你完成活动，点击领取活动奖励！",
-        "date": "2016/12/25",
-        "dateDescription": "截止日期2016年12月25日24时",
-        // iaplist.list will modify by initCampaignTable =>{award:[{type:2,count:60}}
-        "objective" : iaplist,
-    }
 };
 */
 });

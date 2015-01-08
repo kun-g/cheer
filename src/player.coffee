@@ -17,9 +17,7 @@ async = require('async')
 libReward = require('./reward')
 libCampaign = require("./campaign")
 campaign_LoginStreak = new libCampaign.Campaign(queryTable(TABLE_DP))
-
-G_PRIZE_MODIFIER = 1
-
+campaign_StartupClient = new libCampaign.Campaign(gNewCampainTable.startupPlayer)
 
 # ======================== Player
 class Player extends DBWrapper
@@ -91,6 +89,7 @@ class Player extends DBWrapper
     super(data, cfg, versionCfg)
 
   setName: (@name) -> @dbKeyName = playerPrefix+@name
+  getServer: () -> return gServerObject
 
   generateReward: libReward.generateReward
   getRewardModifier: libReward.getRewardModifier
@@ -187,6 +186,9 @@ class Player extends DBWrapper
     flag = campaign_LoginStreak.isActive(this,  currentTime())
     ret = [{ NTF:Event_CampaignLoginStreak, day: @counters.check_in.counter, claim: flag }]
     @log('onLogin', {streak: @counters.check_in.counter, date: @counters.check_in.time})
+
+    if campaign_StartupClient.isActive(this, currentTime())
+      campaign_StartupClient.activate(this, 1, currentTime())
 
     itemsNeedRemove = @inventory.filter(
       (item) ->

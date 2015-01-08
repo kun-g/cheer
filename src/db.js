@@ -654,6 +654,9 @@ exports.getGlobalPrize = function (handler) { dbClient.get("GlobalPrize", handle
 exports.getServerProperty = function (key, handler) {
   dbClient.hgetall(makeDBKey([serverObjectPrefix, key]), handler);
 };
+exports.setServerProperty = function (key1, key2, value, handler) {
+  dbClient.hset(makeDBKey([serverObjectPrefix, key1]), key2, value, handler);
+};
 exports.getServerConfig = function (key, handler) {
   dbClient.hget("ServerConfig", key, handler);
 };
@@ -662,8 +665,8 @@ exports.setServerConfig = function (key, value, handler) {
 };
 exports.checkReceiptValidate = function(req,cb){
     dbClient.hexists(ReceiptHistoryPrefix, req, function(err, result){
-            cb(err == null && result != 1);
-            });
+        cb(err == null && result != 1);
+    });
 }
 exports.markReceiptInvalidate = function(rep){
     dbClient.hset(ReceiptHistoryPrefix, rep, 1);

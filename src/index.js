@@ -10,6 +10,7 @@ dbLib = require('./db');
 dbWrapper = require('./dbWrapper');
 http = require('http');
 async = require('async');
+var helperLib = require('./helper');
 var domain = require('domain').create();
 domain.on('error', function (err) {
   console.log("UnhandledError", err, err.message, err.stack);
@@ -300,21 +301,83 @@ function deliverReceipt (receipt, tunnel, cb) {
   ], cb);
 }
 
+
 gServerObject = {
-  getType: function () { return 'server'; }
+    getType: function () { return 'server'; },
+    type: 'server'
 };
+
+gNewCampainTable = {
+    startupPlayer: {
+        storeType: "player",
+        counter: {
+            key: 'startupReward',
+            initial_value: 0,
+            count_down: { time: 'time@ThisCounter', units: 'day' }
+        },
+        available_condition: [
+            { type: 'counter', func: "notCounted" },
+            {
+                type: 'function',
+                func: function (theData, utils) {
+                    return startup_campaign_server.isActive(theData.object.getServer(), theData.time);
+                }
+            }
+        ],
+        activate: function (theData, util) {
+            var obj = theData.object;
+            var server = obj.getServer();
+            var prize = server.startup_reward;
+            dbLib.deliverMessage(obj.name, {
+                type: MESSAGE_TYPE_SystemReward,
+                src: MESSAGE_REWARD_TYPE_SYSTEM,
+                prize: prize,
+                tit: "测试服小福利",
+                txt: "祝各位2015万事如意"
+            });
+        }
+    },
+    startupServer: {
+        storeType: "server",
+        counter: {
+            key: 'startupReward',
+            initial_value: -1,
+            uplimit: 7,
+            count_down: { time: 'time@ThisCounter', units: 'day' }
+        },
+        available_condition: [ { type: 'counter', func: "notFulfiled" } ],
+        prize: [
+            [ {"type":1,"count":10000}, {"type":2,"count":2015} ],
+            [ {"type":1,"count":10000}, {"type":2,"count":2015} ],
+            [ {"type":1,"count":10000}, {"type":2,"count":2015} ],
+            [ {"type":1,"count":10000}, {"type":2,"count":2015} ],
+            [ {"type":1,"count":10000}, {"type":2,"count":2015} ],
+            [ {"type":1,"count":10000}, {"type":2,"count":2015} ],
+            [ {"type":1,"count":10000}, {"type":2,"count":2015} ]
+        ],
+        update: function (theData, util) {
+            var obj = theData.object;
+            var counter = obj.counters.startupReward.counter;
+            obj.startup_reward = this.prize[counter];
+            var key = this.counter.key;
+            dbLib.setServerProperty("counters", key, JSON.stringify(obj.counters[key]));
+        }
+    }
+};
+libCampaign = require("./campaign")
+var startup_campaign_server = new libCampaign.Campaign(gNewCampainTable.startupServer);
+function updateServerConfig (appNet) {
+  appNet.aliveConnections = appNet.aliveConnections
+      .filter(function (c) {return c!==null;})
+      .map(function (c, i) { c.connectionIndex = i; return c;});
+  dbLib.getGlobalPrize(function (err, prize) { gGlobalPrize = JSON.parse(prize); });
+}
 
 function init() {
     var appNet = gServer.startTcpServer(gServerConfig);
 
-    var tcpInterval = setInterval(function () {
-      appNet.aliveConnections = appNet.aliveConnections
-          .filter(function (c) {return c!==null;})
-          .map(function (c, i) { c.connectionIndex = i; return c;});
-      dbLib.getGlobalPrize(function (err, prize) {
-        gGlobalPrize = JSON.parse(prize);
-      });
-    }, 100000);
+    updateServerConfig(appNet);
+    var tcpInterval = setInterval(function () { updateServerConfig(appNet); }, 100000);
     gServer.serverInfo.type = gServerConfig.type;
     serverType = gServerConfig.type;
     dbLib.subscribe('login', function (message) {
@@ -397,15 +460,15 @@ paymentServer.on('error', function (error) {
 paymentServer.listen(6499);
 
 var intervalCfg = {};
-var helperLib = require('./helper');
 config = helperLib.intervalEvent;
 async.series([
       function (cb) {
         dbLib.getServerProperty('counters', function (err, arg) {
+          gServerObject.counters = {};
           if (arg) {
-            gServerObject.counters = arg;
-          } else {
-            gServerObject.counters = {};
+              for (var k in arg) {
+                gServerObject.counters[k] = JSON.parse(arg[k]);
+              }
           }
           cb();
         });
@@ -414,6 +477,12 @@ async.series([
       var helperLib = require('./helper');
       helperLib.initCampaign(gServerObject, helperLib.events);
       helperLib.initObserveration(gServerObject);
+
+      var now = helperLib.currentTime();
+      if (startup_campaign_server.isActive(gServerObject, now)) {
+          startup_campaign_server.activate(gServerObject, 1, now);
+          startup_campaign_server.update(gServerObject, now);
+      }
 
       gServerObject.installObserver('countersChanged');
     });
