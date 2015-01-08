@@ -393,8 +393,10 @@ class Dungeon
       when RPC_GameStartDungeon then action = DUNGEON_ACTION_ENTER_DUNGEON
       when Request_DungeonSpell
         action = DUNGEON_ACTION_CAST_SPELL
-        req.arg ?={idx:0}
-        arg = {i:+req.arg.idx}
+        req.arg ?= {}
+        req.arg.idx ?= 0
+        req.arg.pos ?= -1
+        arg = {i:+req.arg.idx, p:req.arg.pos}
       when REQUEST_CancelDungeon then action = DUNGEON_ACTION_CANCEL_DUNGEON
       when Request_DungeonRevive then action = DUNGEON_ACTION_REVIVE
       when Request_DungeonCard
@@ -450,7 +452,7 @@ class Dungeon
         if hero.isAlive()
           cmd = DungeonCommandStream({id: 'BeginTurn', type: 'Spell', src: hero}, this)
           spellId = hero.activeSpell[arg.i]
-          cmd.next({id: 'CastSpell', me: hero, spell: spellId})
+          cmd.next({id: 'CastSpell', me: hero, spell: spellId, playerChoice: arg.p})
              .next({id: 'EndTurn', type: 'Spell', src: hero})
              .next({id: 'ResultCheck'})
           cmd.process()

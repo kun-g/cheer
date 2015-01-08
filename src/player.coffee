@@ -548,7 +548,6 @@ class Player extends DBWrapper
     @notify(arg.notify.name,arg.notify.arg) if arg.notify?
 
   stageIsUnlockable: (stage) ->
-    return true
     return false if getPowerLimit(stage) > @createHero().calculatePower()
     stageConfig = queryTable(TABLE_STAGE, stage, @abIndex)
     if stageConfig.condition then return stageConfig.condition(this, genUtil())

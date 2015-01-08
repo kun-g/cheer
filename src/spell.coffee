@@ -255,6 +255,10 @@ class Wizard
       when 'target' then pool = env.variable('tar')
       when 'source' then pool = env.variable('src')
       when 'objects' then pool = env.getObjects()
+      when 'select-object'
+        playerChoice = +env.variable('playerChoice')
+        pool = env.getObjects().filter((obj) -> obj.pos is playerChoice)
+      when 'select-block' then pool = env.getBlock(env.variable('playerChoice'))
       when 'blocks'
         blocks = cfg.targetSelection.blocks
         pool = if blocks? then (env.getBlock(b) for b in blocks) else env.getBlock()
