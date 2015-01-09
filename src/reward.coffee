@@ -60,12 +60,13 @@ exports.generateDungeonReward = (dungeon) ->
   wr = if result is DUNGEON_RESULT_WIN then (cfg.wxpRate ? 1) else 0.5
 
   prize = @generateReward(queryTable(TABLE_DROP), dropInfo)
-  prize = prize.concat(dungeon.prizeInfo)
+  prize = prize.concat(dungeon.prizeInfo ? [])
 
   unless dungeon.isSweep
     prize.push({type:PRIZETYPE_GOLD, count:Math.floor(gr*cfg.prizeGold)}) if cfg.prizeGold
     prize.push({type:PRIZETYPE_EXP, count: Math.floor(xr*cfg.prizeXp)}) if cfg.prizeXp
-    prize.push({type:PRIZETYPE_WXP, count: Math.floor(wr*cfg.prizeWxp)}) if cfg.prizeWxp
+
+  prize.push({type:PRIZETYPE_WXP, count: Math.floor(wr*cfg.prizeWxp)}) if cfg.prizeWxp
 
   infiniteLevel = dungeon.infiniteLevel
   if infiniteLevel? and cfg.infinityPrize and result is DUNGEON_RESULT_WIN
