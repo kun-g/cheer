@@ -226,7 +226,7 @@ class Player extends DBWrapper
       result: DUNGEON_RESULT_WIN,
       killingInfo: [],
       currentLevel: cfg.levelCount,
-      getConfig: () -> return cfg,
+      config: cfg,
       isSweep : true
     }
     count = 1

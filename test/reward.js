@@ -70,7 +70,9 @@ describe('Reward', function () {
                 killingInfo: [{dropInfo:[1]}],
                 prizeInfo: [
                     {type:PRIZETYPE_ITEM, value: 854, count:1},
-                    {type:PRIZETYPE_ITEM, value: 854, count:2},
+                    {type:PRIZETYPE_ITEM, value: 854, count:1},
+                    {type:PRIZETYPE_ITEM, value: 854, count:1},
+                    {type:PRIZETYPE_ITEM, value: 855, count:1},
                     {type: PRIZETYPE_GOLD, count: 110}
                 ]
             };
@@ -81,6 +83,7 @@ describe('Reward', function () {
             dungeon.result = DUNGEON_RESULT_WIN;
             p.generateDungeonReward(dungeon).should.eql([
                 {type:PRIZETYPE_ITEM, value: 854, count:6},
+                {type:PRIZETYPE_ITEM, value: 855, count:2},
                 {type:PRIZETYPE_GOLD, count: (100*0.6 + 100 + 110) * 3}
             ]);
         });
