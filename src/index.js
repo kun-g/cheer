@@ -430,7 +430,7 @@ if (process.argv[2]) {
 g_ipConfig = ipConfig[ip][index];
 g_svConfig = svConfig[g_ipConfig.Server];
 g_dbConfig = dbConfig[g_svConfig.DB];
-
+g_DEBUG_FLAG = g_svConfig.Debug;
 gServerConfig = {
   type: "Worker",
   port: g_ipConfig.Port,
