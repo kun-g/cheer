@@ -16,7 +16,154 @@ domain.on('error', function (err) {
   console.log("UnhandledError", err, err.message, err.stack);
 });
 
+g_DEBUG_FLAG = false
+gNewCampainTable = {
+    startupPlayer: {
+        storeType: "player",
+        counter: {
+            key: 'startupReward',
+            initial_value: 0,
+            count_down: { time: 'time@ThisCounter', units: 'day' }
+        },
+        available_condition: [
+            { type: 'counter', func: "notCounted" },
+            {
+                type: 'function',
+                func: function (theData, utils) {
+                    return startup_campaign_server.isActive(theData.object.getServer(), theData.time);
+                }
+            }
+        ],
+        activate: function (theData, util) {
+            var obj = theData.object;
+            var server = obj.getServer();
+            var prize = server.startup_reward;
+            dbLib.deliverMessage(obj.name, {
+                type: MESSAGE_TYPE_SystemReward,
+                src: MESSAGE_REWARD_TYPE_SYSTEM,
+                prize: prize,
+                tit: "测试服小福利",
+                txt: "祝各位2015万事如意"
+            });
+        }
+    },
+    startupServer: {
+        storeType: "server",
+        counter: {
+            key: 'startupReward_checkin',
+            initial_value: -1,
+            uplimit: 7,
+            count_down: { time: 'time@ThisCounter', units: 'day' }
+        },
+        available_condition: [ { type: 'counter', func: "notFulfiled" } ],
+        prize: [
+            [ {"type":1,"count":10000}, {"type":2,"count":2015} ],
+            [ {"type":1,"count":10000}, {"type":2,"count":2015} ],
+            [ {"type":1,"count":10000}, {"type":2,"count":2015} ],
+            [ {"type":1,"count":10000}, {"type":2,"count":2015} ],
+            [ {"type":1,"count":10000}, {"type":2,"count":2015} ],
+            [ {"type":1,"count":10000}, {"type":2,"count":2015} ],
+            [ {"type":1,"count":10000}, {"type":2,"count":2015} ]
+        ],
+        update: function (theData, util) {
+            var obj = theData.object;
+            var counter = obj.counters.startupReward.counter;
+            obj.startup_reward = this.prize[counter];
+            var key = this.counter.key;
+            dbLib.setServerProperty("counters", key, JSON.stringify(obj.counters[key]));
+        }
+    },
+    startupServer_battle_force : {
+        storeType: "server",
+        counter: {
+            key: 'startupReward_battle_force_week',
+            initial_value: 0,
+            uplimit: 31,
+            count_down: { time: 'time@ThisCounter', units: 'day' }
+        },
+        available_condition: [ { type: 'counter', func: "notCounted" } ],
+        prizeConfig: [
+        {
+          from: 0,
+          to: 0,
+          mail: {
+            type: MESSAGE_TYPE_SystemReward,
+            src:  MESSAGE_REWARD_TYPE_SYSTEM,
+            prize: [{ type: 2, count: 50}, { type: 0,value:869, count: 1}],
+            tit: "战斗力排行奖励",
+            txt: "恭喜你成为战斗力冠军，点击领取奖励。"
+          }
+        },
+        {
+          from: 1,
+          to: 4,
+          mail: {
+            type: MESSAGE_TYPE_SystemReward,
+            src:  MESSAGE_REWARD_TYPE_SYSTEM,
+            prize: [{ type: 2, count: 20}, { type: 0,value:868, count: 1}],
+            tit: "战斗力排行奖励",
+            txt: "恭喜你成为战斗力前五，点击领取奖励。"
+          }
+        },
+        {
+          from: 5,
+          to: 9,
+          mail: {
+            type: MESSAGE_TYPE_SystemReward,
+            src:  MESSAGE_REWARD_TYPE_SYSTEM,
+            prize: [{ type: 2, count: 10}, { type: 0,value:867, count: 1}],
+            tit: "战斗力排行奖励",
+            txt: "恭喜你成为战斗力前十，点击领取奖励。"
+          }
+        }
+        ],
+        finalPrize: [{
+          from: 0,
+          to: 0,
+          mail: {
+            type: MESSAGE_TYPE_SystemReward,
+            src:  MESSAGE_REWARD_TYPE_SYSTEM,
+            prize: [{ type: 2, count: 10}, { type: 0,value:867, count: 1}],
+            tit: "战斗力排行奖励",
+            txt: "恭喜你成为战斗力冠军，点击领取奖励。"
+          }
+        }],
+        update: function (theData, util) {
+            var counter = theData.object.counters[this.counter.key].counter;
+            var prizeConfig = [];
+            var counter = theData.object.counters[this.counter.key].counter;
 
+            var obj = theData.object;
+            var key = this.counter.key;
+            dbLib.setServerProperty("counters", key, JSON.stringify(obj.counters[key]));
+
+            if (counter % 7 && counter != 30) return false;
+            if (counter == 30) {
+                prizeConfig = this.finalPrize;
+            } else {
+                prizeConfig = this.prizeConfig;
+            }
+            prizeConfig.forEach( function (e) {
+                helperLib.getPositionOnLeaderboard(
+                    helperLib.LeaderboardIdx.BattleForce,
+                    'nobody', e.from, e.to,
+                    function (err, result) {
+                        result.board.name.forEach(function (name, idx) {
+                            dbLib.deliverMessage(name, e.mail)
+                            logInfo({
+                                action: 'leadboradPrize_startupReward_battle_force_week',
+                                counter: counter,
+                                from: e.from,
+                                to: e.to,
+                                player: name
+                            })
+                        })
+                    }
+                );
+            })
+        }
+    }
+};
 //playerCounter = 0;
 //memwatch = require('memwatch');
 //var tmp = new memwatch.HeapDiff();
@@ -307,65 +454,9 @@ gServerObject = {
     type: 'server'
 };
 
-gNewCampainTable = {
-    startupPlayer: {
-        storeType: "player",
-        counter: {
-            key: 'startupReward',
-            initial_value: 0,
-            count_down: { time: 'time@ThisCounter', units: 'day' }
-        },
-        available_condition: [
-            { type: 'counter', func: "notCounted" },
-            {
-                type: 'function',
-                func: function (theData, utils) {
-                    return startup_campaign_server.isActive(theData.object.getServer(), theData.time);
-                }
-            }
-        ],
-        activate: function (theData, util) {
-            var obj = theData.object;
-            var server = obj.getServer();
-            var prize = server.startup_reward;
-            dbLib.deliverMessage(obj.name, {
-                type: MESSAGE_TYPE_SystemReward,
-                src: MESSAGE_REWARD_TYPE_SYSTEM,
-                prize: prize,
-                tit: "测试服小福利",
-                txt: "祝各位2015万事如意"
-            });
-        }
-    },
-    startupServer: {
-        storeType: "server",
-        counter: {
-            key: 'startupReward',
-            initial_value: -1,
-            uplimit: 7,
-            count_down: { time: 'time@ThisCounter', units: 'day' }
-        },
-        available_condition: [ { type: 'counter', func: "notFulfiled" } ],
-        prize: [
-            [ {"type":1,"count":10000}, {"type":2,"count":2015} ],
-            [ {"type":1,"count":10000}, {"type":2,"count":2015} ],
-            [ {"type":1,"count":10000}, {"type":2,"count":2015} ],
-            [ {"type":1,"count":10000}, {"type":2,"count":2015} ],
-            [ {"type":1,"count":10000}, {"type":2,"count":2015} ],
-            [ {"type":1,"count":10000}, {"type":2,"count":2015} ],
-            [ {"type":1,"count":10000}, {"type":2,"count":2015} ]
-        ],
-        update: function (theData, util) {
-            var obj = theData.object;
-            var counter = obj.counters.startupReward.counter;
-            obj.startup_reward = this.prize[counter];
-            var key = this.counter.key;
-            dbLib.setServerProperty("counters", key, JSON.stringify(obj.counters[key]));
-        }
-    }
-};
 libCampaign = require("./campaign")
 var startup_campaign_server = new libCampaign.Campaign(gNewCampainTable.startupServer);
+var startup_campaign_battle_force_server = new libCampaign.Campaign(gNewCampainTable.startupServer_battle_force);
 function updateServerConfig (appNet) {
   appNet.aliveConnections = appNet.aliveConnections
       .filter(function (c) {return c!==null;})
@@ -430,7 +521,7 @@ if (process.argv[2]) {
 g_ipConfig = ipConfig[ip][index];
 g_svConfig = svConfig[g_ipConfig.Server];
 g_dbConfig = dbConfig[g_svConfig.DB];
-g_DEBUG_FLAG = g_svConfig.Debug;
+
 gServerConfig = {
   type: "Worker",
   port: g_ipConfig.Port,
@@ -474,15 +565,20 @@ async.series([
         });
       }],
     function (err, ret) {
-      var helperLib = require('./helper');
       helperLib.initCampaign(gServerObject, helperLib.events);
       helperLib.initObserveration(gServerObject);
 
-      var now = helperLib.currentTime();
-      if (startup_campaign_server.isActive(gServerObject, now)) {
-          startup_campaign_server.activate(gServerObject, 1, now);
-          startup_campaign_server.update(gServerObject, now);
-      }
+      setInterval(function () {
+          var now = helperLib.currentTime();
+          if (startup_campaign_server.isActive(gServerObject, now)) {
+              startup_campaign_server.activate(gServerObject, 1, now);
+              startup_campaign_server.update(gServerObject, now);
+          }
+          if (startup_campaign_battle_force_server.isActive(gServerObject, now)) {
+              startup_campaign_battle_force_server.activate(gServerObject, 1, now);
+              startup_campaign_battle_force_server.update(gServerObject, now);
+          }
+      }, 60000);
 
       gServerObject.installObserver('countersChanged');
     });
