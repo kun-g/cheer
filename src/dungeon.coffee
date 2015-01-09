@@ -293,7 +293,7 @@ class Dungeon
     team = [] unless team
     ref = 0
     this.heroes = team.map((e) ->
-      if e.isMe
+      if not e.needMirror
         data = {
           name: e.nam,
           class: e.cid,
