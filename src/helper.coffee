@@ -301,6 +301,7 @@ checkBountyValidate = (id,today) ->
       dayOfYear = moment({y:theDate.year, M: theDate.month, d: validateDate}).dayOfYear()
       return true if (dayOfYear - nowDayYear) % cfg.dateInterval.interval == 0
   return false
+exports.checkBountyValidate = checkBountyValidate
   
 exports.splicePrize = (prize) ->
   goldPrize = { type: PRIZETYPE_GOLD, count: 0 }
