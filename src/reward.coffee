@@ -4,7 +4,7 @@ exports.getRewardModifier = (type) ->
   modifier = @envReward_modifier[type] ? 0
   return modifier + (@reward_modifier[type] ? 0)
 
-rearragenPrize = (prize) ->
+rearrangePrize = (prize) ->
   prize = [prize] unless Array.isArray(prize)
   prize.sort((a, b) ->
     if a.type is b.type and a.type is PRIZETYPE_ITEM
@@ -25,7 +25,6 @@ rearragenPrize = (prize) ->
     lastElem = v
 
   return res
-
 exports.generateReward = (config, dropInfo, rand) ->
   rand = Math.random unless rand
   return [] unless config
@@ -40,7 +39,7 @@ exports.generateReward = (config, dropInfo, rand) ->
 
            return e
          )
-  return rearragenPrize(res)
+  return rearrangePrize(res)
 
 exports.generateDungeonReward = (dungeon) ->
   result = dungeon.result
@@ -92,7 +91,7 @@ exports.generateDungeonReward = (dungeon) ->
       when PRIZETYPE_ITEM then e.count *= 1+@getRewardModifier('dungeon_item_count')
 
     if e.count then e.count = Math.floor(e.count)
-  return rearragenPrize(prize)
+  return rearrangePrize(prize)
 
 exports.claimDungeonReward = (dungeon, isSweep) ->
   return [] unless dungeon?

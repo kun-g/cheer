@@ -769,9 +769,10 @@ class Player extends DBWrapper
       @inventoryVersion++
       switch p.type
         when PRIZETYPE_ITEM
-          ret = @aquireItem(p.value, p.count, allOrFail)
-          if not (ret? and ret.length >0)
+          res = @aquireItem(p.value, p.count, allOrFail)
+          if not (res? and res.length >0)
             return [] if allOrFail
+          ret = ret.concat(res)
 
         when PRIZETYPE_GOLD then ret.push({NTF: Event_InventoryUpdateItem, arg: {syn: @inventoryVersion, god: @addGold(p.count)}}) if p.count > 0
         when PRIZETYPE_DIAMOND then ret.push({NTF: Event_InventoryUpdateItem, arg: {syn: @inventoryVersion, dim: @addDiamond(p.count)}}) if p.count > 0
@@ -1604,7 +1605,7 @@ class Player extends DBWrapper
         banner: config.banner
       }
       r.date = config.dateDescription if config.dateDescription?
-      r.prz = level.award if level.award
+      r.prz = level.award if level?.award
       ret.arg.act.push(r)
     return [ret]
 
