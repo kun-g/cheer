@@ -1604,7 +1604,7 @@ class Player extends DBWrapper
         banner: config.banner
       }
       r.date = config.dateDescription if config.dateDescription?
-      r.prz = level.award if level.award
+      r.prz = level.award if level?.award
       ret.arg.act.push(r)
     return [ret]
 

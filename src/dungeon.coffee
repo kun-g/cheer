@@ -8,6 +8,7 @@ require('./shared')
 {CommandStream, Environment } = require('./commandStream')
 {Bag, CardStack} = require('./container')
 {parse, TriggerManager} = require('./trigger')
+{generateReward} = require('./reward')
 
 seed_random = require('./seed_random')
 speedFormula = { 'a' : 1, 'b' : 60, 'c' : 0.5}
@@ -1390,7 +1391,7 @@ dungeonCSConfig = {
       showPrize = env.variable('showPrize')
       if dropID?
         if showPrize
-          drop = generatePrize(queryTable(TABLE_DROP),[dropID], () -> env.rand())
+          drop = generateReward(queryTable(TABLE_DROP),[dropID], () -> env.rand())
           if drop[0].type is 1
             env.variable('cid', -1)
           else

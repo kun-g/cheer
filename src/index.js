@@ -568,6 +568,15 @@ async.series([
       helperLib.initCampaign(gServerObject, helperLib.events);
       helperLib.initObserveration(gServerObject);
 
+      var now = helperLib.currentTime();
+      if (startup_campaign_server.isActive(gServerObject, now)) {
+          startup_campaign_server.activate(gServerObject, 1, now);
+          startup_campaign_server.update(gServerObject, now);
+      }
+      if (startup_campaign_battle_force_server.isActive(gServerObject, now)) {
+          startup_campaign_battle_force_server.activate(gServerObject, 1, now);
+          startup_campaign_battle_force_server.update(gServerObject, now);
+      }
       setInterval(function () {
           var now = helperLib.currentTime();
           if (startup_campaign_server.isActive(gServerObject, now)) {
