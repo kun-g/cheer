@@ -11,6 +11,7 @@ dbWrapper = require('./dbWrapper');
 http = require('http');
 async = require('async');
 var helperLib = require('./helper');
+var event_cfg = require('./event_cfg');
 var domain = require('domain').create();
 domain.on('error', function (err) {
   console.log("UnhandledError", err, err.message, err.stack);
@@ -460,7 +461,7 @@ paymentServer.on('error', function (error) {
 paymentServer.listen(6499);
 
 var intervalCfg = {};
-config = helperLib.intervalEvent;
+config = event_cfg.intervalEvent;
 async.series([
       function (cb) {
         dbLib.getServerProperty('counters', function (err, arg) {
@@ -475,7 +476,7 @@ async.series([
       }],
     function (err, ret) {
       var helperLib = require('./helper');
-      helperLib.initCampaign(gServerObject, helperLib.events);
+      helperLib.initCampaign(gServerObject, event_cfg.events);
       helperLib.initObserveration(gServerObject);
 
       var now = helperLib.currentTime();
