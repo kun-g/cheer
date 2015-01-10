@@ -613,6 +613,22 @@ shuffle = function (array, mask) {
   return result;
 };
 
+function translate_with(language,keyword,args){
+    var local = queryTable(TABLE_LOCALIZE);
+//    debug("language = "+language+";keyword = "+keyword);
+    var text = "";
+    if (local[language] != null && local[language][keyword] != null){
+        text = local[language][keyword];
+        for (var k in args){
+            var num = +k + 1;
+            var str = "{#" + num.toString() +  "}";
+            text = text.replace(str, args[k]);
+        }
+    }
+//    debug("text = "+text);
+    return text;
+}
+//
 /////////////////////////// For client
 ENHANCE_LIMIT = 4;
 ENHANCE_MAXLEVEL = 10;
