@@ -249,7 +249,7 @@ function paymentHandler (request, response) {
                             logInfo({action: 'AcceptPayment', receipt: receipt, info: out});
                             return response.end(JSON.stringify({success:1, msg: "OK"}));
                         } else {
-                            logError({action: 'AcceptPayment', error:err, data: data});
+                            logError({action: 'AcceptPayment', error:err, data: data, receipt:receipt});
                             return response.end('fail');
                         }
                     });
@@ -384,7 +384,7 @@ function paymentHandler (request, response) {
             port: g_ipConfig.Port,
             handler: require("./commandHandlers").route
         };
-        gServerID = g_ipConfig.Server;
+        gServerID =  g_svConfig.ID;
         gServerName = g_svConfig.Name;
         dbPrefix = g_svConfig.DB_Prefix+dbSeparator;
         dbLib.initializeDB(g_dbConfig);
