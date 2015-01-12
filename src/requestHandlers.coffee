@@ -656,6 +656,7 @@ exports.route = {
             cpl: player.counters.currentPKCount ? 0
             ttl: player.getTotalPkTimes()
             rcv: player.flags.rcvAward ? false
+            tcd: player.getPkCoolDown()
           }
           handler(ret))
     ,

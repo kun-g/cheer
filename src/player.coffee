@@ -16,6 +16,7 @@ dbLib = require('./db')
 async = require('async')
 libReward = require('./reward')
 libCampaign = require("./campaign")
+libTime = require('./timeUtils.js')
 campaign_LoginStreak = new libCampaign.Campaign(queryTable(TABLE_DP))
 #campaign_StartupClient = new libCampaign.Campaign(gNewCampainTable.startupPlayer)
 
@@ -670,7 +671,8 @@ class Player extends DBWrapper
         cb()
       ,
       (cb) =>
-        if stageConfig.pvp? and pkr?
+        if stageConfig.pvp? and pkr? and @getPkCoolDown() == 0
+          @counters.pkCoolDown = PK_COOLDOWN
           getPlayerHero(pkr, wrapCallback(this, (err, heroData) ->
             @dungeonData.PVP_Pool = if heroData? then [getBasicInfo(heroData)]
             dbLib.diffPKRank(@name, pkr,wrapCallback(this, (err, result) ->
@@ -1143,6 +1145,16 @@ class Player extends DBWrapper
   energyLimit: () -> @vipOperation('energyLimit')
   getPrivilege: (name) -> @vipOperation(name)
   getTotalPkTimes: () -> return @getPrivilege('pkCount')
+
+  getPkCoolDown: () ->
+    @counters.pkCoolDown = 0 unless @counters.pkCoolDown?
+    timePass = libTime.diff(currentTime(), @counters.pkCoolDown).asSeconds()
+    console.log('player timePass ', timePass)
+    if timePass >= PK_COOLDOWN
+      return 0
+    else
+      return (PK_COOLDOWN - timePass)
+
   claimPkPrice: (callback) ->
     me = @
     helperLib.getPositionOnLeaderboard(helperLib.LeaderboardIdx.Arena, @name, 0, 0, (err, result) ->
