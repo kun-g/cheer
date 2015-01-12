@@ -11,6 +11,7 @@ moment = require('moment')
 {Bag, CardStack} = require('./container')
 {diffDate, currentTime, genUtil} = require ('./helper')
 helperLib = require ('./helper')
+event_cfg= require ('./event_cfg')
 underscore = require('./underscore')
 dbLib = require('./db')
 async = require('async')
@@ -159,12 +160,12 @@ class Player extends DBWrapper
   submitCampaign: (campaign, handler) ->
     event = this[campaign]
     if event?
-      helperLib.proceedCampaign(@, campaign, helperLib.events, handler)
+      helperLib.proceedCampaign(@, campaign, event_cfg.events, handler)
       @log('submitCampaign', {event: campaign, data: event})
     else
       @logError('submitCampaign', {reason: 'NoEventData', event: campaign})
 
-  syncEvent: () -> return helperLib.initCampaign(@, helperLib.events)
+  syncEvent: () -> return helperLib.initCampaign(@, event_cfg.events)
 
   onLogin: () ->
     return [] unless @lastLogin
