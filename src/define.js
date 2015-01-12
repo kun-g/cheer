@@ -398,6 +398,7 @@ initGlobalConfig = function (path, callback) {
     {name:TABLE_UPGRADE}, {name:TABLE_ENHANCE}, {name: TABLE_CONFIG}, {name: TABLE_VIP, func:initVipConfig},
     {name:TABLE_SKILL}, {name:TABLE_CAMPAIGN, func:initCampaignTable}, {name: TABLE_DROP}, {name: TABLE_TRIGGER},
     {name:TABLE_DP},{name:TABLE_ARENA},{name:TABLE_BOUNTY, func:initPowerLimit}, {name:TABLE_IAP},{name:TABLE_PKREWARD},
+	{name:TABLE_LOCALIZE},
   ];
   if (!path) path = "./";
   configTable.forEach(function (e) {
@@ -613,7 +614,7 @@ shuffle = function (array, mask) {
   return result;
 };
 
-function translate_with(language,keyword,args){
+translate_with = function(language,keyword,args){
     var local = queryTable(TABLE_LOCALIZE);
 //    debug("language = "+language+";keyword = "+keyword);
     var text = "";

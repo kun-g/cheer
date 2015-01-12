@@ -33,7 +33,7 @@ TABLE_BOUNTY = "bounty";
 TABLE_IAP = "iaplist";
 TABLE_SERVERLIST = "serverlist";
 TABLE_PKREWARD = "pkReward";
-
+TABLE_LOCALIZE = "localize";
 /*** GAME CONSTANTS ***/
 ItemId_RevivePotion = 540;
 
