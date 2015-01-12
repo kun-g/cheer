@@ -90,31 +90,54 @@ gNewCampainTable = {
           mail: {
             type: MESSAGE_TYPE_SystemReward,
             src:  MESSAGE_REWARD_TYPE_SYSTEM,
-            prize: [{ type: 2, count: 50}, { type: 0,value:869, count: 1}],
-            tit: "战斗力排行奖励",
-            txt: "恭喜你成为战斗力冠军，点击领取奖励。"
+            prize: [{"type":2,"count":400},{"type":1,"count":6000},{"type":0,"value":871,"count":60}],
+            tit:  "《王者角逐》活动奖励",
+            txt:  "恭喜你完成活动，点击领取活动奖励！"
           }
         },
         {
           from: 1,
-          to: 4,
+          to: 1,
           mail: {
             type: MESSAGE_TYPE_SystemReward,
             src:  MESSAGE_REWARD_TYPE_SYSTEM,
-            prize: [{ type: 2, count: 20}, { type: 0,value:868, count: 1}],
-            tit: "战斗力排行奖励",
-            txt: "恭喜你成为战斗力前五，点击领取奖励。"
+            prize: [{"type":2,"count":150},{"type":1,"count":3000},{"type":0,"value":871,"count":30}],
+            tit:  "《王者角逐》活动奖励",
+            txt:  "恭喜你完成活动，点击领取活动奖励！"
           }
         },
         {
-          from: 5,
+          from: 2,
+          to: 2,
+          mail: {
+            type: MESSAGE_TYPE_SystemReward,
+            src:  MESSAGE_REWARD_TYPE_SYSTEM,
+            prize: [{"type":2,"count":50},{"type":1,"count":2000},{"type":0,"value":871,"count":15}],
+            tit:  "《王者角逐》活动奖励",
+            txt:  "恭喜你完成活动，点击领取活动奖励！"
+          }
+        },
+        {
+          from: 3,
           to: 9,
           mail: {
             type: MESSAGE_TYPE_SystemReward,
             src:  MESSAGE_REWARD_TYPE_SYSTEM,
-            prize: [{ type: 2, count: 10}, { type: 0,value:867, count: 1}],
-            tit: "战斗力排行奖励",
-            txt: "恭喜你成为战斗力前十，点击领取奖励。"
+            prize: [{"type":1,"count":2000},{"type":0,"value":871,"count":5}],
+            tit:  "《王者角逐》活动奖励",
+            txt:  "恭喜你完成活动，点击领取活动奖励！"
+          }
+        },
+
+        {
+          from: 10,
+          to: 19,
+          mail: {
+            type: MESSAGE_TYPE_SystemReward,
+            src:  MESSAGE_REWARD_TYPE_SYSTEM,
+            prize: [{"type":0,"value":871,"count":5}],
+            tit:  "《王者角逐》活动奖励",
+            txt:  "恭喜你完成活动，点击领取活动奖励！"
           }
         }
         ],
@@ -124,8 +147,8 @@ gNewCampainTable = {
           mail: {
             type: MESSAGE_TYPE_SystemReward,
             src:  MESSAGE_REWARD_TYPE_SYSTEM,
-            prize: [{ type: 2, count: 10}, { type: 0,value:867, count: 1}],
-            tit: "战斗力排行奖励",
+            prize: [{"type":2,"count":800},{"type":0,"value":871,"count":100},{"type":0,"value":0,"count":1}],
+            tit: "《王者角逐》活动奖励",
             txt: "恭喜你成为战斗力冠军，点击领取奖励。"
           }
         }],
@@ -152,7 +175,7 @@ gNewCampainTable = {
                         result.board.name.forEach(function (name, idx) {
                             dbLib.deliverMessage(name, e.mail)
                             logInfo({
-                                action: 'leadboradPrize_startupReward_battle_force_week',
+                                action: 'leadboradPrize_startupReward_battle_force',
                                 counter: counter,
                                 from: e.from,
                                 to: e.to,
@@ -163,7 +186,121 @@ gNewCampainTable = {
                 );
             })
         }
-    }
+    },
+    startupServer_pvp : {
+        storeType: "server",
+        counter: {
+            key: 'startupReward_battle_force_week',
+            initial_value: 0,
+            uplimit: 31,
+            count_down: { time: 'time@ThisCounter', units: 'day' }
+        },
+        available_condition: [ { type: 'counter', func: "notCounted" } ],
+        prizeConfig: [
+        {
+          from: 0,
+          to: 0,
+          mail: {
+            type: MESSAGE_TYPE_SystemReward,
+            src:  MESSAGE_REWARD_TYPE_SYSTEM,
+            prize: [{"type":2,"count":500},{"type":1,"count":8000},{"type":0,"value":871,"count":70}],
+            tit:  "《王者角逐》活动奖励",
+            txt:  "恭喜你完成活动，点击领取活动奖励！"
+          }
+        },
+        {
+          from: 1,
+          to: 1,
+          mail: {
+            type: MESSAGE_TYPE_SystemReward,
+            src:  MESSAGE_REWARD_TYPE_SYSTEM,
+            prize: [{"type":2,"count":200},{"type":1,"count":4000},{"type":0,"value":871,"count":50}],
+            tit:  "《王者角逐》活动奖励",
+            txt:  "恭喜你完成活动，点击领取活动奖励！"
+          }
+        },
+        {
+          from: 2,
+          to: 2,
+          mail: {
+            type: MESSAGE_TYPE_SystemReward,
+            src:  MESSAGE_REWARD_TYPE_SYSTEM,
+            prize: [{"type":2,"count":100},{"type":1,"count":2500},{"type":0,"value":871,"count":20}],
+            tit:  "《王者角逐》活动奖励",
+            txt:  "恭喜你完成活动，点击领取活动奖励！"
+          }
+        },
+        {
+          from: 3,
+          to: 9,
+          mail: {
+            type: MESSAGE_TYPE_SystemReward,
+            src:  MESSAGE_REWARD_TYPE_SYSTEM,
+            prize: [{"type":1,"count":2000},{"type":0,"value":871,"count":5}],
+            tit:  "《王者角逐》活动奖励",
+            txt:  "恭喜你完成活动，点击领取活动奖励！"
+          }
+        },
+
+        {
+          from: 10,
+          to: 19,
+          mail: {
+            type: MESSAGE_TYPE_SystemReward,
+            src:  MESSAGE_REWARD_TYPE_SYSTEM,
+            prize: [{"type":0,"value":871,"count":5}],
+            tit:  "《王者角逐》活动奖励",
+            txt:  "恭喜你完成活动，点击领取活动奖励！"
+          }
+        }
+        ],
+        finalPrize: [{
+          from: 0,
+          to: 0,
+          mail: {
+            type: MESSAGE_TYPE_SystemReward,
+            src:  MESSAGE_REWARD_TYPE_SYSTEM,
+    
+            prize: [{"type":2,"count":800},{"type":0,"value":871,"count":100},{"type":0,"value":1,"count":1}],
+            tit: "《王者角逐》活动奖励",
+            txt: "恭喜你成为竞技场冠军，点击领取奖励。"
+          }
+        }],
+        update: function (theData, util) {
+            var counter = theData.object.counters[this.counter.key].counter;
+            var prizeConfig = [];
+            var counter = theData.object.counters[this.counter.key].counter;
+
+            var obj = theData.object;
+            var key = this.counter.key;
+            dbLib.setServerProperty("counters", key, JSON.stringify(obj.counters[key]));
+
+            if (counter % 7 && counter != 30) return false;
+            if (counter == 30) {
+                prizeConfig = this.finalPrize;
+            } else {
+                prizeConfig = this.prizeConfig;
+            }
+            prizeConfig.forEach( function (e) {
+                helperLib.getPositionOnLeaderboard(
+                    helperLib.LeaderboardIdx.Arena,
+                    'nobody', e.from, e.to,
+                    function (err, result) {
+                        result.board.name.forEach(function (name, idx) {
+                            dbLib.deliverMessage(name, e.mail)
+                            logInfo({
+                                action: 'leadboradPrize_startupReward_pvp',
+                                counter: counter,
+                                from: e.from,
+                                to: e.to,
+                                player: name
+                            })
+                        })
+                    }
+                );
+            })
+        }
+    },
 };
 //playerCounter = 0;
 //memwatch = require('memwatch');
@@ -456,7 +593,7 @@ gServerObject = {
 };
 
 libCampaign = require("./campaign")
-var startup_campaign_server = new libCampaign.Campaign(gNewCampainTable.startupServer);
+//var startup_campaign_server = new libCampaign.Campaign(gNewCampainTable.startupServer);
 var startup_campaign_battle_force_server = new libCampaign.Campaign(gNewCampainTable.startupServer_battle_force);
 function updateServerConfig (appNet) {
   appNet.aliveConnections = appNet.aliveConnections
@@ -570,20 +707,20 @@ async.series([
       helperLib.initObserveration(gServerObject);
 
       var now = helperLib.currentTime();
-      if (startup_campaign_server.isActive(gServerObject, now)) {
-          startup_campaign_server.activate(gServerObject, 1, now);
-          startup_campaign_server.update(gServerObject, now);
-      }
+      //if (startup_campaign_server.isActive(gServerObject, now)) {
+      //    startup_campaign_server.activate(gServerObject, 1, now);
+      //    startup_campaign_server.update(gServerObject, now);
+      //}
       if (startup_campaign_battle_force_server.isActive(gServerObject, now)) {
           startup_campaign_battle_force_server.activate(gServerObject, 1, now);
           startup_campaign_battle_force_server.update(gServerObject, now);
       }
       setInterval(function () {
           var now = helperLib.currentTime();
-          if (startup_campaign_server.isActive(gServerObject, now)) {
-              startup_campaign_server.activate(gServerObject, 1, now);
-              startup_campaign_server.update(gServerObject, now);
-          }
+          //if (startup_campaign_server.isActive(gServerObject, now)) {
+          //    startup_campaign_server.activate(gServerObject, 1, now);
+          //    startup_campaign_server.update(gServerObject, now);
+          //}
           if (startup_campaign_battle_force_server.isActive(gServerObject, now)) {
               startup_campaign_battle_force_server.activate(gServerObject, 1, now);
               startup_campaign_battle_force_server.update(gServerObject, now);

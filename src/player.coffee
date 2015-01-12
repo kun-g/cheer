@@ -11,14 +11,13 @@ moment = require('moment')
 {Bag, CardStack} = require('./container')
 {diffDate, currentTime, genUtil} = require ('./helper')
 helperLib = require ('./helper')
-event_cfg= require ('./event_cfg')
 underscore = require('./underscore')
 dbLib = require('./db')
 async = require('async')
 libReward = require('./reward')
 libCampaign = require("./campaign")
 campaign_LoginStreak = new libCampaign.Campaign(queryTable(TABLE_DP))
-campaign_StartupClient = new libCampaign.Campaign(gNewCampainTable.startupPlayer)
+#campaign_StartupClient = new libCampaign.Campaign(gNewCampainTable.startupPlayer)
 
 # ======================== Player
 class Player extends DBWrapper
@@ -160,12 +159,12 @@ class Player extends DBWrapper
   submitCampaign: (campaign, handler) ->
     event = this[campaign]
     if event?
-      helperLib.proceedCampaign(@, campaign, event_cfg.events, handler)
+      helperLib.proceedCampaign(@, campaign, helperLib.events, handler)
       @log('submitCampaign', {event: campaign, data: event})
     else
       @logError('submitCampaign', {reason: 'NoEventData', event: campaign})
 
-  syncEvent: () -> return helperLib.initCampaign(@, event_cfg.events)
+  syncEvent: () -> return helperLib.initCampaign(@, helperLib.events)
 
   onLogin: () ->
     return [] unless @lastLogin
@@ -187,8 +186,8 @@ class Player extends DBWrapper
     ret = [{ NTF:Event_CampaignLoginStreak, day: @counters.check_in.counter, claim: flag }]
     @log('onLogin', {streak: @counters.check_in.counter, date: @counters.check_in.time})
 
-    if campaign_StartupClient.isActive(this, currentTime())
-      campaign_StartupClient.activate(this, 1, currentTime())
+    #if campaign_StartupClient.isActive(this, currentTime())
+    #  campaign_StartupClient.activate(this, 1, currentTime())
 
     itemsNeedRemove = @inventory.filter(
       (item) ->
