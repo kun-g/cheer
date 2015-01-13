@@ -1429,7 +1429,7 @@ dungeonCSConfig = {
       if tar?
         info = { motion : spell.targetAction, delay : spell.targetDelay, effect : spell.targetEffect }
         for t,idx in tar
-          info.dir = tar[idx] if tar?[idx]?
+          info.dir = dir[idx] if dir?[idx]?
           ret = ret.concat(env.createSpellMsg(t, info, delay))
       
       return ret
