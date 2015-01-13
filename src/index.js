@@ -222,21 +222,28 @@ function paymentHandler (request, response) {
             request.on('end', function (chunk) {
                 data = 'pay?'+data.toString();
                 var out = urlLib.parse(data, true).query;
-                var token = '';
-                //if (out.app_id == 'org.kddxc.koudaidixiachengapk1' || out.app_id == 'org.kddxc.koudaidixiachengapk') {
-                //  token = "bf0d10d4f9979d3c6aae26011b6ec34b";
-                //} else {
-                //  token = "c2a8c153eec815118179f46e0dbfd99e";
-                //}
-                token = "bf0d10d4f9979d3c6aae26011b6ec34b";
+                var token = "bf0d10d4f9979d3c6aae26011b6ec34b";
                 if (out.type) {
-                    var sign = out.order_id+'|'+out.app_id+'|'+out.product_id+'|'+out.uid
+                  var sign = out.order_id+'|'+out.app_id+'|'+out.product_id+'|'+out.uid
                 +'|'+out.goods_count+'|'+out.original_money+'|'+out.order_money
                 +'|'+out.pay_status+'|'+out.create_time +'|'+out.type+'|'+out.value+'|'+token;
                 } else {
-                    var sign = out.order_id+'|'+out.app_id+'|'+out.product_id+'|'+out.uid
+                  var sign = out.order_id+'|'+out.app_id+'|'+out.product_id+'|'+out.uid
                 +'|'+out.goods_count+'|'+out.original_money+'|'+out.order_money
                 +'|'+out.pay_status+'|'+out.create_time +'|'+token;
+                }
+                if (out.app_id == 'com.kddxc.koudaidixiacheng') {
+                  sign = 'app_id='+out.app_id
+                    +'&create_time='+out.create_time
+                    +'&goods_count='+out.goods_count
+                    +'&order_id='+out.order_id
+                    +'&order_money='+out.order_money
+                    +'&original_money='+out.original_money
+                    +'&pay_status='+out.pay_status
+                    +'&product_id='+out.product_id
+                    +(out.type!=null?('&type='+out.type):'')
+                    +'&uid='+out.uid
+                    +(out.value!=null?('&value='+out.value):'')
                 }
 
                 var b = new Buffer(1024);
@@ -249,7 +256,7 @@ function paymentHandler (request, response) {
                             logInfo({action: 'AcceptPayment', receipt: receipt, info: out});
                             return response.end(JSON.stringify({success:1, msg: "OK"}));
                         } else {
-                            logError({action: 'AcceptPayment', error:err, data: data});
+                            logError({action: 'AcceptPayment', error:err, data: data, receipt:receipt});
                             return response.end('fail');
                         }
                     });
@@ -384,7 +391,7 @@ function paymentHandler (request, response) {
             port: g_ipConfig.Port,
             handler: require("./commandHandlers").route
         };
-        gServerID = g_ipConfig.Server;
+        gServerID =  g_svConfig.ID;
         gServerName = g_svConfig.Name;
         dbPrefix = g_svConfig.DB_Prefix+dbSeparator;
         dbLib.initializeDB(g_dbConfig);
