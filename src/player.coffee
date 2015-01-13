@@ -672,7 +672,7 @@ class Player extends DBWrapper
       ,
       (cb) =>
         if stageConfig.pvp? and pkr? and @getPkCoolDown() == 0
-          @counters.pkCoolDown = PK_COOLDOWN
+          @counters.pkCoolDown = currentTime()
           getPlayerHero(pkr, wrapCallback(this, (err, heroData) ->
             @dungeonData.PVP_Pool = if heroData? then [getBasicInfo(heroData)]
             dbLib.diffPKRank(@name, pkr,wrapCallback(this, (err, result) ->
@@ -1154,6 +1154,9 @@ class Player extends DBWrapper
       return 0
     else
       return (PK_COOLDOWN - timePass)
+
+  clearCDTime: () ->
+    @counters.pkCoolDown = 0
 
   claimPkPrice: (callback) ->
     me = @
