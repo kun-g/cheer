@@ -227,6 +227,7 @@ function handler_doBuyEnergy(arg, player, handler, rpcID) {
       break;
     case FEATURE_FRIEND_GOLD: diamondCost = +arg.tar; break;
     case FEATURE_PK_COOLDOWN: diamondCost = 50; break;
+    case FEATURE_PK_COUNT: diamondCost = 100; break;
   }
   var evt = [];
   var product = '';
@@ -259,6 +260,11 @@ function handler_doBuyEnergy(arg, player, handler, rpcID) {
       } });
     } else if (+arg.typ === FEATURE_PK_COOLDOWN) {
       player.clearCDTime();
+      evt.push({NTF: Event_InventoryUpdateItem, arg: {
+        dim: player.diamond
+      } });
+    } else if (+arg.typ === FEATURE_PK_COUNT) {
+      player.addPkCount(1);
       evt.push({NTF: Event_InventoryUpdateItem, arg: {
         dim: player.diamond
       } });
