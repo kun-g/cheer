@@ -581,6 +581,7 @@ exports.route = {
             board = result.board
             async.map(board.name, getPlayerHero, (err, result) ->
               ret.lst = result.map( (e, i) ->
+                return null unless e?
                 r = getBasicInfo(e)
                 r.scr = +board.score[i]
                 return r
