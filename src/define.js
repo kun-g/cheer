@@ -17,6 +17,7 @@ STAGE_STATE_PASSED = 2;
 ENERGY_MAX = 100;
 ENERGY_RATE = 360000; // 1min
 TEAMMATE_REWARD_RATIO = 0.2;
+PK_COOLDOWN = 600;
 //////////////////// Log
 serverType = 'None';
 print = console.log;
