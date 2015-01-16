@@ -316,7 +316,9 @@ function paymentHandler (request, response) {
 
     libCampaign = require("./campaign")
         //var startup_campaign_server = new libCampaign.Campaign(gNewCampainTable.startupServer);
+        //TODO this should be configurable
         startup_campaign_battle_force_server = null;
+        startupServer_pvp  = null;
     function updateServerConfig (appNet) {
         appNet.aliveConnections = appNet.aliveConnections
             .filter(function (c) {return c!==null;})
@@ -358,6 +360,7 @@ function paymentHandler (request, response) {
         var event_cfg = require('./event_cfg');
         gNewCampainTable = event_cfg.newCampainTable;
         startup_campaign_battle_force_server = new libCampaign.Campaign(gNewCampainTable.startupServer_battle_force);
+        startupServer_pvp = new libCampaign.Campaign(gNewCampainTable.startupServer_pvp);
 
         var dbConfig = queryTable(TABLE_CONFIG, "DB_Config");
         var svConfig = queryTable(TABLE_CONFIG, "Server_Config");
@@ -452,6 +455,25 @@ function paymentHandler (request, response) {
                             startup_campaign_battle_force_server.update(gServerObject, now);
                         }
                     }, 60000);
+
+                    if (startupServer_pvp.isActive(gServerObject, now)) {
+                        startupServer_pvp.activate(gServerObject, 1, now);
+                        startupServer_pvp.update(gServerObject, now);
+                    }
+                    setInterval(function () {
+                        var now = helperLib.currentTime();
+                        //if (startup_campaign_server.isActive(gServerObject, now)) {
+                        //    startup_campaign_server.activate(gServerObject, 1, now);
+                        //    startup_campaign_server.update(gServerObject, now);
+                        //}
+                        if (startupServer_pvp.isActive(gServerObject, now)) {
+                            startupServer_pvp.activate(gServerObject, 1, now);
+                            startupServer_pvp.update(gServerObject, now);
+                        }
+                    }, 60000);
+ 
+                    
+
 
                     gServerObject.installObserver('countersChanged');
                 });
