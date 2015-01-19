@@ -274,7 +274,7 @@ function paymentHandler (request, response) {
     function deliverReceipt (receipt, tunnel, cb) {
         var receiptInfo = unwrapReceipt(receipt);
         var serverName = ServerNames[receiptInfo.serverID];
-        if (serverName) {
+        if (!serverName) {
             return cb(Error( 'InvalidServerID' ));
         }
         var message = {
