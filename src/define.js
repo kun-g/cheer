@@ -740,7 +740,7 @@ Request_DungeonCard = 6;
 Request_DungeonUseItem = 7;
 Request_DungeonRevive = 8;
 Request_DungeonTouch = 9;
-Request_DungeonValidatePos = 10;
+Request_DungeonValidatePos = 39;
 REQUEST_CancelDungeon = 20;
 
 Event_DungeonEnter = 0;
