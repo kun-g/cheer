@@ -23,41 +23,23 @@ dbLib.initializeDB({
 });
 
 /*
+var unitLib = require('../js/unit');
+
 describe('Unit', function () {
-  it('levelUp', function () {
-    initGlobalConfig('../../build/', function() {
-      var data =[
-      {exp: 0, lvl: 1, skill:{'0':1,'76':1}},
-      {exp: 110, lvl: 2, skill:{'0':1,'76':1}},
-      {exp: 300, lvl: 3, skill:{'0':1,'2':1,'76':1}},
-      {exp: 1600, lvl: 9, skill:{'0':2,'2':1, '76':1}},
-      {exp: 1603, lvl: 9, skill:{'0':2,'2':1, '76':1}},
-//      {exp: 300, lvl: 4, skill:{'2':1}},
-//      {exp: 300, lvl: 4, skill:{'2':1}},
-//      {exp: 300, lvl: 4, skill:{'2':1}},
-      ]
+    it('levelUp', function () {
+        //var data =[
+        //{exp: 0, lvl: 1, skill:{'0':1,'76':1}},
+        //{exp: 110, lvl: 2, skill:{'0':1,'76':1}},
+        //{exp: 300, lvl: 3, skill:{'0':1,'2':1,'76':1}},
+        //{exp: 1600, lvl: 9, skill:{'0':2,'2':1, '76':1}},
+        //{exp: 1603, lvl: 9, skill:{'0':2,'2':1, '76':1}},
+        //{exp: 300, lvl: 4, skill:{'2':1}},
+        //{exp: 300, lvl: 4, skill:{'2':1}},
+        //{exp: 300, lvl: 4, skill:{'2':1}},
+        //]
 
-      helpLib.initLeaderboard(queryTable(TABLE_LEADBOARD));
-
-      dbLib.tryAddLeaderboardMember = function(q,b,c,d) {}
-      var p = new playerLib.Player();
-      p.setName('Test');
-      p.notify = function (a,b) {}
-      p.hero = p.createHero({name: 'K', class: 0, gender: 1, hairStyle: 1, hairColor: 1});
-
-      data.forEach(function (e) {
-        p.hero.xp = e.exp;
-        p.hero.initialize();
-        p.hero.levelUp();
-
-        p.hero.level.should.equal(e.lvl);
-        sdb = p.hero.wSpellDB
-        for (var k in e.skill) {
-          sdb[k].level.should.eql(e.skill[k]);
-        }
-      });
+        //helpLib.initLeaderboard(queryTable(TABLE_LEADBOARD));
     });
-  });
 });
 
 */

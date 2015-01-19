@@ -1,6 +1,9 @@
 "use strict"
 require('./define')
 {Wizard} = require('./spell')
+_ = require('./underscore')
+makeBasicCommand = require('./commandStream').makeCommand
+# =============================================================
 
 flagCreation = false
 
@@ -8,6 +11,10 @@ class Unit extends Wizard
   constructor: () ->
     super
     @isVisible = false
+    @unitProperty = {}
+    @unitAppearance = {}
+    @suitSkill = []
+    @uniform = {}
 
   calculatePower: () ->
     ret = @health + @attack*6 + @speed*2 +
@@ -68,11 +75,13 @@ class Unit extends Wizard
     
   gearUp: () ->
     return false unless @equipment?
-    for k, e of @equipment when queryTable(TABLE_ITEM, e.cid)?
-      equipment = queryTable(TABLE_ITEM, e.cid)
-      @modifyProperty(equipment.basic_properties) if equipment.basic_properties?
+    for k, e of @equipment when e
+      @modifyProperty(e.property()) if e.property?
+      if e.skill?
+        for s in e.skill when not s.classLimit? or s.classLimit is @class
+          @installSpell(s.id, s.level)
 
-      console.log('Equipment ', JSON.stringify(equipment)) if flagCreation
+      console.log('Equipment ', JSON.stringify(e)) if flagCreation
       if e.eh?
         for enhancement in e.eh
           enhance = queryTable(TABLE_ENHANCE, enhancement.id)
@@ -83,9 +92,133 @@ class Unit extends Wizard
               JSON.stringify(enhance.property[enhancement.level])
             )
 
+  modifyAppearance: (appearance) ->
+    return false unless appearance?
+    this.appearance ?= {}
+    for k, v of appearance
+      this.appearance[k] = v
+
+  subProperty: (properties) ->
+    return false unless properties?
+    for k, v of properties
+      if this[k]?
+        this[k] -= v
+
+  gearOn: () ->
+    return false unless @uniform?
+    for k, e of @uniform when e
+      @modifyProperty(e.basic_properties) if e.basic_properties?
+      @modifyAppearance(e.appearance) if e.appearance?
+      if e.skill?
+        for s in e.skill when not s.classLimit? or s.classLimit is @class
+          @installSpell(s.id, s.level)
+
+      console.log('Equipment ', JSON.stringify(e)) if flagCreation
+      if e.eh?
+        for enhancement in e.eh
+          enhance = queryTable(TABLE_ENHANCE, enhancement.id)
+          continue unless enhance?.property?[enhancement.level]?
+          @modifyProperty(enhance.property[enhancement.level])
+          if flagCreation
+            console.log('Enhancement ',
+              JSON.stringify(enhance.property[enhancement.level])
+            )
+
+  gearDown: () ->
+    return false unless @uniform?
+    for k, e of @uniform when e
+      @subProperty(e.basic_properties) if e.basic_properties?
+      if e.skill?
+        for s in e.skill when not s.classLimit? or s.classLimit is @class
+          @removeSpell(s.id, s.level)
+
+      console.log('Equipment ', JSON.stringify(e)) if flagCreation
+      if e.eh?
+        for enhancement in e.eh
+          enhance = queryTable(TABLE_ENHANCE, enhancement.id)
+          continue unless enhance?.property?[enhancement.level]?
+          @subProperty(enhance.property[enhancement.level])
+          if flagCreation
+            console.log('Enhancement ',
+              JSON.stringify(enhance.property[enhancement.level])
+            )
+
+    return false unless @unitProperty?
+    for k, v of @unitProperty
+      if this[k]?
+        this[k] -= v
+    return false unless @unitAppearance?
+    for k, v of @unitAppearance
+      if v?
+        this.appearance[k] = v
+
+  clearUnitPro: () ->
+    return false unless @unitProperty?
+    for k of @unitProperty
+      @unitProperty[k] = 0
+    return false unless @unitAppearance?
+    for k of @unitAppearance
+      @unitAppearance[k] = null
+    @suitSkill=[]
+
+  addUnitPro: (unitPro) ->
+    return false unless unitPro?
+    for q, u of unitPro
+      switch u.type
+        when 'incress_property'
+          for k, v of u.property
+            if @unitProperty[k]?
+              @unitProperty[k] += v
+            else
+              @unitProperty[k] = v
+        when 'change_appearance'
+          for k, v of u.appearance
+            @unitAppearance[k] = this.appearance[k]
+            this.appearance[k] = v
+        when 'install_skill'
+          @suitSkill.push({id: u.id, level: u.level})
+
+  caculateUnitPro: () ->
+    return false unless @uniform?
+    suitArr = {}
+    for k, e of @uniform when e
+      if e.suit_config?.suitId?
+        if suitArr[e.suit_config.suitId]?
+          suitArr[e.suit_config.suitId].count++
+        else
+          suitArr[e.suit_config.suitId] = e.suit_config
+          suitArr[e.suit_config.suitId].count = 1
+
+    @clearUnitPro()
+    for k, v of suitArr
+      for l, s of v
+        if isNaN(parseInt(l, 10)) == false and parseInt(l, 10) <= v.count
+          @addUnitPro(s)
+
+    for k, v of @unitProperty
+      if this[k]?
+        this[k] += v
+      else
+        this[k] = v
+
+  equip: (equipItem) ->
+    console.log('unit equip equipItem', JSON.stringify(equipItem))
+    @gearDown()
+    @uniform[equipItem.getConfig().subcategory] = equipItem
+    @gearOn()
+    @caculateUnitPro()
+    console.log('unit equip suitSkill', JSON.stringify(@suitSkill))
+
   isMonster: () -> false
   isHero: () -> false
+  getCommandConfig: (commandName) -> return unit_command_config[commandName]
 
+installCommandExtention = require('./commandStream').installCommandExtention
+installCommandExtention(Unit)
+
+unit_command_config = {
+}
+# =============================================================
 class Hero extends Unit
   constructor: (heroData) ->
     super
@@ -98,6 +231,8 @@ class Hero extends Unit
     this[k] = v for k, v of heroData
     @xp = 0 unless @xp?
     @equipment = [] unless @equipment?
+    {createItem} = require('./item')
+    @equipment = @equipment.map((e) -> createItem({id: e.cid, enhancement: e.eh}))
 
     @initialize()
 
@@ -106,11 +241,19 @@ class Hero extends Unit
     @initWithConfig(cfg) if cfg?
     @level = 0
     @levelUp()
+    console.log('equipment ', JSON.stringify(@equipment))
     @gearUp()
     if not @isAlive() then @health = 1
     if @attack <= 0 then @attack = 1
     @maxHP = @health
     @originAttack = @attack
+    {createItem} = require('./item')
+    for k, v of @equipment
+      if v.suitId?
+        @equip(createItem({suit_config:queryTable(TABLE_UNIT)[v.suitId],subcategory:v.subcategory,basic_properties:v.basic_properties,appearance:v.appearance}))
+    #for k, v of @unitAppearance#暂时不用
+    for k, v of @suitSkill
+      @installSpell(v.id, v.level)
     console.log('Hero ', JSON.stringify(@)) if flagCreation
 
   isHero: () -> true
@@ -146,7 +289,6 @@ class Mirror extends Unit
       xp: heroData.exp,
     })
     battleForce = hero.calculatePower()
-    
 
     cfg = queryTable(TABLE_ROLE, heroData.cid)
     cid = cfg[transId]

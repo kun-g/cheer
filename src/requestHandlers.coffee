@@ -387,11 +387,11 @@ exports.route = {
 
       doVerify = () ->
         if player.dungeon
-          #for f in fileList
-          #  if require('./'+f).fileVersion isnt arg.fileVersion[f]
-          #    #logError({type:'fileVersion', file: f, version: arg.fileVersion[f], expect: require('./'+f).fileVersion})
-          #    #result.RET = RET_Issue41
-          #    status = 'FileVersionConflict'
+          for f in fileList
+            if require('./'+f).fileVersion isnt arg.fileVersion[f]
+              #logError({type:'fileVersion', file: f, version: arg.fileVersion[f], expect: require('./'+f).fileVersion})
+              #result.RET = RET_Issue41
+              status = 'FileVersionConflict'
 
           logInfo(player.dungeonData)
           initialData = player.dungeonData
@@ -636,9 +636,7 @@ exports.route = {
             r = getBasicInfo(e)
             r.rnk = +rivalLst.rnk[i]
             return r
-          ).filter( (e) ->
-            e?
-          )
+          ).filter( (e) -> e?)
           handler([ret])
         )
       )
@@ -748,6 +746,21 @@ exports.route = {
     ,
     args: {'cmt':{'cmted':'boolean', 'auto':'boolean'}},
     needPid: true
+  },
+  Request_LotteryFragment: {
+    id: 38,
+    func: (arg, player, handler, rpcID, socket) ->
+      switch arg.cmd
+        when 0
+          if arg.type?
+            {prize, res, ret} = player.getFragment(arg.type, arg.count)
+      evt = {REQ: rpcID, RET: ret}
+      if prize
+        evt.arg = prize
+        player.saveDB()
+      handler([evt].concat(res))
+    ,
+    args: {'cmd':0,'type':0},
+    needPid: true
   }
-
 }

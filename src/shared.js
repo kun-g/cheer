@@ -1,3 +1,5 @@
+libShared = {};
+(function(){
 /**
  * User: hammer
  * Date: 13-9-13
@@ -24,16 +26,25 @@ TABLE_CAMPAIGN = "campaigns";
 TABLE_VIP = "vip";
 TABLE_TRIGGER = "triggers";
 TABLE_BROADCAST = "broadcast";
+TABLE_TUTORIAL = "tutorialList";
+TABLE_TUTORIAL_CONFIG = "tutorialConfig";
+TABLE_BAN = "bans";
 TABLE_LEADBOARD = "leadboard";
 TABLE_FACTION = "faction";
+TABLE_BOUNTY = "bounty";
 TABLE_COSTS = "costs";
 TABLE_DP = "dailyPrize";
 TABLE_ARENA = "arena";
-TABLE_BOUNTY = "bounty";
-TABLE_IAP = "iaplist";
+TABLE_LOCALIZE = "localize";
+TABLE_PRELOAD = "preload";
+TABLE_IAPLIST = "iaplist";
 TABLE_SERVERLIST = "serverlist";
 TABLE_PKREWARD = "pkReward";
 TABLE_LOCALIZE = "localize";
+TABLE_FRAGMENT = "fragment";
+TABLE_IAP = "iaplist";
+TABLE_UNIT = "units";
+
 /*** GAME CONSTANTS ***/
 ItemId_RevivePotion = 540;
 
@@ -198,6 +209,7 @@ EquipSlot_StoreSuit = 12;//套装
 EquipSlot_StoreHead = 13;//头盔
 EquipSlot_StoreHair = 14;//发型
 EquipSlot_StoreGear = 15;//头饰
+EquipSlot_StoreBack = 16;//背部
 
 /*** 装备类型 ***/
 ITEMSTATUS_NONE = 0;
@@ -222,6 +234,8 @@ ENHANCE_REACTIVITY = 9;
 ENHANCE_VOID = 10;
 ENHANCE_COUNT = 11;
 
+/*** Subcategory of ITEM_RECIPE  the same to ITEM_EQUIPMENT***/
+
 /*** Enhance Result ***/
 RES_ATTACK = 0;
 RES_HEALTH = 1;
@@ -243,15 +257,15 @@ Sweep_Vip_Level = 3;
 
 LOGIN_ACCOUNT_TYPE_TG = 0;
 LOGIN_ACCOUNT_TYPE_AD = 1;
-LOGIN_ACCOUNT_TYPE_PP =  2;
-LOGIN_ACCOUNT_TYPE_91_iOS =  3;
-LOGIN_ACCOUNT_TYPE_KY =  4;
-LOGIN_ACCOUNT_TYPE_GAMECENTER =  5;
-LOGIN_ACCOUNT_TYPE_91_Android =  6;
-LOGIN_ACCOUNT_TYPE_DK_Android =  7;
-LOGIN_ACCOUNT_TYPE_TB_IOS =  8;
-LOGIN_ACCOUNT_TYPE_TB_Android =  9;
-LOGIN_ACCOUNT_TYPE_Android =  10;
+LOGIN_ACCOUNT_TYPE_PP = 2;
+LOGIN_ACCOUNT_TYPE_91_iOS = 3;
+LOGIN_ACCOUNT_TYPE_KY = 4;
+LOGIN_ACCOUNT_TYPE_GAMECENTER = 5;
+LOGIN_ACCOUNT_TYPE_91_Android = 6;
+LOGIN_ACCOUNT_TYPE_DK_Android = 7;
+LOGIN_ACCOUNT_TYPE_TB_IOS = 8;
+LOGIN_ACCOUNT_TYPE_TB_Android = 9;
+LOGIN_ACCOUNT_TYPE_Android = 10;
 
 Max_tutorialStage = 3;
 
@@ -260,6 +274,10 @@ MonthCardID = 8;
 /*** Quest Status ***/
 QUESTSTATUS_ONGOING = 0;
 QUESTSTATUS_COMPLETE = 1;
+
+/*** Bounty Status ***/
+BOUNTYSTATUS_ONGOING = 0;
+BOUNTYSTATUS_COMPLETE = 1;
 
 /*** Prize Type ***/
 PRIZETYPE_ITEM = 0;
@@ -315,3 +333,4 @@ Global_Card_Drop_Config = {
     { "weight": 2, "type": 8 }
   ]
 };
+}).call(this);

@@ -5,7 +5,7 @@ moment = require('moment')
 {Serializer, registerConstructor} = require './serializer'
 {DBWrapper, getMercenaryMember, updateMercenaryMember, addMercenaryMember, getPlayerHero} = require './dbWrapper'
 {createUnit, Hero} = require './unit'
-{Item, Card} = require './item'
+libItem = require './item'
 {CommandStream, Environment, DungeonEnvironment, DungeonCommandStream} = require('./commandStream')
 {Dungeon} = require './dungeon'
 {Bag, CardStack} = require('./container')
@@ -38,6 +38,7 @@ class Player extends DBWrapper
       timestamp: {},
       counters: {},
       flags: {},
+      globalPrizeFlag: {},
 
       inventory: Bag(InitialBagSize),
       gold: 0,
@@ -67,6 +68,9 @@ class Player extends DBWrapper
       accountID: -1,
       campaignState: {},
       infiniteTimer: currentTime(),
+
+      fragmentTime: [],
+      fragmentTimes: [],
 
       inventoryVersion: 1,
       heroVersion: 1,
@@ -419,6 +423,7 @@ class Player extends DBWrapper
     @purchasedCount[id] += count
 
   createPlayer: (arg, account, cb) ->
+#add check for switchhero
     cb({message:'big brother is watching ya'}) if not (0<= arg.cid <= 2)
 
     @setName(arg.nam)
@@ -865,7 +870,7 @@ class Player extends DBWrapper
 
   getItemAt: (slot) -> @inventory.get(slot)
 
-  useItem: (slot)->
+  useItem: (slot, opn)->#opn 时装系统装备卸下时需要
     item = @getItemAt(slot)
     myClass = @hero.class
     return { ret: RET_ItemNotExist } unless item?
@@ -897,21 +902,28 @@ class Player extends DBWrapper
                 ret = ret.concat(this.syncEnergy())
             return { ret: RET_OK, ntf: ret }
       when ITEM_EQUIPMENT
-        return { ret: RET_RoleLevelNotMatch } if item.rank? and this.createHero().level < item.rank
-        ret = {NTF: Event_InventoryUpdateItem, arg: {syn:this.inventoryVersion, itm: []}}
-        equip = this.equipment[item.subcategory]
-        tmp = {sid: slot, sta: 0}
-        if equip is slot
-          delete this.equipment[item.subcategory]
-        else
-          if equip? then ret.arg.itm.push({sid: equip, sta: 0})
-          this.equipment[item.subcategory] = slot
-          tmp.sta = 1
-        ret.arg.itm.push(tmp)
-        delete ret.arg.itm if ret.arg.itm.length < 1
-
-        this.onEvent('Equipment')
+        ret = @equipItem(slot)
         return { ret: RET_OK, ntf: [ret] }
+      when ITEM_RECIPE
+        if opn? and opn == 1#USE_ITEM_OPT_EQUIP = 1;
+          ret = @equipItem(slot)
+          return { ret: RET_OK, ntf: [ret] }
+        else
+          if item.recipeTarget?
+            recipe = @itemSynthesis(slot)
+            return { ret: recipe.ret } unless recipe.res
+            @log('itemSynthesis ret', {type: 'recipe', recipe: recipe})
+            ripres = recipe.res
+            ripres = ripres.concat(@removeItem(null, 1, slot))
+            @log('recipe', {type: 'recipe', id: item.id, recipe: recipe.out})
+            return {out:recipe.out, ntf:ripres}
+          else if item.recipePrize?
+            recipe = @itemDecompsite(slot)
+            return { ret: RET_ItemNotExist } unless recipe
+            @log('deposite ret', {type: 'recipe', recipe: recipe})
+            @log('recipe', {type: 'recipe', id: item.id, recipe: recipe.out})
+            return {out:recipe.prize, ntf:recipe.res}
+        
 
     logError({action: 'useItem', reason: 'unknow', catogory: item.category, subcategory: item.subcategory, id: item.id})
     return {ret: RET_UseItemFailed}
@@ -941,6 +953,24 @@ class Player extends DBWrapper
 
     return { res: ret }
 
+  equipItem: (slot) ->
+    item = @getItemAt(slot)
+    return { ret: RET_RoleLevelNotMatch } if item.rank? and this.createHero().level < item.rank
+    ret = {NTF: Event_InventoryUpdateItem, arg: {syn:this.inventoryVersion, itm: []}}
+    equip = this.equipment[item.subcategory]
+    tmp = {sid: slot, sta: 0}
+    if equip is slot
+      delete this.equipment[item.subcategory]
+    else
+      if equip? then ret.arg.itm.push({sid: equip, sta: 0})
+      this.equipment[item.subcategory] = slot
+      tmp.sta = 1
+    ret.arg.itm.push(tmp)
+    delete ret.arg.itm if ret.arg.itm.length < 1
+
+    this.onEvent('Equipment')
+    return ret
+
   levelUpItem: (slot) ->
     item = @getItemAt(slot)
     return { ret: RET_ItemNotExist } unless item?
@@ -960,7 +990,7 @@ class Player extends DBWrapper
 
     this.addGold(-cost)
     ret = this.removeItem(null, 1, slot)
-    newItem = new Item(item.upgradeTarget)
+    newItem = libItem.createItem(item.upgradeTarget)
     newItem.enhancement = item.enhancement
     ret = ret.concat(this.aquireItem(newItem))
     eh = newItem.enhancement.map((e) -> {id:e.id, lv:e.level})
@@ -1002,7 +1032,7 @@ class Player extends DBWrapper
     ret = @claimCost(recipe.forgeID)
     if not ret? then return { ret: RET_InsufficientIngredient }
     return { ret: RET_TargetNotExists } unless recipe.forgeTarget?
-    newItem = new Item(recipe.forgeTarget)
+    newItem = libItem.createItem(recipe.forgeTarget)
     ret = ret.concat({NTF: Event_InventoryUpdateItem, arg:{
       syn: @inventoryVersion,
       god: @gold
@@ -1067,8 +1097,6 @@ class Player extends DBWrapper
     else
       return false
 
-
-
   updateQuest: (quests) ->
     for qid, qst of quests
       continue unless qst?.counters? and @quests[qid]
@@ -1081,10 +1109,12 @@ class Player extends DBWrapper
     return getPKRewardByDiff(dungeon.PVP_Score_diff, dungeon.PVP_Score_origin)
 
   updatePkInof: (dungeon) ->
-    myName = @name
-    rivalName = dungeon.PVP_Pool[0].nam
-    dbLib.saveSocre(myName, rivalName, (err, result) ->
-    )
+    if dungeon.PVP_Pool?
+      myName = @name
+      rivalName = dungeon.PVP_Pool[0].nam
+      if dungeon.result is DUNGEON_RESULT_WIN
+        dbLib.saveSocre(myName, rivalName, (err, result) ->
+        )
   whisper: (name, message, callback) ->
     myName = this.name
     dbLib.deliverMessage(
@@ -1494,6 +1524,17 @@ class Player extends DBWrapper
 
     return {out: reward, res: ret}
 
+  combineItem: (slot, gemSlot) ->
+    equip = @getItemAt(slot)
+    gem = @getItemAt(gemSlot)
+    return { ret: RET_ItemNotExist } unless gem and equip
+    retRM = @inventory.removeItemAt(gemSlot, 1, true)
+    if retRM
+      equip.installEnhancement(gem)
+      return { res: [] }
+    else
+      return { ret: RET_NoEnhanceStone }
+
   injectWXP: (slot, bookSlot) ->
     equip = @getItemAt(slot)
     book = @getItemAt(bookSlot)
@@ -1546,7 +1587,6 @@ class Player extends DBWrapper
         ret = {sid: bag.queryItemSlot(e), cid: e.id, stc: e.count}
 
         if e.xp? then ret.xp = e.xp
-
         for i, equip of this.equipment when equip is index
           ret.sta = 1
 
@@ -1667,6 +1707,53 @@ class Player extends DBWrapper
       arg :versions
     }
 
+  getFragment: (type,count) ->
+    @fragmentTimes[type] = 0 unless @fragmentTimes[type]
+    @fragmentTime[type] = "2014-10-01" unless @fragmentTime[type]
+    fragInterval = [{"value":5,"unit":"minite"},{"value":24,"unit":"hour"}]
+    hiGradeTimesFrag = [10,10]
+    fragInterval[type] = queryTable(TABLE_FRAGMENT)[type].interval
+    hiGradeTimesFrag[type] = queryTable(TABLE_FRAGMENT)[type].basic_times
+    dis = diffDate(@fragmentTime[type],currentTime(),fragInterval[type].unit)
+    prz = []
+    if dis >= fragInterval[type].value or true
+      for i in [0..count-1]
+        if @fragmentTimes[type] < hiGradeTimesFrag[type]
+          prz = prz.concat(generatePrize(queryTable(TABLE_FRAGMENT)[type].basic_prize, [0..queryTable(TABLE_FRAGMENT)[type].basic_prize.length-1]))
+          @fragmentTimes[type]++
+        else 
+          prz = prz.concat(generatePrize(queryTable(TABLE_FRAGMENT)[type].advanced_prize, [0..queryTable(TABLE_FRAGMENT)[type].advanced_prize.length-1]))
+          @fragmentTimes[type] = 0
+      @fragmentTime[type] = currentTime()
+      
+    else
+      return { ret: RET_RewardAlreadyReceived }
+    prize = @claimPrize(prz)
+    console.log('prz=', JSON.stringify(prz))
+    return { ret: RET_InventoryFull } unless prize
+    @log('lottery', {type: 'lotteryFragment', prize: prize})
+    return {prize: prz, res: prize, ret: RET_OK}
+
+  itemSynthesis: (slot) ->
+    recipe = @getItemAt(slot)
+    return { ret: RET_ItemNotExist } unless recipe?
+    ret = @claimCost(recipe.recipeCost)
+    if not ret? then return { ret: RET_InsufficientIngredient }
+    return { ret: RET_Unknown } unless recipe.recipeTarget?
+    newItem = libItem.createItem(recipe.recipeTarget)
+    ret = ret.concat(@aquireItem(newItem))
+    @log('itemSynthesis', { slot: slot, id: recipe.id })
+    return { out: { type: PRIZETYPE_ITEM, value: newItem.id, count: 1}, res: ret }
+
+  itemDecompsite: (slot) ->
+    recipe = @getItemAt(slot)
+    return { ret: RET_ItemNotExist } unless recipe?
+    prz = @claimPrize(recipe.recipePrize)
+    if not prz? then return { ret: RET_InsufficientIngredient }
+    ret = prz.concat(@removeItem(null, 1, slot))
+    @log('itemDecompsite', { slot: slot, id: recipe.id })
+    return { prize: prz, res: ret }
+
 playerMessageFilter = (oldMessage, newMessage, name) ->
   message = newMessage
   messageIDMap = {}
@@ -1696,7 +1783,7 @@ createItem = (item) ->
   if Array.isArray(item)
     return ({item: createItem(e.item), count: e.count} for e in item)
   else if typeof item is 'number'
-    return new itemLib.Item(item)
+    return libItem.createItem(item)
   else
     return item
 
@@ -1780,6 +1867,7 @@ getVip = (rmb) ->
   levelCfg.privilege = tbl.requirement[level].privilege
   
   return {level: level, cfg: levelCfg}
+
 
 registerConstructor(Player)
 exports.Player = Player
