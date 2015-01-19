@@ -244,6 +244,7 @@ function paymentHandler (request, response) {
                     +(out.type!=null?('&type='+out.type):'')
                     +'&uid='+out.uid
                     +(out.value!=null?('&value='+out.value):'')
+                    +'&'+token
                 }
 
                 var b = new Buffer(1024);
