@@ -1,7 +1,125 @@
 var spellLib = require('../js/spell');
-
+var findObjWithKeyPair = spellLib.findObjWithKeyPair;
+var getValidatePlayerSelectPointFilter = spellLib.getValidatePlayerSelectPointFilter;
+var assert = require("assert");
+var should = require('should');
 describe('Spell', function () {
+    var skillData = 
+        [
+            {
+                id:1,
+                targetSelection:{
+                    pool:'objects',
+                    filter: [],
+                }
+            },
+            {
+                id:2,
+                targetSelection:{
+                    testValue:'get select pool',
+                    pool:'select-object',
+                    filter: [],
+                }
+            },
+            {
+                id:3,
+                targetSelection:{
+                    testValue:'get select pool',
+                    pool:'objects',
+                    filter: [
+                    {
+                        type:'anchor',
+                        anchorPos:{
+                            testValue: 'in second level targetSelection',
+                            pool:'select-block',
+                            filter:[{
+                                        type:'count',
+                                        count : 1
+                            }
+                            ]
+                        }
+                    }
+                    ],
+                }
+            },
+            {
+                id:4,
+                targetSelection:{
+                    testValue:'get select pool',
+                    pool:'objects',
+                    filter: [
+                    {
+                        type:'anchor',
+                        anchorPos:{
+                            pool:'blocks',
+                            filter:[
+                            {
+                                type:'anchor',
+                                anchorPos:{
+                                    testValue: 'in third level targetSelection',
+                                    pool:'select-block',
+                                    filter:[
+                                    {
+                                        type:'count',
+                                        count : 1
+                                    }
+                                        ]
+                                }
+
+                            }
+                            ]
+                        }
+                    }
+                    ],
+                }
+            }
+
+        ];
+
+    it(' findObjWithKeyPair', function() {
+                
+        skillData.forEach(function(e) {
+            selectCfg = findObjWithKeyPair(e.targetSelection,
+                {name:'pool', values:['select-object', 'select-block']})
+            if (e.id == 1) {
+                assert(selectCfg == null);
+            }
+            else{
+                selectCfg.testValue.should.not.equal(null);
+            }
+
+        })
+
+    });
+    it(' getValidatePlayerSelectPointFilter ', function() {
+        var objs = [
+            {pos:1},{pos:2},{pos:3},{pos:4}
+        ]
+        env ={
+            getObjects:function() {
+                return objs;
+            },
+            getBlock:function() {
+                return objs;
+            }
+        }
+        skillData.forEach(function(e) {
+
+            Wizard = require('../js/spell').Wizard;
+            w = new Wizard();
+            var ret =  getValidatePlayerSelectPointFilter(e,w, env);
+            console.log(ret);
+            if (e.id == 1) {
+                assert(ret == null);
+            }
+            else{
+                ret.should.equal[1,2,3,4];
+            }
+            console.log(ret);
+        })
+    });
 });
+
 
 //Wizard = require('../js/spell').Wizard;
 //describe('Spell', function () {

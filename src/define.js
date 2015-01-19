@@ -644,6 +644,7 @@ DUNGEON_ACTION_ATTACK = 5;
 DUNGEON_ACTION_ACTIVATEMECHANISM = 6;
 DUNGEON_ACTION_REVIVE = 7;
 DUNGEON_ACTION_TOUCHBLOCK = 8;
+DUNGEON_ACTION_GETVALIDATE_POS = 9;
 
 DUNGEON_DROP_CARD_SPELL = 49;
 
@@ -675,6 +676,7 @@ ACT_Blink = 111;
 ACT_Tutorial = 112;
 ACT_Bubble = 113;
 ACT_Tremble = 114;
+ACT_ShowValidatePosLst = 115;
 
 ACT_Block = 201;
 ACT_Enemy = 202;
@@ -738,6 +740,7 @@ Request_DungeonCard = 6;
 Request_DungeonUseItem = 7;
 Request_DungeonRevive = 8;
 Request_DungeonTouch = 9;
+Request_DungeonValidatePos = 10;
 REQUEST_CancelDungeon = 20;
 
 Event_DungeonEnter = 0;

@@ -37,6 +37,31 @@ calcFormular = (e, s, t, config, level) ->
     plusThemAll(config.tar, t) +
     c
   )
+findObjWithKeyPair = (obj, keyPare) ->
+  keyName =keyPare.name
+  values = keyPare.values
+  for k, v of obj
+    if typeof v is 'object'
+      result = findObjWithKeyPair(v, keyPare)
+      return result if result?
+    if k is keyName and values.indexOf(v) isnt -1
+      return obj
+  return null
+
+exports.findObjWithKeyPair = findObjWithKeyPair #exports for testsuit
+
+getValidatePlayerSelectPointFilter = (cfg,wizard, env) ->
+  selectCfg = findObjWithKeyPair(cfg.targetSelection,
+    {name:'pool', values:['select-object', 'select-block']})
+  return null unless selectCfg?
+  filterCfg = selectCfg.filter
+  filterCfg = filterCfg.filter((e) -> e.type isnt 'count')
+  pool = selectCfg.pool.replace(/select-(\w+)/, '$1s')
+  objs = wizard.selectTarget({targetSelection:{pool:pool,filter:filterCfg}}, env)
+  return objs.map((e) -> e.pos)
+
+exports.getValidatePlayerSelectPointFilter = getValidatePlayerSelectPointFilter
+
 
 class Wizard
   constructor: () ->
@@ -306,6 +331,11 @@ class Wizard
     return [true]
 
   getActiveSpell: () -> [-1]
+
+  getValidatePlayerSelectPoint: (spellID,env)->
+    cfg = getSpellConfig(spellID)
+    getValidatePlayerSelectPointFilter(cfg,@, env)
+
 
   doAction: (thisSpell, actions, target, cmd) ->
     return false unless actions?
