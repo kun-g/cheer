@@ -420,6 +420,9 @@ class Dungeon
       when Request_DungeonAttack
         action = DUNGEON_ACTION_ATTACK
         arg = {t: +req.arg.tar, p:[+req.arg.pos, +req.arg.pos1, +req.arg.pos2]}
+      when Request_DungeonValidatePos
+        action = DUNGEON_ACTION_GETVALIDATE_POS
+        arg = {id: +req.arg.id}
 
     return @act(action, arg)
 
@@ -481,6 +484,9 @@ class Dungeon
       when DUNGEON_ACTION_REVIVE
         @revive++
         cmd = DungeonCommandStream({id: 'Revive'}, this)
+        cmd.process()
+      when DUNGEON_ACTION_GETVALIDATE_POS
+        cmd = DungeonCommandStream({id: 'ValidatePosList', spell: arg.id}, this)
         cmd.process()
       else
         return @onReplayMissMatch()
@@ -1674,6 +1680,12 @@ dungeonCSConfig = {
           dey:env.variable('dey'),
           dur:env.variable('dur')
         }]
+  },
+  ValidatePosList: {
+    output: (env) ->
+      ret = env.variable('me').getValidatePlayerSelectPoint(env.variable('spell'), env)
+      [{id:ACT_ShowValidatePosLst, ret:ret}]
+
   }
 }
 

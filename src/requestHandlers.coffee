@@ -10,6 +10,8 @@ querystring = require('querystring')
 moment = require('moment')
 {Player} = require('./player')
 
+CONST_REWARD_PK_TIMES = 5
+
 checkRequest = (req, player, arg, rpcID, cb) ->
   dbLib.checkReceiptValidate(arg.rep, (isValidate) ->
     if isValidate
@@ -683,7 +685,7 @@ exports.route = {
     func: (arg, player, handler, rpcID, socket) ->
       switch arg.typ
         when 0
-          if (not (player.counters.currentPKCount?) or player.getTotalPkTimes() > player.counters.currentPKCount or player.flags.rcvAward)
+          if (not (player.counters.currentPKCount?) or CONST_REWARD_PK_TIMES > player.counters.currentPKCount or player.flags.rcvAward)
 
             handler([{REQ: rpcID, RET: RET_CantReceivePkAward}])
           else
