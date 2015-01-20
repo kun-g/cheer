@@ -486,8 +486,11 @@ class Dungeon
         cmd = DungeonCommandStream({id: 'Revive'}, this)
         cmd.process()
       when DUNGEON_ACTION_GETVALIDATE_POS
-        cmd = DungeonCommandStream({id: 'ValidatePosList', spell: arg.id}, this)
-        cmd.process()
+        hero = @heroes[0]
+        ret = [] #[{NTF: Event_Fail, arg : {msg:'Main Hero Is Dead'}}]
+        if hero.isAlive()
+          cmd = DungeonCommandStream({id: 'ValidatePosList', hero:hero, spell: arg.id}, this)
+          cmd.process()
       else
         return @onReplayMissMatch()
     ret.push({NTF:Event_DungeonAction, arg: cmd.translate()}) unless not cmd or (replayMode and not showResult)
