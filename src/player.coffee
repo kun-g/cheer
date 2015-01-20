@@ -38,7 +38,6 @@ class Player extends DBWrapper
       timestamp: {},
       counters: {},
       flags: {},
-      globalPrizeFlag: {},
 
       inventory: Bag(InitialBagSize),
       gold: 0,
@@ -68,9 +67,6 @@ class Player extends DBWrapper
       accountID: -1,
       campaignState: {},
       infiniteTimer: currentTime(),
-
-      fragmentTime: [],
-      fragmentTimes: [],
 
       inventoryVersion: 1,
       heroVersion: 1,
@@ -1708,31 +1704,67 @@ class Player extends DBWrapper
     }
 
   getFragment: (type,count) ->
-    @fragmentTimes[type] = 0 unless @fragmentTimes[type]
-    @fragmentTime[type] = "2014-10-01" unless @fragmentTime[type]
+    @counters.fragmentTimes = [] unless @counters.fragmentTimes
+    @counters.fragmentTime = [] unless @counters.fragmentTime
+    @counters.fragmentTimes[type] = 0 unless @counters.fragmentTimes[type]
+    @counters.fragmentTime[type] = "2014-10-01" unless @counters.fragmentTime[type]
     fragInterval = [{"value":5,"unit":"minite"},{"value":24,"unit":"hour"}]
     hiGradeTimesFrag = [10,10]
     fragInterval[type] = queryTable(TABLE_FRAGMENT)[type].interval
     hiGradeTimesFrag[type] = queryTable(TABLE_FRAGMENT)[type].basic_times
-    dis = diffDate(@fragmentTime[type],currentTime(),fragInterval[type].unit)
+    dis = @getDiffTime(@counters.fragmentTime[type],currentTime(),fragInterval[type].unit)
     prz = []
-    if dis >= fragInterval[type].value or true
-      for i in [0..count-1]
-        if @fragmentTimes[type] < hiGradeTimesFrag[type]
-          prz = prz.concat(generatePrize(queryTable(TABLE_FRAGMENT)[type].basic_prize, [0..queryTable(TABLE_FRAGMENT)[type].basic_prize.length-1]))
-          @fragmentTimes[type]++
-        else 
-          prz = prz.concat(generatePrize(queryTable(TABLE_FRAGMENT)[type].advanced_prize, [0..queryTable(TABLE_FRAGMENT)[type].advanced_prize.length-1]))
-          @fragmentTimes[type] = 0
-      @fragmentTime[type] = currentTime()
-      
-    else
-      return { ret: RET_RewardAlreadyReceived }
+    diamondCost = 0
+    switch count
+      when 1
+        if dis >= fragInterval[type].value
+          diamondCost = 0
+          @counters.fragmentTime[type] = currentTime()
+        else
+          diamondCost = 30
+      when 10
+        diamondCost = 300
+
+    evt = []
+    if diamondCost > 0
+      if @addDiamond(-diamondCost)
+        evt.push({NTF: Event_InventoryUpdateItem, arg: {syn: @inventoryVersion, dim: @diamond}})
+      else 
+        return {ret: RET_NotEnoughDiamond}
+
+    for i in [0..count-1]
+      if @counters.fragmentTimes[type] < hiGradeTimesFrag[type]
+        prz = prz.concat(generatePrize(queryTable(TABLE_FRAGMENT)[type].basic_prize, [0..queryTable(TABLE_FRAGMENT)[type].basic_prize.length-1]))
+        @counters.fragmentTimes[type]++
+      else 
+        prz = prz.concat(generatePrize(queryTable(TABLE_FRAGMENT)[type].advanced_prize, [0..queryTable(TABLE_FRAGMENT)[type].advanced_prize.length-1]))
+        @counters.fragmentTimes[type] = 0
+
     prize = @claimPrize(prz)
     console.log('prz=', JSON.stringify(prz))
     return { ret: RET_InventoryFull } unless prize
+    prize = prize.concat(evt)
     @log('lottery', {type: 'lotteryFragment', prize: prize})
     return {prize: prz, res: prize, ret: RET_OK}
+
+  getFragTimeCD: (type) ->
+    @counters.fragmentTimes = [] unless @counters.fragmentTimes
+    @counters.fragmentTime = [] unless @counters.fragmentTime
+    @counters.fragmentTimes[type] = 0 unless @counters.fragmentTimes[type]
+    @counters.fragmentTime[type] = "2014-10-01" unless @counters.fragmentTime[type]
+    fragInterval = [{"value":5,"unit":"minite"},{"value":24,"unit":"hour"}]
+    fragInterval[type] = queryTable(TABLE_FRAGMENT)[type].interval
+    freeFragCD = 0
+    switch fragInterval[type].unit
+      when 'second' then freeFragCD = fragInterval[type].value
+      when 'minite' then freeFragCD = fragInterval[type].value*60
+      when 'hour' then freeFragCD = fragInterval[type].value*3600
+      when 'day' then freeFragCD = fragInterval[type].value*24*3600
+    dis = @getDiffTime(@counters.fragmentTime[type],currentTime(),'second')
+    if freeFragCD <= 0 or freeFragCD - dis <= 0
+      return 0
+    else
+      return freeFragCD - dis
 
   itemSynthesis: (slot) ->
     recipe = @getItemAt(slot)
@@ -1753,6 +1785,14 @@ class Player extends DBWrapper
     ret = prz.concat(@removeItem(null, 1, slot))
     @log('itemDecompsite', { slot: slot, id: recipe.id })
     return { prize: prz, res: ret }
+
+  getDiffTime: (from, to, type) ->
+    duration = libTime.diff(to, from)
+    switch type
+      when 'second' then return duration.asSeconds()
+      when 'minite' then return duration.asMinutes()
+      when 'hour' then return duration.asHours()
+      when 'day' then return duration.asDays()
 
 playerMessageFilter = (oldMessage, newMessage, name) ->
   message = newMessage

@@ -186,7 +186,7 @@ class Unit extends Wizard
         if suitArr[e.suit_config.suitId]?
           suitArr[e.suit_config.suitId].count++
         else
-          suitArr[e.suit_config.suitId] = e.suit_config
+          suitArr[e.suit_config.suitId] = JSON.parse(JSON.stringify(e.suit_config))
           suitArr[e.suit_config.suitId].count = 1
 
     @clearUnitPro()

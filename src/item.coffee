@@ -6,24 +6,16 @@ makeBasicCommand = require('./commandStream').makeCommand
 item_command_config = {
 }
 class Item extends Serializer
-  constructor: (data) ->
-    if typeof data is 'number' then data = {id: data}
+  constructor: (@config, additionalConfig) ->
     cfg = {
       slot: [],
       count: 1,
       serverId: -1, #For Client
-      id: data.id
+      id: config.classId
     }
-    @id = data.id
-    if @getConfig()
-      if @getConfig().category is ITEM_EQUIPMENT
-        cfg.xp = 0
-        cfg.enhancement = []
-      if @getConfig().expiration then cfg.data = -1
-    super(data, cfg, {})
-    #@initialize() if @id?
+    super(config, _.extend(cfg, additionalConfig))
 
-  getConfig: () -> queryTable(TABLE_ITEM, @id)
+  getConfig: () -> @config
 
   spaceCount: () -> if @storeOnly then return 0 else return 1
 
