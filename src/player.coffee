@@ -1704,16 +1704,16 @@ class Player extends DBWrapper
     }
 
   getFragment: (type,count) ->
-    @counters.fragmentTimes = [] unless @counters.fragmentTimes
-    @counters.fragmentTime = [] unless @counters.fragmentTime
-    @counters.fragmentTimes[type] = 0 unless @counters.fragmentTimes[type]
-    @counters.fragmentTime[type] = "2014-10-01" unless @counters.fragmentTime[type]
+    @counters.fragmentTimes ?= []
+    @counters.fragmentTime ?= []
+    @counters.fragmentTimes[type] ?= 0
+    @counters.fragmentTime[type] ?= "2014-10-01"
     fragInterval = [{"value":5,"unit":"minite"},{"value":24,"unit":"hour"}]
     hiGradeTimesFrag = [10,10]
-    fragInterval[type] = queryTable(TABLE_FRAGMENT)[type].interval
-    hiGradeTimesFrag[type] = queryTable(TABLE_FRAGMENT)[type].basic_times
+    cfg = queryTable(TABLE_FRAGMENT)
+    fragInterval[type] = cfg[type].interval
+    hiGradeTimesFrag[type] = cfg[type].basic_times
     dis = @getDiffTime(@counters.fragmentTime[type],currentTime(),fragInterval[type].unit)
-    prz = []
     diamondCost = 0
     switch count
       when 1
@@ -1726,18 +1726,19 @@ class Player extends DBWrapper
         diamondCost = 300
 
     evt = []
+    prz = []
     if diamondCost > 0
       if @addDiamond(-diamondCost)
         evt.push({NTF: Event_InventoryUpdateItem, arg: {syn: @inventoryVersion, dim: @diamond}})
-      else 
+      else
         return {ret: RET_NotEnoughDiamond}
 
     for i in [0..count-1]
       if @counters.fragmentTimes[type] < hiGradeTimesFrag[type]
-        prz = prz.concat(generatePrize(queryTable(TABLE_FRAGMENT)[type].basic_prize, [0..queryTable(TABLE_FRAGMENT)[type].basic_prize.length-1]))
+        prz = prz.concat(generatePrize(cfg[type].basic_prize, [0..cfg[type].basic_prize.length-1]))
         @counters.fragmentTimes[type]++
-      else 
-        prz = prz.concat(generatePrize(queryTable(TABLE_FRAGMENT)[type].advanced_prize, [0..queryTable(TABLE_FRAGMENT)[type].advanced_prize.length-1]))
+      else
+        prz = prz.concat(generatePrize(cfg[type].advanced_prize, [0..cfg[type].advanced_prize.length-1]))
         @counters.fragmentTimes[type] = 0
 
     prize = @claimPrize(prz)
