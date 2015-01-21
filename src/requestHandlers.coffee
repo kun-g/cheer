@@ -756,20 +756,13 @@ exports.route = {
         when 0
           if arg.type?
             {prize, res, ret} = player.getFragment(arg.type, arg.count)
+            player.saveDB()
+            evt = {REQ: rpcID, RET: ret}
+            evt.arg = prize
+          handler([evt].concat(res))
         when 1
           if arg.type?
-            info ={
-              fcd: player.getFragTimeCD(arg.type)
-            }
-            ret = RET_OK
-      evt = {REQ: rpcID, RET: ret}
-      if prize
-        evt.arg = prize
-        player.saveDB()
-        handler([evt].concat(res))
-      if info
-        evt.arg = info
-        handler([evt])
+            handler({REQ: rpcID,RET:RET_OK, arg:{ fcd: player.getFragTimeCD(arg.type) }})
     ,
     args: {'cmd':0,'type':0},
     needPid: true
