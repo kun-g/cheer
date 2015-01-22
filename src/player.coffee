@@ -1110,7 +1110,7 @@ class Player extends DBWrapper
       (cb) => if name is @name then cb(new Error(RET_CantInvite)) else cb (null),
       (cb) => if @contactBook? and @contactBook.book.indexOf(name) isnt -1 then cb(new Error(RET_OK)) else cb (null),
       (cb) -> dbLib.playerExistenceCheck(name, cb),
-      (cb) -> dbLib.deliverMessage(name, msg, cb),
+      (cb) -> dbLib.deliverMessage(name, msg, cb, null, true),
     ], (err, result) ->
       err = new Error(RET_OK) unless err?
       if callback then callback(err)

@@ -304,20 +304,37 @@ function incrBluestarBy (name, point, handler) {
 }
 exports.incrBluestarBy = incrBluestarBy;
 
-function deliverMessage(name, message, callback, serverName) {
+function deliverMessage(name, message, callback, serverName, unique) {
   var prefix = messagePrefix;
   if (serverName) { prefix = serverName+dbSeparator+'message'+dbSeparator; }
-  dbClient.incr(prefix+'MessageID', function (err, r) {
-    message.messageID = r;
-    async.parallel([
-        function (cb) { dbClient.sadd(playerMessagePrefix+name, r, cb); },
-        function (cb) { dbClient.set(messagePrefix+r, JSON.stringify(message), cb); }
-      ],
-      function (err, result) {
-        publishPlayerChannel(name, 'New Message');
-        if (callback) callback(err, r);
+  var playerMessage = playerMessagePrefix + name;
+
+  if(unique) {
+      dbLib.checkMessageExistence(JSON.stringify(message),messagePrefix, playerMessage,function(err,ret) {
+          if (ret == 1) {
+            if(callback) {callback(Error(RET_SameMessageExist), null);}
+          }
+          else{
+              doAddMsg2DB();
+          }
+      })
+  }
+  else{
+      doAddMsg2DB();
+  }
+  function doAddMsg2DB() {
+      dbClient.incr(prefix+'MessageID', function (err, r) {
+          message.messageID = r;
+          async.parallel([
+              function (cb) { dbClient.sadd(playerMessage, r, cb); },
+              function (cb) { dbClient.set(messagePrefix+r, JSON.stringify(message), cb); }
+              ],
+              function (err, result) {
+                  publishPlayerChannel(name, 'New Message');
+                  if (callback) callback(err, r);
+              });
       });
-  });
+  }
 }
 exports.deliverMessage = deliverMessage;
 
@@ -609,6 +626,15 @@ exports.initializeDB = function (cfg,finishCb) {
       });
     };
   });
+  dbClient.script('load', helperLib.dbScripts.checkMessageExistence, function (err, sha) {
+    exports.checkMessageExistence= function (message, messagePrefix, playerMessage, handler) {
+      dbClient.evalsha(sha, 0, message, messagePrefix, playerMessage, function (err, ret) {
+       if (handler) { handler(err, ret); }
+      });
+    };
+  });
+
+
 
   async.map(scriptConfig,
       function(e, cb) {

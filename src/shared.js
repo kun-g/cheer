@@ -104,6 +104,7 @@ RET_ClaimCostFailed = 61;
 RET_FriendNotExists = 62;
 RET_GetLeaderboardInfoFailed = 63;
 RET_ShopVersionNotMatch = 64;
+RET_SameMessageExist = 66;
 ErrorMsgs = [
     "操作成功",//0
     "金币数量不足",
@@ -169,7 +170,10 @@ ErrorMsgs = [
     "获取材料失败",
     "好友不存在",
     "获取排名信息失败",
-    "商店版本不匹配"
+    "商店版本不匹配",
+    "dh err for 65",
+    "you have already sent this message",
+
 ];
 
 /*** ITEM CATEGORY ***/

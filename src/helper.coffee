@@ -547,4 +547,26 @@ exports.dbScripts = {
     return score
   """
 
+  checkMessageExistence: """
+    local addingMsg ,  messagePrefix, playerMessage = ARGV[1], ARGV[2], ARGV[3];
+    local list = redis.call('SMEMBERS', playerMessage);
+    local function isSameMsg(orig, check)
+      orig = cjson.decode(orig);
+      check = cjson.decode(check);
+      for k,v in pairs(orig) do
+        if v ~= check[k] and k ~= 'messageID'  then
+          return false;
+        end
+      end
+      return true;
+    end
+    for i, v in ipairs(list) do
+      local msg = redis.call('get', messagePrefix..v);
+        if isSameMsg(msg, addingMsg) then
+          return true;
+        end
+    end
+    return false
+  """
+
 }
