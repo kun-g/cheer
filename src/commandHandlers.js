@@ -253,7 +253,7 @@ function handler_doBuyEnergy(arg, player, handler, rpcID) {
       evt.push({NTF: Event_FriendInfo, arg: { cap : player.contactBook.limit } });
       evt.push({NTF: Event_InventoryUpdateItem, arg: { dim : player.diamond } });
     } else if (+arg.typ === FEATURE_FRIEND_GOLD) {
-      player.addGold(diamondCost*10);
+      player.addGold(diamondCost*Rate_Gold_Diamond);
       evt.push({NTF: Event_InventoryUpdateItem, arg: {
         dim: player.diamond,
         god: player.gold

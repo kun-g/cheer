@@ -316,4 +316,4 @@ Global_Card_Drop_Config = {
   ]
 };
 
-Rate_Gold_Diamond = 10/1;
+Rate_Gold_Diamond = 5/1;
