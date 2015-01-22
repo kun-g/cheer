@@ -1710,20 +1710,19 @@ class Player extends DBWrapper
     @counters.fragmentTime[type] ?= "2014-10-01"
     fragInterval = [{"value":5,"unit":"minite"},{"value":24,"unit":"hour"}]
     hiGradeTimesFrag = [10,10]
+    fragCost = {"1":30,"10":290}
     cfg = queryTable(TABLE_FRAGMENT)
     fragInterval[type] = cfg[type].interval
     hiGradeTimesFrag[type] = cfg[type].basic_times
+    fragCost = cfg[type].diamond
     dis = @getDiffTime(@counters.fragmentTime[type],currentTime(),fragInterval[type].unit)
-    diamondCost = 0
-    switch count
-      when 1
+    if fragCost[+count]? then diamondCost = fragCost[+count]
+    else diamondCost = fragCost * count
+    console.log('diamondCost=', diamondCost)
+    switch type
+      when 0
         if dis >= fragInterval[type].value
-          diamondCost = 0
           @counters.fragmentTime[type] = currentTime()
-        else
-          diamondCost = 30
-      when 10
-        diamondCost = 300
 
     evt = []
     prz = []

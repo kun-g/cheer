@@ -753,18 +753,22 @@ exports.route = {
     id: 38,
     func: (arg, player, handler, rpcID, socket) ->
       switch arg.cmd
-        when 0
+        when 0#cmd=0 抽奖 count抽奖次数 type使用表fragment的第type套奖品
           if arg.type?
             {prize, res, ret} = player.getFragment(arg.type, arg.count)
             player.saveDB()
             evt = {REQ: rpcID, RET: ret}
             evt.arg = prize
-          handler([evt].concat(res))
-        when 1
+            handler([evt].concat(res))
+          else
+            handler([{REQ: rpcID, RET: RET_NoParameter}])
+        when 1#cmd=1 获取免费抽奖CD时间
           if arg.type?
             handler({REQ: rpcID,RET:RET_OK, arg:{ fcd: player.getFragTimeCD(arg.type) }})
+          else
+            handler([{REQ: rpcID, RET: RET_NoParameter}])
     ,
-    args: {'cmd':0,'type':0},
+    args: {'cmd':'number','type':'number'},
     needPid: true
   }
 }
