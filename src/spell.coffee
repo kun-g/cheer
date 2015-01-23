@@ -183,18 +183,21 @@ class Wizard
       thisSpell.eventCounters[event]++ if thisSpell?
       @castSpell(id, cmd)
 
-  clearSpellCD: (spellIDList, cmd) ->
-    return false unless Array.isArray(spellIDList)
-    for spellID in spellIDList
-      continue unless @wSpellDB[spellID]?
-      thisSpell = @wSpellDB[spellID]
-      if thisSpell.cd? and thisSpell.cd isnt 0
-        thisSpell.cd = 0
-        cmd.routine?({id: 'SpellCD', cdInfo: thisSpell.cd}) if @isHero()
+  # 
+  #clearSpellCD: (spellIDList, cmd) ->
+  #  return false unless Array.isArray(spellIDList)
+  #  for spellID in spellIDList
+  #    continue unless @wSpellDB[spellID]?
+  #    thisSpell = @wSpellDB[spellID]
+  #    if thisSpell.cd? and thisSpell.cd isnt 0
+  #      thisSpell.cd = 0
+  #      cmd.routine?({id: 'SpellCD', cdInfo: thisSpell.cd}) if @isHero()
 
   getSpellCD:() ->
+    ret = {}
     for spellID, thisSpell of @wSpellDB
-      return thisSpell.cd if thisSpell.cd?
+      ret[spellID] = thisSpell.cd if thisSpell.cd?
+    return ret
 
   updateCDOfSpell: (spellID, isReset, cmd) ->
     cfg = getSpellConfig(spellID)
@@ -214,7 +217,10 @@ class Wizard
     else
       thisSpell.cd -= 1 unless thisSpell.cd == 0
 
-    cmd.routine?({id: 'SpellCD', cdInfo: thisSpell.cd}) if thisSpell.cd isnt preCD and @isHero()
+    if thisSpell.cd isnt preCD and @isHero()
+      info ={}
+      info[spellID] = thisSpell.cd
+      cmd.routine?({id: 'SpellCD', cdInfo: info})
 
   haveMutex: (mutex) -> @wSpellMutex[mutex]?
 
@@ -388,7 +394,7 @@ class Wizard
             getSpellProperty(a, 'mutex', thisSpell.level),
             getSpellProperty(a, 'count', thisSpell.level)
           )
-        when 'resetSpellCD' then t.clearSpellCD(t.getActiveSpell(), cmd) for t in target
+        #when 'resetSpellCD' then t.clearSpellCD(t.getActiveSpell(), cmd) for t in target
         when 'ignoreCardCost' then env.variable('ignoreCardCost', true)
         when 'dropItem' then cmd.routine?({id:'DropItem', list: a.dropList})
         when 'dropPrize'
