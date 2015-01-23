@@ -69,9 +69,14 @@ class Wizard
     @wTriggers = {}
     @wSpellMutex = {}
     @wPreBuffState = { rs : BUFF_TYPE_NONE, ds : BUFF_TYPE_NONE, hs : BUFF_TYPE_NONE }
+    @activeSpell = []
 
   isAlive: () ->
     return @health > 0
+
+  getActiveSpell: () ->
+    return @activeSpell if @activeSpell.length > 0
+    return [-1]
 
   installSpell: (spellID, level, cmd, delay = 0) ->
     cfg = getSpellConfig(spellID)
@@ -80,6 +85,7 @@ class Wizard
 
     @removeSpell(spellID, cmd) if @wSpellDB[spellID]
     @wSpellDB[spellID] = {level: level, delay: delay}
+    @activeSpell.push(spellID)
 
     @setupTriggerCondition(spellID, cfg.triggerCondition,  cmd)
     @setupAvailableCondition(spellID, cfg.availableCondition,  cmd)
@@ -134,6 +140,7 @@ class Wizard
       @doAction(@wSpellDB[spellID], cfg.uninstallAction, @selectTarget(cfg, cmd?.getEnvironment()), cmd)
 
     delete @wSpellDB[spellID]
+    @activeSpell = @activeSpell.filter((e) -> e isnt spellID)
     @spellStateChanged(spellID, cmd)
 
   installTrigger: (spellID, event) ->
