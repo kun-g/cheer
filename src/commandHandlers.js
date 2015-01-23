@@ -75,6 +75,13 @@ function  handler_doCancelDungeon(arg, player, handler, reqID, socket, flag, req
 }
 addHandler(REQUEST_CancelDungeon, handler_doCancelDungeon, [], '', true);
 
+function  handler_doCheckPos(arg, player, handler, reqID, socket, flag, req) {
+  handler(player.dungeonAction(req));
+  player.saveDB();
+}
+addHandler(Request_DungeonValidatePos ,  handler_doCheckPos, [], '', true);
+
+
 function  handler_doRevive(arg, player, handler, reqID, socket, flag, req) {
   handler(player.dungeonAction(req));
   player.saveDB();
