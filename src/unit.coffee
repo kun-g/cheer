@@ -22,10 +22,6 @@ class Unit extends Wizard
           @accuracy*2
     return if ret then ret else 0
 
-  getActiveSpell: () ->
-    roleConfig = queryTable(TABLE_ROLE, @class) if @class?
-    return [-1] unless roleConfig?.property?.activeSpell?
-    return roleConfig.property.activeSpell
 
   levelUp: () ->
     roleConfig = queryTable(TABLE_ROLE, @class) if @class?
