@@ -460,7 +460,7 @@ class Dungeon
         ret = [] #[{NTF: Event_Fail, arg : {msg:'Main Hero Is Dead'}}]
         if hero.isAlive()
           cmd = DungeonCommandStream({id: 'BeginTurn', type: 'Spell', src: hero}, this)
-          spellId = hero.getActiveSpell()[arg.i]
+          spellId = arg.i #hero.getActiveSpell()[arg.i]
           cmd.next({id: 'CastSpell', me: hero, spell: spellId, playerChoice: arg.p})
              .next({id: 'EndTurn', type: 'Spell', src: hero})
              .next({id: 'ResultCheck'})

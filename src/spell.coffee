@@ -160,6 +160,7 @@ class Wizard
     cfg = getSpellConfig(spellID)
     return false unless cfg?
     thisSpell = @wSpellDB[spellID]
+    return false unless thisSpell?
 
     target = @selectTarget(cfg, cmd?.getEnvironment())
 
