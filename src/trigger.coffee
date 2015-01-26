@@ -70,7 +70,8 @@ maskUnion = (one ,another) ->
   return result
 
 printMask = (arr) ->
-  for arr1 in arr
+  for idx1 in [0..Dungeon_Height-1]
+    arr1 = arr[idx1]
     if arr1?
       strArr =[]
       for idx in [0..Dungeon_Width-1]
