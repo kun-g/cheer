@@ -5,6 +5,7 @@
 //});
 //var agent = require('webkit-devtools-agent');
 require('./define');
+require('./tunnel_config');
 require('./shop');
 dbLib = require('./db');
 dbWrapper = require('./dbWrapper');
