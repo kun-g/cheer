@@ -127,7 +127,7 @@ describe("anchor", function () {
         opt.direction = direction.NorthWest;
         testThis( opt, ['x:0, y:1', 'x:1, y:2' ]);
     });
-    it('Cross', function () {
+    it('Cross1', function () {
         var opt = {type: 'anchor', anchorPos:[17], shape: areaShape.Cross, startDistance: 0, length: 2};
         testThis( opt, [
                         'x:2, y:1',
@@ -137,36 +137,55 @@ describe("anchor", function () {
                         'x:2, y:5',
         ]);
     });
-    it('Square', function () {
-        var opt = {type: 'anchor', anchorPos:[17], shape: areaShape.Square, startDistance: 0, length: 3};
+    it('Cross', function () {
+        var opt = {type: 'anchor', anchorPos:[17], shape: areaShape.Cross, startDistance: 1, length: 1};
         testThis( opt, [
-            'x:0, y:0', 'x:1, y:0', 'x:2, y:0', 'x:3, y:0', 'x:4, y:0',
-            'x:0, y:1', 'x:1, y:1', 'x:2, y:1', 'x:3, y:1', 'x:4, y:1',
-            'x:0, y:2', 'x:1, y:2', 'x:2, y:2', 'x:3, y:2', 'x:4, y:2',
-            'x:0, y:3', 'x:1, y:3', 'x:2, y:3', 'x:3, y:3', 'x:4, y:3',
-            'x:0, y:4', 'x:1, y:4', 'x:2, y:4', 'x:3, y:4', 'x:4, y:4',
-            'x:0, y:5', 'x:1, y:5', 'x:2, y:5', 'x:3, y:5', 'x:4, y:5'
+                        'x:2, y:1',
+                        'x:2, y:2',
+'x:0, y:3', 'x:1, y:3',           'x:3, y:3', 'x:4, y:3',
+                        'x:2, y:4',
+                        'x:2, y:5',
         ]);
     });
-    it('Triangle', function () {
-        var opt = {type: 'anchor',  anchorPos:[10], shape: areaShape.Triangle, startDistance: 0, length: 3};
+    it('Cross', function () {
+        var opt = {type: 'anchor', anchorPos:[17], shape: areaShape.Cross, startDistance: 1, length: 0};
         testThis( opt, [
-                                    'x:2, y:0',
-                        'x:1, y:1', 'x:2, y:1',
-            'x:0, y:2', 'x:1, y:2', 'x:2, y:2',
-                        'x:1, y:3', 'x:2, y:3',
-                                    'x:2, y:4'
-        ]);
-    });
-    it('Triangle', function () {
-        var opt = {type: 'anchor',  anchorPos:[19], direction: 7, shape: areaShape.Triangle, startDistance: 0, length: 3};
-        testThis( opt, [
-                                    'x:4, y:1',
-                        'x:3, y:2', 'x:4, y:2',
-            'x:2, y:3', 'x:3, y:3', 'x:4, y:3' 
+                        'x:2, y:2',
+            'x:1, y:3',            'x:3, y:3',
+                        'x:2, y:4',
         ]);
     });
 
+//    it('Square', function () {
+//        var opt = {type: 'anchor', anchorPos:[17], shape: areaShape.Square, startDistance: 0, length: 3};
+//        testThis( opt, [
+//            'x:0, y:0', 'x:1, y:0', 'x:2, y:0', 'x:3, y:0', 'x:4, y:0',
+//            'x:0, y:1', 'x:1, y:1', 'x:2, y:1', 'x:3, y:1', 'x:4, y:1',
+//            'x:0, y:2', 'x:1, y:2', 'x:2, y:2', 'x:3, y:2', 'x:4, y:2',
+//            'x:0, y:3', 'x:1, y:3', 'x:2, y:3', 'x:3, y:3', 'x:4, y:3',
+//            'x:0, y:4', 'x:1, y:4', 'x:2, y:4', 'x:3, y:4', 'x:4, y:4',
+//            'x:0, y:5', 'x:1, y:5', 'x:2, y:5', 'x:3, y:5', 'x:4, y:5'
+//        ]);
+//    });
+//    it('Triangle', function () {
+//        var opt = {type: 'anchor',  anchorPos:[10], shape: areaShape.Triangle, startDistance: 0, length: 3};
+//        testThis( opt, [
+//                                    'x:2, y:0',
+//                        'x:1, y:1', 'x:2, y:1',
+//            'x:0, y:2', 'x:1, y:2', 'x:2, y:2',
+//                        'x:1, y:3', 'x:2, y:3',
+//                                    'x:2, y:4'
+//        ]);
+//    });
+//    it('Triangle', function () {
+//        var opt = {type: 'anchor',  anchorPos:[19], direction: 7, shape: areaShape.Triangle, startDistance: 0, length: 3};
+//        testThis( opt, [
+//                                    'x:4, y:1',
+//                        'x:3, y:2', 'x:4, y:2',
+//            'x:2, y:3', 'x:3, y:3', 'x:4, y:3' 
+//        ]);
+//    });
+//
 
 });
 });

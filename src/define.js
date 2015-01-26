@@ -133,10 +133,7 @@ createMirrorHero = function (data) {
 };
 
 getBasicInfo = function (hero) {
-  if (!hero) {
-      showMeTheStack();
-      throw 'Invalid Hero Data';
-  }
+  if (!hero) throw 'Invalid Hero Data';
   var translateTable = {
     name : 'nam',
     gender : 'gen',
@@ -157,6 +154,10 @@ getBasicInfo = function (hero) {
       var e = hero.equipment[k];
       if (e.eh) {
         item.push({cid:e.cid, eh:e.eh});
+      } else if (e.enhancement) {
+        item.push({cid: e.id, eh:e.enhancement});
+      } else if (typeof e.cid === 'undefined') {
+        item.push({cid: e.id});
       } else {
         item.push({cid:e.cid});
       }
@@ -312,7 +313,6 @@ function initCampaignTable(data) {
     data['FirstCharge']['objective'] = firstChangeObj;
     return data;
 }
-
 arenaPirze = function (rank) {
   cfg = queryTable(TABLE_ARENA);
   for (var k in cfg) {
@@ -391,7 +391,6 @@ initGlobalConfig = function (path, callback) {
       }
     }
   };
-  var libTableCompiler = require('./tableCompiler');
   var configTable = [{name:TABLE_LEADBOARD}, {name: TABLE_STORE, func:initShop},
     {name:TABLE_ROLE}, {name:TABLE_LEVEL}, {name:TABLE_VERSION}, {name:TABLE_FACTION},
     {name:TABLE_ITEM}, {name:TABLE_CARD}, {name:TABLE_DUNGEON, func:varifyDungeonConfig},
@@ -399,7 +398,7 @@ initGlobalConfig = function (path, callback) {
     {name:TABLE_UPGRADE}, {name:TABLE_ENHANCE}, {name: TABLE_CONFIG}, {name: TABLE_VIP, func:initVipConfig},
     {name:TABLE_SKILL}, {name:TABLE_CAMPAIGN, func:initCampaignTable}, {name: TABLE_DROP}, {name: TABLE_TRIGGER},
     {name:TABLE_DP},{name:TABLE_ARENA},{name:TABLE_BOUNTY, func:initPowerLimit}, {name:TABLE_IAP},{name:TABLE_PKREWARD},
-	{name:TABLE_LOCALIZE},
+    {name:TABLE_LOCALIZE},{name:TABLE_FRAGMENT},{name:TABLE_UNIT}
   ];
   if (!path) path = "./";
   configTable.forEach(function (e) {

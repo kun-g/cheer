@@ -460,7 +460,7 @@ class Dungeon
         ret = [] #[{NTF: Event_Fail, arg : {msg:'Main Hero Is Dead'}}]
         if hero.isAlive()
           cmd = DungeonCommandStream({id: 'BeginTurn', type: 'Spell', src: hero}, this)
-          spellId = hero.activeSpell[arg.i]
+          spellId = arg.i #hero.getActiveSpell()[arg.i]
           cmd.next({id: 'CastSpell', me: hero, spell: spellId, playerChoice: arg.p})
              .next({id: 'EndTurn', type: 'Spell', src: hero})
              .next({id: 'ResultCheck'})
@@ -489,7 +489,7 @@ class Dungeon
         hero = @heroes[0]
         ret = [] #[{NTF: Event_Fail, arg : {msg:'Main Hero Is Dead'}}]
         if hero.isAlive()
-          cmd = DungeonCommandStream({id: 'ValidatePosList', hero:hero, spell: arg.id}, this)
+          cmd = DungeonCommandStream({id: 'ValidatePosList', me: hero, spell: arg.id}, this)
           cmd.process()
       else
         return @onReplayMissMatch()
@@ -1223,7 +1223,7 @@ dungeonCSConfig = {
     callback: (env) ->
       src = env.variable('src')
       tar = env.variable('tar')
-      return @suicide() unless src.isAlive() and tar.isAlive()
+      return @suicide() unless src.isAlive() and tar.isAlive() and src.isVisible and tar.isVisible
 
       env.variable('damage', src.attack)
       onEvent('Target', @, src, tar)
@@ -1372,26 +1372,42 @@ dungeonCSConfig = {
       tar.isVisible = true
       @routine({id: 'OpenBlock', block:tar.pos})
   },
+  Hide: {
+    callback: (env) -> @routine({id: 'TeleportObject', hiding: true, obj:env.variable('obj')})
+  },
   TeleportObject: {
     callback: (env) ->
       obj = env.variable('obj')
       return @suicide() unless obj.isAlive()
       slot = env.variable('tarPos')
+      isHiding = env.variable('hiding')
       if not slot?
         availableSlot = env.getBlock().filter( (e) -> e.getType() is Block_Empty )
+        if isHiding
+          hidePlace = availableSlot.filter( (e) -> not e.explored )
+          if hidePlace.length > 0
+            availableSlot = hidePlace
+            obj.isVisible = false
+          else
+            env.variable('hiding', false)
+            isHiding = false
+
         slot = env.randMember(availableSlot)
         slot = slot.pos if slot?
       return @suicide() unless slot?
+
       env.variable('orgPos', obj.pos)
       env.variable('tarPos', slot)
-      env.getBlock(slot).explored = true
+      if not isHiding
+        env.getBlock(slot).explored = true
       env.getBlock(obj.pos).removeRef(obj)
       env.getBlock(slot).addRef(obj)
       obj.pos = slot
       return @suicide() unless env.variable('obj').isAlive()
-      @routine({id: 'BlockInfo', block: env.variable('tarPos')})
+      if not  isHiding
+        @routine({id: 'BlockInfo', block: env.variable('tarPos')})
     ,
-    output: (env) -> [{act: env.variable('obj').ref, id: ACT_TELEPORT, pos: env.variable('tarPos')}]
+    output: (env) -> [{act: env.variable('obj').ref, id: ACT_TELEPORT, pos: env.variable('tarPos'), hide:env.variable('hiding')}]
   },
   DropPrize: {
     callback: (env) ->

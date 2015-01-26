@@ -89,9 +89,10 @@ objectlize  = (data) ->
   o.initialize() if o.initialize?
   return o
 
-registerConstructor = (func) ->
+registerConstructor = (func, funcname) ->
   constructor = func.prototype.constructor
-  g_attr_constructorTable[constructor.name] = func if typeof constructor is 'function'
+  funcname = constructor.name unless funcname
+  g_attr_constructorTable[funcname] = func if typeof constructor is 'function'
 
 g_attr_constructorTable = {}
 exports.Serializer = Serializer

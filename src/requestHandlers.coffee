@@ -389,11 +389,11 @@ exports.route = {
 
       doVerify = () ->
         if player.dungeon
-          #for f in fileList
-          #  if require('./'+f).fileVersion isnt arg.fileVersion[f]
-          #    #logError({type:'fileVersion', file: f, version: arg.fileVersion[f], expect: require('./'+f).fileVersion})
-          #    #result.RET = RET_Issue41
-          #    status = 'FileVersionConflict'
+          for f in fileList
+            if require('./'+f).fileVersion isnt arg.fileVersion[f]
+              #logError({type:'fileVersion', file: f, version: arg.fileVersion[f], expect: require('./'+f).fileVersion})
+              #result.RET = RET_Issue41
+              status = 'FileVersionConflict'
 
           logInfo(player.dungeonData)
           initialData = player.dungeonData
@@ -638,9 +638,7 @@ exports.route = {
             r = getBasicInfo(e)
             r.rnk = +rivalLst.rnk[i]
             return r
-          ).filter( (e) ->
-            e?
-          )
+          ).filter( (e) -> e?)
           handler([ret])
         )
       )
@@ -750,6 +748,27 @@ exports.route = {
     ,
     args: {'cmt':{'cmted':'boolean', 'auto':'boolean'}},
     needPid: true
+  },
+  Request_LotteryFragment: {
+    id: 38,
+    func: (arg, player, handler, rpcID, socket) ->
+      switch arg.cmd
+        when 0#cmd=0 抽奖 count抽奖次数 type使用表fragment的第type套奖品
+          if arg.type?
+            {prize, res, ret} = player.getFragment(arg.type, arg.count)
+            player.saveDB()
+            evt = {REQ: rpcID, RET: ret}
+            evt.arg = prize
+            handler([evt].concat(res))
+          else
+            handler([{REQ: rpcID, RET: RET_NoParameter}])
+        when 1#cmd=1 获取免费抽奖CD时间
+          if arg.type?
+            handler({REQ: rpcID,RET:RET_OK, arg:{ fcd: player.getFragTimeCD(arg.type) }})
+          else
+            handler([{REQ: rpcID, RET: RET_NoParameter}])
+    ,
+    args: {'cmd':'number','type':'number'},
+    needPid: true
   }
-
 }

@@ -35,9 +35,15 @@ startTcpServer = (port, backendManager) ->
 		c.server.pipe(c)
 		c.decoder.on('request', (request) ->
 			if request
+				request.address = {
+					ip: c.remoteAddress,
+					port: c.remotePort
+				}
+				c.encoder.writeObject(request)
+
 				if request.CMD is 101
 					console.log({ request: request, ip: c.remoteAddress })
-				c.encoder.writeObject(request)
+					c.encoder.writeObject(request)
 			else
 				c.destroy()
 				c = null
