@@ -1,4 +1,5 @@
 require('./shared');
+require('./tunnel_config');
 var triggerLib = require('./trigger');
 
 DUNGEON_RESULT_DONE = 2;
