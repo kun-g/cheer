@@ -78,8 +78,10 @@ class Unit extends Wizard
           @installSpell(s.id, s.level)
 
       console.log('Equipment ', JSON.stringify(e)) if flagCreation
-      if e.eh?
-        for enhancement in e.eh
+      enhancePro = e.enhancement unless e.enhancement?
+      enhancePro = e.eh unless e.eh?
+      if enhancePro?
+        for enhancement in enhancePro
           enhance = queryTable(TABLE_ENHANCE, enhancement.id)
           continue unless enhance?.property?[enhancement.level]?
           @modifyProperty(enhance.property[enhancement.level])
@@ -109,16 +111,16 @@ class Unit extends Wizard
         for s in e.skill when not s.classLimit? or s.classLimit is @class
           @installSpell(s.id, s.level)
 
-      console.log('Equipment ', JSON.stringify(e)) if flagCreation
-      if e.eh?
-        for enhancement in e.eh
-          enhance = queryTable(TABLE_ENHANCE, enhancement.id)
-          continue unless enhance?.property?[enhancement.level]?
-          @modifyProperty(enhance.property[enhancement.level])
-          if flagCreation
-            console.log('Enhancement ',
-              JSON.stringify(enhance.property[enhancement.level])
-            )
+     #console.log('Equipment ', JSON.stringify(e)) if flagCreation
+     #if e.eh?
+     #  for enhancement in e.eh
+     #    enhance = queryTable(TABLE_ENHANCE, enhancement.id)
+     #    continue unless enhance?.property?[enhancement.level]?
+     #    @modifyProperty(enhance.property[enhancement.level])
+     #    if flagCreation
+     #      console.log('Enhancement ',
+     #        JSON.stringify(enhance.property[enhancement.level])
+     #      )
 
   gearDown: () ->
     return false unless @uniform?
@@ -128,16 +130,16 @@ class Unit extends Wizard
         for s in e.skill when not s.classLimit? or s.classLimit is @class
           @removeSpell(s.id, s.level)
 
-      console.log('Equipment ', JSON.stringify(e)) if flagCreation
-      if e.eh?
-        for enhancement in e.eh
-          enhance = queryTable(TABLE_ENHANCE, enhancement.id)
-          continue unless enhance?.property?[enhancement.level]?
-          @subProperty(enhance.property[enhancement.level])
-          if flagCreation
-            console.log('Enhancement ',
-              JSON.stringify(enhance.property[enhancement.level])
-            )
+     #console.log('Equipment ', JSON.stringify(e)) if flagCreation
+     #if e.eh?
+     #  for enhancement in e.eh
+     #    enhance = queryTable(TABLE_ENHANCE, enhancement.id)
+     #    continue unless enhance?.property?[enhancement.level]?
+     #    @subProperty(enhance.property[enhancement.level])
+     #    if flagCreation
+     #      console.log('Enhancement ',
+     #        JSON.stringify(enhance.property[enhancement.level])
+     #      )
 
     return false unless @unitProperty?
     for k, v of @unitProperty
