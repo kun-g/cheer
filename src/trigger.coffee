@@ -133,7 +133,17 @@ handlers[areaShape.Cross] = selectCross
 handlers[areaShape.Square] = selectSquare
 handlers[areaShape.Triangle] = selectTriangle
 
-filterObject = (me, objects, filters, env) ->
+getSpellProperty = (config, key, level) -> #getSpellProperty 
+  level -= 1
+  if config['#'+key]
+    return config['#'+key][level]
+  else
+    return config[key]
+
+exports.getSpellProperty = getSpellProperty
+
+
+filterObject = (me, objects, filters, env, level) ->
   filters = [filters] unless Array.isArray(filters)
   result = (o for o in objects)
   for f in filters
@@ -146,7 +156,9 @@ filterObject = (me, objects, filters, env) ->
       when 'not-me' then result = (p for p in result when p.ref isnt me.ref)
       when 'same-block' then result = (p for p in result when p.pos is me.pos)
       when 'sort' then result.sort( (a, b) -> if (f.reverse) then b[f.by] - a[f.by] else a[f.by] - b[f.by] )
-      when 'count' then result = result.slice(0, f.count)
+      when 'count'
+        count = getSpellProperty(f, 'count', level)
+        result = result.slice(0, count)
       when 'different-faction' then result = (o for o in result when o.faction isnt srcFaction)
       else
         if not env? then return []
@@ -167,11 +179,11 @@ filterObject = (me, objects, filters, env) ->
               if Array.isArray(f.anchorPos)
                 f.anchorPosList = f.anchorPos
               else
-                f.anchorPosList = me.selectTarget({targetSelection:f.anchorPos}, env).map((e) -> e.pos)
+                f.anchorPosList = me.selectTarget({targetSelection:f.anchorPos}, env, level).map((e) -> e.pos)
             else
               f.anchorPosList = [0]
 
-            dirTarPos = me.selectTarget({targetSelection:f.anchorDirPos}, env)?[0]?.pos if f.anchorDirPos?
+            dirTarPos = me.selectTarget({targetSelection:f.anchorDirPos}, env, level)?[0]?.pos if f.anchorDirPos?
             effectDir = []
             mask = f.anchorPosList.reduce((acc,pos) ->
               p = translatePos(pos)
