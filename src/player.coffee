@@ -471,7 +471,8 @@ class Player extends DBWrapper
       equip = []
       equip.push({
         cid: bag.get(e).classId
-        eh: bag.get(e).enhancement }) for i, e of @equipment when bag.get(e)?
+        eh: bag.get(e).enhancement
+        sid: e }) for i, e of @equipment when bag.get(e)?
       @hero['equipment'] = equip
 
       hero = new Hero(@hero)
