@@ -7,12 +7,7 @@ getSpellConfig = (spellID) ->
   return null if not cfg?
   return cfg.config
 
-getSpellProperty = (config, key, level) -> #getSpellProperty 
-  level -= 1
-  if config['#'+key]
-    return config['#'+key][level]
-  else
-    return config[key]
+{getSpellProperty} = triggerLib
 
 plusThemAll = (config, env) ->
   return 0 unless config? and env?
@@ -50,14 +45,14 @@ findObjWithKeyPair = (obj, keyPare) ->
 
 exports.findObjWithKeyPair = findObjWithKeyPair #exports for testsuit
 
-getValidatePlayerSelectPointFilter = (cfg,wizard, env) ->
+getValidatePlayerSelectPointFilter = (cfg,wizard, env, level) ->
   selectCfg = findObjWithKeyPair(cfg.targetSelection,
     {name:'pool', values:['select-object', 'select-block']})
   return null unless selectCfg?
   filterCfg = selectCfg.filter
   filterCfg = filterCfg.filter((e) -> e.type isnt 'count')
   pool = selectCfg.pool.replace(/select-(\w+)/, '$1s')
-  objs = wizard.selectTarget({targetSelection:{pool:pool,filter:filterCfg}}, env)
+  objs = wizard.selectTarget({targetSelection:{pool:pool,filter:filterCfg}}, env, level)
   return objs.map((e) -> e.pos)
 
 exports.getValidatePlayerSelectPointFilter = getValidatePlayerSelectPointFilter
@@ -89,7 +84,7 @@ class Wizard
 
     @setupTriggerCondition(spellID, cfg.triggerCondition,  cmd)
     @setupAvailableCondition(spellID, cfg.availableCondition,  cmd)
-    @doAction(@wSpellDB[spellID], cfg.installAction,  @selectTarget(cfg, cmd?.getEnvironment()), cmd)
+    @doAction(@wSpellDB[spellID], cfg.installAction,  @selectTarget(cfg, cmd?.getEnvironment(), level), cmd)
     @spellStateChanged(spellID, cmd)
 
   setupAvailableCondition: (spellID, conditions, cmd) ->
@@ -127,7 +122,8 @@ class Wizard
     cmd.routine?({id: 'SpellState', wizard:@, effect: @calcEffectState(spellID)})
 
   removeSpell: (spellID, cmd) ->
-    return false unless @wSpellDB[spellID]
+    thisSpell = @wSpellDB[spellID]
+    return false unless thisSpell?
     cfg = getSpellConfig(spellID)
 
     if cfg.triggerCondition?
@@ -137,7 +133,7 @@ class Wizard
       @removeTrigger(spellID, c.event) for c in cfg.availableCondition when c.type is 'event'
 
     if cfg.uninstallAction?
-      @doAction(@wSpellDB[spellID], cfg.uninstallAction, @selectTarget(cfg, cmd?.getEnvironment()), cmd)
+      @doAction(@wSpellDB[spellID], cfg.uninstallAction, @selectTarget(cfg, cmd?.getEnvironment(), thisSpell.level), cmd)
 
     delete @wSpellDB[spellID]
     @activeSpell = @activeSpell.filter((e) -> e isnt spellID)
@@ -162,7 +158,7 @@ class Wizard
     thisSpell = @wSpellDB[spellID]
     return false unless thisSpell?
 
-    target = @selectTarget(cfg, cmd?.getEnvironment())
+    target = @selectTarget(cfg, cmd?.getEnvironment(), thisSpell.level)
 
     [canTrigger, reason] = @triggerCheck(thisSpell, cfg.triggerCondition, target, cmd)
     return reason unless canTrigger
@@ -286,7 +282,7 @@ class Wizard
 
     return res
   
-  selectTarget: (cfg, env) ->
+  selectTarget: (cfg, env, level) ->
     return [] unless cfg.targetSelection? and cfg.targetSelection.pool
     return [] unless cfg.targetSelection.pool is 'self' or env?
     switch cfg.targetSelection.pool
@@ -306,7 +302,7 @@ class Wizard
     pool = [pool] unless Array.isArray(pool)
 
     if cfg.targetSelection.filter? and pool.length > 0
-      pool = triggerLib.filterObject(this, pool, cfg.targetSelection.filter, env)
+      pool = triggerLib.filterObject(this, pool, cfg.targetSelection.filter, env, level)
 
     pool = [] unless pool?
     pool = [pool] unless Array.isArray(pool)
@@ -347,9 +343,10 @@ class Wizard
   getActiveSpell: () -> [-1]
 
   getValidatePlayerSelectPoint: (spellID,env)->
+    thisSpell = @wSpellDB[spellID]
+    return null unless thisSpell?
     cfg = getSpellConfig(spellID)
-    getValidatePlayerSelectPointFilter(cfg,@, env)
-
+    getValidatePlayerSelectPointFilter(cfg,@, env, thisSpell.level)
 
   doAction: (thisSpell, actions, target, cmd) ->
     return false unless actions?
@@ -377,7 +374,7 @@ class Wizard
 
       target = bakTarget
       if a.target
-        target = @selectTarget({targetSelection: a.target}, cmd?.getEnvironment())
+        target = @selectTarget({targetSelection: a.target}, cmd?.getEnvironment(), thisSpell.level)
 
       switch a.type
         when 'modifyVar' then env.variable(a.x, formularResult)

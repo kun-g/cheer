@@ -76,6 +76,18 @@ describe('Spell', function () {
 
         ];
 
+        var objs = [
+            {pos:1},{pos:2},{pos:3},{pos:4}
+        ];
+        env ={
+            getObjects:function() {
+                return objs;
+            },
+            getBlock:function() {
+                return objs;
+            }
+        }
+
     it(' findObjWithKeyPair', function() {
                 
         skillData.forEach(function(e) {
@@ -92,17 +104,6 @@ describe('Spell', function () {
 
     });
     it(' getValidatePlayerSelectPointFilter ', function() {
-        var objs = [
-            {pos:1},{pos:2},{pos:3},{pos:4}
-        ]
-        env ={
-            getObjects:function() {
-                return objs;
-            },
-            getBlock:function() {
-                return objs;
-            }
-        }
         skillData.forEach(function(e) {
 
             Wizard = require('../js/spell').Wizard;
@@ -117,6 +118,56 @@ describe('Spell', function () {
             }
             console.log(ret);
         })
+    });
+    it(' filter add level', function() {
+
+        var me = new spellLib.Wizard();
+        var data = [
+            {
+                id:1,
+                test:[
+                    {lvl:1, expected:2},
+                    {lvl:2, expected:3},
+                    {lvl:3, expected:4},
+                ],
+                targetSelection:{
+                    pool:'objects',
+                    filter: [
+                        {
+                            type: 'count',
+                            '#count': [ 2,3,4 ]
+                        }
+                    ],
+                }
+            },
+            {
+                id:2,
+                test:[
+                    {lvl:1, expected:1},
+                    {lvl:2, expected:1},
+                    {lvl:3, expected:1},
+                ],
+
+                targetSelection:{
+                    pool:'objects',
+                    filter: [
+                        {
+                            type: 'count',
+                            'count': 1
+                        }
+                    ],
+                }
+            }
+        ];
+
+
+        data.forEach(function(e) {
+            e.test.forEach(function(test) {
+                me.selectTarget(e, env, test.lvl).should.length(test.expected);
+            });
+        });
+        
+ 
     });
 });
 
