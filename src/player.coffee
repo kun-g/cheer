@@ -471,7 +471,8 @@ class Player extends DBWrapper
       equip = []
       equip.push({
         cid: bag.get(e).classId
-        eh: bag.get(e).enhancement }) for i, e of @equipment when bag.get(e)?
+        eh: bag.get(e).enhancement
+        sid: e }) for i, e of @equipment when bag.get(e)?
       @hero['equipment'] = equip
 
       hero = new Hero(@hero)
@@ -901,7 +902,7 @@ class Player extends DBWrapper
         ret = @equipItem(slot)
         return { ret: RET_OK, ntf: [ret] }
       when ITEM_RECIPE
-        if opn? and opn == 1#USE_ITEM_OPT_EQUIP = 1;
+        if opn? and opn == 1 #USE_ITEM_OPT_EQUIP = 1;
           ret = @equipItem(slot)
           return { ret: RET_OK, ntf: [ret] }
         else
@@ -953,13 +954,18 @@ class Player extends DBWrapper
     item = @getItemAt(slot)
     return { ret: RET_RoleLevelNotMatch } if item.rank? and this.createHero().level < item.rank
     ret = {NTF: Event_InventoryUpdateItem, arg: {syn:this.inventoryVersion, itm: []}}
+
     equip = this.equipment[item.subcategory]
     tmp = {sid: slot, sta: 0}
     if equip is slot
-      delete this.equipment[item.subcategory]
+      for k, v of this.equipment
+        delete this.equipment[k] if v is slot
     else
       if equip? then ret.arg.itm.push({sid: equip, sta: 0})
       this.equipment[item.subcategory] = slot
+      if item.extraSlots?
+        for v_slot in item.extraSlots
+          this.equipment[v_slot] = slot
       tmp.sta = 1
     ret.arg.itm.push(tmp)
     delete ret.arg.itm if ret.arg.itm.length < 1
