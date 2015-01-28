@@ -471,7 +471,8 @@ class Player extends DBWrapper
       equip = []
       equip.push({
         cid: bag.get(e).classId
-        eh: bag.get(e).enhancement }) for i, e of @equipment when bag.get(e)?
+        eh: bag.get(e).enhancement
+        sid: e }) for i, e of @equipment when bag.get(e)?
       @hero['equipment'] = equip
 
       hero = new Hero(@hero)
@@ -675,7 +676,7 @@ class Player extends DBWrapper
       (cb) =>
         if stageConfig.pvp? and pkr? and (@getPkCoolDown() == 0 or @getAddPkCount() > 0)
           if @getAddPkCount() == 0
-            @counters.pkCoolDown = currentTime()
+            @timestamp.pkCoolDown = currentTime()
           getPlayerHero(pkr, wrapCallback(this, (err, heroData) ->
             @dungeonData.PVP_Pool = if heroData? then [getBasicInfo(heroData)]
             dbLib.diffPKRank(@name, pkr,wrapCallback(this, (err, result) ->
@@ -901,7 +902,7 @@ class Player extends DBWrapper
         ret = @equipItem(slot)
         return { ret: RET_OK, ntf: [ret] }
       when ITEM_RECIPE
-        if opn? and opn == 1#USE_ITEM_OPT_EQUIP = 1;
+        if opn? and opn == 1 #USE_ITEM_OPT_EQUIP = 1;
           ret = @equipItem(slot)
           return { ret: RET_OK, ntf: [ret] }
         else
@@ -953,13 +954,18 @@ class Player extends DBWrapper
     item = @getItemAt(slot)
     return { ret: RET_RoleLevelNotMatch } if item.rank? and this.createHero().level < item.rank
     ret = {NTF: Event_InventoryUpdateItem, arg: {syn:this.inventoryVersion, itm: []}}
+
     equip = this.equipment[item.subcategory]
     tmp = {sid: slot, sta: 0}
     if equip is slot
-      delete this.equipment[item.subcategory]
+      for k, v of this.equipment
+        delete this.equipment[k] if v is slot
     else
       if equip? then ret.arg.itm.push({sid: equip, sta: 0})
       this.equipment[item.subcategory] = slot
+      if item.extraSlots?
+        for v_slot in item.extraSlots
+          this.equipment[v_slot] = slot
       tmp.sta = 1
     ret.arg.itm.push(tmp)
     delete ret.arg.itm if ret.arg.itm.length < 1
@@ -1180,15 +1186,15 @@ class Player extends DBWrapper
   getPkCoolDown: () ->
     if @counters.addPKCount? and @counters.addPKCount > 0
       return 0
-    @counters.pkCoolDown = 0 unless @counters.pkCoolDown?
-    timePass = libTime.diff(currentTime(), @counters.pkCoolDown).asSeconds()
+    @timestamp.pkCoolDown = 0 unless @timestamp.pkCoolDown?
+    timePass = libTime.diff(currentTime(), @timestamp.pkCoolDown).asSeconds()
     if timePass >= PK_COOLDOWN
       return 0
     else
       return (PK_COOLDOWN - timePass)
 
   clearCDTime: () ->
-    @counters.pkCoolDown = 0
+    @timestamp.pkCoolDown = 0
 
   addPkCount: (count) ->
     @counters.addPKCount = 0 unless @counters.addPKCount?
@@ -1705,24 +1711,32 @@ class Player extends DBWrapper
 
   getFragment: (type,count) ->
     @counters.fragmentTimes ?= []
-    @counters.fragmentTime ?= []
+    @timestamp.fragmentTime ?= []
+    @counters.totalFragTimes = [] unless @counters.totalFragTimes
+    @counters.totalFragTimes[type] = 1 unless @counters.totalFragTimes[type]
     @counters.fragmentTimes[type] ?= 0
-    @counters.fragmentTime[type] ?= "2014-10-01"
+    @timestamp.fragmentTime[type] ?= "2014-10-01"
     fragInterval = [{"value":5,"unit":"minite"},{"value":24,"unit":"hour"}]
     hiGradeTimesFrag = [10,10]
     fragCost = {"1":30,"10":290}
+
     cfg = queryTable(TABLE_FRAGMENT)
     fragInterval[type] = cfg[type].interval
     hiGradeTimesFrag[type] = cfg[type].basic_times
+    basicPrize = @getFragPrizeTable(type,'basic_prize')
+    advancedPrize = @getFragPrizeTable(type,'advanced_prize')
+    console.log('basicPrize=', basicPrize)
+    console.log('advancedPrize=', advancedPrize)
+
     fragCost = cfg[type].diamond
-    dis = @getDiffTime(@counters.fragmentTime[type],currentTime(),fragInterval[type].unit)
+    dis = @getDiffTime(@timestamp.fragmentTime[type],currentTime(),fragInterval[type].unit)
     if fragCost[+count]? then diamondCost = fragCost[+count]
-    else diamondCost = fragCost * count
+    else diamondCost = fragCost["1"] * count
     console.log('diamondCost=', diamondCost)
     switch type
       when 0
         if dis >= fragInterval[type].value
-          @counters.fragmentTime[type] = currentTime()
+          @timestamp.fragmentTime[type] = currentTime()
 
     evt = []
     prz = []
@@ -1734,14 +1748,15 @@ class Player extends DBWrapper
 
     for i in [0..count-1]
       if @counters.fragmentTimes[type] < hiGradeTimesFrag[type]
-        prz = prz.concat(generatePrize(cfg[type].basic_prize, [0..cfg[type].basic_prize.length-1]))
+        prz = prz.concat(generatePrize(basicPrize, [0..basicPrize.length-1]))
         @counters.fragmentTimes[type]++
       else
-        prz = prz.concat(generatePrize(cfg[type].advanced_prize, [0..cfg[type].advanced_prize.length-1]))
+        prz = prz.concat(generatePrize(advancedPrize, [0..advancedPrize.length-1]))
         @counters.fragmentTimes[type] = 0
+      @counters.totalFragTimes[type]++
 
     prize = @claimPrize(prz)
-    console.log('prz=', JSON.stringify(prz))
+    console.log('prz=', prz)
     return { ret: RET_InventoryFull } unless prize
     prize = prize.concat(evt)
     @log('lottery', {type: 'lotteryFragment', prize: prize})
@@ -1749,9 +1764,9 @@ class Player extends DBWrapper
 
   getFragTimeCD: (type) ->
     @counters.fragmentTimes = [] unless @counters.fragmentTimes
-    @counters.fragmentTime = [] unless @counters.fragmentTime
+    @timestamp.fragmentTime = [] unless @timestamp.fragmentTime
     @counters.fragmentTimes[type] = 0 unless @counters.fragmentTimes[type]
-    @counters.fragmentTime[type] = "2014-10-01" unless @counters.fragmentTime[type]
+    @timestamp.fragmentTime[type] = "2014-10-01" unless @timestamp.fragmentTime[type]
     fragInterval = [{"value":5,"unit":"minite"},{"value":24,"unit":"hour"}]
     fragInterval[type] = queryTable(TABLE_FRAGMENT)[type].interval
     freeFragCD = 0
@@ -1760,11 +1775,30 @@ class Player extends DBWrapper
       when 'minite' then freeFragCD = fragInterval[type].value*60
       when 'hour' then freeFragCD = fragInterval[type].value*3600
       when 'day' then freeFragCD = fragInterval[type].value*24*3600
-    dis = @getDiffTime(@counters.fragmentTime[type],currentTime(),'second')
+    dis = @getDiffTime(@timestamp.fragmentTime[type],currentTime(),'second')
     if freeFragCD <= 0 or freeFragCD - dis <= 0
       return 0
     else
       return freeFragCD - dis
+
+  getFragPrizeTable: (type, table) ->#table="basic_prize" or "advanced_prize"
+    cfg = queryTable(TABLE_FRAGMENT)
+    return cfg[type][table] unless cfg[type].advanced_option?
+    @log('@counters.totalFragTimes', {type: type, totalFragTimes: @counters.totalFragTimes[type]})
+    for e, h of cfg[type].advanced_option
+      return cfg[type][table] unless h[table]?
+      for k, v of h.count_value
+        switch h.condition
+          when 'less'
+            if @counters.totalFragTimes[type] < v
+              return h[table]
+          when 'equal'
+            if @counters.totalFragTimes[type] == v
+              return h[table]
+          when 'more'
+            if @counters.totalFragTimes[type] > v
+              return h[table]
+    return cfg[type][table]
 
   itemSynthesis: (slot) ->
     recipe = @getItemAt(slot)

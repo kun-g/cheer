@@ -759,7 +759,8 @@ exports.route = {
             player.saveDB()
             evt = {REQ: rpcID, RET: ret}
             evt.arg = prize
-            handler([evt].concat(res))
+            if res? then handler([evt].concat(res))
+            handler([evt])
           else
             handler([{REQ: rpcID, RET: RET_NoParameter}])
         when 1#cmd=1 获取免费抽奖CD时间

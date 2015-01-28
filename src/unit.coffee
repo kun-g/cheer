@@ -71,15 +71,18 @@ class Unit extends Wizard
     
   gearUp: () ->
     return false unless @equipment?
-    for k, e of @equipment when e
+    tmpAddedSlots = []
+    for k, e of @equipment when e and tmpAddedSlots.indexOf(e.sid) is -1
       @modifyProperty(e.property()) if e.property?
       if e.skill?
         for s in e.skill when not s.classLimit? or s.classLimit is @class
           @installSpell(s.id, s.level)
 
       console.log('Equipment ', JSON.stringify(e)) if flagCreation
-      if e.eh?
-        for enhancement in e.eh
+      enhancePro = e.enhancement if e.enhancement?
+      enhancePro = e.eh if e.eh?
+      if enhancePro?
+        for enhancement in enhancePro
           enhance = queryTable(TABLE_ENHANCE, enhancement.id)
           continue unless enhance?.property?[enhancement.level]?
           @modifyProperty(enhance.property[enhancement.level])
@@ -87,6 +90,7 @@ class Unit extends Wizard
             console.log('Enhancement ',
               JSON.stringify(enhance.property[enhancement.level])
             )
+      tmpAddedSlots.push(e.sid)
 
   modifyAppearance: (appearance) ->
     return false unless appearance?
@@ -109,16 +113,16 @@ class Unit extends Wizard
         for s in e.skill when not s.classLimit? or s.classLimit is @class
           @installSpell(s.id, s.level)
 
-      console.log('Equipment ', JSON.stringify(e)) if flagCreation
-      if e.eh?
-        for enhancement in e.eh
-          enhance = queryTable(TABLE_ENHANCE, enhancement.id)
-          continue unless enhance?.property?[enhancement.level]?
-          @modifyProperty(enhance.property[enhancement.level])
-          if flagCreation
-            console.log('Enhancement ',
-              JSON.stringify(enhance.property[enhancement.level])
-            )
+     #console.log('Equipment ', JSON.stringify(e)) if flagCreation
+     #if e.eh?
+     #  for enhancement in e.eh
+     #    enhance = queryTable(TABLE_ENHANCE, enhancement.id)
+     #    continue unless enhance?.property?[enhancement.level]?
+     #    @modifyProperty(enhance.property[enhancement.level])
+     #    if flagCreation
+     #      console.log('Enhancement ',
+     #        JSON.stringify(enhance.property[enhancement.level])
+     #      )
 
   gearDown: () ->
     return false unless @uniform?
@@ -128,16 +132,16 @@ class Unit extends Wizard
         for s in e.skill when not s.classLimit? or s.classLimit is @class
           @removeSpell(s.id, s.level)
 
-      console.log('Equipment ', JSON.stringify(e)) if flagCreation
-      if e.eh?
-        for enhancement in e.eh
-          enhance = queryTable(TABLE_ENHANCE, enhancement.id)
-          continue unless enhance?.property?[enhancement.level]?
-          @subProperty(enhance.property[enhancement.level])
-          if flagCreation
-            console.log('Enhancement ',
-              JSON.stringify(enhance.property[enhancement.level])
-            )
+     #console.log('Equipment ', JSON.stringify(e)) if flagCreation
+     #if e.eh?
+     #  for enhancement in e.eh
+     #    enhance = queryTable(TABLE_ENHANCE, enhancement.id)
+     #    continue unless enhance?.property?[enhancement.level]?
+     #    @subProperty(enhance.property[enhancement.level])
+     #    if flagCreation
+     #      console.log('Enhancement ',
+     #        JSON.stringify(enhance.property[enhancement.level])
+     #      )
 
     return false unless @unitProperty?
     for k, v of @unitProperty
@@ -198,12 +202,11 @@ class Unit extends Wizard
         this[k] = v
 
   equip: (equipItem) ->
-    console.log('unit equip equipItem', JSON.stringify(equipItem))
     @gearDown()
     @uniform[equipItem.getConfig().subcategory] = equipItem
     @gearOn()
     @caculateUnitPro()
-    console.log('unit equip suitSkill', JSON.stringify(@suitSkill))
+    console.log('unit equip unitProperty', JSON.stringify(@unitProperty))
 
   isMonster: () -> false
   isHero: () -> false
@@ -237,7 +240,6 @@ class Hero extends Unit
     @initWithConfig(cfg) if cfg?
     @level = 0
     @levelUp()
-    console.log('equipment ', JSON.stringify(@equipment))
     @gearUp()
     if not @isAlive() then @health = 1
     if @attack <= 0 then @attack = 1
