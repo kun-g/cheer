@@ -21,6 +21,30 @@ libTime = require('./timeUtils.js')
 campaign_LoginStreak = new libCampaign.Campaign(queryTable(TABLE_DP))
 #campaign_StartupClient = new libCampaign.Campaign(gNewCampainTable.startupPlayer)
 
+getSlotFreezeInfo = (player, slot) ->
+  getItemSlotUsed = (idx) ->
+    item = player.getItemAt(idx)
+    ret = [item.subcategory]
+    ret = ret.concat(item.extraSlots ? [])
+    return ret
+
+  info = player.equipment.map((idx) ->
+    item = player.getItemAt(idx)
+    ret = getItemSlotUsed(idx)
+    return {cid:item.classId, slots:ret}
+  )
+
+  equippingSlots = getItemSlotUsed(slot)
+  freezeBy = info.reduce((acc, elem) ->
+    {cid, slots} = elem
+    if underscore.different(slots, equippingSlots).length isnt slots.length
+      acc.push(slots[0])
+    return acc
+  ,[])
+
+  return {info:info, freezeBy:freezeBy}
+
+exports.getSlotFreezeInfo  = getSlotFreezeInfo
 # ======================== Player
 class Player extends DBWrapper
   constructor: (data) ->
@@ -950,11 +974,13 @@ class Player extends DBWrapper
     ret = ret.concat(@aquireItem(tarID, count))
 
     return { res: ret }
-# get slot and slot freeze and who casue freeze
-  getSlotFreezeInfo: (slot) ->
-    []
+
+
+  getSlotFreezeInfo: (slot) -> getSlotFreezeInfo(@,slot)
+
   equipItem: (slot) ->
-    @getSlotFreezeInfo(slot)
+    info = @getSlotFreezeInfo(slot)
+
     item = @getItemAt(slot)
     return { ret: RET_RoleLevelNotMatch } if item.rank? and this.createHero().level < item.rank
     ret = {NTF: Event_InventoryUpdateItem, arg: {syn:this.inventoryVersion, itm: []}}
