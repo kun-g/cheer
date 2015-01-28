@@ -1706,6 +1706,8 @@ class Player extends DBWrapper
   getFragment: (type,count) ->
     @counters.fragmentTimes ?= []
     @timestamp.fragmentTime ?= []
+    @counters.totalFragTimes = [] unless @counters.totalFragTimes
+    @counters.totalFragTimes[type] = 0 unless @counters.totalFragTimes[type]
     @counters.fragmentTimes[type] ?= 0
     @timestamp.fragmentTime[type] ?= "2014-10-01"
     fragInterval = [{"value":5,"unit":"minite"},{"value":24,"unit":"hour"}]
@@ -1745,6 +1747,7 @@ class Player extends DBWrapper
       else
         prz = prz.concat(generatePrize(advancedPrize, [0..advancedPrize.length-1]))
         @counters.fragmentTimes[type] = 0
+      @counters.totalFragTimes[type]++
 
     prize = @claimPrize(prz)
     console.log('prz=', prz)
@@ -1774,18 +1777,21 @@ class Player extends DBWrapper
 
   getFragPrizeTable: (type, table) ->#table="basic_prize" or "advanced_prize"
     cfg = queryTable(TABLE_FRAGMENT)
-    return cfg[type][table] unless cfg[type].advanced_option? && cfg[type].advanced_option[table]?
-    for k, v of cfg[type].advanced_option.count_value
-      switch cfg[type].advanced_option.condition
-        when 'less'
-          if @counters.fragmentTimes[type] < v
-            return cfg[type].advanced_option[table]
-        when 'equal'
-          if @counters.fragmentTimes[type] == v
-            return cfg[type].advanced_option[table]
-        when 'more'
-          if @counters.fragmentTimes[type] > v
-            return cfg[type].advanced_option[table]
+    return cfg[type][table] unless cfg[type].advanced_option?
+    @log('@counters.totalFragTimes', {type: type, totalFragTimes: @counters.totalFragTimes[type]})
+    for e, h of cfg[type].advanced_option
+      return cfg[type][table] unless h[table]?
+      for k, v of h.count_value
+        switch h.condition
+          when 'less'
+            if @counters.totalFragTimes[type] < v
+              return h[table]
+          when 'equal'
+            if @counters.totalFragTimes[type] == v
+              return h[table]
+          when 'more'
+            if @counters.totalFragTimes[type] > v
+              return h[table]
     return cfg[type][table]
 
   itemSynthesis: (slot) ->
