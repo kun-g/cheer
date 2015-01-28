@@ -471,6 +471,8 @@ class Wizard
             else if pos is 'target'
               for t, idx in target
                 cmd.routine?({id: 'Effect', delay: delay, effect: effect, effdir:dir[idx],pos: t.pos})
+            else if pos is 'playerChoice'
+              cmd.routine?({id: 'Effect', delay: delay, effect: effect, effdir:dir[0],pos: variables.playerChoice})
             else if typeof pos is 'number'
               cmd.routine?({id: 'Effect', delay: delay, effect: effect, effdir:dir[0],pos: pos})
             else if Array.isArray(pos)
