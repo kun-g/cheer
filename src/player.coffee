@@ -1713,7 +1713,7 @@ class Player extends DBWrapper
     @counters.fragmentTimes ?= []
     @timestamp.fragmentTime ?= []
     @counters.totalFragTimes = [] unless @counters.totalFragTimes
-    @counters.totalFragTimes[type] = 0 unless @counters.totalFragTimes[type]
+    @counters.totalFragTimes[type] = 1 unless @counters.totalFragTimes[type]
     @counters.fragmentTimes[type] ?= 0
     @timestamp.fragmentTime[type] ?= "2014-10-01"
     fragInterval = [{"value":5,"unit":"minite"},{"value":24,"unit":"hour"}]
@@ -1731,7 +1731,7 @@ class Player extends DBWrapper
     fragCost = cfg[type].diamond
     dis = @getDiffTime(@timestamp.fragmentTime[type],currentTime(),fragInterval[type].unit)
     if fragCost[+count]? then diamondCost = fragCost[+count]
-    else diamondCost = fragCost * count
+    else diamondCost = fragCost["1"] * count
     console.log('diamondCost=', diamondCost)
     switch type
       when 0
