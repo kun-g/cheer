@@ -202,12 +202,11 @@ class Unit extends Wizard
         this[k] = v
 
   equip: (equipItem) ->
-    console.log('unit equip equipItem', JSON.stringify(equipItem))
     @gearDown()
     @uniform[equipItem.getConfig().subcategory] = equipItem
     @gearOn()
     @caculateUnitPro()
-    console.log('unit equip suitSkill', JSON.stringify(@suitSkill))
+    console.log('unit equip unitProperty', JSON.stringify(@unitProperty))
 
   isMonster: () -> false
   isHero: () -> false
@@ -241,7 +240,6 @@ class Hero extends Unit
     @initWithConfig(cfg) if cfg?
     @level = 0
     @levelUp()
-    console.log('equipment ', JSON.stringify(@equipment))
     @gearUp()
     if not @isAlive() then @health = 1
     if @attack <= 0 then @attack = 1
