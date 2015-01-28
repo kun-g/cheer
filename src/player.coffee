@@ -669,6 +669,7 @@ class Player extends DBWrapper
           abIndex: @abIndex,
           team: team.map(getBasicInfo)
         }
+
         @dungeonData.randSeed = rand()
         @dungeonData.baseRank = helperLib.initCalcDungeonBaseRank(@) if stageConfig.event is 'event_daily'
         cb()
@@ -949,8 +950,11 @@ class Player extends DBWrapper
     ret = ret.concat(@aquireItem(tarID, count))
 
     return { res: ret }
-
+# get slot and slot freeze and who casue freeze
+  getSlotFreezeInfo: (slot) ->
+    []
   equipItem: (slot) ->
+    @getSlotFreezeInfo(slot)
     item = @getItemAt(slot)
     return { ret: RET_RoleLevelNotMatch } if item.rank? and this.createHero().level < item.rank
     ret = {NTF: Event_InventoryUpdateItem, arg: {syn:this.inventoryVersion, itm: []}}
