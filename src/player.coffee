@@ -21,30 +21,30 @@ libTime = require('./timeUtils.js')
 campaign_LoginStreak = new libCampaign.Campaign(queryTable(TABLE_DP))
 #campaign_StartupClient = new libCampaign.Campaign(gNewCampainTable.startupPlayer)
 
-getSlotFreezeInfo = (player, slot) ->
-  getItemSlotUsed = (idx) ->
-    item = player.getItemAt(idx)
-    ret = [item.subcategory]
-    ret = ret.concat(item.extraSlots ? [])
-    return ret
-
-  info = player.equipment.map((idx) ->
-    item = player.getItemAt(idx)
-    ret = getItemSlotUsed(idx)
-    return {cid:item.classId, slots:ret}
-  )
-
-  equippingSlots = getItemSlotUsed(slot)
-  freezeBy = info.reduce((acc, elem) ->
-    {cid, slots} = elem
-    if underscore.different(slots, equippingSlots).length isnt slots.length
-      acc.push(slots[0])
-    return acc
-  ,[])
-
-  return {info:info, freezeBy:freezeBy}
-
-exports.getSlotFreezeInfo  = getSlotFreezeInfo
+#getSlotFreezeInfo = (player, slot) ->
+#  getItemSlotUsed = (idx) ->
+#    item = player.getItemAt(idx)
+#    ret = [item.subcategory]
+#    ret = ret.concat(item.extraSlots ? [])
+#    return ret
+#
+#  info = player.equipment.map((idx) ->
+#    item = player.getItemAt(idx)
+#    ret = getItemSlotUsed(idx)
+#    return {cid:item.classId, slots:ret}
+#  )
+#
+#  equippingSlots = getItemSlotUsed(slot)
+#  freezeBy = info.reduce((acc, elem) ->
+#    {cid, slots} = elem
+#    if underscore.difference(slots, equippingSlots).length isnt slots.length
+#      acc.push(slots[0])
+#    return acc
+#  ,[])
+#
+#  return {info:info, freezeBy:freezeBy}
+#
+#exports.getSlotFreezeInfo  = getSlotFreezeInfo
 # ======================== Player
 class Player extends DBWrapper
   constructor: (data) ->
@@ -493,10 +493,10 @@ class Player extends DBWrapper
     else if @hero
       bag = @inventory
       equip = []
+      temp = underscore.uniq(@equipment)
       equip.push({
         cid: bag.get(e).classId
-        eh: bag.get(e).enhancement
-        sid: e }) for i, e of @equipment when bag.get(e)?
+        eh: bag.get(e).enhancement }) for i, e of temp when bag.get(e)?
       @hero['equipment'] = equip
 
       hero = new Hero(@hero)
@@ -976,10 +976,10 @@ class Player extends DBWrapper
     return { res: ret }
 
 
-  getSlotFreezeInfo: (slot) -> getSlotFreezeInfo(@,slot)
+  #getSlotFreezeInfo: (slot) -> getSlotFreezeInfo(@,slot)
 
   equipItem: (slot) ->
-    info = @getSlotFreezeInfo(slot)
+    #info = @getSlotFreezeInfo(slot)
 
     item = @getItemAt(slot)
     return { ret: RET_RoleLevelNotMatch } if item.rank? and this.createHero().level < item.rank

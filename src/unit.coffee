@@ -71,8 +71,7 @@ class Unit extends Wizard
     
   gearUp: () ->
     return false unless @equipment?
-    tmpAddedSlots = []
-    for k, e of @equipment when e? and tmpAddedSlots.indexOf(e.classId) is -1
+    for k, e of @equipment when e?
       @modifyProperty(e.property()) if e.property?
       if e.skill?
         for s in e.skill when not s.classLimit? or s.classLimit is @class
@@ -90,7 +89,6 @@ class Unit extends Wizard
             console.log('Enhancement ',
               JSON.stringify(enhance.property[enhancement.level])
             )
-      tmpAddedSlots.push(e.classId)
 
   modifyAppearance: (appearance) ->
     return false unless appearance?
