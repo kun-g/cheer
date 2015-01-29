@@ -21,7 +21,12 @@ PK_COOLDOWN = 600;
 //////////////////// Log
 serverType = 'None';
 print = console.log;
-dprint = function(obj) { console.log(require('util').inspect(obj, true, 10));}
+dprint = function() { 
+    for (i=0; i< arguments.length; i++){
+        var obj = arguments[i];
+        console.log(require('util').inspect(obj, true, 10));
+    }
+}
 logger = null;
 initServer = function () {
   var pid = process.pid;
