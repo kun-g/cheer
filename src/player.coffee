@@ -1785,8 +1785,8 @@ class Player extends DBWrapper
     hiGradeTimesFrag[type] = cfg[type].basic_times
     basicPrize = @getFragPrizeTable(type,'basic_prize')
     advancedPrize = @getFragPrizeTable(type,'advanced_prize')
-    console.log('basicPrize=', basicPrize)
-    console.log('advancedPrize=', advancedPrize)
+    dprint('basicPrize=', basicPrize)
+    dprint('advancedPrize=', advancedPrize)
 
     fragCost = cfg[type].diamond
     dis = @getDiffTime(@timestamp.fragmentTime[type],currentTime(),fragInterval[type].unit)
@@ -1846,7 +1846,8 @@ class Player extends DBWrapper
     return cfg[type][table] unless cfg[type].advanced_option?
     @log('@counters.totalFragTimes', {type: type, totalFragTimes: @counters.totalFragTimes[type]})
     for e, h of cfg[type].advanced_option
-      return cfg[type][table] unless h[table]?
+      #return cfg[type][table] unless h[table]?
+      continue unless h[table]?
       for k, v of h.count_value
         switch h.condition
           when 'less'
@@ -1857,6 +1858,9 @@ class Player extends DBWrapper
               return h[table]
           when 'more'
             if @counters.totalFragTimes[type] > v
+              return h[table]
+          when 'interval'
+            if @counters.totalFragTimes[type] % v == 0
               return h[table]
     return cfg[type][table]
 
