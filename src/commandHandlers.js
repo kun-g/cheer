@@ -220,8 +220,16 @@ addHandler(RPC_StoreBuyItem, handler_doBuyItem, [], 'Money!!', true);
 
 function handler_doBuyEnergy(arg, player, handler, rpcID) {
   var diamondCost = 0;
+  var ENERGY_ADD;
   switch (+arg.typ) {
-    case FEATURE_ENERGY_RECOVER: diamondCost = arg.tar - player.energy; break;
+    case FEATURE_ENERGY_RECOVER: 
+      var recoverTimes = player.counters.energyRecover;
+      var ret = buyEnergyCost(recoverTimes,
+              player.vipOperation('freeEnergyTimes'),
+              player.vipOperation('energyPrize')); 
+      diamondCost = ret.prize;
+      ENERGY_ADD = ret.add ;
+      break;
     case FEATURE_INVENTORY_STROAGE: 
       var x = Math.floor((player.inventory.size() - 30)/5);
       if (x > 5) x = 5;
@@ -235,15 +243,24 @@ function handler_doBuyEnergy(arg, player, handler, rpcID) {
     case FEATURE_FRIEND_GOLD: diamondCost = +arg.tar; break;
     case FEATURE_PK_COOLDOWN: diamondCost = 50; break;
     case FEATURE_PK_COUNT: diamondCost = 100; break;
+    case FEATURE_REVIVE: 
+      if(typeof player.dungeon == 'undefined' || player.dungeon == null) {
+        handler(new Error(RET_DungeonNotExist));
+        return;
+      }
+      diamondCost = buyReviveCost(player.dungeon.revive, 0); 
+      break;
   }
   var evt = [];
   var product = '';
   if (diamondCost && player.addDiamond(-Math.ceil(diamondCost)) !== false) {
     evt.push({REQ : rpcID, RET : RET_OK});
     if (+arg.typ === FEATURE_ENERGY_RECOVER) {
-      player.energy = arg.tar;
+      player.energy += ENERGY_ADD;
+      player.counters.energyRecover++;
       product = 'energyTime';
       evt.push(player.syncEnergy());
+      evt.push(player.syncCounters(['energyRecover']));
       evt.push({ NTF: Event_InventoryUpdateItem, arg : {dim : player.diamond }});
     } else if (+arg.typ === FEATURE_INVENTORY_STROAGE) {
       product = 'inventory';
@@ -275,6 +292,16 @@ function handler_doBuyEnergy(arg, player, handler, rpcID) {
       evt.push({NTF: Event_InventoryUpdateItem, arg: {
         dim: player.diamond
       } });
+    } else if (+arg.typ === FEATURE_REVIVE) {
+        ret = player.aquireItem(ItemId_RevivePotion , 1, true);
+        if (ret && ret.length > 0) {
+            evt = evt.concat(ret.concat({
+                            NTF: Event_InventoryUpdateItem, 
+                            arg:{god:player.gold, dim:player.diamond}}));
+        } else {
+            player.addMoney(p.price.type, cost);
+            evt = [{REQ : rpcID, RET : RET_NotEnoughDiamond}];
+        } ;
     }
     player.saveDB();
   } else {

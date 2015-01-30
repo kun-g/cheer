@@ -108,6 +108,7 @@ RET_GetLeaderboardInfoFailed = 63;
 RET_ShopVersionNotMatch = 64;
 RET_NoParameter = 65;
 RET_SameMessageExist = 66;
+RET_ReviveLimit = 67;
 ErrorMsgs = [
     "操作成功",//0
     "金币数量不足",
@@ -176,6 +177,7 @@ ErrorMsgs = [
     "商店版本不匹配",
     "参数不正确",
     "you have already sent this message",
+    "Revive Limit ",
 ];
 
 /*** ITEM CATEGORY ***/
@@ -303,6 +305,7 @@ FEATURE_FRIEND_STROAGE = 2;
 FEATURE_FRIEND_GOLD = 3;
 FEATURE_PK_COOLDOWN = 4;
 FEATURE_PK_COUNT = 5;
+FEATURE_REVIVE = 6;
 
 /*** NOTIOFICATION OP ID ***/
 NTFOP_ACCEPT = 1;

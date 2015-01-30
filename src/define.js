@@ -634,6 +634,25 @@ translate_with = function(language,keyword,args){
 //    debug("text = "+text);
     return text;
 }
+
+BUY_ENERGY_VALUE = 100;
+FREE = -0.001;
+buyEnergyCost = function(times, freeTimes, cost){
+    var prize = FREE;
+    if( times >= freeTimes) 
+        prize = Math.ceil(cost * BUY_ENERGY_VALUE);
+    return {prize:prize, add:BUY_ENERGY_VALUE};
+}
+
+buyReviveCost = function(times,freeTimes){
+  base = 60;
+  if (times < freeTimes) return 0 ;
+
+  step = base ;
+  return base * (Math.pow(2, times - freeTimes))
+}
+
+
 //
 /////////////////////////// For client
 ENHANCE_LIMIT = 4;

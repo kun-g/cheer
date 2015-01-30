@@ -482,9 +482,12 @@ class Dungeon
            .next({id: 'ResultCheck'})
         cmd.process()
       when DUNGEON_ACTION_REVIVE
-        @revive++
-        cmd = DungeonCommandStream({id: 'Revive'}, this)
-        cmd.process()
+        if @revive >= (@config.reviveLimit ? Infinity)
+          ret = [new Error(RET_ReviveLimit)]
+        else
+          @revive++
+          cmd = DungeonCommandStream({id: 'Revive'}, this)
+          cmd.process()
       when DUNGEON_ACTION_GETVALIDATE_POS
         hero = @heroes[0]
         ret = [] #[{NTF: Event_Fail, arg : {msg:'Main Hero Is Dead'}}]
@@ -841,8 +844,6 @@ class DungeonEnvironment extends Environment
     heroes = @dungeon.getAliveHeroes()
     objects = @dungeon.level.objects
     @dungeon.level.objects = heroes.concat(objects.slice(heroes.length, objects.length))
-
-  incrReviveCount: () -> @dungeon?.reviveCount++
 
   getInitialData: () -> @dungeon?.getInitialData()
 
@@ -1288,7 +1289,6 @@ dungeonCSConfig = {
   Revive: {
     callback: (env) ->
       env.initiateHeroes(env.getInitialData().team)
-      env.incrReviveCount()
       for p in env.getAliveHeroes()
         p.pos = env.getEntrance()[0] ? env.getEntrance()
     ,
