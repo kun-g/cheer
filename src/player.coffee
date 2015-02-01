@@ -36,6 +36,7 @@ campaign_LoginStreak = new libCampaign.Campaign(queryTable(TABLE_DP))
 #
 #  equippingSlots = getItemSlotUsed(slot)
 #  freezeBy = info.reduce((acc, elem) ->
+#    return acc unless elem?
 #    {cid, slots} = elem
 #    if underscore.difference(slots, equippingSlots).length isnt slots.length
 #      acc.push(slots[0])
@@ -193,8 +194,11 @@ class Player extends DBWrapper
   syncEvent: () -> return helperLib.initCampaign(@, event_cfg.events)
 
   onLogin: () ->
+    @counters.energyRecover ?= 0
     return [] unless @lastLogin
-    if diffDate(@lastLogin) > 0 then @purchasedCount = {}
+    if diffDate(@lastLogin) > 0
+      @purchasedCount = {}
+      @counters.energyRecover = 0
     @lastLogin = currentTime()
     if gGlobalPrize?
       for key, prize of gGlobalPrize when not @globalPrizeFlag[key]
@@ -225,6 +229,7 @@ class Player extends DBWrapper
       return pValue.concat(@removeItem(null, null, @queryItemSlot(e)))
     , ret)
 
+    ret.push(@syncCounters(['energyRecover'],true))
     @createHero()
     return ret
 
@@ -379,7 +384,7 @@ class Player extends DBWrapper
       @rmb += cfg.price
       @onCampaign('RMB', rec.productID)
       ret.push({NTF: Event_PlayerInfo, arg: { rmb: @rmb, mcc: @counters.monthCard}})
-      ret.push({NTF: Event_RoleUpdate, arg: { act: {vip: @vipLevel()}}})
+      ret.push(@syncVipData())
       postPaymentInfo(@createHero().level, myReceipt, payment.paymentType)
       @saveDB()
       dbLib.updateReceipt(
@@ -838,7 +843,7 @@ class Player extends DBWrapper
               else
                 @counters[p.counter]++
                 @notify('countersChanged',{type : p.counter})
-                ret = ret.concat(@syncCounters(true)).concat(@syncEvent())
+                ret = ret.concat(@syncCounters([], true)).concat(@syncEvent())
             when "updateLeaderboard"
               @counters['worldBoss'][p.counter] = 0 unless @counters['worldBoss'][p.counter]?
               @counters['worldBoss'][p.counter] += p.delta
@@ -1205,6 +1210,8 @@ class Player extends DBWrapper
       when 'expAdjust' then return cfg?.expAdjust ? 0
       when 'wxpAdjust' then return cfg?.wxpAdjust ? 0
       when 'energyLimit' then return (cfg?.energyLimit ? 0) + ENERGY_MAX
+      when 'freeEnergyTimes' then return cfg?.freeEnergyTimes ? 2
+      when 'energyPrize' then return cfg?.energyPrize ? 1.1
 
   vipLevel: () -> @vipOperation('vipLevel')
   getBlueStarCost: () -> @vipOperation('blueStarCost')
@@ -1680,6 +1687,20 @@ class Player extends DBWrapper
     
     return ev
 
+  syncVipData: (forceUpdate) ->
+    ev = {
+      NTF:Event_RoleUpdate,
+      arg:{
+        act:{
+          vip:@vipLevel(),
+          vipOp:{
+            freeEnergyTimes:@vipOperation('freeEnergyTimes')
+            energyPrize:@vipOperation('energyPrize')
+          }
+        }
+      }
+    }
+    return ev
   syncDungeon: (forceUpdate) ->
     dungeon = this.dungeon
     if dungeon == null then return []
@@ -1721,8 +1742,17 @@ class Player extends DBWrapper
       arg: arg
     }
 
-  syncCounters: (forceUpdate) ->
-    return []
+  syncCounters: (keys, forceUpdate) ->
+    ret =[]
+    if keys?
+      ret = underscore.pick(@counters, keys)
+    else
+      ret = @counters
+
+    return  {
+      NTF: Event_UpdateCounters,
+      arg:ret
+    }
 
   syncQuest: (forceUpdate) ->
     ret = packQuestEvent(@quests, null, this.questVersion)

@@ -1,13 +1,13 @@
-/*
+
 shall = require('should');
 require('../js/define');
 var playerLib = require('../js/player');
 //var assert = require("assert");
 //var serialLib = require('../serializer');
-var dungeonLib = require('../js/dungeon');
+//var dungeonLib = require('../js/dungeon');
 //var should = require('should');
-var spellLib = require('../js/spell');
-var helpLib = require('../js/helper');
+//var spellLib = require('../js/spell');
+//var helpLib = require('../js/helper');
 //var itemLib = require('../item');
 //require('../shared');
 //initServer();
@@ -15,19 +15,20 @@ var helpLib = require('../js/helper');
 //gServerID = 1;
 //dbPrefix = gServerName+'.';
 
+/*
 var async = require('async');
 
 var dbLib = require('../js/db');
 dbPrefix = 'Develop'+'.';
 dbLib.initializeDB({
-  "Account": { "IP": "10.4.3.41", "PORT": 6379},
-  "Role": { "IP": "10.4.3.41", "PORT": 6379},
-  "Publisher": { "IP": "10.4.3.41", "PORT": 6379},
-  "Subscriber": { "IP": "10.4.3.41", "PORT": 6379}
-  // "Account": { "IP": "localhost", "PORT": 6379},
-  // "Role": { "IP": "localhost", "PORT": 6379},
-  // "Publisher": { "IP": "localhost", "PORT": 6379},
-  // "Subscriber": { "IP": "localhost", "PORT": 6379}
+//  "Account": { "IP": "10.4.3.41", "PORT": 6379},
+//  "Role": { "IP": "10.4.3.41", "PORT": 6379},
+//  "Publisher": { "IP": "10.4.3.41", "PORT": 6379},
+//  "Subscriber": { "IP": "10.4.3.41", "PORT": 6379}
+   "Account": { "IP": "localhost", "PORT": 6379},
+   "Role": { "IP": "localhost", "PORT": 6379},
+   "Publisher": { "IP": "localhost", "PORT": 6379},
+   "Subscriber": { "IP": "localhost", "PORT": 6379}
 });
 gServerObject = {
   getType: function () { return 'server'; }
@@ -67,8 +68,39 @@ describe('countUp', function () {
   });
 });
 
+*/
+var getSlotFreezeInfo = playerLib.getSlotFreezeInfo; 
 
 
+describe('util function test',function(){
+    it(' getSlotFreezeInfo', function(done) {
+        bag =[
+            {classId:1,subcategory:1,extraSlots:[2,3]},
+            {classId:2,subcategory:4},
+            {classId:3,subcategory:5,extraSlots:[6,7]},
+            {classId:4,subcategory:8,extraSlots:[9]},
+            {classId:5,subcategory:5,extraSlots:[3,4]},
+        ]
+        player = {
+            getItemAt: function(idx){
+                return bag[idx];
+            },
+            equipment:[0,1,2,3]
+        };
+    var ret = getSlotFreezeInfo(player, 4);
+
+    var exp = {info:[
+            {cid:1,slots:[1,2,3]},
+            {cid:2,slots:[4]},
+            {cid:3,slots:[5,6,7]},
+            {cid:4,slots:[8,9]},
+        ], freezeBy:[1,2,3]};
+    ret.should.eql( exp );
+    done();
+        
+    });
+});
+/*
 //describe('Helper', function () {
 //  it('Object', function () {
 //    var t ={};
@@ -1086,5 +1118,6 @@ describe('Player', function () {
 //      //});
 //    });
 //  });
-});
+//});
+
 */

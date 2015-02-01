@@ -250,7 +250,7 @@ exports.route = {
             if player.counters.monthCard
               msg.arg.mcc = player.counters.monthCard
             ev.push(msg)
-            ev.push({NTF: Event_RoleUpdate, arg: { act: { vip: player.vipLevel()} } })
+            ev.push(player.syncVipData())
             async.parallel([
               (cb) -> player.fetchMessage(cb),
               (cb) -> player.updateFriendInfo(cb),
