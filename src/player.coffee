@@ -763,26 +763,31 @@ class Player extends DBWrapper
     return itemPrize.concat(otherPrize)
 
   claimCost: (cost, count = 1) ->
+    ret = @claimCost_witherr(cost, count)
+    return null unless ret instanceof Array
+    return ret
+
+  claimCost_witherr: (cost, count = 1) ->
     if typeof cost is 'object'
       cfg ={material:[{type:0, value:cost.id, count:1}]}
     else
       cfg = queryTable(TABLE_COSTS, cost)
 
-    return null unless cfg?
+    return {type:'noconfig'} unless cfg?
     prize = @rearragenPrize(cfg.material)
     haveEnoughtMoney = prize.reduce( (r, l) =>
       if l.type is PRIZETYPE_GOLD and @gold < l.count*count then return false
       if l.type is PRIZETYPE_DIAMOND and @diamond < l.count*count then return false
       return r
     , true)
-    return null unless haveEnoughtMoney
+    return {type:'noenoughmoney'} unless haveEnoughtMoney
     ret = []
     for p in prize when p?
       @inventoryVersion++
       switch p.type
         when PRIZETYPE_ITEM
           retRM = @inventory.remove(p.value, p.count*count, null, true)
-          return null unless retRM and retRM.length > 0
+          return {type:'noenoughitem'} unless retRM and retRM.length > 0
           ret = @doAction({id: 'ItemChange', ret: retRM, version: @inventoryVersion})
         when PRIZETYPE_GOLD then ret.push({NTF: Event_InventoryUpdateItem, arg: {syn: @inventoryVersion, god: @addGold(-p.count*count)}})
         when PRIZETYPE_DIAMOND then ret.push({NTF: Event_InventoryUpdateItem, arg: {syn: @inventoryVersion, dim: @addDiamond(-p.count*count)}})
@@ -1753,10 +1758,6 @@ class Player extends DBWrapper
     cfg = queryTable(TABLE_FRAGMENT)
     fragInterval[type] = cfg[type].interval
     hiGradeTimesFrag[type] = cfg[type].basic_times
-    basicPrize = @getFragPrizeTable(type,'basic_prize')
-    advancedPrize = @getFragPrizeTable(type,'advanced_prize')
-    dprint('basicPrize=', basicPrize)
-    dprint('advancedPrize=', advancedPrize)
 
     fragCost = cfg[type].diamond
     dis = @getDiffTime(@timestamp.fragmentTime[type],currentTime(),fragInterval[type].unit)
@@ -1778,16 +1779,23 @@ class Player extends DBWrapper
 
     for i in [0..count-1]
       if @counters.fragmentTimes[type] < hiGradeTimesFrag[type]
+        basicPrize = @getFragPrizeTable(type,'basic_prize')
+        dprint('basicPrize=', basicPrize)
         prz = prz.concat(generatePrize(basicPrize, [0..basicPrize.length-1]))
         @counters.fragmentTimes[type]++
       else
+        advancedPrize = @getFragPrizeTable(type,'advanced_prize')
+        dprint('advancedPrize=', advancedPrize)
         prz = prz.concat(generatePrize(advancedPrize, [0..advancedPrize.length-1]))
         @counters.fragmentTimes[type] = 0
       @counters.totalFragTimes[type]++
 
     prize = @claimPrize(prz)
+
     console.log('prz=', prz)
-    return { ret: RET_InventoryFull } unless prize
+    if prize == null
+      @addMoney('diamond', diamondCost)
+      return { ret: RET_InventoryFull }
     prize = prize.concat(evt)
     @log('lottery', {type: 'lotteryFragment', prize: prize})
     return {prize: prz, res: prize, ret: RET_OK}
@@ -1818,26 +1826,40 @@ class Player extends DBWrapper
     for e, h of cfg[type].advanced_option
       #return cfg[type][table] unless h[table]?
       continue unless h[table]?
-      for k, v of h.count_value
-        switch h.condition
-          when 'less'
-            if @counters.totalFragTimes[type] < v
-              return h[table]
-          when 'equal'
-            if @counters.totalFragTimes[type] == v
-              return h[table]
-          when 'more'
-            if @counters.totalFragTimes[type] > v
-              return h[table]
-          when 'interval'
-            if @counters.totalFragTimes[type] % v == 0
-              return h[table]
+      if h.dateInterval == null or @match_dateinterval(h.dateInterval,currentTime())
+        for k, v of h.count_value
+          switch h.condition
+            when 'less'
+              if @counters.totalFragTimes[type] < v
+                return h[table]
+            when 'equal'
+              if @counters.totalFragTimes[type] == v
+                return h[table]
+            when 'more'
+              if @counters.totalFragTimes[type] > v
+                return h[table]
+            when 'interval'
+              if @counters.totalFragTimes[type] % v == 0
+                return h[table]
     return cfg[type][table]
+
+  match_dateinterval: (scheme, date) ->
+   #if scheme.startDate != null and scheme.interval != null and scheme.interval >= 1
+   #    for k in scheme.startDate
+   #        for x in scheme.startDate[k].date
+   #            sttime = libTime.moment([scheme.startDate[k].year, scheme.startDate[k].month, 
+   #                              scheme.startDate[k].date[x],0,0,0,0])
+   #            subtime = libTime.moment.duration(date - sttime)#date sttime为moment
+   #            days = subtime.asDays()
+   #            if days % scheme.interval == 0
+   #                return true
+   #return false
+   return true
 
   itemSynthesis: (slot) ->
     recipe = @getItemAt(slot)
     return { ret: RET_ItemNotExist } unless recipe?
-    ret = @claimCost(recipe.recipeCost)
+    ret = @claimCostWithInsead(recipe.recipeCost)#@claimCost
     if not ret? then return { ret: RET_InsufficientIngredient }
     return { ret: RET_Unknown } unless recipe.recipeTarget?
     newItem = libItem.createItem(recipe.recipeTarget)
@@ -1848,8 +1870,21 @@ class Player extends DBWrapper
   itemDecompsite: (slot) ->
     recipe = @getItemAt(slot)
     return { ret: RET_ItemNotExist } unless recipe?
-    prz = @claimPrize(recipe.recipePrize)
-    if not prz? then return { ret: RET_InsufficientIngredient }
+    #prz = @claimPrize(recipe.recipePrize)
+    @log('itemDecompsite', { recipeId: recipe.recipePrize })
+    #if Array.isArray(recipe.recipePrize)
+    #  recipePrize = recipe.recipePrize
+    #else
+    #  recipePrize = queryTable(TABLE_DROP)[recipe.recipePrize]
+    recipePrize = queryTable(TABLE_DROP)[recipe.recipePrize]
+    dprint('itemDecompsite recipePrize', recipePrize)
+    prz = generatePrize(recipePrize, [0..recipePrize.length-1])
+    prize = @claimPrize(prz)
+
+    dprint('prz=', prz)
+    if prize == null
+      return { ret: RET_InventoryFull }
+
     ret = prz.concat(@removeItem(null, 1, slot))
     @log('itemDecompsite', { slot: slot, id: recipe.id })
     return { prize: prz, res: ret }
@@ -1861,6 +1896,40 @@ class Player extends DBWrapper
       when 'minite' then return duration.asMinutes()
       when 'hour' then return duration.asHours()
       when 'day' then return duration.asDays()
+
+  claimCostWithInsead: (costId) ->
+    recipeCost = queryTable(TABLE_COSTS)[costId].material
+    dprint('claimCostWithInsead recipeCost', recipeCost)
+    material = []
+    for e, h of recipeCost
+      itemCost = @analysis(h)
+      dprint('claimCostWithInsead itemCost', itemCost)
+      material = material.concat(itemCost)
+    dprint('claimCostWithInsead material', material)
+    return @claimCost(material)
+
+  #传人参数：{"type":0,"value":1475,"count":5,
+  #详情参见       "instead": {
+  #cost表的         "type":0,
+  #material         "value":5
+  #字段           }
+  #         }注意：传入的是对象
+  #返回参数，若"value":1475次数足够，返回[{"type":0,"value":1475,"count":5}]
+  #否则返回[{"type":0,"value":1475,"count":a},{"type":0,"value":5,"count":b}]
+  #注意a+b==5
+  analysis: (material) ->
+    console.log('analysis material=', JSON.stringify(material))
+    switch material.type
+      when PRIZETYPE_ITEM
+        itemCount = @inventory.getCountById(material.value)
+        console.log('analysis itemCount=', itemCount)
+        if itemCount >= material.count
+          return [material]
+        else if material.instead?
+          return [{"type":material.type,"value":material.value,"count":itemCount},
+                  {"type":material.instead.type,"value":material.instead.value,
+                  "count":material.count - itemCount}]
+    return [material]
 
 playerMessageFilter = (oldMessage, newMessage, name) ->
   message = newMessage
