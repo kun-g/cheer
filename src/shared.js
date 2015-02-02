@@ -109,6 +109,7 @@ RET_ShopVersionNotMatch = 64;
 RET_NoParameter = 65;
 RET_SameMessageExist = 66;
 RET_ReviveLimit = 67;
+RET_EnergyLimit = 68;
 ErrorMsgs = [
     "操作成功",//0
     "金币数量不足",

@@ -640,7 +640,7 @@ FREE = -0.001;
 buyEnergyCost = function(times, freeTimes, cost){
     var prize = FREE;
     if( times >= freeTimes) 
-        prize = Math.ceil(cost * BUY_ENERGY_VALUE);
+        prize = Math.ceil(cost * BUY_ENERGY_VALUE * Math.pow(2,times -freeTimes));
     return {prize:prize, add:BUY_ENERGY_VALUE};
 }
 

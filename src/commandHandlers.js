@@ -223,6 +223,10 @@ function handler_doBuyEnergy(arg, player, handler, rpcID) {
   var ENERGY_ADD;
   switch (+arg.typ) {
     case FEATURE_ENERGY_RECOVER: 
+      if (player.counters.energyRecover >= player.vipOperation('dayEnergyBuyTimes')){
+          handler(new Error(RET_DungeonNotExist));
+          return;
+      }
       var recoverTimes = player.counters.energyRecover;
       var ret = buyEnergyCost(recoverTimes,
               player.vipOperation('freeEnergyTimes'),
@@ -256,7 +260,7 @@ function handler_doBuyEnergy(arg, player, handler, rpcID) {
   if (diamondCost && player.addDiamond(-Math.ceil(diamondCost)) !== false) {
     evt.push({REQ : rpcID, RET : RET_OK});
     if (+arg.typ === FEATURE_ENERGY_RECOVER) {
-      player.energy += ENERGY_ADD;
+      player.energy = ENERGY_ADD;
       player.counters.energyRecover++;
       product = 'energyTime';
       evt.push(player.syncEnergy());

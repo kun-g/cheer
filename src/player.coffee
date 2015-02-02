@@ -1205,8 +1205,9 @@ class Player extends DBWrapper
       when 'expAdjust' then return cfg?.expAdjust ? 0
       when 'wxpAdjust' then return cfg?.wxpAdjust ? 0
       when 'energyLimit' then return (cfg?.energyLimit ? 0) + ENERGY_MAX
-      when 'freeEnergyTimes' then return cfg?.freeEnergyTimes ? 2
-      when 'energyPrize' then return cfg?.energyPrize ? 1.1
+      when 'freeEnergyTimes' then return cfg?.freeEnergyTimes ? 0
+      when 'dayEnergyBuyTimes' then return cfg?.dayEnergyBuyTimes ? 4
+      when 'energyPrize' then return cfg?.energyPrize ? 1
 
   vipLevel: () -> @vipOperation('vipLevel')
   getBlueStarCost: () -> @vipOperation('blueStarCost')
@@ -1216,7 +1217,7 @@ class Player extends DBWrapper
   energyLimit: () -> @vipOperation('energyLimit')
   getPrivilege: (name) -> @vipOperation(name)
   getTotalPkTimes: () -> return @getPrivilege('pkCount')
-  getAddPkCount: () -> 
+  getAddPkCount: () ->
     @counters.addPKCount = 0 unless @counters.addPKCount?
     return @counters.addPKCount
 
@@ -1689,7 +1690,8 @@ class Player extends DBWrapper
         act:{
           vip:@vipLevel(),
           vipOp:{
-            freeEnergyTimes:@vipOperation('freeEnergyTimes')
+            freeEnergyTimes:@vipOperation('freeEnergyTimes'),
+            dayEnergyBuyTimes:@vipOperation('dayEnergyBuyTimes'),
             energyPrize:@vipOperation('energyPrize')
           }
         }
