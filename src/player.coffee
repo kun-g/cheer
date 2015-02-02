@@ -1819,7 +1819,9 @@ class Player extends DBWrapper
 
     prize = @claimPrize(prz)
     console.log('prz=', prz)
-    return { ret: RET_InventoryFull } unless prize
+    if prize.length <= 0
+      @addDiamond(diamondCost)
+      return { ret: RET_InventoryFull }
     prize = prize.concat(evt)
     @log('lottery', {type: 'lotteryFragment', prize: prize})
     return {prize: prz, res: prize, ret: RET_OK}
