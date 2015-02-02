@@ -12,7 +12,7 @@ require('./shared')
 
 seed_random = require('./seed_random')
 speedFormula = { 'a' : 1, 'b' : 60, 'c' : 0.5}
-hitFormula = { 'a' : 1, 'b' : 150, 'c' : 0.75, downLimit : 0.5 }
+hitFormula = { 'a' : 1, 'b' : 150, 'c' : 0.75, downLimit : 0.75 }
 criticalFormula = { 'a' : 7, 'b' : 140, 'c' : 0.1, upLimit : 0.4 }
 
 flagShowRand = false
