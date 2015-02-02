@@ -760,7 +760,7 @@ exports.route = {
             evt = {REQ: rpcID, RET: ret}
             evt.arg = prize
             if res? then handler([evt].concat(res))
-            handler([evt])
+            else handler([evt])
           else
             handler([{REQ: rpcID, RET: RET_NoParameter}])
         when 1#cmd=1 获取免费抽奖CD时间

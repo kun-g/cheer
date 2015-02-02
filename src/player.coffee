@@ -769,17 +769,22 @@ class Player extends DBWrapper
 
   claimCost: (cost, count = 1) ->
     ret = @claimCost_witherr(cost, count)
-    return null unless ret instanceof Array
+    dprint("claimCost ret:",ret)
+    return null unless Array.isArray(ret)
     return ret
 
   claimCost_witherr: (cost, count = 1) ->
-    if typeof cost is 'object'
+    if Array.isArray(cost)
+      cfg = {material:cost}
+    else if typeof cost is 'object'
       cfg ={material:[{type:0, value:cost.id, count:1}]}
     else
       cfg = queryTable(TABLE_COSTS, cost)
 
     return {type:'noconfig'} unless cfg?
+    dprint("claimCost_witherr cfg:",cfg)
     prize = @rearragenPrize(cfg.material)
+    dprint("claimCost_witherr rearragen prize:",prize)
     haveEnoughtMoney = prize.reduce( (r, l) =>
       if l.type is PRIZETYPE_GOLD and @gold < l.count*count then return false
       if l.type is PRIZETYPE_DIAMOND and @diamond < l.count*count then return false
@@ -792,7 +797,7 @@ class Player extends DBWrapper
       switch p.type
         when PRIZETYPE_ITEM
           retRM = @inventory.remove(p.value, p.count*count, null, true)
-          return {type:'noenoughitem'} unless retRM and retRM.length > 0
+          return {type:'noenoughitem', value:p.value, count:p.count*count} unless retRM and retRM.length > 0
           ret = @doAction({id: 'ItemChange', ret: retRM, version: @inventoryVersion})
         when PRIZETYPE_GOLD then ret.push({NTF: Event_InventoryUpdateItem, arg: {syn: @inventoryVersion, god: @addGold(-p.count*count)}})
         when PRIZETYPE_DIAMOND then ret.push({NTF: Event_InventoryUpdateItem, arg: {syn: @inventoryVersion, dim: @addDiamond(-p.count*count)}})
@@ -951,7 +956,7 @@ class Player extends DBWrapper
             return {out:recipe.out, ntf:ripres}
           else if item.recipePrize?
             recipe = @itemDecompsite(slot)
-            return { ret: RET_ItemNotExist } unless recipe
+            return { ret: recipe.ret } unless recipe.ret == RET_OK
             @log('deposite ret', {type: 'recipe', recipe: recipe})
             @log('recipe', {type: 'recipe', id: item.id, recipe: recipe.out})
             return {out:recipe.prize, ntf:recipe.res}
@@ -1821,9 +1826,9 @@ class Player extends DBWrapper
       @counters.totalFragTimes[type]++
 
     prize = @claimPrize(prz)
-
+    dprint('claimPrize prize:', prize)
     console.log('prz=', prz)
-    if prize == null
+    if prize <= 0
       @addMoney('diamond', diamondCost)
       return { ret: RET_InventoryFull }
     prize = prize.concat(evt)
@@ -1910,14 +1915,14 @@ class Player extends DBWrapper
     dprint('itemDecompsite recipePrize', recipePrize)
     prz = generatePrize(recipePrize, [0..recipePrize.length-1])
     prize = @claimPrize(prz)
-
-    dprint('prz=', prz)
-    if prize == null
+    dprint('itemDecompsite prz=', prz)
+    dprint('itemDecompsite prize=', prize)
+    if prize.length <= 0
       return { ret: RET_InventoryFull }
 
-    ret = prz.concat(@removeItem(null, 1, slot))
+    ret = prize.concat(@removeItem(null, 1, slot))
     @log('itemDecompsite', { slot: slot, id: recipe.id })
-    return { prize: prz, res: ret }
+    return { prize: prz, res: ret, ret: RET_OK }
 
   getDiffTime: (from, to, type) ->
     duration = libTime.diff(to, from)
@@ -1954,12 +1959,12 @@ class Player extends DBWrapper
         itemCount = @inventory.getCountById(material.value)
         console.log('analysis itemCount=', itemCount)
         if itemCount >= material.count
-          return [material]
+          return [{"type":material.type,"value":material.value,"count":material.count}]
         else if material.instead?
           return [{"type":material.type,"value":material.value,"count":itemCount},
                   {"type":material.instead.type,"value":material.instead.value,
                   "count":material.count - itemCount}]
-    return [material]
+    return [{"type":material.type,"value":material.value,"count":material.count}]
 
 playerMessageFilter = (oldMessage, newMessage, name) ->
   message = newMessage
