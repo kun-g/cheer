@@ -993,29 +993,36 @@ class Player extends DBWrapper
 
   #getSlotFreezeInfo: (slot) -> getSlotFreezeInfo(@,slot)
 
+  unequipItem: (slot) ->
+    for k, v of @equipment
+      delete @equipment[k] if (+v) is (+slot)
+    return
+
   equipItem: (slot) ->
     #info = @getSlotFreezeInfo(slot)
 
     item = @getItemAt(slot)
-    return { ret: RET_RoleLevelNotMatch } if item.rank? and this.createHero().level < item.rank
-    ret = {NTF: Event_InventoryUpdateItem, arg: {syn:this.inventoryVersion, itm: []}}
+    return { ret: RET_RoleLevelNotMatch } if item.rank? and @createHero().level < item.rank
+    ret = {NTF: Event_InventoryUpdateItem, arg: {syn:@inventoryVersion, itm: []}}
 
-    equip = this.equipment[item.subcategory]
+    equip = @equipment[item.subcategory]
     tmp = {sid: slot, sta: 0}
+
     if equip is slot
-      for k, v of this.equipment
-        delete this.equipment[k] if v is slot
+      @unequipItem(slot)
     else
-      if equip? then ret.arg.itm.push({sid: equip, sta: 0})
-      this.equipment[item.subcategory] = slot
+      if equip?
+        @unequipItem(equip)
+        ret.arg.itm.push({sid: equip, sta: 0})
+      @equipment[item.subcategory] = slot
       if item.extraSlots?
         for v_slot in item.extraSlots
-          this.equipment[v_slot] = slot
+          @equipment[v_slot] = slot
       tmp.sta = 1
     ret.arg.itm.push(tmp)
     delete ret.arg.itm if ret.arg.itm.length < 1
 
-    this.onEvent('Equipment')
+    @onEvent('Equipment')
     return ret
 
   levelUpItem: (slot) ->
