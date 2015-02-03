@@ -193,13 +193,13 @@ function paymentHandler (request, response) {
         });
     } else if (request.url.substr(0, 5) === '/DKP?') {
         out = urlLib.parse(request.url, true).query;
-        appSecret = 'KvCbUBBpAUvkKkC9844QEb8CB7pHnl5v'
-            var sign = out.amount+out.cardtype+out.orderid+out.result+out.timetamp+appSecret+out.aid;
+        appSecret = 'KvCbUBBpAUvkKkC9844QEb8CB7pHnl5v';
+        var sign = out.amount+out.cardtype+out.orderid+out.result+out.timetamp+appSecret+out.aid;
         var b = new Buffer(1024);
         var len = b.write(sign);
         sign = md5Hash(b.toString('binary', 0, len));
         var receipt = out.orderid;
-        if (sign === out.client_secret ){ //&& isRMBMatch(out.OrderMoney, receipt)) {
+        if (sign === out.client_secret ){
             if (out.result === '1'){
                 deliverReceipt(receipt, 'DK', function (err) {
                     if (err === null) {
@@ -215,25 +215,25 @@ function paymentHandler (request, response) {
             response.end('ERROR_SIGN');
         }
         b = null;
-        } else if (request.url.substr(0, 5) === '/TBK?') {
-            var query = urlLib.parse(request.url, true).query;
-            var receipt = query.receipt;
-            var data = new Buffer(0);
+    } else if (request.url.substr(0, 5) === '/TBK?') {
+        var query = urlLib.parse(request.url, true).query;
+        var receipt = query.receipt;
+        var data = new Buffer(0);
             request.on('data', function (chunk) { data = Buffer.concat([data, chunk]); });
             request.on('end', function (chunk) {
                 data = 'pay?'+data.toString();
                 var out = urlLib.parse(data, true).query;
                 var token = "bf0d10d4f9979d3c6aae26011b6ec34b";
-                if (out.type) {
-                  var sign = out.order_id+'|'+out.app_id+'|'+out.product_id+'|'+out.uid
-                +'|'+out.goods_count+'|'+out.original_money+'|'+out.order_money
-                +'|'+out.pay_status+'|'+out.create_time +'|'+out.type+'|'+out.value+'|'+token;
-                } else {
-                  var sign = out.order_id+'|'+out.app_id+'|'+out.product_id+'|'+out.uid
-                +'|'+out.goods_count+'|'+out.original_money+'|'+out.order_money
-                +'|'+out.pay_status+'|'+out.create_time +'|'+token;
-                }
-                if (out.app_id == 'com.kddxc.koudaidixiacheng') {
+                //if (out.type) {
+                //  var sign = out.order_id+'|'+out.app_id+'|'+out.product_id+'|'+out.uid
+                //+'|'+out.goods_count+'|'+out.original_money+'|'+out.order_money
+                //+'|'+out.pay_status+'|'+out.create_time +'|'+out.type+'|'+out.value+'|'+token;
+                //} else {
+                //  var sign = out.order_id+'|'+out.app_id+'|'+out.product_id+'|'+out.uid
+                //+'|'+out.goods_count+'|'+out.original_money+'|'+out.order_money
+                //+'|'+out.pay_status+'|'+out.create_time +'|'+token;
+                //}
+                //if (out.app_id == 'com.kddxc.koudaidixiacheng') {
                   sign = 'app_id='+out.app_id
                     +'&create_time='+out.create_time
                     +'&goods_count='+out.goods_count
@@ -246,7 +246,7 @@ function paymentHandler (request, response) {
                     +'&uid='+out.uid
                     +(out.value!=null?('&value='+out.value):'')
                     +'&'+token
-                }
+                //}
 
                 var b = new Buffer(1024);
                 var len = b.write(sign);
@@ -256,15 +256,15 @@ function paymentHandler (request, response) {
                     deliverReceipt(receipt, 'Teebik', function (err) {
                         if (err === null) {
                             logInfo({action: 'AcceptPayment', receipt: receipt, info: out});
-                            return response.end(JSON.stringify({success:1, msg: "OK"}));
+                            return response.end('1');
                         } else {
                             logError({action: 'AcceptPayment', error:err, data: data, receipt:receipt});
-                            return response.end('fail');
+                            return response.end('-1');
                         }
                     });
                 } else {
                     logError({action: 'AcceptPayment', error: 'Fail', data: data});
-                    response.end(JSON.stringify({success:0, msg: "Arguments miss match."}));
+                    response.end('0');
                 }
                 data = null;
             });
