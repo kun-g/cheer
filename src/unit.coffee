@@ -368,7 +368,10 @@ createUnit = (config) ->
 exports.Hero = Hero
 exports.Mirror = (config, type = 'pk') ->
   if canMirror(config.cid, type)
-    new Mirror(config, type)
+    if type is 'pk'
+      return new Mirror(config, type)
+    else
+      return new Teammate(config)
   else
     new Hero(config)
 

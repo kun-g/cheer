@@ -636,7 +636,8 @@ class Player extends DBWrapper
     ret = ret.concat(@claimDungeonReward(@dungeon)) if @dungeon.result?
     return ret
 
-  startDungeon: (stage, startInfoOnly, pkr=null, handler) ->
+  updateFriendHiredInfo:(nameLst) ->,be
+  startDungeon: (stage, startInfoOnly, selectedTeam, pkr=null, handler) ->
     stageConfig = queryTable(TABLE_STAGE, stage, @abIndex)
     dungeonConfig = queryTable(TABLE_DUNGEON, stageConfig.dungeon, @abIndex)
     unless stageConfig? and dungeonConfig?

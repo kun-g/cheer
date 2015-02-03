@@ -13,6 +13,8 @@ class Item extends Serializer
       serverId: -1, #For Client
       id: config.classId
     }
+
+    if @config.expiration then cfg.date = -1
     super(config, _.extend(cfg, additionalConfig))
 
   getConfig: () -> @config
