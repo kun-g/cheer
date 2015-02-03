@@ -3,10 +3,11 @@ var dbLib = require('./db');
 var async = require('async');
 require('./globals');
 
-players = ['大岛优子'];
+players = ['klul'];
 
 //serverName = 'Develop';
-serverName = 'Master';
+//serverName = 'Master';
+serverName = 'Test';
 
 var config = {
   Develop: {
@@ -18,7 +19,12 @@ var config = {
     ip: '10.4.4.188',
     port: 6380,
     port2: 6381
-  }
+  },
+  Test:{
+	ip: '148.251.128.9',
+    port: 6381,
+    port2: 6381
+ }
 };
 
 config = config[serverName];
@@ -38,8 +44,8 @@ var rewardMessage = {
     //{type: PRIZETYPE_WXP, count: 10000},
     //{type: PRIZETYPE_GOLD, count: 100000},
     //{type: PRIZETYPE_DIAMOND, count: 150}
-    {type: PRIZETYPE_ITEM, value: 551, count: 1},
-    {type: PRIZETYPE_ITEM, value: 552, count: 1},
+    {type: PRIZETYPE_ITEM, value: 869, count: 1},
+    {type: PRIZETYPE_ITEM, value: 870, count: 1},
   ]
 };
 
@@ -237,12 +243,13 @@ initGlobalConfig(null, function () {
   //loadReceipt ();
 });
 
-//async.map(players, function (playerName, cb) {
-//  dbLib.deliverMessage(playerName, rewardMessage, cb);
-//}, function (err, result) {
-//  console.log('Done');
-//  dbLib.releaseDB();
-//});
+async.map(players, function (playerName, cb) {
+  dbLib.deliverMessage(playerName, rewardMessage, cb);
+}, function (err, result) {
+  console.log('Done');
+  dbLib.releaseDB();
+});
+return ;
 
 var fs = require('fs');
 function removeUpdateItem(name, filename){
