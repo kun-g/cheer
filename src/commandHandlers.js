@@ -260,7 +260,7 @@ function handler_doBuyEnergy(arg, player, handler, rpcID) {
   if (diamondCost && player.addDiamond(-Math.ceil(diamondCost)) !== false) {
     evt.push({REQ : rpcID, RET : RET_OK});
     if (+arg.typ === FEATURE_ENERGY_RECOVER) {
-      player.energy = ENERGY_ADD;
+      player.energy += ENERGY_ADD;
       player.counters.energyRecover++;
       product = 'energyTime';
       evt.push(player.syncEnergy());
