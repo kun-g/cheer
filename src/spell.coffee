@@ -359,7 +359,7 @@ class Wizard
         variables.heroCount = env.getAliveHeroes().length
         variables.totalMonsterCount = env.getMonsters().length
         variables.visibleMonsterCount = env.getMonsters().filter( (m) -> m.isVisible ).length
-        variables.battleForce = @calculatePower?() ? 0
+        variables.battleForce ?= (@calculatePower?() ? 0)
       if getSpellProperty(a, 'formular', thisSpell.level)?
         formularResult = calcFormular(
           variables,
