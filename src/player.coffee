@@ -942,24 +942,32 @@ class Player extends DBWrapper
         ret = @equipItem(slot)
         return { ret: RET_OK, ntf: [ret] }
       when ITEM_RECIPE
-        if opn? and opn == 1 #USE_ITEM_OPT_EQUIP = 1;
-          ret = @equipItem(slot)
-          return { ret: RET_OK, ntf: [ret] }
-        else
-          if item.recipeTarget?
-            recipe = @itemSynthesis(slot)
-            return { ret: recipe.ret } unless recipe.res
-            @log('itemSynthesis ret', {type: 'recipe', recipe: recipe})
-            ripres = recipe.res
-            ripres = ripres.concat(@removeItem(null, 1, slot))
-            @log('recipe', {type: 'recipe', id: item.id, recipe: recipe.out})
-            return {out:recipe.out, ntf:ripres}
-          else if item.recipePrize?
-            recipe = @itemDecompsite(slot)
-            return { ret: recipe.ret } unless recipe.ret == RET_OK
-            @log('deposite ret', {type: 'recipe', recipe: recipe})
-            @log('recipe', {type: 'recipe', id: item.id, recipe: recipe.out})
-            return {out:recipe.prize, ntf:recipe.res}
+        if item.recipeTarget?
+          recipe = @itemSynthesis(slot)
+          return { ret: recipe.ret } unless recipe.res
+          @log('itemSynthesis ret', {type: 'recipe', recipe: recipe})
+          ripres = recipe.res
+          ripres = ripres.concat(@removeItem(null, 1, slot))
+          @log('recipe', {type: 'recipe', id: item.id, recipe: recipe.out})
+          return {out:recipe.out, ntf:ripres}
+       #if opn? and opn == 1 #USE_ITEM_OPT_EQUIP = 1;
+       #  ret = @equipItem(slot)
+       #  return { ret: RET_OK, ntf: [ret] }
+       #else
+       #  if item.recipeTarget?
+       #    recipe = @itemSynthesis(slot)
+       #    return { ret: recipe.ret } unless recipe.res
+       #    @log('itemSynthesis ret', {type: 'recipe', recipe: recipe})
+       #    ripres = recipe.res
+       #    ripres = ripres.concat(@removeItem(null, 1, slot))
+       #    @log('recipe', {type: 'recipe', id: item.id, recipe: recipe.out})
+       #    return {out:recipe.out, ntf:ripres}
+       #  else if item.recipePrize?
+       #    recipe = @itemDecompsite(slot)
+       #    return { ret: recipe.ret } unless recipe.ret == RET_OK
+       #    @log('deposite ret', {type: 'recipe', recipe: recipe})
+       #    @log('recipe', {type: 'recipe', id: item.id, recipe: recipe.out})
+       #    return {out:recipe.prize, ntf:recipe.res}
         
 
     logError({action: 'useItem', reason: 'unknow', catogory: item.category, subcategory: item.subcategory, id: item.id})
@@ -1533,46 +1541,54 @@ class Player extends DBWrapper
       )
 
   recycleItem: (slot) ->
-    recyclableEnhance = queryTable(TABLE_CONFIG, 'Global_Recyclable_Enhancement', @abIndex)
-    recycleConfig = queryTable(TABLE_CONFIG, 'Global_Recycle_Config', @abIndex)
     item = @getItemAt(slot)
-    for k, equip of @equipment when equip is slot
-      delete @equipment[k]
-      break
-    ret = []
-    try
-      if item is null then throw RET_ItemNotExist
-      xp = helperLib.calculateTotalItemXP(item) * 0.8
-      ret = ret.concat(@removeItem(null, null, slot))
-      reward = item.enhancement.map((e) ->
-        if recyclableEnhance.indexOf(e.id) != -1
-          cfg = recycleConfig[e.level]
-          return {
-            type : PRIZETYPE_ITEM,
-            value : queryTable(TABLE_CONFIG, 'Global_Enhancement_GEM_Index', @abIndex)[e.id],
-            count : cfg.minimum + rand() % cfg.delta
-          }
-        else
-          return null
-      )
-      if queryTable(TABLE_CONFIG, 'Global_Material_ID').length > item.quality
-        reward.push({
-          type: PRIZETYPE_ITEM,
-          value: queryTable(TABLE_CONFIG, 'Global_Material_ID')[item.quality],
-          count: 2 + rand() % 2
-        })
-      reward = reward.filter( (e) -> return e? )
-      #reward.push({
-      #  type: PRIZETYPE_ITEM,
-      #  value: queryTable(TABLE_CONFIG, 'Global_WXP_BOOK'),
-      #  count: Math.floor(xp/100)
-      #})
-      rewardEvt = this.claimPrize(reward)
-      ret = ret.concat(rewardEvt)
-    catch err
-      logError(err)
+    return { ret: RET_ItemNotExist } unless item?
+    if item.recipePrize?
+      recipe = @itemDecompsite(slot)
+      return { ret: recipe.ret } unless recipe.ret == RET_OK
+      @log('deposite ret', {type: 'recipe', recipe: recipe})
+      @log('recipe', {type: 'recipe', id: item.id, recipe: recipe.out})
+      return {out:recipe.prize, ntf:recipe.res}
+  # recyclableEnhance = queryTable(TABLE_CONFIG, 'Global_Recyclable_Enhancement', @abIndex)
+  # recycleConfig = queryTable(TABLE_CONFIG, 'Global_Recycle_Config', @abIndex)
+  # item = @getItemAt(slot)
+  # for k, equip of @equipment when equip is slot
+  #   delete @equipment[k]
+  #   break
+  # ret = []
+  # try
+  #   if item is null then throw RET_ItemNotExist
+  #   xp = helperLib.calculateTotalItemXP(item) * 0.8
+  #   ret = ret.concat(@removeItem(null, null, slot))
+  #   reward = item.enhancement.map((e) ->
+  #     if recyclableEnhance.indexOf(e.id) != -1
+  #       cfg = recycleConfig[e.level]
+  #       return {
+  #         type : PRIZETYPE_ITEM,
+  #         value : queryTable(TABLE_CONFIG, 'Global_Enhancement_GEM_Index', @abIndex)[e.id],
+  #         count : cfg.minimum + rand() % cfg.delta
+  #       }
+  #     else
+  #       return null
+  #   )
+  #   if queryTable(TABLE_CONFIG, 'Global_Material_ID').length > item.quality
+  #     reward.push({
+  #       type: PRIZETYPE_ITEM,
+  #       value: queryTable(TABLE_CONFIG, 'Global_Material_ID')[item.quality],
+  #       count: 2 + rand() % 2
+  #     })
+  #   reward = reward.filter( (e) -> return e? )
+  #   #reward.push({
+  #   #  type: PRIZETYPE_ITEM,
+  #   #  value: queryTable(TABLE_CONFIG, 'Global_WXP_BOOK'),
+  #   #  count: Math.floor(xp/100)
+  #   #})
+  #   rewardEvt = this.claimPrize(reward)
+  #   ret = ret.concat(rewardEvt)
+  # catch err
+  #   logError(err)
 
-    return {out: reward, res: ret}
+  # return {out: reward, res: ret}
 
   combineItem: (slot, gemSlot) ->
     equip = @getItemAt(slot)
