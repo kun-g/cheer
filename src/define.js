@@ -148,7 +148,7 @@ getBasicInfo = function (hero) {
     xp : 'exp',
     isFriend: 'ifn',
     vipLevel: 'vip',
-    needMirror: 'needMirror',
+    notMirror: 'notMirror',
   };
 
   var ret = grabAndTranslate(hero, translateTable);

@@ -655,12 +655,12 @@ class Player extends DBWrapper
           else if level%5 is 0 then teamCount = 2
 
         team = [@createHero()]
-        team[0].needMirror= false
+        team[0].notMirror= true
 
         if stageConfig.teammate? then team = team.concat(stageConfig.teammate.map(
           (hd) ->
             newHero = new Hero(hd)
-            newHero.needMirror = false
+            newHero.notMirror = true
             return newHero
         ))
         if teamCount > team.length
