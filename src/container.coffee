@@ -210,6 +210,13 @@ class Bag extends Serializer
         bag[e.slot].count = e.oldAmount
     )
   
+  getCountById: (id) ->
+    return 0 unless id?
+    @reduce((acc, item) ->
+      return acc + item.count if item? and item.id is id
+      return acc
+      )
+
   map: (func) -> this.container.map(func)
   filter: (func) -> this.container.filter(func)
   reduce :(func,init =0) -> this.container.reduce(func, init)
