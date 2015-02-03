@@ -1017,6 +1017,9 @@ class Player extends DBWrapper
       @equipment[item.subcategory] = slot
       if item.extraSlots?
         for v_slot in item.extraSlots
+          if @equipment[v_slot]?
+            @unequipItem(@equipment[v_slot])
+            ret.arg.itm.push({sid: @equipment[v_slot], sta: 0})
           @equipment[v_slot] = slot
       tmp.sta = 1
     ret.arg.itm.push(tmp)
