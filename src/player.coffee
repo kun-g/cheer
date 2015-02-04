@@ -1551,6 +1551,7 @@ class Player extends DBWrapper
     else
       #// TODO: range  & count to config
       validateFriend = []
+      @counters.friendHireTime ?={}
       filtedName = [@name]
       filtedName = filtedName.concat(@mercenary.map((m) -> m.name))
       if @contactBook?
