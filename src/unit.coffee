@@ -371,7 +371,8 @@ exports.Mirror = (config, type = 'pk') ->
     if type is 'pk'
       return new Mirror(config, type)
     else
-      return new Teammate(config)
+      #return new Teammate(config)
+      return new Mirror(config, type)
   else
     new Hero(config)
 

@@ -199,6 +199,7 @@ class Player extends DBWrapper
     if diffDate(@lastLogin) > 0
       @purchasedCount = {}
       @counters.energyRecover = 0
+      @counters.friendHireTime ={}
     @lastLogin = currentTime()
     if gGlobalPrize?
       for key, prize of gGlobalPrize when not @globalPrizeFlag[key]
@@ -636,7 +637,17 @@ class Player extends DBWrapper
     ret = ret.concat(@claimDungeonReward(@dungeon)) if @dungeon.result?
     return ret
 
-  updateFriendHiredInfo:(nameLst) ->,be
+  updateFriendHiredInfo: (nameLst) ->
+   @counters.friendHireTime ?={}
+   for hero in nameLst
+     name = hero.name
+     if @contactBook?
+       if @contactBook.book.indexOf(name) isnt -1
+         @counters.friendHireTime[name] ?= 0
+         @counters.friendHireTime[name] += 1
+
+   
+
   startDungeon: (stage, startInfoOnly, selectedTeam, pkr=null, handler) ->
     stageConfig = queryTable(TABLE_STAGE, stage, @abIndex)
     dungeonConfig = queryTable(TABLE_DUNGEON, stageConfig.dungeon, @abIndex)
@@ -665,7 +676,15 @@ class Player extends DBWrapper
             return newHero
         ))
         if teamCount > team.length
-          if mercenary.length >= teamCount-team.length
+          leftTeamCount = teamCount-team.length
+          if Array.isArray(selectedTeam) and selectedTeam.length >=teamCount
+            temp = []
+            temp.push(mercenary[idx]) for idx in selectedTeam
+            @updateFriendHiredInfo(temp)
+            team = team.concat(temp)
+            console.log('========selectedTeam', selectedTeam, team)
+            @mercenary = []
+          else if mercenary.length >= leftTeamCount
             team = team.concat(mercenary.splice(0, teamCount-team.length))
             @mercenary = []
           else
@@ -1531,13 +1550,23 @@ class Player extends DBWrapper
       callback(@mercenary.map( (h) -> new Hero(h)))
     else
       #// TODO: range  & count to config
+      validateFriend = []
       filtedName = [@name]
       filtedName = filtedName.concat(@mercenary.map((m) -> m.name))
-      if @contactBook? then filtedName = filtedName.concat(@contactBook.book)
-      getMercenaryMember(@name, 2, 30, 1, filtedName,
+      if @contactBook?
+        filtedName = filtedName.concat(@contactBook.book)
+        validateFriend = underscore.sample(@contactBook.book.filter((name) =>
+          times = @counters.friendHireTime[name]
+          res = not times? or times < 1
+          console.log('---checkv', name, res)
+          return res
+        ),5)
+
+      getMercenaryMember(@name, 5, 30, 1, filtedName,validateFriend
         (err, heroData) ->
           if heroData
             me.mercenary = me.mercenary.concat(heroData)
+            me.mercenary = underscore.uniq(me.mercenary,false, (obj) -> obj.name)
             me.requireMercenary(callback)
           else
             callback(null)
@@ -1617,7 +1646,7 @@ class Player extends DBWrapper
     filtedName = [@name]
     filtedName = filtedName.concat(@mercenary.map((m) -> m.name))
     filtedName = filtedName.concat(@contactBook.book) if @contactBook?.book?
-    getMercenaryMember(myName , 1, 30, 1, filtedName,
+    getMercenaryMember(myName , 1, 30, 1, filtedName,[]
       (err, heroData) ->
         if heroData
           me.mercenary.splice(id, 1, heroData[0])
