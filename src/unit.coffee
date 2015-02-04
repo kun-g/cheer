@@ -325,6 +325,9 @@ class Monster extends Unit
 
     @initialize()
 
+    @attack = Math.ceil(@attack *0.75)
+    @health = Math.ceil(@health *2)
+
   isMonster: () -> true
 
   initialize: () ->
