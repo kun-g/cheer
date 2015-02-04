@@ -677,12 +677,11 @@ class Player extends DBWrapper
         ))
         if teamCount > team.length
           leftTeamCount = teamCount-team.length
-          if Array.isArray(selectedTeam) and selectedTeam.length >=teamCount
+          if Array.isArray(selectedTeam) and selectedTeam.length >=leftTeamCount
             temp = []
             temp.push(mercenary[idx]) for idx in selectedTeam
             @updateFriendHiredInfo(temp)
             team = team.concat(temp)
-            console.log('========selectedTeam', selectedTeam, team)
             @mercenary = []
           else if mercenary.length >= leftTeamCount
             team = team.concat(mercenary.splice(0, teamCount-team.length))
@@ -1559,14 +1558,13 @@ class Player extends DBWrapper
         validateFriend = underscore.sample(@contactBook.book.filter((name) =>
           times = @counters.friendHireTime[name]
           res = not times? or times < 1
-          console.log('---checkv', name, res)
           return res
         ),5)
 
       getMercenaryMember(@name, 5, 30, 1, filtedName,validateFriend
         (err, heroData) ->
           if heroData
-            me.mercenary = me.mercenary.concat(heroData)
+            me.mercenary = me.mercenary.concat(heroData.filter((e) -> e?))
             me.mercenary = underscore.uniq(me.mercenary,false, (obj) -> obj.name)
             me.requireMercenary(callback)
           else
