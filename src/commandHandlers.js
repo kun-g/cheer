@@ -140,7 +140,7 @@ function handler_doUseItem(arg, player, handler, rpcID) {
       ret = player.upgradeItemQuality(slot);
       break;
     default:
-      ret = player.useItem(slot, opn);//opn 时装系统装备卸下时需要
+      ret = player.useItem(slot, opn);
       break;
   }
 
