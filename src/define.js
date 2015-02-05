@@ -779,6 +779,7 @@ Event_ForgeUpdate = 7;
 Event_UpdateStoreInfo = 10;
 Event_Fail = 11;
 Event_UpdateQuest = 19;
+Event_DungeonExit = 31;
 
 exports.fileVersion = -1;
 

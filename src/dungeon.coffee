@@ -483,7 +483,7 @@ class Dungeon
         cmd.process()
       when DUNGEON_ACTION_REVIVE
         if @revive >= @getReviveLimit(@config.reviveLimit)
-          ret = [new Error(RET_ReviveLimit)]
+          ret = [{NTF:Event_DungeonExit}]
         else
           @revive++
           cmd = DungeonCommandStream({id: 'Revive'}, this)
@@ -496,7 +496,7 @@ class Dungeon
           cmd.process()
       else
         return @onReplayMissMatch()
-    ret.push({NTF:Event_DungeonAction, arg: cmd.translate()}) unless not cmd or (replayMode and not showResult)
+    ret.push({NTF:Event_DungeonAction, arg: cmd?.translate()}) unless not cmd or (replayMode and not showResult)
     return ret
 
   onReplayMissMatch: () ->
