@@ -697,7 +697,7 @@ class Player extends DBWrapper
           blueStar: blueStar,
           abIndex: @abIndex,
           team: team.map(getBasicInfo),
-          getReviveLimit: @getReviveLimit
+          reviveLimit: @getReviveLimit(dungeonConfig.reviveLimit)
         }
 
         @dungeonData.randSeed = rand()
@@ -1253,9 +1253,9 @@ class Player extends DBWrapper
     @counters.addPKCount = 0 unless @counters.addPKCount?
     return @counters.addPKCount
 
-  getReviveLimit:(reviveLimit) =>
-    return -1 unless reviveLimit? and  reviveLimit isnt -1
-    return reviveLimit + @vipOperation('appendRevive')
+  getReviveLimit: (reviveLimit) ->
+      return -1 unless reviveLimit? and  reviveLimit isnt -1
+      return reviveLimit + @vipOperation('appendRevive')
   getPkCoolDown: () ->
     if @counters.addPKCount? and @counters.addPKCount > 0
       return 0

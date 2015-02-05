@@ -482,7 +482,7 @@ class Dungeon
            .next({id: 'ResultCheck'})
         cmd.process()
       when DUNGEON_ACTION_REVIVE
-        if @revive >= @getReviveLimit(@config.reviveLimit)
+        if @revive >= @reviveLimit
           ret = [{NTF:Event_DungeonExit}]
         else
           @revive++
