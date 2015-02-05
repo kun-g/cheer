@@ -252,7 +252,7 @@ function handler_doBuyEnergy(arg, player, handler, rpcID) {
         handler(new Error(RET_DungeonNotExist));
         return;
       }
-      diamondCost = buyReviveCost(player.dungeon.revive, 0); 
+      diamondCost = buyReviveCost(player.dungeon.revive, 0,player.vipOperation('reviveBasePrice')); 
       break;
   }
   var evt = [];

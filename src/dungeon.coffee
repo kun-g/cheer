@@ -482,7 +482,7 @@ class Dungeon
            .next({id: 'ResultCheck'})
         cmd.process()
       when DUNGEON_ACTION_REVIVE
-        if @revive >= (@config.reviveLimit ? Infinity)
+        if @revive >= @getReviveLimit(@config.reviveLimit)
           ret = [new Error(RET_ReviveLimit)]
         else
           @revive++

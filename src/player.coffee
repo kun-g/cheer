@@ -696,7 +696,8 @@ class Player extends DBWrapper
           infiniteLevel: level,
           blueStar: blueStar,
           abIndex: @abIndex,
-          team: team.map(getBasicInfo)
+          team: team.map(getBasicInfo),
+          getReviveLimit: @getReviveLimit
         }
 
         @dungeonData.randSeed = rand()
@@ -1228,14 +1229,16 @@ class Player extends DBWrapper
       when 'tuHaoCount' then return cfg?.privilege?.tuHaoCount ? 3
       when 'EquipmentRobbers' then return cfg?.privilege?.EquipmentRobbers ? 3
       when 'EvilChieftains' then return cfg?.privilege?.EvilChieftains ? 3
-      when 'blueStarCost' then return cfg?.blueStarCost ? 0
-      when 'goldAdjust' then return cfg?.goldAdjust ? 0
-      when 'expAdjust' then return cfg?.expAdjust ? 0
-      when 'wxpAdjust' then return cfg?.wxpAdjust ? 0
-      when 'energyLimit' then return (cfg?.energyLimit ? 0) + ENERGY_MAX
-      when 'freeEnergyTimes' then return cfg?.freeEnergyTimes ? 0
-      when 'dayEnergyBuyTimes' then return cfg?.dayEnergyBuyTimes ? 4
-      when 'energyPrize' then return cfg?.energyPrize ? 1
+      when 'blueStarCost' then return cfg?.privilege?.blueStarCost ? 0
+      when 'goldAdjust' then return cfg?.privilege?.goldAdjust ? 0
+      when 'expAdjust' then return cfg?.privilege?.expAdjust ? 0
+      when 'wxpAdjust' then return cfg?.privilege?.wxpAdjust ? 0
+      when 'energyLimit' then return (cfg?.privilege?.energyLimit ? 0) + ENERGY_MAX
+      when 'freeEnergyTimes' then return cfg?.privilege?.freeEnergyTimes ? 0
+      when 'dayEnergyBuyTimes' then return cfg?.privilege?.dayEnergyBuyTimes ? 4
+      when 'energyPrize' then return cfg?.privilege?.energyPrize ? 1
+      when 'appendRevive' then return cfg?.privilege?.appendRevive ? 0
+      when 'reviveBasePrice' then return cfg?.privilege?.reviveBasePrice ? 60
 
   vipLevel: () -> @vipOperation('vipLevel')
   getBlueStarCost: () -> @vipOperation('blueStarCost')
@@ -1249,6 +1252,9 @@ class Player extends DBWrapper
     @counters.addPKCount = 0 unless @counters.addPKCount?
     return @counters.addPKCount
 
+  getReviveLimit:(reviveLimit) =>
+    return -1 unless reviveLimit? and  reviveLimit isnt -1
+    return reviveLimit + @vipOperation('appendRevive')
   getPkCoolDown: () ->
     if @counters.addPKCount? and @counters.addPKCount > 0
       return 0
@@ -1720,20 +1726,23 @@ class Player extends DBWrapper
     return ev
 
   syncVipData: (forceUpdate) ->
-    ev = {
+    vipOp = [
+      "freeEnergyTimes", "dayEnergyBuyTimes", "energyPrize",
+      "reviveBasePrice", "appendRevive"
+    ].reduce((acc, opName) =>
+      acc[opName] = @vipOperation(opName)
+      return acc
+    ,{})
+
+    return {
       NTF:Event_RoleUpdate,
       arg:{
         act:{
           vip:@vipLevel(),
-          vipOp:{
-            freeEnergyTimes:@vipOperation('freeEnergyTimes'),
-            dayEnergyBuyTimes:@vipOperation('dayEnergyBuyTimes'),
-            energyPrize:@vipOperation('energyPrize')
-          }
+          vipOp:vipOp
         }
       }
     }
-    return ev
   syncDungeon: (forceUpdate) ->
     dungeon = this.dungeon
     if dungeon == null then return []
