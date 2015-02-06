@@ -73,6 +73,7 @@ class Player extends DBWrapper
       #TODO: hero is duplicated
       hero: {},
 
+      invitee: [],
       stage: [],
       quests: {},
 
@@ -382,6 +383,8 @@ class Player extends DBWrapper
         @counters['monthCard'] = 30
         ret = ret.concat(@syncEvent())
       @rmb += cfg.price
+      #TODO: Deliver Diamonds to Invitor and Invitee
+
       @onCampaign('RMB', rec.productID)
       ret.push({NTF: Event_PlayerInfo, arg: { rmb: @rmb, mcc: @counters.monthCard}})
       ret.push(@syncVipData())
@@ -1518,6 +1521,8 @@ class Player extends DBWrapper
           else if msg.type is MESSAGE_TYPE_ChargeDiamond
             dbLib.removeMessage(me.name, msg.messageID)
             me.handlePayment(msg, cb)
+          else if msg.type is MESSAGE_TYPE_InvitationAccept
+            me.invitee.push(msg.name)
           else
             cb(err, msg)
         , (err, msg) ->
