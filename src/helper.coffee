@@ -314,7 +314,7 @@ actCampaign = (me, key, config, handler) ->
       if Array.isArray(quest)
         quest = quest[me[key].step]
       stage = queryTable(TABLE_QUEST, quest).stage ? 1
-      if stage? then return me.startDungeon(stage, true, handler)
+      if stage? then return me.startDungeon(stage, true, null, null,  handler)
     when 'Complete'
       if me[key].step < config[key].steps
         prize = me[key].stepPrize[me[key].step]
