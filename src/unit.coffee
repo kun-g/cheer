@@ -267,7 +267,7 @@ class Mirror extends Unit
       transId = 'pkTransId'
 
     else
-      @blockType = Unit_Hero
+      @blockType = Block_Hero
       @isVisible = true
       @keyed = false
       transId = 'teammateTransId'
