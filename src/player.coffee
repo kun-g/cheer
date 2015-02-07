@@ -1319,7 +1319,8 @@ class Player extends DBWrapper
     else
       dbLib.incrBluestarBy(name, -@getBlueStarCost(), wrapCallback(this,(err, left) ->
         getPlayerHero(name, wrapCallback(this, (err, heroData) ->
-          hero = new Hero(heroData)
+          #hero = new Hero(heroData)
+          hero = heroData
           hero.isFriend = true
           hero.leftBlueStar = left
           @mercenary.splice(0, 0, hero)
