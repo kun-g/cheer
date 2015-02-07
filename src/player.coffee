@@ -199,6 +199,7 @@ class Player extends DBWrapper
     if diffDate(@lastLogin) > 0
       @purchasedCount = {}
       @counters.energyRecover = 0
+      @counters.friendHireTime ={}
     @lastLogin = currentTime()
     if gGlobalPrize?
       for key, prize of gGlobalPrize when not @globalPrizeFlag[key]
@@ -636,7 +637,18 @@ class Player extends DBWrapper
     ret = ret.concat(@claimDungeonReward(@dungeon)) if @dungeon.result?
     return ret
 
-  startDungeon: (stage, startInfoOnly, pkr=null, handler) ->
+  updateFriendHiredInfo: (nameLst) ->
+   @counters.friendHireTime ?={}
+   for hero in nameLst
+     name = hero.name
+     if @contactBook?
+       if @contactBook.book.indexOf(name) isnt -1
+         @counters.friendHireTime[name] ?= 0
+         @counters.friendHireTime[name] += 1
+
+   
+
+  startDungeon: (stage, startInfoOnly, selectedTeam, pkr=null, handler) ->
     stageConfig = queryTable(TABLE_STAGE, stage, @abIndex)
     dungeonConfig = queryTable(TABLE_DUNGEON, stageConfig.dungeon, @abIndex)
     unless stageConfig? and dungeonConfig?
@@ -664,7 +676,14 @@ class Player extends DBWrapper
             return newHero
         ))
         if teamCount > team.length
-          if mercenary.length >= teamCount-team.length
+          leftTeamCount = teamCount-team.length
+          if Array.isArray(selectedTeam) and selectedTeam.length >=leftTeamCount
+            temp = []
+            temp.push(mercenary[idx]) for idx in selectedTeam
+            @updateFriendHiredInfo(temp)
+            team = team.concat(temp)
+            @mercenary = []
+          else if mercenary.length >= leftTeamCount
             team = team.concat(mercenary.splice(0, teamCount-team.length))
             @mercenary = []
           else
@@ -696,7 +715,8 @@ class Player extends DBWrapper
           infiniteLevel: level,
           blueStar: blueStar,
           abIndex: @abIndex,
-          team: team.map(getBasicInfo)
+          team: team.map(getBasicInfo),
+          reviveLimit: @getReviveLimit(dungeonConfig.reviveLimit)
         }
 
         @dungeonData.randSeed = rand()
@@ -932,6 +952,7 @@ class Player extends DBWrapper
             ret = ret.concat(this.removeItemById(item.dropKey, 1, true)) if item.dropKey?
             return {prize: prz, res: ret}
           when ItemUse_Function
+            return {ret: RET_UseItemFailed} if [5,1475,1617].indexOf(+item.classId) isnt -1 #暂时规避时装碎片可使用的BUG
             ret = @removeItem(null, 1, slot)
             switch item.function
               when 'recoverEnergy'
@@ -1228,14 +1249,16 @@ class Player extends DBWrapper
       when 'tuHaoCount' then return cfg?.privilege?.tuHaoCount ? 3
       when 'EquipmentRobbers' then return cfg?.privilege?.EquipmentRobbers ? 3
       when 'EvilChieftains' then return cfg?.privilege?.EvilChieftains ? 3
-      when 'blueStarCost' then return cfg?.blueStarCost ? 0
-      when 'goldAdjust' then return cfg?.goldAdjust ? 0
-      when 'expAdjust' then return cfg?.expAdjust ? 0
-      when 'wxpAdjust' then return cfg?.wxpAdjust ? 0
-      when 'energyLimit' then return (cfg?.energyLimit ? 0) + ENERGY_MAX
-      when 'freeEnergyTimes' then return cfg?.freeEnergyTimes ? 0
-      when 'dayEnergyBuyTimes' then return cfg?.dayEnergyBuyTimes ? 4
-      when 'energyPrize' then return cfg?.energyPrize ? 1
+      when 'blueStarCost' then return cfg?.privilege?.blueStarCost ? 0
+      when 'goldAdjust' then return cfg?.privilege?.goldAdjust ? 0
+      when 'expAdjust' then return cfg?.privilege?.expAdjust ? 0
+      when 'wxpAdjust' then return cfg?.privilege?.wxpAdjust ? 0
+      when 'energyLimit' then return (cfg?.privilege?.energyLimit ? 0) + ENERGY_MAX
+      when 'freeEnergyTimes' then return cfg?.privilege?.freeEnergyTimes ? 0
+      when 'dayEnergyBuyTimes' then return cfg?.privilege?.dayEnergyBuyTimes ? 4
+      when 'energyPrize' then return cfg?.privilege?.energyPrize ? 1
+      when 'appendRevive' then return cfg?.privilege?.appendRevive ? 0
+      when 'reviveBasePrice' then return cfg?.privilege?.reviveBasePrice ? 60
 
   vipLevel: () -> @vipOperation('vipLevel')
   getBlueStarCost: () -> @vipOperation('blueStarCost')
@@ -1249,6 +1272,9 @@ class Player extends DBWrapper
     @counters.addPKCount = 0 unless @counters.addPKCount?
     return @counters.addPKCount
 
+  getReviveLimit: (reviveLimit) ->
+      return -1 unless reviveLimit? and  reviveLimit isnt -1
+      return reviveLimit + @vipOperation('appendRevive')
   getPkCoolDown: () ->
     if @counters.addPKCount? and @counters.addPKCount > 0
       return 0
@@ -1293,7 +1319,8 @@ class Player extends DBWrapper
     else
       dbLib.incrBluestarBy(name, -@getBlueStarCost(), wrapCallback(this,(err, left) ->
         getPlayerHero(name, wrapCallback(this, (err, heroData) ->
-          hero = new Hero(heroData)
+          #hero = new Hero(heroData)
+          hero = heroData
           hero.isFriend = true
           hero.leftBlueStar = left
           @mercenary.splice(0, 0, hero)
@@ -1538,13 +1565,23 @@ class Player extends DBWrapper
       callback(@mercenary.map( (h) -> new Hero(h)))
     else
       #// TODO: range  & count to config
+      validateFriend = []
+      @counters.friendHireTime ?={}
       filtedName = [@name]
       filtedName = filtedName.concat(@mercenary.map((m) -> m.name))
-      if @contactBook? then filtedName = filtedName.concat(@contactBook.book)
-      getMercenaryMember(@name, 2, 30, 1, filtedName,
+      if @contactBook?
+        filtedName = filtedName.concat(@contactBook.book)
+        validateFriend = underscore.sample(@contactBook.book.filter((name) =>
+          times = @counters.friendHireTime[name]
+          res = not times? or times < 1
+          return res
+        ),5)
+
+      getMercenaryMember(@name, 5, 30, 1, filtedName,validateFriend
         (err, heroData) ->
           if heroData
-            me.mercenary = me.mercenary.concat(heroData)
+            me.mercenary = me.mercenary.concat(heroData.filter((e) -> e?))
+            me.mercenary = underscore.uniq(me.mercenary,false, (obj) -> obj.name)
             me.requireMercenary(callback)
           else
             callback(null)
@@ -1632,7 +1669,7 @@ class Player extends DBWrapper
     filtedName = [@name]
     filtedName = filtedName.concat(@mercenary.map((m) -> m.name))
     filtedName = filtedName.concat(@contactBook.book) if @contactBook?.book?
-    getMercenaryMember(myName , 1, 30, 1, filtedName,
+    getMercenaryMember(myName , 1, 30, 1, filtedName,[]
       (err, heroData) ->
         if heroData
           me.mercenary.splice(id, 1, heroData[0])
@@ -1720,20 +1757,23 @@ class Player extends DBWrapper
     return ev
 
   syncVipData: (forceUpdate) ->
-    ev = {
+    vipOp = [
+      "freeEnergyTimes", "dayEnergyBuyTimes", "energyPrize",
+      "reviveBasePrice", "appendRevive"
+    ].reduce((acc, opName) =>
+      acc[opName] = @vipOperation(opName)
+      return acc
+    ,{})
+
+    return {
       NTF:Event_RoleUpdate,
       arg:{
         act:{
           vip:@vipLevel(),
-          vipOp:{
-            freeEnergyTimes:@vipOperation('freeEnergyTimes'),
-            dayEnergyBuyTimes:@vipOperation('dayEnergyBuyTimes'),
-            energyPrize:@vipOperation('energyPrize')
-          }
+          vipOp:vipOp
         }
       }
     }
-    return ev
   syncDungeon: (forceUpdate) ->
     dungeon = this.dungeon
     if dungeon == null then return []

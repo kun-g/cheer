@@ -625,6 +625,9 @@ translate_with = function(language,keyword,args){
     var text = "";
     if (local[language] != null && local[language][keyword] != null){
         text = local[language][keyword];
+        if(args != null && !Array.isArray(args)) {
+            args = [args];
+        }
         for (var k in args){
             var num = +k + 1;
             var str = "{#" + num.toString() +  "}";
@@ -644,8 +647,7 @@ buyEnergyCost = function(times, freeTimes, cost){
     return {prize:prize, add:BUY_ENERGY_VALUE};
 }
 
-buyReviveCost = function(times,freeTimes){
-  base = 60;
+buyReviveCost = function(times,freeTimes,base){
   if (times < freeTimes) return 0 ;
 
   step = base ;
@@ -777,6 +779,7 @@ Event_ForgeUpdate = 7;
 Event_UpdateStoreInfo = 10;
 Event_Fail = 11;
 Event_UpdateQuest = 19;
+Event_DungeonExit = 31;
 
 exports.fileVersion = -1;
 

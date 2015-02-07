@@ -99,11 +99,12 @@ getPlayerHero = (name, callback) ->
   ])
 exports.getPlayerHero = getPlayerHero
 
-exports.getMercenaryMember = (name, count, range, delta, names, handler) ->
+exports.getMercenaryMember = (name, count, range, delta, names, appendNames, handler) ->
   heros = []
   dbLib.findMercenary(name, count, range, delta, names,
     (err, heroNames) =>
-      if heroNames
+      heroNames = appendNames.concat(heroNames)
+      if heroNames.length > 0
         async.eachSeries(
           heroNames,
           (e, cb) ->
