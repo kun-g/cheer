@@ -336,7 +336,10 @@ class Player extends DBWrapper
     @counters['worldBoss'] ={} unless @counters['worldBoss']?
 
     if @isNewPlayer then @isNewPlayer = false
-
+    unless @invitation
+      helperLib.newInvitation(@name, (err, res) =>
+        @invitation = res.code
+      )
 
     @inventory.validate()
 
