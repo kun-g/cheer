@@ -383,7 +383,32 @@ class Player extends DBWrapper
         @counters['monthCard'] = 30
         ret = ret.concat(@syncEvent())
       @rmb += cfg.price
-      #TODO: Deliver Diamonds to Invitor and Invitee
+      if @inviter
+        dbLib.deliverMessage(
+          @inviter,
+          {
+            type: MESSAGE_TYPE_SystemReward,
+            src: MESSAGE_REWARD_TYPE_SYSTEM,
+            prize: [{
+              type:PRIZETYPE_DIAMOND,
+              count: Math.floor(cfg.price * 0.1)
+            }],
+            tit: "招募队友充值奖励",
+            txt: "因为你招募的队友"+@name+"充值，你获得了以下奖励:"
+          })
+
+      for name in @invitee
+        dbLib.deliverMessage(name,
+          {
+            type: MESSAGE_TYPE_SystemReward,
+            src: MESSAGE_REWARD_TYPE_SYSTEM,
+            prize: [{
+              type:PRIZETYPE_DIAMOND,
+              count: Math.floor(cfg.price * 0.1)
+            }],
+            tit: "招募队友充值奖励",
+            txt: "因为你的招募者"+@name+"充值，你获得了以下奖励:"
+          })
 
       @onCampaign('RMB', rec.productID)
       ret.push({NTF: Event_PlayerInfo, arg: { rmb: @rmb, mcc: @counters.monthCard}})

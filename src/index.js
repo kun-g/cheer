@@ -367,6 +367,8 @@ function paymentHandler (request, response) {
         var dbConfig = queryTable(TABLE_CONFIG, "DB_Config");
         var svConfig = queryTable(TABLE_CONFIG, "Server_Config");
         var ipConfig = queryTable(TABLE_CONFIG, "IP_Config");
+        helperLib.server = queryTable(TABLE_CONFIG, "Redeem_Config").ip;
+        helperLib.port = queryTable(TABLE_CONFIG, "Redeem_Config").port;
 
         ServerNames = [];
         for (var k in svConfig) {
