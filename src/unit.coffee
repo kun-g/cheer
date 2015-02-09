@@ -267,7 +267,7 @@ class Mirror extends Unit
       transId = 'pkTransId'
 
     else
-      @blockType = Unit_Hero
+      @blockType = Block_Hero
       @isVisible = true
       @keyed = false
       transId = 'teammateTransId'
@@ -371,7 +371,11 @@ createUnit = (config) ->
 exports.Hero = Hero
 exports.Mirror = (config, type = 'pk') ->
   if canMirror(config.cid, type)
-    new Mirror(config, type)
+    if type is 'pk'
+      return new Mirror(config, type)
+    else
+      #return new Teammate(config)
+      return new Mirror(config, type)
   else
     new Hero(config)
 
