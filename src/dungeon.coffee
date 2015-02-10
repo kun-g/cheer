@@ -3,7 +3,7 @@ require('./define')
 require('./shared')
 {Wizard} = require './spell'
 {DBWrapper} = require './dbWrapper'
-{createUnit, Hero, Mirror} = require './unit'
+{createUnit, Hero, Teammate} = require './unit'
 {Item, Card} = require './item'
 {CommandStream, Environment } = require('./commandStream')
 {Bag, CardStack} = require('./container')
@@ -294,23 +294,22 @@ class Dungeon
     team = [] unless team
     ref = 0
     this.heroes = team.map((e) ->
+      data = {
+        name: e.nam,
+        class: e.cid,
+        gender: e.gen,
+        hairStyle: e.hst,
+        hairColor: e.hcl,
+        equipment: e.itm,
+        xp: e.exp,
+        order: ref,
+        ref :ref++
+      }
+
       if e.notMirror
-        data = {
-          name: e.nam,
-          class: e.cid,
-          gender: e.gen,
-          hairStyle: e.hst,
-          hairColor: e.hcl,
-          equipment: e.itm,
-          xp: e.exp,
-          order: ref,
-          ref :ref++
-        }
         return new Hero(data)
       else
-        e.order = ref
-        e.ref = ref++
-        new Mirror(e, 'teammate')
+        return new Teammate(data)
     )
     dummyHero = new Hero({})
     dummyHero.health =0
@@ -756,17 +755,26 @@ class Level
       str = '  '
       for i, e of row
         switch (e)
-          when 0 then str += '  '
-          when 1 then str += 'O '
-          when 2 then str += 'X '
-          when 3 then str += 'N '
-          when 5 then str += 'D '
-          when 10 then str += 'H '
+          when 0 then str += '  '    #Block_Empty = 0;
+          when 1 then str += 'O '    #Block_Exit = 1; 
+          when 2 then str += 'X '    #Block_Enemy = 2;
+          when 3 then str += 'N '    #Block_Npc = 3;
+          when 4 then str += '8 '    #Block_LockedExit = 4;
+          when 5 then str += 'D '    #Block_TreasureBox = 5;
+          when 10 then str += 'H '    #Block_Hero = 10;      '
           when 6
             str += y*Dungeon_Width+i/2
             if y*Dungeon_Width+i/2 < 10 then str+=' '
           else str += e+' '
       console.log(str)
+
+
+
+
+
+
+
+
 
 
 class DungeonEnvironment extends Environment

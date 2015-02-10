@@ -174,7 +174,8 @@ class Unit extends Wizard
             @unitAppearance[k] = this.appearance[k]
             this.appearance[k] = v
         when 'install_skill'
-          @suitSkill.push({id: u.id, level: u.level})
+          id = if @isTeammate then u.asTeammate else u.id
+          @suitSkill.push({id: id, level: u.level})
 
   caculateUnitPro: () ->
     return false unless @uniform?
@@ -190,14 +191,10 @@ class Unit extends Wizard
     @clearUnitPro()
     for k, v of suitArr
       for l, s of v
-        if isNaN(parseInt(l, 10)) == false and parseInt(l, 10) <= v.count
+        if +l <= v.count
           @addUnitPro(s)
 
-    for k, v of @unitProperty
-      if this[k]?
-        this[k] += v
-      else
-        this[k] = v
+    @modifyProperty(@unitProperty)
 
   equip: (equipItem) ->
     @gearDown()
@@ -254,27 +251,26 @@ class Hero extends Unit
 
   isHero: () -> true
 
+class Teammate extends Hero
+  constructor:(heroData) ->
+    cfg = queryTable(TABLE_ROLE, heroData.class)
+    cid = cfg.teammateTransId
+    newHeroData = _.extend(heroData, {class:cid,isTeammate:true})
+    super(newHeroData)
+ 
 class Mirror extends Unit
-  constructor: (heroData, type) ->
+  constructor: (heroData) ->
     super
     return false unless heroData?
 
     @type = Unit_Mirror
-    if type is 'pk'
-      @blockType = Block_Enemy
-      @isVisible = false
-      @keyed = true
-      transId = 'pkTransId'
+    @blockType = Block_Enemy
+    @isVisible = false
+    @keyed = true
 
-    else
-      @blockType = Block_Hero
-      @isVisible = true
-      @keyed = false
-      transId = 'teammateTransId'
+    @initialize(heroData)
 
-    @initialize(heroData, transId)
-
-  initialize: (heroData, transId) ->
+  initialize: (heroData) ->
     hero = new Hero({
       name: heroData.nam,
       class: heroData.cid,
@@ -287,7 +283,7 @@ class Mirror extends Unit
     battleForce = hero.calculatePower()
 
     cfg = queryTable(TABLE_ROLE, heroData.cid)
-    cid = cfg[transId]
+    cid = cfg.pkTransId
     cfg = queryTable(TABLE_ROLE, cid)
     @initWithConfig(cfg) if cfg?
     @class = cid
@@ -369,15 +365,13 @@ createUnit = (config) ->
     when Unit_Hero then return new exports.Mirror(config)
 
 exports.Hero = Hero
-exports.Mirror = (config, type = 'pk') ->
-  if canMirror(config.cid, type)
+exports.Mirror = (config) ->
+  if canMirror(config.cid, 'pk')
     if type is 'pk'
-      return new Mirror(config, type)
-    else
-      #return new Teammate(config)
       return new Mirror(config, type)
   else
     new Hero(config)
 
+exports.Teammate = Teammate
 exports.createUnit = createUnit
 exports.fileVersion = -1
