@@ -23,10 +23,14 @@ class Unit extends Wizard
     return if ret then ret else 0
 
 
-  levelUp: () ->
+  getLevelId: () ->
     roleConfig = queryTable(TABLE_ROLE, @class) if @class?
     return false unless roleConfig?.levelId?
-    lvConfig = queryTable(TABLE_LEVEL, roleConfig.levelId)
+    return roleConfig.levelId
+  levelUp: () ->
+    levelId = @getLevelId()
+    return false if levelId is false
+    lvConfig = queryTable(TABLE_LEVEL, levelId)
     cfg = lvConfig.levelData
 
     while cfg[@level]?.xp <= @xp
@@ -253,11 +257,13 @@ class Hero extends Unit
 
 class Teammate extends Hero
   constructor:(heroData) ->
-    cfg = queryTable(TABLE_ROLE, heroData.class)
-    cid = cfg.teammateTransId
-    newHeroData = _.extend(heroData, {class:cid,isTeammate:true})
+    newHeroData = _.extend(heroData, {isTeammate:true})
     super(newHeroData)
  
+  getLevelId:() ->
+    cfg = queryTable(TABLE_ROLE, @class)
+    return cfg.teammateLevelId
+
 class Mirror extends Unit
   constructor: (heroData) ->
     super
@@ -367,8 +373,7 @@ createUnit = (config) ->
 exports.Hero = Hero
 exports.Mirror = (config) ->
   if canMirror(config.cid, 'pk')
-    if type is 'pk'
-      return new Mirror(config, type)
+    return new Mirror(config)
   else
     new Hero(config)
 
