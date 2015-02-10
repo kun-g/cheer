@@ -776,14 +776,16 @@ exports.route = {
     id: 40,
     func: (arg, player, handler, rpcID, socket) ->
       resMessage = []
+      ret = {REQ: rpcID, RET: RET_RedeemFailed, prize:[]}
       async.waterfall(
         [
           (cb) -> helperLib.redeemCode.redeem(arg.code, cb),
           (config, cb) ->
-            if config.redeem then return cb("Redeemed Code")
+            return cb("Redeemed Code") if config.redeemed is true
             switch Number(config.type)
               when CodeType_Prize
                 resMessage = player.claimPrize(result.prize)
+                ret.prize = result.prize
               when CodeType_Invitation
                 if player.inviter or player.invitee.indexOf(config.inviter)
                   break
@@ -802,7 +804,11 @@ exports.route = {
         ],
         (err, res) ->
           logInfo({action: 'Redeem', code: arg.code, err: err})
-          handler([{REQ: rpcID, RET: RET_OK}.concat(resMessage)])
+          if err
+            handler(ret)
+          else
+            ret.RET = RET_OK
+            handler([ret].concat(resMessage))
       )
     ,
     args: {'code':'string'},
