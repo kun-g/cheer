@@ -773,7 +773,7 @@ exports.route = {
     needPid: true
   },
   Request_Redeem: {
-    id: 39,
+    id: 40,
     func: (arg, player, handler, rpcID, socket) ->
       resMessage = []
       async.waterfall(

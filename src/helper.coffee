@@ -432,7 +432,7 @@ exports.observers = {
 
 exports.redeemCode = {
   server: "localhost"
-  port: 3000
+  port: 3100
 
   redeem: (code, callback) ->
     path = 'http://'+this.server+':'+this.port+'/code/'+code+'/redeem'
