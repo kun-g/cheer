@@ -434,6 +434,10 @@ exports.redeemCode = {
   server: "localhost"
   port: 3100
 
+  setServer: (ip, port) ->
+    if ip? then this.server = ip
+    if port? then this.port = port
+
   redeem: (code, callback) ->
     path = 'http://'+this.server+':'+this.port+'/code/'+code+'/redeem'
     http.get(path, (res) ->
