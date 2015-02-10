@@ -211,6 +211,9 @@ class Player extends DBWrapper
       for s in @stage when s and s.level?
         s.level = 0
 
+    #for test iap leaderboard
+    #@handleReceipt({productID:'com.tringame.pocketdungeon.pay12',paymentType:'test',receipt:'0000008401001423555722Teebik'}, 'test', console.log)
+    #end
     @onCampaign('RMB')
 
     flag = campaign_LoginStreak.isActive(this,  currentTime())
@@ -332,7 +335,7 @@ class Player extends DBWrapper
     @installObserver('stageChanged')
     @installObserver('winningAnPVP')
     @installObserver('onChargeDiamond')
-    @installObserver('onBuySomeThing')
+    @installObserver('onBuyTreasures')
     
 
 
@@ -355,6 +358,7 @@ class Player extends DBWrapper
       @updateStageStatus()
       @stageTableVersion = queryTable(TABLE_VERSION, 'stage')
     @loadDungeon()
+
 
   handleReceipt: (payment, tunnel, cb) ->
     productList = queryTable(TABLE_IAP, 'list')
@@ -389,7 +393,7 @@ class Player extends DBWrapper
       @rmb += cfg.price
       @onCampaign('RMB', rec.productID)
       @counters.chargeDiamond ?= 0
-      @counters.chargeDiamond += cfg.price
+      @counters.chargeDiamond += cfg.gem
       @notify('onChargeDiamond')
       ret.push({NTF: Event_PlayerInfo, arg: { rmb: @rmb, mcc: @counters.monthCard}})
       ret.push(@syncVipData())
