@@ -435,6 +435,89 @@ exports.observers = {
     exports.assignLeaderboard(obj, exports.LeaderboardIdx.BuyLikeWomen)
   onRestWorldBossCounter: (obj, arg) ->
 }
+
+exports.redeemCode = {
+  server: "localhost"
+  port: 3100
+
+  setServer: (ip, port) ->
+    if ip? then this.server = ip
+    if port? then this.port = port
+
+  redeem: (code, callback) ->
+    path = 'http://'+this.server+':'+this.port+'/code/'+code+'/redeem'
+    http.get(path, (res) ->
+      res.setEncoding('utf8')
+      res.on('data', (chunk) ->
+        result = JSON.parse(chunk)
+        if result.error is "OK"
+          callback(null, result.result)
+        else
+          callback(Error(RET_RedeemFailed))
+      )
+    ).on('error', callback)
+
+  newInvitation: (playerName, callback) ->
+    config = {
+      type: CodeType_Invitation,
+      inviter: playerName
+    }
+
+    this.new(config, callback)
+
+  new: (config, callback) ->
+    strBody = JSON.stringify(config)
+
+    options = {
+      host: this.server,
+      port: this.port,
+      method: 'POST',
+      path: '/code/generate',
+      headers:
+        'Content-Type': 'application/json'
+        'Content-Length': strBody.length
+    }
+    req = http.request(options, (res) ->
+      res.setEncoding('utf8')
+      res.on('data', (chunk) ->
+        result = JSON.parse(chunk)
+        if result.error is "OK"
+          callback(null, result.result)
+        else
+          callback(Error(RET_ServerError))
+      )
+    )
+    req.on('error', callback)
+    req.write(strBody)
+    req.end()
+
+  update: (code, config, callback) ->
+    strBody = JSON.stringify(config)
+
+    options = {
+      host: this.server,
+      port: this.port,
+      method: 'POST',
+      path: '/code/'+code+'/update',
+      headers:
+        'Content-Type': 'application/json'
+        'Content-Length': strBody.length
+    }
+    req = http.request(options, (res) ->
+      res.setEncoding('utf8')
+      res.on('data', (chunk) ->
+        result = JSON.parse(chunk)
+        if result.error is "OK"
+          callback(null, result.result)
+        else
+          callback(Error(RET_ServerError))
+      )
+    )
+    req.on('error', callback)
+    req.write(strBody)
+    req.end()
+}
+
 exports.initObserveration = (obj) ->
   obj.observers = {}
   obj.installObserver = (event) -> obj.observers[event] = exports.observers[event]

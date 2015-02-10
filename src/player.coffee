@@ -73,6 +73,7 @@ class Player extends DBWrapper
       #TODO: hero is duplicated
       hero: {},
 
+      invitee: [],
       stage: [],
       quests: {},
 
@@ -343,7 +344,10 @@ class Player extends DBWrapper
     @counters['worldBoss'] ={} unless @counters['worldBoss']?
 
     if @isNewPlayer then @isNewPlayer = false
-
+    unless @invitation
+      helperLib.newInvitation(@name, (err, res) =>
+        @invitation = res.code
+      )
 
     @inventory.validate()
 
@@ -391,6 +395,33 @@ class Player extends DBWrapper
         @counters['monthCard'] = 30
         ret = ret.concat(@syncEvent())
       @rmb += cfg.price
+      if @inviter
+        dbLib.deliverMessage(
+          @inviter,
+          {
+            type: MESSAGE_TYPE_SystemReward,
+            src: MESSAGE_REWARD_TYPE_SYSTEM,
+            prize: [{
+              type:PRIZETYPE_DIAMOND,
+              count: Math.floor(cfg.price * 0.1)
+            }],
+            tit: "招募队友充值奖励",
+            txt: "因为你招募的队友"+@name+"充值，你获得了以下奖励:"
+          })
+
+      for name in @invitee
+        dbLib.deliverMessage(name,
+          {
+            type: MESSAGE_TYPE_SystemReward,
+            src: MESSAGE_REWARD_TYPE_SYSTEM,
+            prize: [{
+              type:PRIZETYPE_DIAMOND,
+              count: Math.floor(cfg.price * 0.1)
+            }],
+            tit: "招募队友充值奖励",
+            txt: "因为你的招募者"+@name+"充值，你获得了以下奖励:"
+          })
+
       @onCampaign('RMB', rec.productID)
       @counters.chargeDiamond ?= 0
       @counters.chargeDiamond += cfg.gem
@@ -1549,6 +1580,8 @@ class Player extends DBWrapper
           else if msg.type is MESSAGE_TYPE_ChargeDiamond
             dbLib.removeMessage(me.name, msg.messageID)
             me.handlePayment(msg, cb)
+          else if msg.type is MESSAGE_TYPE_InvitationAccept
+            me.invitee.push(msg.name)
           else
             cb(err, msg)
         , (err, msg) ->
