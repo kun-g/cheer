@@ -331,7 +331,11 @@ class Player extends DBWrapper
     @installObserver('countersChanged')
     @installObserver('stageChanged')
     @installObserver('winningAnPVP')
+    @installObserver('onChargeDiamond')
+    @installObserver('onBuySomeThing')
     
+
+
     helperLib.assignLeaderboard(@,helperLib.LeaderboardIdx.Arena)
     @counters['worldBoss'] ={} unless @counters['worldBoss']?
 
@@ -384,6 +388,9 @@ class Player extends DBWrapper
         ret = ret.concat(@syncEvent())
       @rmb += cfg.price
       @onCampaign('RMB', rec.productID)
+      @counters.chargeDiamond ?= 0
+      @counters.chargeDiamond += cfg.price
+      @notify('onChargeDiamond')
       ret.push({NTF: Event_PlayerInfo, arg: { rmb: @rmb, mcc: @counters.monthCard}})
       ret.push(@syncVipData())
       postPaymentInfo(@createHero().level, myReceipt, payment.paymentType)
@@ -1752,6 +1759,7 @@ class Player extends DBWrapper
         act:getBasicInfo(@createHero())
       }
     }
+    ev.arg.act.notMirror = true
     if forceUpdate then ev.arg.clr = true
     
     return ev
@@ -1901,6 +1909,10 @@ class Player extends DBWrapper
       return { ret: RET_InventoryFull }
     prize = prize.concat(evt)
     @log('lottery', {type: 'lotteryFragment', prize: prize})
+
+    @counters.buyTreasureTimes ?= 0
+    @counters.buyTreasureTimes += count
+    @notify('onBuyTreasures')
     return {prize: prz, res: prize, ret: RET_OK}
 
   getFragTimeCD: (type) ->

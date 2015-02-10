@@ -409,6 +409,8 @@ exports.LeaderboardIdx = {
   KillingMonster : 2
   Arena : 3
   WorldBoss : 4
+  TopTenRich :5
+  BuyLikeWomen : 6
 }
 
 exports.observers = {
@@ -427,9 +429,12 @@ exports.observers = {
   winningAnPVP: (obj, arg) ->
     #TODO:
     exports.assignLeaderboard(obj, exports.LeaderboardIdx.Arena)
+  onChargeDiamond: (obj, arg) ->
+    exports.assignLeaderboard(obj, exports.LeaderboardIdx.TopTenRich)
+  onBuyTreasures: (obj, arg) ->
+    exports.assignLeaderboard(obj, exports.LeaderboardIdx.BuyLikeWomen)
   onRestWorldBossCounter: (obj, arg) ->
 }
-
 exports.initObserveration = (obj) ->
   obj.observers = {}
   obj.installObserver = (event) -> obj.observers[event] = exports.observers[event]
