@@ -453,7 +453,7 @@ exports.redeemCode = {
         if result.error is "OK"
           callback(null, result.result)
         else
-          callback(Error(RET_SameMessageExist)) #TODO: proper Error message
+          callback(Error(RET_RedeemFailed))
       )
     ).on('error', callback)
 
