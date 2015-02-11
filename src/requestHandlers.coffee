@@ -601,7 +601,7 @@ exports.route = {
     args: {},
     needPid: true
   },
-  RPC_SubmitBounty: {
+  RPC_MonthcardAward: {
     id: 31,
     func: (arg, player, handler, rpcID, socket) ->
       switch arg.bid
