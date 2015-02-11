@@ -1,3 +1,4 @@
+var moment = require('moment');
 function Shop() {
   this.version = 0;
   this.stock = [];
@@ -28,6 +29,13 @@ Shop.prototype.sellProduct = function (index, count, version, player) {
       } else if (count > p.limit.count) {
         count = p.limit.count;
       }
+    }
+    var dateLimit = p.limit.date;
+    if ( dateLimit != null) {
+        var nowTime = moment();
+        if (! (nowTime.diff(moment(dateLimit.begin)) >0 && nowTime.diff(moment(dateLimit.end)) < 0)){
+            return RET_SoldOut;
+        }
     }
   }
 
@@ -77,6 +85,9 @@ Shop.prototype.dump = function (player) {
       ret.cost = {};
       if (p.price.type === 'gold') ret.cost.gold = p.price.amount;
       if (p.price.type === 'diamond') ret.cost.diamond = p.price.amount;
+    }
+    if(p.limit && p.limit.date){
+        ret.date = p.limit.date;
     }
     return ret;
   });
