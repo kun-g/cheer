@@ -12,6 +12,10 @@ moment = require('moment')
 
 CONST_REWARD_PK_TIMES = 5
 
+ReceivePrize_PK = 0
+ReceivePrize_TimeLimit = 1
+
+
 checkRequest = (req, player, arg, rpcID, cb) ->
   dbLib.checkReceiptValidate(arg.rep, (isValidate) ->
     if isValidate
@@ -684,7 +688,7 @@ exports.route = {
     id: 33,
     func: (arg, player, handler, rpcID, socket) ->
       switch arg.typ
-        when 0
+        when ReceivePrize_PK
           if (not (player.counters.currentPKCount?) or CONST_REWARD_PK_TIMES > player.counters.currentPKCount or player.flags.rcvAward)
 
             handler([{REQ: rpcID, RET: RET_CantReceivePkAward}])
@@ -694,6 +698,14 @@ exports.route = {
               player.saveDB()
               handler([{REQ: rpcID, RET: RET_OK}].concat(result))
             )
+        when ReceivePrize_TimeLimit
+          {prize, sync}  = player.onCampaign('timeLimitAward')
+          ret ={REQ:rpcID, RET:RET_RewardAlreadyReceived }
+          if prize.length isnt 0
+            ret.prize = prize
+            ret.RET = RET_OK
+          player.saveDB()
+          handler([ret].concat(sync))
     ,
     args: {},
     needPid: true
@@ -813,5 +825,5 @@ exports.route = {
     ,
     args: {'code':'string'},
     needPid: true
-  }
+  },
 }

@@ -345,7 +345,7 @@ class Player extends DBWrapper
 
     if @isNewPlayer then @isNewPlayer = false
     unless @invitation
-      helperLib.newInvitation(@name, (err, res) =>
+      helperLib.redeemCode.newInvitation(@name, (err, res) =>
         @invitation = res.code
       )
 
@@ -1385,19 +1385,31 @@ class Player extends DBWrapper
   getCampaignConfig: (campaignName) ->
     cfg = queryTable(TABLE_CAMPAIGN, campaignName, @abIndex)
     if cfg?
+      #check validate
       if cfg.date? and moment(cfg.date).format('YYYYMMDD') - moment().format('YYYYMMDD') < 0 then return { config: null }
+      if cfg.duration?
+        duration = cfg.duration
+        nowTime = moment()
+        if not (nowTime.diff(moment(duration.beginTime)) >0 and nowTime.diff(moment(duration.endTime)) < 0)
+          return {config:null}
       if @getCampaignState(campaignName)? and @getCampaignState(campaignName) is false then return { config: null }
       if @getCampaignState(campaignName)? and cfg.level? and @getCampaignState(campaignName) >= cfg.level.length then return { config: null }
+      if cfg.generation? and @getCampaignState(campaignName) >= cfg.generation.value then return {config: null}
       if campaignName is 'LevelUp' and cfg.timeLimit*1000 <= moment()- @creationDate then return { config: null }
     else
       return { config: null }
+
+    #gen award info
     if cfg.level
       return { config: cfg, level: cfg.level[@getCampaignState(campaignName)] }
-    else
+    else if cfg.objective
       return { config: cfg, level: cfg.objective }
+    else
+      return {config: cfg, level: cfg.generation.awards}
 
   onCampaign: (state, data) ->
-    reward = []
+    reward = [] #deliver by message
+    prize =[] # claim prize
     switch state
       when 'Friend'
         { config, level } = @getCampaignConfig('Friend')
@@ -1457,10 +1469,17 @@ class Player extends DBWrapper
         if config? and level? and @createHero().calculatePower() >= level.count
           @setCampaignState('BattleForce', @getCampaignState('BattleForce')+1)
           reward.push({cfg: config, lv: level})
+      when 'timeLimitAward'
+        { config,level} = @getCampaignConfig('timeLimitAward')
+        if(config?)
+          generation = config.generation.value
+          @setCampaignState('timeLimitAward',generation)
+          prize = level
 
     for r in reward
       #console.log('reward', JSON.stringify(reward))
       dbLib.deliverMessage(@name, { type: MESSAGE_TYPE_SystemReward, src: MESSAGE_REWARD_TYPE_SYSTEM, prize: r.lv.award, tit: r.cfg.mailTitle, txt: r.cfg.mailBody })
+    {prize:prize, sync:@claimPrize(prize)}
 
   updateFriendInfo: (handler) ->
     dbLib.getFriendList(@name, wrapCallback(this, (err, book) ->
@@ -1836,7 +1855,7 @@ class Player extends DBWrapper
   syncCampaign: (forceUpdate) ->
     all = queryTable(TABLE_CAMPAIGN)
     ret = { NTF: Event_CampaignUpdate, arg: {act: [], syn: 0}}
-    for campaign, cfg of all when cfg.show
+    for campaign, cfg of all when cfg.show?
       { config, level } = @getCampaignConfig(campaign)
       if not config? then continue
       r = {
