@@ -22,7 +22,7 @@ campaign_LoginStreak = new libCampaign.Campaign(queryTable(TABLE_DP))
 
 #TODO this must be remove
 isInRangeTime = (timeLst,checkTime) ->
-  timeLst.reduce((acc, dur) ->
+  ([].concat(timeLst)).reduce((acc, dur) ->
     return true if acc
     return (checkTime.diff(moment(dur.beginTime)) >0 and checkTime.diff(moment(dur.endTime)) < 0)
   ,false)
