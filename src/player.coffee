@@ -346,7 +346,8 @@ class Player extends DBWrapper
     if @isNewPlayer then @isNewPlayer = false
     unless @invitation
       helperLib.redeemCode.newInvitation(@name, (err, res) =>
-        @invitation = res.code
+        if not err?
+          @invitation = res.code
       )
 
     @inventory.validate()
