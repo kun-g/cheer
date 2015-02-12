@@ -346,7 +346,8 @@ class Player extends DBWrapper
     if @isNewPlayer then @isNewPlayer = false
     unless @invitation
       helperLib.redeemCode.newInvitation(@name, (err, res) =>
-        @invitation = res.code
+        if not err?
+          @invitation = res.code
       )
 
     @inventory.validate()
@@ -1400,12 +1401,14 @@ class Player extends DBWrapper
       return { config: null }
 
     #gen award info
-    if cfg.level
+    if cfg.level?
       return { config: cfg, level: cfg.level[@getCampaignState(campaignName)] }
-    else if cfg.objective
+    else if cfg.objective?
       return { config: cfg, level: cfg.objective }
-    else
+    else if cfg.generation?
       return {config: cfg, level: cfg.generation.awards}
+    else
+      return {config: cfg}
 
   onCampaign: (state, data) ->
     reward = [] #deliver by message
@@ -1864,6 +1867,8 @@ class Player extends DBWrapper
         banner: config.banner
       }
       r.date = config.dateDescription if config.dateDescription?
+      r.duration = config.durationDesc if config.durationDesc?
+      r.type = config.type if config.type?
       r.prz = level.award if level?.award
       ret.arg.act.push(r)
     return [ret]
