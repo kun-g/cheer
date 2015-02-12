@@ -1870,7 +1870,7 @@ class Player extends DBWrapper
   syncCampaign: (forceUpdate) ->
     all = queryTable(TABLE_CAMPAIGN)
     ret = { NTF: Event_CampaignUpdate, arg: {act: [], syn: 0}}
-    for campaign, cfg of all when cfg.show?
+    for campaign, cfg of all when cfg.show
       { config, level } = @getCampaignConfig(campaign)
       if not config? then continue
       r = {
