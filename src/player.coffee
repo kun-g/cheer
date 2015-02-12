@@ -1997,35 +1997,59 @@ class Player extends DBWrapper
     for e, h of cfg[type].advanced_option
       #return cfg[type][table] unless h[table]?
       continue unless h[table]?
-      if h.dateInterval == null or @match_dateinterval(h.dateInterval,currentTime())
-        for k, v of h.count_value
-          switch h.condition
-            when 'less'
-              if @counters.totalFragTimes[type] < v
-                return h[table]
-            when 'equal'
-              if @counters.totalFragTimes[type] == v
-                return h[table]
-            when 'more'
-              if @counters.totalFragTimes[type] > v
-                return h[table]
-            when 'interval'
-              if @counters.totalFragTimes[type] % v == 0
-                return h[table]
+      if @match_dateinterval(h.dateInterval,libTime.moment()) and @match_countvalue(h,type)
+        return h[table]
+      # for k, v of h.count_value
+      #   switch h.condition
+      #     when 'less'
+      #       if @counters.totalFragTimes[type] < v
+      #         return h[table]
+      #     when 'equal'
+      #       if @counters.totalFragTimes[type] == v
+      #         return h[table]
+      #     when 'more'
+      #       if @counters.totalFragTimes[type] > v
+      #         return h[table]
+      #     when 'interval'
+      #       if @counters.totalFragTimes[type] % v == 0
+      #         return h[table]
     return cfg[type][table]
 
   match_dateinterval: (scheme, date) ->
-   #if scheme.startDate != null and scheme.interval != null and scheme.interval >= 1
-   #    for k in scheme.startDate
-   #        for x in scheme.startDate[k].date
-   #            sttime = libTime.moment([scheme.startDate[k].year, scheme.startDate[k].month, 
-   #                              scheme.startDate[k].date[x],0,0,0,0])
-   #            subtime = libTime.moment.duration(date - sttime)#date sttime为moment
-   #            days = subtime.asDays()
-   #            if days % scheme.interval == 0
-   #                return true
-   #return false
-   return true
+    return true unless scheme? and scheme.startDate? and scheme.interval?
+    for k of scheme.startDate
+      for x of scheme.startDate[k].date
+        sttime = libTime.moment([scheme.startDate[k].year, scheme.startDate[k].month,scheme.startDate[k].date[x],0,0,0,0])
+        console.log('match_dateinterval sttime=', sttime._d)
+        console.log('match_dateinterval date=', date._d)
+        days = Math.abs(diffDate(sttime, date))#date sttime为moment
+        #days = subtime.asDays()
+        console.log('match_dateinterval days=', days)
+        console.log('match_dateinterval interval=', scheme.interval)
+        if scheme.interval > 0 and days % scheme.interval == 0
+          return true
+        else if scheme.interval == 0 and days == 0
+          return true
+    return false
+    #return true
+
+  match_countvalue: (scheme, type) ->
+    return true unless scheme.condition? and scheme.count_value?
+    for k, v of scheme.count_value
+      switch scheme.condition
+        when 'less'
+          if @counters.totalFragTimes[type] < v
+            return true
+        when 'equal'
+          if @counters.totalFragTimes[type] == v
+            return true
+        when 'more'
+          if @counters.totalFragTimes[type] > v
+            return true
+        when 'interval'
+          if v > 0 and @counters.totalFragTimes[type] % v == 0
+            return true
+    return false
 
   itemSynthesis: (slot) ->
     recipe = @getItemAt(slot)
