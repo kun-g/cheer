@@ -161,7 +161,6 @@ diffDate = (date, today, flag = 'day') ->
     when 'month' then return duration.asMonths()
     when 'year' then return duration.asYears()
 exports.diffDate = diffDate
-
 matchDate = (date, today, rule) ->
   return false unless date
   date = moment(date)
@@ -196,6 +195,13 @@ genCampaignUtil = () ->
     currentTime: currentTime,
     today: moment(),
     serverObj : gServerObject,
+    isFristInTime:(dateLst, lastInTime, time2check) ->
+      dateLst.reduce((acc, time) ->
+        return true if acc
+        return diffDate(time, time2check, 'day') is 0 and diffDate(lastInTime, time2check) isnt 0
+      ,false)
+    ,
+    moment:moment
   }
 exports.genUtil = genCampaignUtil
 
