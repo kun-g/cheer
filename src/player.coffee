@@ -893,6 +893,7 @@ class Player extends DBWrapper
           res = @aquireItem(p.value, p.count, allOrFail)
           if not (res? and res.length >0)
             return [] if allOrFail
+          gServerObject.notify('playerClaimItem',{player:@name,item:p.value})
           ret = ret.concat(res)
 
         when PRIZETYPE_GOLD then ret.push({NTF: Event_InventoryUpdateItem, arg: {syn: @inventoryVersion, god: @addGold(p.count)}}) if p.count > 0

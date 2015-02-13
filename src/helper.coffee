@@ -418,7 +418,9 @@ exports.LeaderboardIdx = {
   TopTenRich :5
   BuyLikeWomen : 6
 }
-
+itemNeedBoardcastIdLst = [1475,1476,1478,1480,1482,].concat([1580..1611]).concat([1624..1626]).concat([1628,1629])
+itemNeedBoardcast = (itemId) ->
+  itemNeedBoardcastIdLst.indexOf(itemId) isnt -1
 exports.observers = {
   heroxpChanged: (obj, arg) ->
     obj.onCampaign('Level')
@@ -430,6 +432,9 @@ exports.observers = {
       dbClient.hincrby(makeDBKey([serverObjectPrefix, 'counters']), arg.type, arg.delta, (err, result)->)
     else
       exports.assignLeaderboard(obj, exports.LeaderboardIdx.KillingMonster) if arg.type is 'monster'
+  playerClaimItem: (obj, arg) ->
+    if obj.getType() is 'server'
+      dbLib.broadcastEvent(BROADCAST_ITEM_HIGHT_QULITY,{who:arg.player,what:arg.item} ) if itemNeedBoardcast(arg.item)
   stageChanged: (obj, arg) ->
     exports.assignLeaderboard(obj, exports.LeaderboardIdx.InfinityDungeon) if arg.stage is 120
   winningAnPVP: (obj, arg) ->

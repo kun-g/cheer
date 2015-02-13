@@ -484,6 +484,7 @@ function paymentHandler (request, response) {
 
 
                     gServerObject.installObserver('countersChanged');
+                    gServerObject.installObserver('playerClaimItem');
                 });
         dbLib.getServerConfig('Interval', function (err, arg) {
             if (arg) { intervalCfg = JSON.parse(arg); }
