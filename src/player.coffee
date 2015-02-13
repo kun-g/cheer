@@ -221,7 +221,7 @@ class Player extends DBWrapper
         s.level = 0
 
     #for test iap leaderboard
-    #@handleReceipt({productID:'com.tringame.pocketdungeon.pay12',paymentType:'test',receipt:'0000008401001423555722Teebik'}, 'test', console.log)
+    #@handleReceipt({productID:'com.tringame.pocketdungeon.pay68',paymentType:'test',receipt:'0000008403001423555722Teebik'}, 'test', console.log)
     #end
     @onCampaign('RMB')
 
@@ -434,6 +434,11 @@ class Player extends DBWrapper
       @onCampaign('RMB', rec.productID)
       @counters.chargeDiamond ?= 0
       @counters.chargeDiamond += cfg.gem
+      @counters['888'] ?= 0
+      if (+@counters['888']+1)*888<@counters.chargeDiamond
+        @counters['888'] += 1
+        ret.push(@claimPrize({type:PRIZETYPE_ITEM, value:1630,count:1}))
+
       @notify('onChargeDiamond')
       ret.push({NTF: Event_PlayerInfo, arg: { rmb: @rmb, mcc: @counters.monthCard}})
       ret.push(@syncVipData())
