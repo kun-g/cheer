@@ -19,6 +19,14 @@ libReward = require('./reward')
 libCampaign = require("./campaign")
 libTime = require('./timeUtils.js')
 campaign_LoginStreak = new libCampaign.Campaign(queryTable(TABLE_DP))
+
+#TODO this must be remove
+isInRangeTime = (timeLst,checkTime) ->
+  timeLst.reduce((acc, dur) ->
+    return true if acc
+    return (checkTime.diff(moment(dur.beginTime)) >0 and checkTime.diff(moment(dur.endTime)) < 0)
+  ,false)
+
 #campaign_StartupClient = new libCampaign.Campaign(gNewCampainTable.startupPlayer)
 
 #getSlotFreezeInfo = (player, slot) ->
@@ -1391,8 +1399,7 @@ class Player extends DBWrapper
       if cfg.duration?
         duration = cfg.duration
         nowTime = moment()
-        if not (nowTime.diff(moment(duration.beginTime)) >0 and nowTime.diff(moment(duration.endTime)) < 0)
-          return {config:null}
+        return {config:null} unless isInRangeTime(duration, nowTime)
       if @getCampaignState(campaignName)? and @getCampaignState(campaignName) is false then return { config: null }
       if @getCampaignState(campaignName)? and cfg.level? and @getCampaignState(campaignName) >= cfg.level.length then return { config: null }
       if cfg.generation? and @getCampaignState(campaignName) >= cfg.generation.value then return {config: null}
@@ -1868,6 +1875,7 @@ class Player extends DBWrapper
       }
       r.date = config.dateDescription if config.dateDescription?
       r.duration = config.durationDesc if config.durationDesc?
+      r.poster = config.poster if config.poster?
       r.type = config.type if config.type?
       r.prz = level.award if level?.award
       ret.arg.act.push(r)
