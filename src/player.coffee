@@ -22,7 +22,7 @@ campaign_LoginStreak = new libCampaign.Campaign(queryTable(TABLE_DP))
 
 #TODO this must be remove
 isInRangeTime = (timeLst,checkTime) ->
-  timeLst.reduce((acc, dur) ->
+  ([].concat(timeLst)).reduce((acc, dur) ->
     return true if acc
     return (checkTime.diff(moment(dur.beginTime)) >0 and checkTime.diff(moment(dur.endTime)) < 0)
   ,false)
@@ -1871,7 +1871,7 @@ class Player extends DBWrapper
   syncCampaign: (forceUpdate) ->
     all = queryTable(TABLE_CAMPAIGN)
     ret = { NTF: Event_CampaignUpdate, arg: {act: [], syn: 0}}
-    for campaign, cfg of all when cfg.show?
+    for campaign, cfg of all when cfg.show
       { config, level } = @getCampaignConfig(campaign)
       if not config? then continue
       r = {
