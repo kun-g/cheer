@@ -1007,9 +1007,8 @@ class Player extends DBWrapper
             @log('openTreasureChest', {type: 'TreasureChest', id: item.id, prize: prize, drop: e.drop})
             ret = prize.concat(@removeItem(null, 1, slot))
             ret = ret.concat(this.removeItemById(item.dropKey, 1, true)) if item.dropKey?
-            return {prize: prz, res: ret}
+            return {ret: RET_OK, prize: prz, ntf: ret}
           when ItemUse_Function
-            return {ret: RET_UseItemFailed} if [5,1475,1617].indexOf(+item.classId) isnt -1 #暂时规避时装碎片可使用的BUG
             ret = @removeItem(null, 1, slot)
             switch item.function
               when 'recoverEnergy'
