@@ -1,0 +1,130 @@
+var uuid = require("node-uuid");
+var amqp = require('amqplib');
+var when = require('when');
+var defer = when.defer;
+
+// TODO: batch
+function RPC_Error (code, message, data) {
+    this.code = code;
+    if (message) this.message = message;
+    if (data) this.data = data;
+}
+
+function RPC (router, send) {
+    this.callbacks = { };
+    this.send = send;
+    this.router = router;
+}
+
+RPC.prototype.request = function (method, params, callback) {
+    var req = {
+        method: method,
+        params: params,
+        id: uuid()
+    };
+    if (req.id) this.callbacks[req.id] = callback;
+    this.send(req);
+};
+
+RPC.prototype.handleResponse = function (res) {
+    var callback = null;
+    if (res.id) callback = this.callbacks[res.id];
+    if (res.error) {
+        callback(res.error);
+    } else {
+        callback(null, res.result);
+    }
+    if (res.id) delete this.callbacks[res.id];
+};
+
+RPC.prototype.handleRequest = function (req, response) {
+    var func = this.router[req.method];
+    if (func) {
+        router[req.method](req.params, function (res) {
+            if (req.id) {
+                var result = { };
+                result.id = req.id;
+                if (res instanceof RPC_Error) {
+                    result.error = res;
+                } else {
+                    result.result = res;
+                }
+                response(result);
+            }
+        });
+    } else {
+        if (req.id) {
+            var result = {
+                error: new RPC_Error(-32601, "Method not found", req.method),
+                id: req.id
+            };
+            response(result);
+        }
+    }
+};
+
+function RabbitMQ_RPC_Client (serverAddress, user, pass, callback) {
+    var rpcClient = new RPC(null);
+    var req = { credentials: amqp.credentials.plain(user, pass) };
+
+    function handleResponse(msg) {
+      var response = JSON.parse(msg.content.toString());
+      rpcClient.handleResponse(response);
+    }
+
+    amqp.connect(serverAddress, req).then(function(conn) {
+        return conn.createChannel().then(function(ch) {
+            var ok = ch.assertQueue('', {exclusive: true})
+              .then(function(qok) { return qok.queue; });
+
+            rpcClient.close = function () { conn.close(); };
+            ok = ok.then(function(queue) {
+              return ch.consume(queue, handleResponse, {noAck: true})
+                .then(function() { return queue; });
+            });
+
+            ok = ok.then(function(queue) {
+              rpcClient.send = function (req) {
+                  console.log(' [x] Requesting ');
+                  var corrId = uuid();
+                  ch.sendToQueue('rpc_queue', new Buffer(JSON.stringify(req)), {
+                    correlationId: corrId, replyTo: queue
+                  });
+              };
+              callback(rpcClient);
+            });
+        });
+    })
+}
+
+function RabbitMQ_RPC_Server (serverAddress, user, pass, router) {
+    var rpcServer = new RPC(router);
+    var req = { credentials: amqp.credentials.plain(user, pass) };
+    amqp.connect(serverAddress, req).then(function(conn) {
+      return conn.createChannel().then(function(ch) {
+        rpcServer.close = function () { conn.close(); };
+        var q = 'rpc_queue';
+        var ok = ch.assertQueue(q, {durable: false});
+        var ok = ok.then(function() {
+            ch.prefetch(1);
+            return ch.consume(q, reply);
+        });
+        return ok.then(function() {
+            console.log(' [x] Awaiting RPC requests');
+        });
+
+        function reply(msg) {
+          rpcServer.handleRequest(JSON.parse(msg.content.toString()), function(res){
+              ch.sendToQueue(msg.properties.replyTo,
+                  new Buffer(JSON.stringify(res)),
+                  {correlationId: msg.properties.correlationId});
+              ch.ack(msg);
+          });
+        }
+      });
+    }).then(null, console.warn);
+}
+
+exports.RPC_Error = RPC_Error;
+exports.RabbitMQ_RPC_Server = RabbitMQ_RPC_Server;
+exports.RabbitMQ_RPC_Client = RabbitMQ_RPC_Client;
