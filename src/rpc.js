@@ -2,6 +2,7 @@ var uuid = require("node-uuid");
 var amqp = require('amqplib');
 var when = require('when');
 var defer = when.defer;
+var error_table = require('./rpc_error_code');
 
 // TODO: batch
 function RPC_Error (code, message, data) {
@@ -9,6 +10,10 @@ function RPC_Error (code, message, data) {
     if (message) this.message = message;
     if (data) this.data = data;
 }
+
+RPC_Error.prototype.translate = function (lang) {
+    return error_table[this.code][1][lang];
+};
 
 function RPC (router, send) {
     this.callbacks = { };
@@ -40,7 +45,7 @@ RPC.prototype.handleResponse = function (res) {
 RPC.prototype.handleRequest = function (req, response) {
     var func = this.router[req.method];
     if (func) {
-        router[req.method](req.params, function (res) {
+        func(req.params, function (res) {
             if (req.id) {
                 var result = { };
                 result.id = req.id;
@@ -63,7 +68,7 @@ RPC.prototype.handleRequest = function (req, response) {
     }
 };
 
-function RabbitMQ_RPC_Client (serverAddress, user, pass, callback) {
+function RabbitMQ_RPC_Client (serverAddress, user, pass, target_queue, callback) {
     var rpcClient = new RPC(null);
     var req = { credentials: amqp.credentials.plain(user, pass) };
 
@@ -85,9 +90,8 @@ function RabbitMQ_RPC_Client (serverAddress, user, pass, callback) {
 
             ok = ok.then(function(queue) {
               rpcClient.send = function (req) {
-                  console.log(' [x] Requesting ');
                   var corrId = uuid();
-                  ch.sendToQueue('rpc_queue', new Buffer(JSON.stringify(req)), {
+                  ch.sendToQueue(target_queue, new Buffer(JSON.stringify(req)), {
                     correlationId: corrId, replyTo: queue
                   });
               };
@@ -97,20 +101,19 @@ function RabbitMQ_RPC_Client (serverAddress, user, pass, callback) {
     })
 }
 
-function RabbitMQ_RPC_Server (serverAddress, user, pass, router) {
+function RabbitMQ_RPC_Server (serverAddress, user, pass, queue, router, callback) {
     var rpcServer = new RPC(router);
     var req = { credentials: amqp.credentials.plain(user, pass) };
     amqp.connect(serverAddress, req).then(function(conn) {
       return conn.createChannel().then(function(ch) {
         rpcServer.close = function () { conn.close(); };
-        var q = 'rpc_queue';
-        var ok = ch.assertQueue(q, {durable: false});
+        var ok = ch.assertQueue(queue, {durable: false});
         var ok = ok.then(function() {
             ch.prefetch(1);
-            return ch.consume(q, reply);
+            return ch.consume(queue, reply);
         });
         return ok.then(function() {
-            console.log(' [x] Awaiting RPC requests');
+            if (callback) callback();
         });
 
         function reply(msg) {
@@ -128,3 +131,7 @@ function RabbitMQ_RPC_Server (serverAddress, user, pass, router) {
 exports.RPC_Error = RPC_Error;
 exports.RabbitMQ_RPC_Server = RabbitMQ_RPC_Server;
 exports.RabbitMQ_RPC_Client = RabbitMQ_RPC_Client;
+
+//TODO:
+//exports.TCP_RPC_Server = TCP_RPC_Server;
+//exports.TCP_RPC_Client = TCP_RPC_Client;
