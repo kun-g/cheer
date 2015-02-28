@@ -1564,9 +1564,11 @@ dungeonCSConfig = {
 
       if env.variable('tar').health <= env.variable('damage')
         onEvent('DeathStrike', @, env.variable('src'), env.variable('tar'))
-      env.variable('tar').health -= env.variable('damage')
 
       onEvent('CriticalDamage', @, env.variable('src'), env.variable('tar')) if env.variable('critical')
+
+      env.variable('tar').health -= env.variable('damage')
+
       @next({id: 'Dead', tar: env.variable('tar'), killer:env.variable('src'), damage: env.variable('damage')}) unless env.variable('tar').isAlive()
 
       @getPrevCommand('Attack')?.cmd?.critical = env.variable('critical')
