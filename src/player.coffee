@@ -432,7 +432,7 @@ class Player extends DBWrapper
             txt: "因为你的招募者"+@name+"充值，你获得了以下奖励:"
           })
 
-      @onCampaign('RMB', rec.productID)
+      @onCampaign('RMB', {idx:rec.productID, rmb:cfg.price, gem:cfg.gem})
       @counters.chargeDiamond ?= 0
       @counters.chargeDiamond += cfg.gem
       @counters['888'] ?= 0
@@ -1436,8 +1436,8 @@ class Player extends DBWrapper
           @setCampaignState('Friend', 1)
       when 'RMB'
         { config, level } = @getCampaignConfig('Charge')
-        if config? and level?
-          rmb = data
+        if config? and level? and data?.rmb?
+          rmb = data.rmb
           state = @getCampaignState('Charge')
           o = level[rmb]
           if not state[rmb] and o?
@@ -1446,8 +1446,8 @@ class Player extends DBWrapper
             @setCampaignState('Charge', state)
 
         { config, level } = @getCampaignConfig('DuanwuCharge')
-        if config? and level?
-          rmb = data
+        if config? and level? and data?.rmb?
+          rmb = data.rmb
           state = @getCampaignState('DuanwuCharge')
           o = level[rmb]
           if not state[rmb] and o?
@@ -1464,8 +1464,8 @@ class Player extends DBWrapper
           reward.push({cfg: config, lv: level})
 
         { config, level } = @getCampaignConfig('FirstCharge')
-        if config? and level?
-          rmb = String(data)
+        if config? and level? and data?.idx?
+          rmb = data.idx
           if level[rmb]?
             reward.push({cfg: config, lv: level[rmb]})
             @setCampaignState('FirstCharge', false)
