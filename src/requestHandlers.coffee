@@ -672,7 +672,7 @@ exports.route = {
   RPC_SweepStage: {
     id: 35,
     func: (arg, player, handler, rpcID, socket) ->
-      { code, prize, ret } = player.sweepStage(+arg.stg, arg.mul)
+      { code, prize, ret } = player.sweepStage(+arg.stg, arg.mul, arg.rank)
 
       res = {REQ: rpcID, RET: code}
       if prize then res.arg = prize
