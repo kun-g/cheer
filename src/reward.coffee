@@ -52,7 +52,7 @@ exports.generateDungeonReward = (dungeon) ->
   ), [])
 
   if result is DUNGEON_RESULT_WIN and dungeon.isSweep
-    dropInfo = dropInfo.concat(cfg.dropID) if cfg.dropID
+    dropInfo = dropInfo.concat(cfg.dropID[dungeon.rankIdx]) if cfg.dropID[dungeon.rankIdx]
 
   gr = if result is DUNGEON_RESULT_WIN then (cfg.goldRate ? 1) else 0.5
   xr = if result is DUNGEON_RESULT_WIN then (cfg.xpRate ? 1) else 0.5

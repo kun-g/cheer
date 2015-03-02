@@ -271,7 +271,8 @@ class Player extends DBWrapper
       killingInfo: [],
       currentLevel: cfg.levelCount,
       config: cfg,
-      isSweep : true
+      isSweep : true,
+      rankIdx : 0,
     }
     count = 1
     count = 5 if multiple
@@ -704,7 +705,7 @@ class Player extends DBWrapper
 
    
 
-  startDungeon: (stage, startInfoOnly, selectedTeam, pkr=null, handler) ->
+  startDungeon: (stage, startInfoOnly, selectedTeam, pkr=null,rankIdx =0, handler) ->
     stageConfig = queryTable(TABLE_STAGE, stage, @abIndex)
     dungeonConfig = queryTable(TABLE_DUNGEON, stageConfig.dungeon, @abIndex)
     unless stageConfig? and dungeonConfig?
@@ -772,7 +773,8 @@ class Player extends DBWrapper
           blueStar: blueStar,
           abIndex: @abIndex,
           team: team.map(getBasicInfo),
-          reviveLimit: @getReviveLimit(dungeonConfig.reviveLimit)
+          reviveLimit: @getReviveLimit(dungeonConfig.reviveLimit),
+          rankIdx:rankIdx
         }
 
         @dungeonData.randSeed = rand()
