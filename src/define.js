@@ -313,7 +313,8 @@ function initShop (data) {
 function initCampaignTable(data) {
     firstChangeObj = data['FirstCharge']['objective'];
     firstChangeObj = firstChangeObj.map(function(elm) {
-        return {award:[{type:2,count:elm.gem}]};
+        //return {award:[{type:2,count:elm.gem}]};
+        return {award:[{type:0,value: 1631,count:1}]};
     });
     data['FirstCharge']['objective'] = firstChangeObj;
     return data;
