@@ -1,19 +1,60 @@
+"use strict"
 require('./define')
 require('./shop')
 moment = require('moment')
 {Serializer, registerConstructor} = require './serializer'
 {DBWrapper, getMercenaryMember, updateMercenaryMember, addMercenaryMember, getPlayerHero} = require './dbWrapper'
 {createUnit, Hero} = require './unit'
-{Item, Card} = require './item'
+libItem = require './item'
 {CommandStream, Environment, DungeonEnvironment, DungeonCommandStream} = require('./commandStream')
 {Dungeon} = require './dungeon'
 {Bag, CardStack} = require('./container')
 {diffDate, currentTime, genUtil} = require ('./helper')
 helperLib = require ('./helper')
-
+event_cfg= require ('./event_cfg')
+underscore = require('./underscore')
 dbLib = require('./db')
 async = require('async')
+libReward = require('./reward')
+libCampaign = require("./campaign")
+libTime = require('./timeUtils.js')
+campaign_LoginStreak = new libCampaign.Campaign(queryTable(TABLE_DP))
 
+#TODO this must be remove
+isInRangeTime = (timeLst,checkTime) ->
+  ([].concat(timeLst)).reduce((acc, dur) ->
+    return true if acc
+    return (checkTime.diff(moment(dur.beginTime)) >0 and checkTime.diff(moment(dur.endTime)) < 0)
+  ,false)
+
+#campaign_StartupClient = new libCampaign.Campaign(gNewCampainTable.startupPlayer)
+
+#getSlotFreezeInfo = (player, slot) ->
+#  getItemSlotUsed = (idx) ->
+#    item = player.getItemAt(idx)
+#    ret = [item.subcategory]
+#    ret = ret.concat(item.extraSlots ? [])
+#    return ret
+#
+#  info = player.equipment.map((idx) ->
+#    item = player.getItemAt(idx)
+#    ret = getItemSlotUsed(idx)
+#    return {cid:item.classId, slots:ret}
+#  )
+#
+#  equippingSlots = getItemSlotUsed(slot)
+#  freezeBy = info.reduce((acc, elem) ->
+#    return acc unless elem?
+#    {cid, slots} = elem
+#    if underscore.difference(slots, equippingSlots).length isnt slots.length
+#      acc.push(slots[0])
+#    return acc
+#  ,[])
+#
+#  return {info:info, freezeBy:freezeBy}
+#
+#exports.getSlotFreezeInfo  = getSlotFreezeInfo
+# ======================== Player
 class Player extends DBWrapper
   constructor: (data) ->
     @type = 'player'
@@ -30,23 +71,19 @@ class Player extends DBWrapper
       timestamp: {},
       counters: {},
       flags: {},
-      globalPrizeFlag: {},
 
       inventory: Bag(InitialBagSize),
       gold: 0,
       diamond: 0,
       equipment: {},
-      inventoryVersion: 0,
       heroBase: {},
       heroIndex: -1,
       #TODO: hero is duplicated
       hero: {},
 
+      invitee: [],
       stage: [],
-      stageVersion: 0,
-
       quests: {},
-      questVersion: 0,
 
       energy: ENERGY_MAX,
       energyTime: now.valueOf(),
@@ -61,18 +98,22 @@ class Player extends DBWrapper
       lastLogin: currentTime(),
       creationDate: now.valueOf(),
       isNewPlayer: true,
-      loginStreak: {count: 0},
       accountID: -1,
       campaignState: {},
       infiniteTimer: currentTime(),
+
       inventoryVersion: 1,
       heroVersion: 1,
       stageVersion: 1,
       questVersion: 1,
-      abIndex: rand(),
       energyVersion: 1
-    }
 
+      abIndex: rand(),
+    }
+    for k,v of libReward.config
+      cfg[k] = v
+
+    @envReward_modifier = gReward_modifier
     versionCfg = {
       inventoryVersion: ['gold', 'diamond', 'inventory', 'equipment'],
       heroVersion: ['heroIndex', 'hero', 'heroBase'],
@@ -82,8 +123,13 @@ class Player extends DBWrapper
     }
     super(data, cfg, versionCfg)
 
-  setName: (@name) ->
-    @dbKeyName = playerPrefix+@name
+  setName: (@name) -> @dbKeyName = playerPrefix+@name
+  getServer: () -> return gServerObject
+
+  generateReward: libReward.generateReward
+  getRewardModifier: libReward.getRewardModifier
+  generateDungeonReward: libReward.generateDungeonReward
+  claimDungeonReward: libReward.claimDungeonReward
 
   logout: (reason) ->
     if @socket and @socket.encoder
@@ -108,13 +154,13 @@ class Player extends DBWrapper
     if type and type is 'error'
       logError(msg)
     else
-      #TODO:logUser(msg)
+      logUser(msg)
 
   isEquiped: (slot) ->
     equipment = (e for i, e of @equipment)
     return equipment.indexOf(+slot) != -1
 
-  migrate: () ->
+  migrate: () -> #TODO:deprecated
     flag = false
     for slot, item of @inventory.container when item?
       if item.transPrize?
@@ -133,10 +179,10 @@ class Player extends DBWrapper
           continue
         flag = true
         @sellItem(slot)
-    prize = queryTable(TABLE_CONFIG, 'InitialEquipment')
+    prize = queryTable(TABLE_ROLE, @hero.class)?.initialEquipment
     for slot in [0..5] when not @equipment[slot]?
       flag = true
-      @claimPrize(prize[slot].filter((e) => isClassMatch(@hero.class, e.classLimit)))
+      @claimPrize(prize[slot]) if prize?
     return flag
 
   onDisconnect: () ->
@@ -146,27 +192,23 @@ class Player extends DBWrapper
 
   getType: () -> 'player'
 
-  getTotalPkTimes: () -> return @getPrivilege('pkCount')
-  claimPkPrice: (callback) ->
-    me = @
-    helperLib.getPositionOnLeaderboard(helperLib.LeaderboardIdx.Arena, @name, 0, 0, (err, result) ->
-      prize = arenaPirze(result.position + 1 )
-      ret = me.claimPrize(prize)
-      callback(ret)
-    )
   submitCampaign: (campaign, handler) ->
     event = this[campaign]
     if event?
-      helperLib.proceedCampaign(@, campaign, helperLib.events, handler)
+      helperLib.proceedCampaign(@, campaign, event_cfg.events, handler)
       @log('submitCampaign', {event: campaign, data: event})
     else
       @logError('submitCampaign', {reason: 'NoEventData', event: campaign})
 
-  syncEvent: () -> return helperLib.initCampaign(@, helperLib.events)
+  syncEvent: () -> return helperLib.initCampaign(@, event_cfg.events)
 
   onLogin: () ->
+    @counters.energyRecover ?= 0
     return [] unless @lastLogin
-    if diffDate(@lastLogin) > 0 then @purchasedCount = {}
+    if diffDate(@lastLogin) > 0
+      @purchasedCount = {}
+      @counters.energyRecover = 0
+      @counters.friendHireTime ={}
     @lastLogin = currentTime()
     if gGlobalPrize?
       for key, prize of gGlobalPrize when not @globalPrizeFlag[key]
@@ -178,19 +220,17 @@ class Player extends DBWrapper
       for s in @stage when s and s.level?
         s.level = 0
 
-    flag = true
-    if @loginStreak.date and moment().isSame(@loginStreak.date, 'month')
-      if moment().isSame(@loginStreak.date, 'day')
-        flag = false
-      else
-        @loginStreak.count += 1
-    else
-      @loginStreak.count = 0
-
-    @log('onLogin', {loginStreak: @loginStreak, date: @lastLogin})
+    #for test iap leaderboard
+    #@handleReceipt({productID:'com.tringame.pocketdungeon.pay68',paymentType:'test',receipt:'0000008403001423555722Teebik'}, 'test', console.log)
+    #end
     @onCampaign('RMB')
 
-    ret = [{NTF:Event_CampaignLoginStreak, day: @loginStreak.count, claim: flag}]
+    flag = campaign_LoginStreak.isActive(this,  currentTime())
+    ret = [{ NTF:Event_CampaignLoginStreak, day: @counters.check_in.counter, claim: flag }]
+    @log('onLogin', {streak: @counters.check_in.counter, date: @counters.check_in.time})
+
+    #if campaign_StartupClient.isActive(this, currentTime())
+    #  campaign_StartupClient.activate(this, 1, currentTime())
 
     itemsNeedRemove = @inventory.filter(
       (item) ->
@@ -202,8 +242,19 @@ class Player extends DBWrapper
       return pValue.concat(@removeItem(null, null, @queryItemSlot(e)))
     , ret)
 
+    ret.push(@syncCounters(['energyRecover'],true))
     @createHero()
     return ret
+
+  claimLoginReward: () ->
+    if campaign_LoginStreak.isActive(this)
+      @log('claimLoginReward', {streak: @counters.check_in.counter, date: @counters.check_in.time})
+      reward = queryTable(TABLE_DP).rewards[@counters.check_in.counter].prize
+      ret = @claimPrize(reward.filter((e) => not e.vip or @vipLevel() >= e.vip ))
+      campaign_LoginStreak.activate(this, 1)
+      return {ret: RET_OK, res: ret}
+    else
+      return {ret: RET_RewardAlreadyReceived}
 
   sweepStage: (stage, multiple) ->
     stgCfg = queryTable(TABLE_STAGE, stage, @abIndex)
@@ -219,7 +270,7 @@ class Player extends DBWrapper
       result: DUNGEON_RESULT_WIN,
       killingInfo: [],
       currentLevel: cfg.levelCount,
-      getConfig: () -> return cfg,
+      config: cfg,
       isSweep : true
     }
     count = 1
@@ -247,7 +298,7 @@ class Player extends DBWrapper
         @costEnergy(energyCost)
         ret = ret.concat(itemCostRet)
         for i in [1..count]
-          p = @generateDungeonAward(dungeon, true)
+          p = @generateDungeonReward(dungeon, true)
           r = []
           for k, v of p
             r = r.concat(v)
@@ -258,21 +309,6 @@ class Player extends DBWrapper
         ret = ret.concat(@syncEnergy())
         
     return { code: ret_result, prize: prize, ret: ret }
-
-  claimLoginReward: () ->
-    if @loginStreak.date
-      dis = diffDate(@loginStreak.date)
-      if dis is 0
-        @logError('claimLoginReward', {prev: @loginStreak.date, today: currentTime()})
-        return {ret: RET_Unknown}
-    @loginStreak['date'] = currentTime(true).valueOf()
-    @log('claimLoginReward', {loginStreak: @loginStreak.count, date: currentTime()})
-
-    reward = queryTable(TABLE_DP)[@loginStreak.count].prize
-    ret = @claimPrize(reward.filter((e) => not e.vip or @vipLevel() >= e.vip ))
-    @loginStreak.count = 0 if @loginStreak.count >= queryTable(TABLE_DP).length
- 
-    return {ret: RET_OK, res: ret}
 
   onMessage: (msg) ->
     switch msg.action
@@ -307,12 +343,20 @@ class Player extends DBWrapper
     @installObserver('countersChanged')
     @installObserver('stageChanged')
     @installObserver('winningAnPVP')
+    @installObserver('onChargeDiamond')
+    @installObserver('onBuyTreasures')
     
+
+
     helperLib.assignLeaderboard(@,helperLib.LeaderboardIdx.Arena)
     @counters['worldBoss'] ={} unless @counters['worldBoss']?
 
     if @isNewPlayer then @isNewPlayer = false
-
+    unless @invitation
+      helperLib.redeemCode.newInvitation(@name, (err, res) =>
+        if not err?
+          @invitation = res.code
+      )
 
     @inventory.validate()
 
@@ -328,31 +372,76 @@ class Player extends DBWrapper
       @stageTableVersion = queryTable(TABLE_VERSION, 'stage')
     @loadDungeon()
 
+
   handleReceipt: (payment, tunnel, cb) ->
-    productList = queryTable(TABLE_CONFIG, 'Product_List')
+    productList = queryTable(TABLE_IAP, 'list')
     myReceipt = payment.receipt
     rec = unwrapReceipt(myReceipt)
+
+    if tunnel is 'AppStore'
+      rec.productID = -1
+      for idx , product of  productList
+        if product.productID is payment.productID
+          rec.productID = +idx
+      
+    return cb('show_me_the_real_money',[]) if rec.productID is -1
     cfg = productList[rec.productID]
     flag = true
     #flag = cfg.rmb is payment.rmb
     #flag = payment.productID is cfg.productID if tunnel is 'AppStore'
     @log('charge', {
-      rmb: cfg.rmb,
-      diamond: cfg.diamond,
+      rmb: cfg.price,
+      diamond: cfg.gem,
       tunnel: tunnel,
       action: 'charge',
       match: flag,
       receipt : myReceipt
     })
     if flag
-      ret = [{ NTF: Event_InventoryUpdateItem, arg: { dim : @addDiamond(cfg.diamond) }}]
+      ret = [{ NTF: Event_InventoryUpdateItem, arg: { dim : @addDiamond(cfg.gem) }}]
+
       if rec.productID is MonthCardID
         @counters['monthCard'] = 30
         ret = ret.concat(@syncEvent())
-      @rmb += cfg.rmb
-      @onCampaign('RMB', cfg.rmb)
+      @rmb += cfg.price
+      if @inviter
+        dbLib.deliverMessage(
+          @inviter,
+          {
+            type: MESSAGE_TYPE_SystemReward,
+            src: MESSAGE_REWARD_TYPE_SYSTEM,
+            prize: [{
+              type:PRIZETYPE_DIAMOND,
+              count: Math.floor(cfg.price * 0.1)
+            }],
+            tit: "招募队友充值奖励",
+            txt: "因为你招募的队友"+@name+"充值，你获得了以下奖励:"
+          })
+
+      for name in @invitee
+        dbLib.deliverMessage(name,
+          {
+            type: MESSAGE_TYPE_SystemReward,
+            src: MESSAGE_REWARD_TYPE_SYSTEM,
+            prize: [{
+              type:PRIZETYPE_DIAMOND,
+              count: Math.floor(cfg.price * 0.1)
+            }],
+            tit: "招募队友充值奖励",
+            txt: "因为你的招募者"+@name+"充值，你获得了以下奖励:"
+          })
+
+      @onCampaign('RMB', rec.productID)
+      @counters.chargeDiamond ?= 0
+      @counters.chargeDiamond += cfg.gem
+      @counters['888'] ?= 0
+      if (+@counters['888']+1)*888<@counters.chargeDiamond
+        @counters['888'] += 1
+        ret.push(@claimPrize({type:PRIZETYPE_ITEM, value:1630,count:1}))
+
+      @notify('onChargeDiamond')
       ret.push({NTF: Event_PlayerInfo, arg: { rmb: @rmb, mcc: @counters.monthCard}})
-      ret.push({NTF: Event_RoleUpdate, arg: { act: {vip: @vipLevel()}}})
+      ret.push(@syncVipData())
       postPaymentInfo(@createHero().level, myReceipt, payment.paymentType)
       @saveDB()
       dbLib.updateReceipt(
@@ -372,12 +461,15 @@ class Player extends DBWrapper
     postResult = (error, result) =>
       if error
         logError({name: @name, receipt: myReceipt, type: 'handlePayment', error: error, result: result})
-        handle(null, [])
+        if error is 'show_me_the_real_money'
+          handle(Error(RET_InvalidPaymentInfo), [])
+        else
+          handle(null, [])
       else
         handle(null, result)
     switch payment.paymentType
       when 'AppStore' then @handleReceipt(payment, 'AppStore', postResult)
-      when 'PP25', 'ND91', 'KY'
+      when 'PP25', 'ND91', 'KY', 'Teebik'
         myReceipt = payment.receipt
         async.waterfall([
           (cb) ->
@@ -412,41 +504,79 @@ class Player extends DBWrapper
     @purchasedCount[id] = 0 unless @purchasedCount[id]?
     @purchasedCount[id] += count
 
-  createHero: (heroData) ->
+  createPlayer: (arg, account, cb) ->
+#add check for switchhero
+    cb({message:'big brother is watching ya'}) if not (0<= arg.cid <= 2)
+
+    @setName(arg.nam)
+    @accountID = account
+    @initialize()
+    @createHero({
+      name: arg.nam
+      class: arg.cid
+      gender: arg.gen
+      hairStyle: arg.hst
+      hairColor: arg.hcl
+      })
+    prize = queryTable(TABLE_ROLE, arg.cid)?.initialEquipment
+    @claimPrize(prize)
+    logUser({
+      name: arg.nam
+      action: 'register'
+      class: arg.cid
+      gender: arg.gen
+      hairStyle: arg.hst
+      hairColor: arg.hcl
+      })
+    @saveDB(cb)
+
+  putOnEquipmentAfterSwitched: (heroClass)->
+    return unless underscore.isEmpty(@heroBase[heroClass].equipment)
+    prize = queryTable(TABLE_ROLE, heroClass)?.initialEquipment
+    for p in prize
+      ret = @claimPrize(p)
+
+  createHero: (heroData, isSwitch) ->
     if heroData?
-      return null if @heroBase[heroData.class]?
-      heroData.xp = 0
-      heroData.equipment = []
-      @heroBase[heroData.class] = heroData
-      @switchHero(heroData.class)
+      return null if @heroBase[heroData.class]? and heroData.class is @hero.class
+      if isSwitch
+        heroData.xp = @hero.xp
+        heroData.equipment = @heroBase[heroData.class]?.equipment or {}
+        @heroBase[heroData.class] = heroData
+        @switchHero(heroData.class)
+        @putOnEquipmentAfterSwitched(heroData.class)
+      else
+        heroData.xp = 0
+        heroData.equipment = []
+        @heroBase[heroData.class] = heroData
+
+        @switchHero(heroData.class)
       return @createHero()
     else if @hero
       bag = @inventory
       equip = []
-      equip.push({ cid: bag.get(e).classId, eh: bag.get(e).enhancement }) for i, e of @equipment when bag.get(e)?
-      if @hero.wSpellDB #TODO: remove this
-        @hero = {
-          xp: @hero.xp,
-          name: @name,
-          class: @hero.class,
-          gender: @hero.gender,
-          hairStyle: @hero.hairStyle,
-          hairColor: @hero.hairColor,
-          equipment: equip
-          equipSlot: @equipment
-        }
-        @save()
-      else
-        @hero['equipment'] = equip
+      temp = underscore.uniq(@equipment)
+      equip.push({
+        cid: bag.get(e).classId
+        eh: bag.get(e).enhancement }) for i, e of temp when bag.get(e)?
+      @hero['equipment'] = equip
 
       hero = new Hero(@hero)
       bf = hero.calculatePower()
       if bf isnt @battleForce
         @battleForce = bf
         @notify('battleForceChanged')
+      @save()
       return hero
     else
       throw 'NoHero'
+
+  switchHeroType: (classId) ->
+    # in this situation, the classid of new roles (aka:vertical change ) are more than 200
+    if  Math.abs(classId - @hero.class) > 100
+      return 'verticalChange'
+    else
+      return 'horizonChange'
 
   switchHero: (hClass) ->
     return false unless @heroBase[hClass]?
@@ -454,10 +584,12 @@ class Player extends DBWrapper
     if @hero?
       @heroBase[@hero.class] = {}
       for k, v of @hero
-        @heroBase[@hero.class][k] = JSON.parse(JSON.stringify(v))
+        @heroBase[@hero.class][k] = JSON.parse(JSON.stringify(v)) if k isnt 'equipment'
+      @heroBase[@hero.class].equipment = JSON.parse(JSON.stringify(@equipment))
 
     for k, v of @heroBase[hClass]
       @hero[k] = JSON.parse(JSON.stringify(v))
+    @equipment = JSON.parse(JSON.stringify(@heroBase[hClass].equipment))
 
   addMoney: (type, point) ->
     return this[type] unless point
@@ -509,6 +641,7 @@ class Player extends DBWrapper
     @notify(arg.notify.name,arg.notify.arg) if arg.notify?
 
   stageIsUnlockable: (stage) ->
+    return true if g_DEBUG_FLAG
     return false if getPowerLimit(stage) > @createHero().calculatePower()
     stageConfig = queryTable(TABLE_STAGE, stage, @abIndex)
     if stageConfig.condition then return stageConfig.condition(this, genUtil())
@@ -557,10 +690,21 @@ class Player extends DBWrapper
   dungeonAction: (action) ->
     return [{NTF: Event_Fail, arg: 'Dungeon not exist.'}] unless @dungeon?
     ret = [].concat(@dungeon.doAction(action))
-    ret = ret.concat(@claimDungeonAward(@dungeon)) if @dungeon.result?
+    ret = ret.concat(@claimDungeonReward(@dungeon)) if @dungeon.result?
     return ret
 
-  startDungeon: (stage, startInfoOnly, pkr=null, handler) ->
+  updateFriendHiredInfo: (nameLst) ->
+   @counters.friendHireTime ?={}
+   for hero in nameLst
+     name = hero.name
+     if @contactBook?
+       if @contactBook.book.indexOf(name) isnt -1
+         @counters.friendHireTime[name] ?= 0
+         @counters.friendHireTime[name] += 1
+
+   
+
+  startDungeon: (stage, startInfoOnly, selectedTeam, pkr=null, handler) ->
     stageConfig = queryTable(TABLE_STAGE, stage, @abIndex)
     dungeonConfig = queryTable(TABLE_DUNGEON, stageConfig.dungeon, @abIndex)
     unless stageConfig? and dungeonConfig?
@@ -579,10 +723,23 @@ class Player extends DBWrapper
           else if level%5 is 0 then teamCount = 2
 
         team = [@createHero()]
+        team[0].notMirror= true
 
-        if stageConfig.teammate? then team = team.concat(stageConfig.teammate.map( (hd) -> new Hero(hd) ))
+        if stageConfig.teammate? then team = team.concat(stageConfig.teammate.map(
+          (hd) ->
+            newHero = new Hero(hd)
+            newHero.notMirror = true
+            return newHero
+        ))
         if teamCount > team.length
-          if mercenary.length >= teamCount-team.length
+          leftTeamCount = teamCount-team.length
+          if Array.isArray(selectedTeam) and selectedTeam.length >=leftTeamCount
+            temp = []
+            temp.push(mercenary[idx]) for idx in selectedTeam
+            @updateFriendHiredInfo(temp)
+            team = team.concat(temp)
+            @mercenary = []
+          else if mercenary.length >= leftTeamCount
             team = team.concat(mercenary.splice(0, teamCount-team.length))
             @mercenary = []
           else
@@ -614,18 +771,26 @@ class Player extends DBWrapper
           infiniteLevel: level,
           blueStar: blueStar,
           abIndex: @abIndex,
-          team: team.map(getBasicInfo)
+          team: team.map(getBasicInfo),
+          reviveLimit: @getReviveLimit(dungeonConfig.reviveLimit)
         }
+
         @dungeonData.randSeed = rand()
         @dungeonData.baseRank = helperLib.initCalcDungeonBaseRank(@) if stageConfig.event is 'event_daily'
         cb()
       ,
       (cb) =>
-        if stageConfig.pvp? and pkr?
+        if stageConfig.pvp? and pkr? and (@getPkCoolDown() == 0 or @getAddPkCount() > 0)
+          if @getAddPkCount() == 0
+            @timestamp.pkCoolDown = currentTime()
           getPlayerHero(pkr, wrapCallback(this, (err, heroData) ->
             @dungeonData.PVP_Pool = if heroData? then [getBasicInfo(heroData)]
-            cb('OK')
-          ))
+            dbLib.diffPKRank(@name, pkr,wrapCallback(this, (err, result) ->
+              result = [0,0]  unless Array.isArray(result)
+              @dungeonData.PVP_Score_diff = result[0]
+              @dungeonData.PVP_Score_origin = result[1]
+              cb('OK')
+            ))))
         else
           cb('OK')
       ], (err) =>
@@ -643,8 +808,8 @@ class Player extends DBWrapper
           else
             @logError('startDungeon', { reason: 'NoDungeon', err: err, data: @dungeonData, dungeon: @dungeon })
             @releaseDungeon()
-            err = new Error(RET_Unknown)
-            ret = RET_Unknown
+            err = new Error(RET_DungeonNotExist)
+            ret = RET_DungeonNotExist
         handler(err, ret, msg) if handler?
       )
 
@@ -652,6 +817,7 @@ class Player extends DBWrapper
     return [] if @quests[qid]
     quest = queryTable(TABLE_QUEST, qid, @abIndex)
     @quests[qid] = {counters: (0 for i in quest.objects)}
+    # TODO: implement updateQuestStatus instead
     @onEvent('gold')
     @onEvent('diamond')
     @onEvent('item')
@@ -678,25 +844,36 @@ class Player extends DBWrapper
     return itemPrize.concat(otherPrize)
 
   claimCost: (cost, count = 1) ->
-    if typeof cost is 'object'
+    ret = @claimCost_witherr(cost, count)
+    dprint("claimCost ret:",ret)
+    return null unless Array.isArray(ret)
+    return ret
+
+  claimCost_witherr: (cost, count = 1) ->
+    if Array.isArray(cost)
+      cfg = {material:cost}
+    else if typeof cost is 'object'
       cfg ={material:[{type:0, value:cost.id, count:1}]}
     else
       cfg = queryTable(TABLE_COSTS, cost)
 
-    return null unless cfg?
+    return {type:'noconfig'} unless cfg?
+    dprint("claimCost_witherr cfg:",cfg)
     prize = @rearragenPrize(cfg.material)
+    dprint("claimCost_witherr rearragen prize:",prize)
     haveEnoughtMoney = prize.reduce( (r, l) =>
       if l.type is PRIZETYPE_GOLD and @gold < l.count*count then return false
       if l.type is PRIZETYPE_DIAMOND and @diamond < l.count*count then return false
       return r
     , true)
-    return null unless haveEnoughtMoney
+    return {type:'noenoughmoney'} unless haveEnoughtMoney
     ret = []
     for p in prize when p?
+      @inventoryVersion++
       switch p.type
         when PRIZETYPE_ITEM
           retRM = @inventory.remove(p.value, p.count*count, null, true)
-          return null unless retRM and retRM.length > 0
+          return {type:'noenoughitem', value:p.value, count:p.count*count} unless retRM and retRM.length > 0
           ret = @doAction({id: 'ItemChange', ret: retRM, version: @inventoryVersion})
         when PRIZETYPE_GOLD then ret.push({NTF: Event_InventoryUpdateItem, arg: {syn: @inventoryVersion, god: @addGold(-p.count*count)}})
         when PRIZETYPE_DIAMOND then ret.push({NTF: Event_InventoryUpdateItem, arg: {syn: @inventoryVersion, dim: @addDiamond(-p.count*count)}})
@@ -705,15 +882,20 @@ class Player extends DBWrapper
 
   claimPrize: (prize, allOrFail = true) ->
     return [] unless prize?
-    prize = @rearragenPrize(prize)
+    prize = [prize] unless Array.isArray(prize)
 
     ret = []
 
     for p in prize when p?
+      @inventoryVersion++
       switch p.type
         when PRIZETYPE_ITEM
-          ret = @aquireItem(p.value, p.count, allOrFail)
-          return [] unless ret and ret.length > 0
+          res = @aquireItem(p.value, p.count, allOrFail)
+          if not (res? and res.length >0)
+            return [] if allOrFail
+          gServerObject.notify('playerClaimItem',{player:@name,item:p.value})
+          ret = ret.concat(res)
+
         when PRIZETYPE_GOLD then ret.push({NTF: Event_InventoryUpdateItem, arg: {syn: @inventoryVersion, god: @addGold(p.count)}}) if p.count > 0
         when PRIZETYPE_DIAMOND then ret.push({NTF: Event_InventoryUpdateItem, arg: {syn: @inventoryVersion, dim: @addDiamond(p.count)}}) if p.count > 0
         when PRIZETYPE_EXP then ret.push({NTF: Event_RoleUpdate, arg: {syn: @heroVersion, act: {exp: @addHeroExp(p.count)}}}) if p.count > 0
@@ -743,7 +925,7 @@ class Player extends DBWrapper
               else
                 @counters[p.counter]++
                 @notify('countersChanged',{type : p.counter})
-                ret = ret.concat(@syncCounters(true)).concat(@syncEvent())
+                ret = ret.concat(@syncCounters([], true)).concat(@syncEvent())
             when "updateLeaderboard"
               @counters['worldBoss'][p.counter] = 0 unless @counters['worldBoss'][p.counter]?
               @counters['worldBoss'][p.counter] += p.delta
@@ -760,9 +942,11 @@ class Player extends DBWrapper
   claimQuest: (qid) ->
     quest = queryTable(TABLE_QUEST, qid, @abIndex)
     ret = []
-    return RET_Unknown unless quest? and @quests[qid]? and not @quests[qid].complete
+    return RET_QuestNotExists unless quest?
+    return RET_QuestNotAccepted unless @quests[qid]?
+    return RET_QuestCompleted if @quests[qid].complete
     @checkQuestStatues(qid)
-    return RET_Unknown unless @isQuestAchieved(qid)
+    return RET_QuestNotCompleted unless @isQuestAchieved(qid)
 
     prize = @claimPrize(quest.prize.filter((e) => isClassMatch(@hero.class, e.classLimit)))
     if not prize or prize.length is 0 then return RET_InventoryFull
@@ -800,7 +984,7 @@ class Player extends DBWrapper
 
   getItemAt: (slot) -> @inventory.get(slot)
 
-  useItem: (slot)->
+  useItem: (slot, opn)->#opn 时装系统装备卸下时需要
     item = @getItemAt(slot)
     myClass = @hero.class
     return { ret: RET_ItemNotExist } unless item?
@@ -817,13 +1001,13 @@ class Player extends DBWrapper
             return { ret: RET_OK, ntf: ret.concat(prize) }
           when ItemUse_TreasureChest
             return { ret: RET_NoKey } if item.dropKey? and not @haveItem(item.dropKey)
-            prz = generatePrize(queryTable(TABLE_DROP), [item.dropId])
+            prz = @generateReward(queryTable(TABLE_DROP), [item.dropId])
             prize = @claimPrize(prz)
             return { ret: RET_InventoryFull } unless prize
             @log('openTreasureChest', {type: 'TreasureChest', id: item.id, prize: prize, drop: e.drop})
             ret = prize.concat(@removeItem(null, 1, slot))
             ret = ret.concat(this.removeItemById(item.dropKey, 1, true)) if item.dropKey?
-            return {prize: prz, res: ret}
+            return {ret: RET_OK, prize: prz, ntf: ret}
           when ItemUse_Function
             ret = @removeItem(null, 1, slot)
             switch item.function
@@ -832,24 +1016,39 @@ class Player extends DBWrapper
                 ret = ret.concat(this.syncEnergy())
             return { ret: RET_OK, ntf: ret }
       when ITEM_EQUIPMENT
-        return { ret: RET_RoleLevelNotMatch } if item.rank? and this.createHero().level < item.rank
-        ret = {NTF: Event_InventoryUpdateItem, arg: {syn:this.inventoryVersion, itm: []}}
-        equip = this.equipment[item.subcategory]
-        tmp = {sid: slot, sta: 0}
-        if equip is slot
-          delete this.equipment[item.subcategory]
-        else
-          if equip? then ret.arg.itm.push({sid: equip, sta: 0})
-          this.equipment[item.subcategory] = slot
-          tmp.sta = 1
-        ret.arg.itm.push(tmp)
-        delete ret.arg.itm if ret.arg.itm.length < 1
-
-        this.onEvent('Equipment')
+        ret = @equipItem(slot)
         return { ret: RET_OK, ntf: [ret] }
+      when ITEM_RECIPE
+        if item.recipeTarget?
+          recipe = @itemSynthesis(slot)
+          return { ret: recipe.ret } unless recipe.res
+          @log('itemSynthesis ret', {type: 'recipe', recipe: recipe})
+          ripres = recipe.res
+          ripres = ripres.concat(@removeItem(null, 1, slot))
+          @log('recipe', {type: 'recipe', id: item.id, recipe: recipe.out})
+          return {out:recipe.out, ntf:ripres}
+       #if opn? and opn == 1 #USE_ITEM_OPT_EQUIP = 1;
+       #  ret = @equipItem(slot)
+       #  return { ret: RET_OK, ntf: [ret] }
+       #else
+       #  if item.recipeTarget?
+       #    recipe = @itemSynthesis(slot)
+       #    return { ret: recipe.ret } unless recipe.res
+       #    @log('itemSynthesis ret', {type: 'recipe', recipe: recipe})
+       #    ripres = recipe.res
+       #    ripres = ripres.concat(@removeItem(null, 1, slot))
+       #    @log('recipe', {type: 'recipe', id: item.id, recipe: recipe.out})
+       #    return {out:recipe.out, ntf:ripres}
+       #  else if item.recipePrize?
+       #    recipe = @itemDecompsite(slot)
+       #    return { ret: recipe.ret } unless recipe.ret == RET_OK
+       #    @log('deposite ret', {type: 'recipe', recipe: recipe})
+       #    @log('recipe', {type: 'recipe', id: item.id, recipe: recipe.out})
+       #    return {out:recipe.prize, ntf:recipe.res}
+        
 
     logError({action: 'useItem', reason: 'unknow', catogory: item.category, subcategory: item.subcategory, id: item.id})
-    return {ret: RET_Unknown}
+    return {ret: RET_UseItemFailed}
 
   doAction: (routine) ->
     cmd = new playerCommandStream(routine, this)
@@ -868,7 +1067,7 @@ class Player extends DBWrapper
 
   transformGem: (tarID, count) ->
     cfg = queryTable(TABLE_ITEM, tarID)
-    return { ret: RET_Unknown } unless cfg?
+    return { ret: RET_TargetNotExists } unless cfg?
 
     ret = @claimCost(cfg.synthesizeID, count)
     if not ret? then return { ret: RET_InsufficientIngredient }
@@ -876,11 +1075,52 @@ class Player extends DBWrapper
 
     return { res: ret }
 
+
+  #getSlotFreezeInfo: (slot) -> getSlotFreezeInfo(@,slot)
+
+  unequipItem: (slot) ->
+    for k, v of @equipment
+      delete @equipment[k] if (+v) is (+slot)
+    return
+
+  equipItem: (slot) ->
+    #info = @getSlotFreezeInfo(slot)
+
+    item = @getItemAt(slot)
+    return { ret: RET_RoleLevelNotMatch } if item.rank? and @createHero().level < item.rank
+    ret = {NTF: Event_InventoryUpdateItem, arg: {syn:@inventoryVersion, itm: []}}
+
+    equip = @equipment[item.subcategory]
+    tmp = {sid: slot, sta: 0}
+
+    if equip is slot
+      @unequipItem(slot)
+    else
+      if equip?
+        @unequipItem(equip)
+        ret.arg.itm.push({sid: equip, sta: 0})
+      @equipment[item.subcategory] = slot
+      if item.extraSlots?
+        for v_slot in item.extraSlots
+          if @equipment[v_slot]?
+            ret.arg.itm.push({sid: @equipment[v_slot], sta: 0})
+            @unequipItem(@equipment[v_slot])
+          @equipment[v_slot] = slot
+      tmp.sta = 1
+    ret.arg.itm.push(tmp)
+    delete ret.arg.itm if ret.arg.itm.length < 1
+
+    @onEvent('Equipment')
+    return ret
+
   levelUpItem: (slot) ->
     item = @getItemAt(slot)
     return { ret: RET_ItemNotExist } unless item?
     return { ret: RET_EquipCantUpgrade } unless item.upgradeTarget? and @createHero().level > item.rank
-    upConfig = queryTable(TABLE_UPGRADE, item.rank, @abIndex)
+    if item.getConfig().upgradeId?
+      upConfig = queryTable(TABLE_UPGRADE, item.getConfig().upgradeId, @abIndex)
+    else
+      upConfig = queryTable(TABLE_UPGRADE, item.rank, @abIndex)
     return { ret: RET_EquipCantUpgrade } unless upConfig
     exp = upConfig.xp
     cost = upConfig.cost
@@ -892,7 +1132,7 @@ class Player extends DBWrapper
 
     this.addGold(-cost)
     ret = this.removeItem(null, 1, slot)
-    newItem = new Item(item.upgradeTarget)
+    newItem = libItem.createItem(item.upgradeTarget)
     newItem.enhancement = item.enhancement
     ret = ret.concat(this.aquireItem(newItem))
     eh = newItem.enhancement.map((e) -> {id:e.id, lv:e.level})
@@ -917,10 +1157,15 @@ class Player extends DBWrapper
     ret = @craftItem(slot)
     newItem = ret.newItem
     if newItem
-      ret.newItem.enhancement = enhance
-      ret.newItem.xp = item.xp
+      newItem.enhancement = enhance
+      newItem.xp = item.xp
+      newItem.slot = item.slot
       eh = newItem.enhancement.map((e) -> {id:e.id, lv:e.level})
-      ret.res.push({NTF: Event_InventoryUpdateItem, arg: {syn:this.inventoryVersion, itm:[{sid: @queryItemSlot(newItem), eh:eh, xp: newItem.xp}]}})
+      @inventory.container[slot] = newItem
+      ret.res.push({NTF: Event_InventoryUpdateItem, arg: {
+        syn:this.inventoryVersion,
+        itm:[{sid: @queryItemSlot(newItem), cid: newItem.id, eh:eh, xp: newItem.xp}]
+      }})
     return ret
 
   craftItem: (slot) ->
@@ -928,10 +1173,12 @@ class Player extends DBWrapper
     return { ret: RET_NeedReceipt } unless recipe?
     ret = @claimCost(recipe.forgeID)
     if not ret? then return { ret: RET_InsufficientIngredient }
-    return { ret: RET_Unknown } unless recipe.forgeTarget?
-    newItem = new Item(recipe.forgeTarget)
-    ret = ret.concat(@aquireItem(newItem))
-    ret = ret.concat({NTF: Event_InventoryUpdateItem, arg:{syn: @inventoryVersion, god: @gold }})
+    return { ret: RET_TargetNotExists } unless recipe.forgeTarget?
+    newItem = libItem.createItem(recipe.forgeTarget)
+    ret = ret.concat({NTF: Event_InventoryUpdateItem, arg:{
+      syn: @inventoryVersion,
+      god: @gold
+    }})
     @log('craftItem', { slot: slot, id: recipe.id })
 
     if newItem.rank >= 8 then dbLib.broadcastEvent(BROADCAST_CRAFT, {who: @name, what: newItem.id})
@@ -943,10 +1190,10 @@ class Player extends DBWrapper
     equip.enhancement[0] = { id: equip.enhanceID, level: -1 } unless equip.enhancement[0]?
     level = equip.enhancement[0].level + 1
     return { ret: RET_EquipCantUpgrade } unless level < 40 and equip.enhanceID?
-
+    return { ret: RET_EquipCantUpgrade } unless equip.quality? and level < 8*(equip.quality+1)
     enhance = queryTable(TABLE_ENHANCE, equip.enhanceID)
     ret = @claimCost(enhance.costList[level])
-    if not ret? then return { ret: RET_Unknown }
+    if not ret? then return { ret: RET_ClaimCostFailed }
 
     equip.enhancement[0].level = level
 
@@ -962,10 +1209,10 @@ class Player extends DBWrapper
     return { out: {cid: equip.id, sid: itemSlot, stc: 1, eh: eh, xp: equip.xp}, res: ret }
 
   sellItem: (slot) ->
-    if @isEquiped(slot) then return { ret: RET_Unknown }
+    if @isEquiped(slot) then return { ret: RET_EquipedItemCannotBeSold }
 
     item = @getItemAt(slot)
-    return { ret: RET_Unknown } unless item?
+    return { ret: RET_ItemNotExist } unless item?
     count = item.count
     if item?.transPrize or item?.sellprice
       ret = @removeItem(null, null, slot)
@@ -978,7 +1225,7 @@ class Player extends DBWrapper
       @log('sellItem', { itemId: item.id, price: item.sellprice, count: count, slot: slot })
       return { ret: RET_OK, ntf: [{ NTF: Event_InventoryUpdateItem, arg: {syn:this.inventoryVersion, 'god': this.gold} }].concat(ret)}
     else
-      return { ret: RET_Unknown }
+      return { ret: RET_ItemSoldFailed }
 
   haveItem: (itemID) ->
     itemConfig = queryTable(TABLE_ITEM, itemID, @abIndex)
@@ -992,49 +1239,6 @@ class Player extends DBWrapper
     else
       return false
 
-  generateDungeonAward: (dungeon) ->
-    result = dungeon.result
-    cfg = dungeon.getConfig()
-    if result is DUNGEON_RESULT_DONE or not cfg? then return  helperLib.splicePrize([])
-  
-    dropInfo = dungeon.killingInfo.reduce( ((r, e) ->
-      if e and e.dropInfo then return r.concat(e.dropInfo)
-      return r
-    ), [])
-
-    percentage = 1
-    if result is DUNGEON_RESULT_WIN
-      if dungeon.isSweep?
-        dropInfo = dropInfo.concat(cfg.dropID) if cfg.dropID
-    else
-      percentage = (dungeon.currentLevel / cfg.levelCount) * 0.5
-
-    gr = (cfg.goldRate ? 1) * percentage
-    xr = (cfg.xpRate ? 1) * percentage
-    wr = (cfg.wxpRate ? 1) * percentage
-
-    prize = generatePrize(queryTable(TABLE_DROP), dropInfo)
-    prize = prize.concat(dungeon.prizeInfo)
-
-    if not dungeon.isSweep
-      prize.push({type:PRIZETYPE_GOLD, count:Math.floor(gr*cfg.prizeGold)}) if cfg.prizeGold
-      prize.push({type:PRIZETYPE_EXP, count: Math.floor(xr*cfg.prizeXp)}) if cfg.prizeXp
-
-    prize.push({type:PRIZETYPE_WXP, count: Math.floor(wr*cfg.prizeWxp)}) if cfg.prizeWxp
-
-    infiniteLevel = dungeon.infiniteLevel
-    if infiniteLevel? and cfg.infinityPrize and result is DUNGEON_RESULT_WIN
-      iPrize = p for p in cfg.infinityPrize when p.level is infiniteLevel
-      if iPrize?
-        iPrize = { type: iPrize.type, value: iPrize.value, count: iPrize.count }
-
-        if iPrize.type is PRIZETYPE_GOLD
-          prize.push({type: PRIZETYPE_GOLD, count: iPrize.count})
-        else
-          prize.push(iPrize)
-  
-    return helperLib.splicePrize(prize)
-
   updateQuest: (quests) ->
     for qid, qst of quests
       continue unless qst?.counters? and @quests[qid]
@@ -1042,61 +1246,9 @@ class Player extends DBWrapper
       for k, objective of quest.objects when objective.type is QUEST_TYPE_NPC and qst.counters[k]? and @quests[qid].counters?
         @quests[qid].counters[k] = qst.counters[k]
 
-  claimDungeonAward: (dungeon, isSweep) ->
-    return [] unless dungeon?
-    ret = []
 
-    if dungeon.revive > 0
-      ret = @inventory.removeById(ItemId_RevivePotion, dungeon.revive, true)
-      if not ret or ret.length is 0
-        return { NTF: Event_DungeonReward, arg : { res : DUNGEON_RESULT_FAIL } }
-      ret = this.doAction({id: 'ItemChange', ret: ret, version: @inventoryVersion})
-  
-    quests = dungeon.quests
-    if quests
-      @updateQuest(quests)
-      @questVersion++
-  
-    {goldPrize, xpPrize, wxPrize, otherPrize} = @generateDungeonAward(dungeon)
-
-    rewardMessage = { NTF: Event_DungeonReward, arg: { res: dungeon.result } }
-  
-    ret = ret.concat([rewardMessage])
-    if dungeon.result isnt DUNGEON_RESULT_FAIL then ret = ret.concat(this.completeStage(dungeon.stage))
-  
-    # Close Offline reward
-    #offlineReward = [
-    #  { type: PRIZETYPE_EXP,  count: Math.ceil(xpPrize.count* TEAMMATE_REWARD_RATIO) },
-    #  { type: PRIZETYPE_GOLD, count: Math.ceil(goldPrize.count* TEAMMATE_REWARD_RATIO) },
-    #  { type: PRIZETYPE_WXP,  count: Math.ceil(wxPrize.count* TEAMMATE_REWARD_RATIO) }
-    #].filter( (e) -> e.count > 0)
-
-    #if offlineReward.length > 0
-    #  teammateRewardMessage = {
-    #    type: MESSAGE_TYPE_SystemReward,
-    #    src : MESSAGE_REWARD_TYPE_OFFLINE,
-    #    prize : offlineReward
-    #  }
-    #  dungeon.team.filter((m) => m.nam != @name).forEach((m) ->
-    #    if m then dbLib.deliverMessage(m.nam, teammateRewardMessage)
-    #  )
-  
-    result = 'Lost'
-    result = 'Win' if dungeon.result is DUNGEON_RESULT_WIN
-
-    otherPrize.push(goldPrize)
-    otherPrize.push(xpPrize)
-    otherPrize.push(wxPrize)
-    prize = otherPrize.filter( (e) -> return not ( e.count? and e.count is 0 ) )
-    if prize.length > 0 then rewardMessage.arg.prize = prize.filter((f) -> f.type isnt  PRIZETYPE_FUNCTION)
-    ret = ret.concat(this.claimPrize(prize, false))
-    @updatePkInof(dungeon)
-
-    if isSweep
-    else
-      @log('finishDungeon', { stage: dungeon.getInitialData().stage, result: result, reward: prize })
-      @releaseDungeon()
-    return ret
+  getPKReward: (dungeon) ->
+    return getPKRewardByDiff(dungeon.PVP_Score_diff, dungeon.PVP_Score_origin)
 
   updatePkInof: (dungeon) ->
     if dungeon.PVP_Pool?
@@ -1121,7 +1273,7 @@ class Player extends DBWrapper
     async.series([
       (cb) ->
         if id?
-          dbLib.getPlayerNameByID(id, (err, theName) ->
+          dbLib.getPlayerNameByID(id, gServerName, (err, theName) ->
             if theName then name = theName
             cb(err)
           )
@@ -1130,7 +1282,7 @@ class Player extends DBWrapper
       (cb) => if name is @name then cb(new Error(RET_CantInvite)) else cb (null),
       (cb) => if @contactBook? and @contactBook.book.indexOf(name) isnt -1 then cb(new Error(RET_OK)) else cb (null),
       (cb) -> dbLib.playerExistenceCheck(name, cb),
-      (cb) -> dbLib.deliverMessage(name, msg, cb),
+      (cb) -> dbLib.deliverMessage(name, msg, cb, null, true),
     ], (err, result) ->
       err = new Error(RET_OK) unless err?
       if callback then callback(err)
@@ -1153,11 +1305,16 @@ class Player extends DBWrapper
       when 'tuHaoCount' then return cfg?.privilege?.tuHaoCount ? 3
       when 'EquipmentRobbers' then return cfg?.privilege?.EquipmentRobbers ? 3
       when 'EvilChieftains' then return cfg?.privilege?.EvilChieftains ? 3
-      when 'blueStarCost' then return cfg?.blueStarCost ? 0
-      when 'goldAdjust' then return cfg?.goldAdjust ? 0
-      when 'expAdjust' then return cfg?.expAdjust ? 0
-      when 'wxpAdjust' then return cfg?.wxpAdjust ? 0
-      when 'energyLimit' then return (cfg?.energyLimit ? 0) + ENERGY_MAX
+      when 'blueStarCost' then return cfg?.privilege?.blueStarCost ? 0
+      when 'goldAdjust' then return cfg?.privilege?.goldAdjust ? 0
+      when 'expAdjust' then return cfg?.privilege?.expAdjust ? 0
+      when 'wxpAdjust' then return cfg?.privilege?.wxpAdjust ? 0
+      when 'energyLimit' then return (cfg?.privilege?.energyLimit ? 0) + ENERGY_MAX
+      when 'freeEnergyTimes' then return cfg?.privilege?.freeEnergyTimes ? 0
+      when 'dayEnergyBuyTimes' then return cfg?.privilege?.dayEnergyBuyTimes ? 4
+      when 'energyPrize' then return cfg?.privilege?.energyPrize ? 1
+      when 'appendRevive' then return cfg?.privilege?.appendRevive ? 0
+      when 'reviveBasePrice' then return cfg?.privilege?.reviveBasePrice ? 60
 
   vipLevel: () -> @vipOperation('vipLevel')
   getBlueStarCost: () -> @vipOperation('blueStarCost')
@@ -1166,10 +1323,42 @@ class Player extends DBWrapper
   wxpAdjust: () -> @vipOperation('wxpAdjust')
   energyLimit: () -> @vipOperation('energyLimit')
   getPrivilege: (name) -> @vipOperation(name)
+  getTotalPkTimes: () -> return @getPrivilege('pkCount')
+  getAddPkCount: () ->
+    @counters.addPKCount = 0 unless @counters.addPKCount?
+    return @counters.addPKCount
+
+  getReviveLimit: (reviveLimit) ->
+      return -1 unless reviveLimit? and  reviveLimit isnt -1
+      return reviveLimit + @vipOperation('appendRevive')
+  getPkCoolDown: () ->
+    if @counters.addPKCount? and @counters.addPKCount > 0
+      return 0
+    @timestamp.pkCoolDown = 0 unless @timestamp.pkCoolDown?
+    timePass = libTime.diff(currentTime(), @timestamp.pkCoolDown).asSeconds()
+    if timePass >= PK_COOLDOWN
+      return 0
+    else
+      return (PK_COOLDOWN - timePass)
+
+  clearCDTime: () ->
+    @timestamp.pkCoolDown = 0
+
+  addPkCount: (count) ->
+    @counters.addPKCount = 0 unless @counters.addPKCount?
+    @counters.addPKCount++
+
+  claimPkPrice: (callback) ->
+    me = @
+    helperLib.getPositionOnLeaderboard(helperLib.LeaderboardIdx.Arena, @name, 0, 0, (err, result) ->
+      prize = arenaPirze(result.position + 1 )
+      ret = me.claimPrize(prize)
+      callback(ret)
+    )
 
   hireFriend: (name, handler) ->
     return false unless handler?
-    return handler(RET_Unknown) if this.contactBook.book.indexOf(name) is -1
+    return handler(RET_FriendNotExists) if this.contactBook.book.indexOf(name) is -1
 
     myIndex = @mercenary.reduce((r, e, index) ->
       return index if e.name is name
@@ -1186,7 +1375,8 @@ class Player extends DBWrapper
     else
       dbLib.incrBluestarBy(name, -@getBlueStarCost(), wrapCallback(this,(err, left) ->
         getPlayerHero(name, wrapCallback(this, (err, heroData) ->
-          hero = new Hero(heroData)
+          #hero = new Hero(heroData)
+          hero = heroData
           hero.isFriend = true
           hero.leftBlueStar = left
           @mercenary.splice(0, 0, hero)
@@ -1209,19 +1399,32 @@ class Player extends DBWrapper
   getCampaignConfig: (campaignName) ->
     cfg = queryTable(TABLE_CAMPAIGN, campaignName, @abIndex)
     if cfg?
+      #check validate
       if cfg.date? and moment(cfg.date).format('YYYYMMDD') - moment().format('YYYYMMDD') < 0 then return { config: null }
+      if cfg.duration?
+        duration = cfg.duration
+        nowTime = moment()
+        return {config:null} unless isInRangeTime(duration, nowTime)
       if @getCampaignState(campaignName)? and @getCampaignState(campaignName) is false then return { config: null }
       if @getCampaignState(campaignName)? and cfg.level? and @getCampaignState(campaignName) >= cfg.level.length then return { config: null }
+      if cfg.generation? and @getCampaignState(campaignName) >= cfg.generation.value then return {config: null}
       if campaignName is 'LevelUp' and cfg.timeLimit*1000 <= moment()- @creationDate then return { config: null }
     else
       return { config: null }
-    if cfg.level
+
+    #gen award info
+    if cfg.level?
       return { config: cfg, level: cfg.level[@getCampaignState(campaignName)] }
-    else
+    else if cfg.objective?
       return { config: cfg, level: cfg.objective }
+    else if cfg.generation?
+      return {config: cfg, level: cfg.generation.awards}
+    else
+      return {config: cfg}
 
   onCampaign: (state, data) ->
-    reward = []
+    reward = [] #deliver by message
+    prize =[] # claim prize
     switch state
       when 'Friend'
         { config, level } = @getCampaignConfig('Friend')
@@ -1259,7 +1462,7 @@ class Player extends DBWrapper
 
         { config, level } = @getCampaignConfig('FirstCharge')
         if config? and level?
-          rmb = data
+          rmb = String(data)
           if level[rmb]?
             reward.push({cfg: config, lv: level[rmb]})
             @setCampaignState('FirstCharge', false)
@@ -1281,9 +1484,17 @@ class Player extends DBWrapper
         if config? and level? and @createHero().calculatePower() >= level.count
           @setCampaignState('BattleForce', @getCampaignState('BattleForce')+1)
           reward.push({cfg: config, lv: level})
+      when 'timeLimitAward'
+        { config,level} = @getCampaignConfig('timeLimitAward')
+        if(config?)
+          generation = config.generation.value
+          @setCampaignState('timeLimitAward',generation)
+          prize = level
 
     for r in reward
+      #console.log('reward', JSON.stringify(reward))
       dbLib.deliverMessage(@name, { type: MESSAGE_TYPE_SystemReward, src: MESSAGE_REWARD_TYPE_SYSTEM, prize: r.lv.award, tit: r.cfg.mailTitle, txt: r.cfg.mailBody })
+    {prize:prize, sync:@claimPrize(prize)}
 
   updateFriendInfo: (handler) ->
     dbLib.getFriendList(@name, wrapCallback(this, (err, book) ->
@@ -1403,6 +1614,8 @@ class Player extends DBWrapper
           else if msg.type is MESSAGE_TYPE_ChargeDiamond
             dbLib.removeMessage(me.name, msg.messageID)
             me.handlePayment(msg, cb)
+          else if msg.type is MESSAGE_TYPE_InvitationAccept
+            me.invitee.push(msg.name)
           else
             cb(err, msg)
         , (err, msg) ->
@@ -1430,59 +1643,88 @@ class Player extends DBWrapper
       callback(@mercenary.map( (h) -> new Hero(h)))
     else
       #// TODO: range  & count to config
+      validateFriend = []
+      @counters.friendHireTime ?={}
       filtedName = [@name]
       filtedName = filtedName.concat(@mercenary.map((m) -> m.name))
-      if @contactBook? then filtedName = filtedName.concat(@contactBook.book)
-      getMercenaryMember(@name, 2, 30, 1, filtedName,
+      if @contactBook?
+        filtedName = filtedName.concat(@contactBook.book)
+        validateFriend = underscore.sample(@contactBook.book.filter((name) =>
+          times = @counters.friendHireTime[name]
+          res = not times? or times < 1
+          return res
+        ),5)
+
+      getMercenaryMember(@name, 5, 30, 1, filtedName,validateFriend
         (err, heroData) ->
           if heroData
-            me.mercenary = me.mercenary.concat(heroData)
+            me.mercenary = me.mercenary.concat(heroData.filter((e) -> e?))
+            me.mercenary = underscore.uniq(me.mercenary,false, (obj) -> obj.name)
             me.requireMercenary(callback)
           else
             callback(null)
       )
 
   recycleItem: (slot) ->
-    recyclableEnhance = queryTable(TABLE_CONFIG, 'Global_Recyclable_Enhancement', @abIndex)
-    recycleConfig = queryTable(TABLE_CONFIG, 'Global_Recycle_Config', @abIndex)
     item = @getItemAt(slot)
-    for k, equip of @equipment when equip is slot
-      delete @equipment[k]
-      break
-    ret = []
-    try
-      if item is null then throw RET_ItemNotExist
-      xp = helperLib.calculateTotalItemXP(item) * 0.8
-      ret = ret.concat(@removeItem(null, null, slot))
-      reward = item.enhancement.map((e) ->
-        if recyclableEnhance.indexOf(e.id) != -1
-          cfg = recycleConfig[e.level]
-          return {
-            type : PRIZETYPE_ITEM,
-            value : queryTable(TABLE_CONFIG, 'Global_Enhancement_GEM_Index', @abIndex)[e.id],
-            count : cfg.minimum + rand() % cfg.delta
-          }
-        else
-          return null
-      )
-      if queryTable(TABLE_CONFIG, 'Global_Material_ID').length > item.quality
-        reward.push({
-          type: PRIZETYPE_ITEM,
-          value: queryTable(TABLE_CONFIG, 'Global_Material_ID')[item.quality],
-          count: 2 + rand() % 2
-        })
-      reward = reward.filter( (e) -> return e? )
-      #reward.push({
-      #  type: PRIZETYPE_ITEM,
-      #  value: queryTable(TABLE_CONFIG, 'Global_WXP_BOOK'),
-      #  count: Math.floor(xp/100)
-      #})
-      rewardEvt = this.claimPrize(reward)
-      ret = ret.concat(rewardEvt)
-    catch err
-      logError(err)
+    return { ret: RET_ItemNotExist } unless item?
+    if item.recipePrize?
+      recipe = @itemDecompsite(slot)
+      return { ret: recipe.ret } unless recipe.ret == RET_OK
+      @log('deposite ret', {type: 'recipe', recipe: recipe})
+      @log('recipe', {type: 'recipe', id: item.id, recipe: recipe.out})
+      return {out:recipe.prize, ntf:recipe.res}
+  # recyclableEnhance = queryTable(TABLE_CONFIG, 'Global_Recyclable_Enhancement', @abIndex)
+  # recycleConfig = queryTable(TABLE_CONFIG, 'Global_Recycle_Config', @abIndex)
+  # item = @getItemAt(slot)
+  # for k, equip of @equipment when equip is slot
+  #   delete @equipment[k]
+  #   break
+  # ret = []
+  # try
+  #   if item is null then throw RET_ItemNotExist
+  #   xp = helperLib.calculateTotalItemXP(item) * 0.8
+  #   ret = ret.concat(@removeItem(null, null, slot))
+  #   reward = item.enhancement.map((e) ->
+  #     if recyclableEnhance.indexOf(e.id) != -1
+  #       cfg = recycleConfig[e.level]
+  #       return {
+  #         type : PRIZETYPE_ITEM,
+  #         value : queryTable(TABLE_CONFIG, 'Global_Enhancement_GEM_Index', @abIndex)[e.id],
+  #         count : cfg.minimum + rand() % cfg.delta
+  #       }
+  #     else
+  #       return null
+  #   )
+  #   if queryTable(TABLE_CONFIG, 'Global_Material_ID').length > item.quality
+  #     reward.push({
+  #       type: PRIZETYPE_ITEM,
+  #       value: queryTable(TABLE_CONFIG, 'Global_Material_ID')[item.quality],
+  #       count: 2 + rand() % 2
+  #     })
+  #   reward = reward.filter( (e) -> return e? )
+  #   #reward.push({
+  #   #  type: PRIZETYPE_ITEM,
+  #   #  value: queryTable(TABLE_CONFIG, 'Global_WXP_BOOK'),
+  #   #  count: Math.floor(xp/100)
+  #   #})
+  #   rewardEvt = this.claimPrize(reward)
+  #   ret = ret.concat(rewardEvt)
+  # catch err
+  #   logError(err)
 
-    return {out: reward, res: ret}
+  # return {out: reward, res: ret}
+
+  combineItem: (slot, gemSlot) ->
+    equip = @getItemAt(slot)
+    gem = @getItemAt(gemSlot)
+    return { ret: RET_ItemNotExist } unless gem and equip
+    retRM = @inventory.removeItemAt(gemSlot, 1, true)
+    if retRM
+      equip.installEnhancement(gem)
+      return { res: [] }
+    else
+      return { ret: RET_NoEnhanceStone }
 
   injectWXP: (slot, bookSlot) ->
     equip = @getItemAt(slot)
@@ -1505,7 +1747,7 @@ class Player extends DBWrapper
     filtedName = [@name]
     filtedName = filtedName.concat(@mercenary.map((m) -> m.name))
     filtedName = filtedName.concat(@contactBook.book) if @contactBook?.book?
-    getMercenaryMember(myName , 1, 30, 1, filtedName,
+    getMercenaryMember(myName , 1, 30, 1, filtedName,[]
       (err, heroData) ->
         if heroData
           me.mercenary.splice(id, 1, heroData[0])
@@ -1588,10 +1830,29 @@ class Player extends DBWrapper
         act:getBasicInfo(@createHero())
       }
     }
+    ev.arg.act.notMirror = true
     if forceUpdate then ev.arg.clr = true
     
     return ev
 
+  syncVipData: (forceUpdate) ->
+    vipOp = [
+      "freeEnergyTimes", "dayEnergyBuyTimes", "energyPrize",
+      "reviveBasePrice", "appendRevive"
+    ].reduce((acc, opName) =>
+      acc[opName] = @vipOperation(opName)
+      return acc
+    ,{})
+
+    return {
+      NTF:Event_RoleUpdate,
+      arg:{
+        act:{
+          vip:@vipLevel(),
+          vipOp:vipOp
+        }
+      }
+    }
   syncDungeon: (forceUpdate) ->
     dungeon = this.dungeon
     if dungeon == null then return []
@@ -1618,7 +1879,10 @@ class Player extends DBWrapper
         banner: config.banner
       }
       r.date = config.dateDescription if config.dateDescription?
-      r.prz = level.award if level.award
+      r.duration = config.durationDesc if config.durationDesc?
+      r.poster = config.poster if config.poster?
+      r.type = config.type if config.type?
+      r.prz = level.award if level?.award
       ret.arg.act.push(r)
     return [ret]
 
@@ -1633,8 +1897,17 @@ class Player extends DBWrapper
       arg: arg
     }
 
-  syncCounters: (forceUpdate) ->
-    return []
+  syncCounters: (keys, forceUpdate) ->
+    ret =[]
+    if keys?
+      ret = underscore.pick(@counters, keys)
+    else
+      ret = @counters
+
+    return  {
+      NTF: Event_UpdateCounters,
+      arg:ret
+    }
 
   syncQuest: (forceUpdate) ->
     ret = packQuestEvent(@quests, null, this.questVersion)
@@ -1655,6 +1928,221 @@ class Player extends DBWrapper
       NTF : Event_SyncVersions,
       arg :versions
     }
+
+  getFragment: (type,count) ->
+    @counters.fragmentTimes ?= []
+    @timestamp.fragmentTime ?= []
+    @counters.totalFragTimes = [] unless @counters.totalFragTimes
+    @counters.totalFragTimes[type] = 1 unless @counters.totalFragTimes[type]
+    @counters.fragmentTimes[type] ?= 0
+    @timestamp.fragmentTime[type] ?= "2014-10-01"
+    fragInterval = [{"value":5,"unit":"minite"},{"value":24,"unit":"hour"}]
+    hiGradeTimesFrag = [10,10]
+    fragCost = {"1":30,"10":290}
+
+    cfg = queryTable(TABLE_FRAGMENT)
+    fragInterval[type] = cfg[type].interval
+    hiGradeTimesFrag[type] = cfg[type].basic_times
+
+    fragCost = cfg[type].diamond
+    dis = @getDiffTime(@timestamp.fragmentTime[type],currentTime(),fragInterval[type].unit)
+    if fragCost[+count]? then diamondCost = fragCost[+count]
+    else diamondCost = fragCost["1"] * count
+    console.log('diamondCost=', diamondCost)
+    switch type
+      when 0
+        if dis >= fragInterval[type].value
+          @timestamp.fragmentTime[type] = currentTime()
+
+    evt = []
+    prz = []
+    if diamondCost > 0
+      if @addDiamond(-diamondCost)
+        evt.push({NTF: Event_InventoryUpdateItem, arg: {syn: @inventoryVersion, dim: @diamond}})
+      else
+        return {ret: RET_NotEnoughDiamond}
+
+    for i in [0..count-1]
+      if @counters.fragmentTimes[type] < hiGradeTimesFrag[type]
+        basicPrize = @getFragPrizeTable(type,'basic_prize')
+        dprint('basicPrize=', basicPrize)
+        prz = prz.concat(generatePrize(basicPrize, [0..basicPrize.length-1]))
+        @counters.fragmentTimes[type]++
+      else
+        advancedPrize = @getFragPrizeTable(type,'advanced_prize')
+        dprint('advancedPrize=', advancedPrize)
+        prz = prz.concat(generatePrize(advancedPrize, [0..advancedPrize.length-1]))
+        @counters.fragmentTimes[type] = 0
+      @counters.totalFragTimes[type]++
+
+    prize = @claimPrize(prz)
+    dprint('claimPrize prize:', prize)
+    console.log('prz=', prz)
+    if prize.length <= 0
+      @addDiamond(diamondCost)
+      return { ret: RET_InventoryFull }
+    prize = prize.concat(evt)
+    @log('lottery', {type: 'lotteryFragment', prize: prize})
+
+    @counters.buyTreasureTimes ?= 0
+    @counters.buyTreasureTimes += count
+    @notify('onBuyTreasures')
+    return {prize: prz, res: prize, ret: RET_OK}
+
+  getFragTimeCD: (type) ->
+    @counters.fragmentTimes = [] unless @counters.fragmentTimes
+    @timestamp.fragmentTime = [] unless @timestamp.fragmentTime
+    @counters.fragmentTimes[type] = 0 unless @counters.fragmentTimes[type]
+    @timestamp.fragmentTime[type] = "2014-10-01" unless @timestamp.fragmentTime[type]
+    fragInterval = [{"value":5,"unit":"minite"},{"value":24,"unit":"hour"}]
+    fragInterval[type] = queryTable(TABLE_FRAGMENT)[type].interval
+    freeFragCD = 0
+    switch fragInterval[type].unit
+      when 'second' then freeFragCD = fragInterval[type].value
+      when 'minite' then freeFragCD = fragInterval[type].value*60
+      when 'hour' then freeFragCD = fragInterval[type].value*3600
+      when 'day' then freeFragCD = fragInterval[type].value*24*3600
+    dis = @getDiffTime(@timestamp.fragmentTime[type],currentTime(),'second')
+    if freeFragCD <= 0 or freeFragCD - dis <= 0
+      return 0
+    else
+      return freeFragCD - dis
+
+  getFragPrizeTable: (type, table) ->#table="basic_prize" or "advanced_prize"
+    cfg = queryTable(TABLE_FRAGMENT)
+    return cfg[type][table] unless cfg[type].advanced_option?
+    @log('@counters.totalFragTimes', {type: type, totalFragTimes: @counters.totalFragTimes[type]})
+    for e, h of cfg[type].advanced_option
+      #return cfg[type][table] unless h[table]?
+      continue unless h[table]?
+      if @match_dateinterval(h.dateInterval,libTime.moment()) and @match_countvalue(h,type)
+        return h[table]
+      # for k, v of h.count_value
+      #   switch h.condition
+      #     when 'less'
+      #       if @counters.totalFragTimes[type] < v
+      #         return h[table]
+      #     when 'equal'
+      #       if @counters.totalFragTimes[type] == v
+      #         return h[table]
+      #     when 'more'
+      #       if @counters.totalFragTimes[type] > v
+      #         return h[table]
+      #     when 'interval'
+      #       if @counters.totalFragTimes[type] % v == 0
+      #         return h[table]
+    return cfg[type][table]
+
+  match_dateinterval: (scheme, date) ->
+    return true unless scheme? and scheme.startDate? and scheme.interval?
+    for k of scheme.startDate
+      for x of scheme.startDate[k].date
+        sttime = libTime.moment([scheme.startDate[k].year, scheme.startDate[k].month,scheme.startDate[k].date[x],0,0,0,0])
+        console.log('match_dateinterval sttime=', sttime._d)
+        console.log('match_dateinterval date=', date._d)
+        days = Math.abs(diffDate(sttime, date))#date sttime为moment
+        #days = subtime.asDays()
+        console.log('match_dateinterval days=', days)
+        console.log('match_dateinterval interval=', scheme.interval)
+        if scheme.interval > 0 and days % scheme.interval == 0
+          return true
+        else if scheme.interval == 0 and days == 0
+          return true
+    return false
+    #return true
+
+  match_countvalue: (scheme, type) ->
+    return true unless scheme.condition? and scheme.count_value?
+    for k, v of scheme.count_value
+      switch scheme.condition
+        when 'less'
+          if @counters.totalFragTimes[type] < v
+            return true
+        when 'equal'
+          if @counters.totalFragTimes[type] == v
+            return true
+        when 'more'
+          if @counters.totalFragTimes[type] > v
+            return true
+        when 'interval'
+          if v > 0 and @counters.totalFragTimes[type] % v == 0
+            return true
+    return false
+
+  itemSynthesis: (slot) ->
+    recipe = @getItemAt(slot)
+    return { ret: RET_ItemNotExist } unless recipe?
+    ret = @claimCostWithInsead(recipe.recipeCost)#@claimCost
+    if not ret? then return { ret: RET_InsufficientIngredient }
+    return { ret: RET_Unknown } unless recipe.recipeTarget?
+    newItem = libItem.createItem(recipe.recipeTarget)
+    ret = ret.concat(@aquireItem(newItem))
+    @log('itemSynthesis', { slot: slot, id: recipe.id })
+    return { out: { type: PRIZETYPE_ITEM, value: newItem.id, count: 1}, res: ret }
+
+  itemDecompsite: (slot) ->
+    recipe = @getItemAt(slot)
+    return { ret: RET_ItemNotExist } unless recipe?
+    #prz = @claimPrize(recipe.recipePrize)
+    @log('itemDecompsite', { recipeId: recipe.recipePrize })
+    #if Array.isArray(recipe.recipePrize)
+    #  recipePrize = recipe.recipePrize
+    #else
+    #  recipePrize = queryTable(TABLE_DROP)[recipe.recipePrize]
+    recipePrize = queryTable(TABLE_DROP)[recipe.recipePrize]
+    dprint('itemDecompsite recipePrize', recipePrize)
+    prz = generatePrize(recipePrize, [0..recipePrize.length-1])
+    prize = @claimPrize(prz)
+    dprint('itemDecompsite prz=', prz)
+    dprint('itemDecompsite prize=', prize)
+    if prize.length <= 0
+      return { ret: RET_InventoryFull }
+
+    ret = prize.concat(@removeItem(null, 1, slot))
+    @log('itemDecompsite', { slot: slot, id: recipe.id })
+    return { prize: prz, res: ret, ret: RET_OK }
+
+  getDiffTime: (from, to, type) ->
+    duration = libTime.diff(to, from)
+    switch type
+      when 'second' then return duration.asSeconds()
+      when 'minite' then return duration.asMinutes()
+      when 'hour' then return duration.asHours()
+      when 'day' then return duration.asDays()
+
+  claimCostWithInsead: (costId) ->
+    recipeCost = queryTable(TABLE_COSTS)[costId].material
+    dprint('claimCostWithInsead recipeCost', recipeCost)
+    material = []
+    for e, h of recipeCost
+      itemCost = @analysis(h)
+      dprint('claimCostWithInsead itemCost', itemCost)
+      material = material.concat(itemCost)
+    dprint('claimCostWithInsead material', material)
+    return @claimCost(material)
+
+  #传人参数：{"type":0,"value":1475,"count":5,
+  #详情参见       "instead": {
+  #cost表的         "type":0,
+  #material         "value":5
+  #字段           }
+  #         }注意：传入的是对象
+  #返回参数，若"value":1475次数足够，返回[{"type":0,"value":1475,"count":5}]
+  #否则返回[{"type":0,"value":1475,"count":a},{"type":0,"value":5,"count":b}]
+  #注意a+b==5
+  analysis: (material) ->
+    console.log('analysis material=', JSON.stringify(material))
+    switch material.type
+      when PRIZETYPE_ITEM
+        itemCount = @inventory.getCountById(material.value)
+        console.log('analysis itemCount=', itemCount)
+        if itemCount >= material.count
+          return [{"type":material.type,"value":material.value,"count":material.count}]
+        else if material.instead?
+          return [{"type":material.type,"value":material.value,"count":itemCount},
+                  {"type":material.instead.type,"value":material.instead.value,
+                  "count":material.count - itemCount}]
+    return [{"type":material.type,"value":material.value,"count":material.count}]
 
 playerMessageFilter = (oldMessage, newMessage, name) ->
   message = newMessage
@@ -1685,7 +2173,7 @@ createItem = (item) ->
   if Array.isArray(item)
     return ({item: createItem(e.item), count: e.count} for e in item)
   else if typeof item is 'number'
-    return new itemLib.Item(item)
+    return libItem.createItem(item)
   else
     return item
 
@@ -1759,14 +2247,17 @@ playerCSConfig = {
 }
 
 getVip = (rmb) ->
-  tbl = queryTable(TABLE_VIP, "VIP", @abIndex)
+  tbl = queryTable(TABLE_VIP, "VIP")
   return {level: 0, cfg: {}} unless tbl?
   level = -1
   for i, lv of tbl.requirement when lv.rmb <= rmb
     level = i
-  levelCfg = tbl.levels[level]
+
+  levelCfg = JSON.parse(JSON.stringify(tbl.levels[level]))
   levelCfg.privilege = tbl.requirement[level].privilege
-  return {level: level, cfg: tbl.levels[level]}
+  
+  return {level: level, cfg: levelCfg}
+
 
 registerConstructor(Player)
 exports.Player = Player

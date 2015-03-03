@@ -15,55 +15,55 @@ describe('Dungeon', function () {
     shuffle([1,2,3,4], 3).should.eql([1,3,4,2]);
   });
 
-  describe('Create units', function () {
-    it('case 1', function () {
-      var r = dungeonLib.createUnits({
-        pool: {
-          p1: {
-            objects: [{id: 7, weight: 1}, {id: 4, weight: 1}] ,
-            skill: [{id: 1, lv: 2}]
+//describe('Create units', function () {
+//  it('case 1', function () {
+//    var r = dungeonLib.createUnits({
+//      pool: {
+//        p1: {
+//          objects: [{id: 7, weight: 1}, {id: 4, weight: 1}] ,
+//          skill: [{id: 1, lv: 2}]
 
-          } ,
-          p2: {
-            objects: [{id: 5, weight: 1}, {id: 6, weight: 1}],
-            property: { keyed: true }
-          }
-        },
-        global: [
-          {id: 1, pos: [1,2,3], from: 0, to: 5},
-          {id: 2, property: {keyed: true}, count: 3},
-          {id: 3, count: 3, skill:[{id:1, lv:2}], levels: [0, 1, 3]},
-          {pool: 'p2', count: 2, levels:{ from: 3, to: 5}} 
-        ],
-        levels: [
-          { 
-            objects: [ {id: 4, from: 2, to: 5 } ],
-            skill: [{id:1, lv: 2}]
-          },
-          {
-            objects: [ {id: 1, count: 1,skill:[{id: 4, lv: 3}]}, {count: 2} ],
-            property: {tag: 1}
-          },
-          { objects: [ {count: 4} ] },
-          { objects: [ {pool: 'p1', from:0, to: 2} ] },
-          { objects: [] }
-        ]
-      }, function () { return 1; });
-      r.should.eql([
-          [ { id: 4, count: 3 ,skill :[{id:1, lv: 2}]} ],
-          [ { id: 1, count: 1 ,property:{tag: 1},skill:[{id: 4, lv: 3}]},
-          { id: 1, pos: 2, count: 1 ,property:{tag: 1}} ],
-          [ { id: 2, count: 1 , property: {keyed: true}},
-          { id: 2, count: 1 , property: {keyed: true}},
-          { id: 2, count: 1 , property: {keyed: true}},
-          { id: 3, count: 1 ,skill:[{id:1, lv:2}]} ],
-          [ { id: 7, weight: 1,count: 1 ,skill: [{id: 1, lv: 2}]},
-          { id: 3, count: 1 ,skill:[{id:1, lv:2}]},
-          { id: 3, count: 1 ,skill:[{id:1, lv:2}]},],
-          [ { id: 5, weight: 1, count: 1 ,property: {keyed: true}} ]
-          ]);
-    });
-  });
+//        } ,
+//        p2: {
+//          objects: [{id: 5, weight: 1}, {id: 6, weight: 1}],
+//          property: { keyed: true }
+//        }
+//      },
+//      global: [
+//        {id: 1, pos: [1,2,3], from: 0, to: 5},
+//        {id: 2, property: {keyed: true}, count: 3},
+//        {id: 3, count: 3, skill:[{id:1, lv:2}], levels: [0, 1, 3]},
+//        {pool: 'p2', count: 2, levels:{ from: 3, to: 5}} 
+//      ],
+//      levels: [
+//        { 
+//          objects: [ {id: 4, from: 2, to: 5 } ],
+//          skill: [{id:1, lv: 2}]
+//        },
+//        {
+//          objects: [ {id: 1, count: 1,skill:[{id: 4, lv: 3}]}, {count: 2} ],
+//          property: {tag: 1}
+//        },
+//        { objects: [ {count: 4} ] },
+//        { objects: [ {pool: 'p1', from:0, to: 2} ] },
+//        { objects: [] }
+//      ]
+//    }, function () { return 1; });
+//    r.should.eql([
+//        [ { id: 4, count: 3 ,skill :[{id:1, lv: 2}]} ],
+//        [ { id: 1, count: 1 ,property:{tag: 1},skill:[{id: 4, lv: 3}]},
+//        { id: 1, pos: 2, count: 1 ,property:{tag: 1}} ],
+//        [ { id: 2, count: 1 , property: {keyed: true}},
+//        { id: 2, count: 1 , property: {keyed: true}},
+//        { id: 2, count: 1 , property: {keyed: true}},
+//        { id: 3, count: 1 ,skill:[{id:1, lv:2}]} ],
+//        [ { id: 7, weight: 1,count: 1 ,skill: [{id: 1, lv: 2}]},
+//        { id: 3, count: 1 ,skill:[{id:1, lv:2}]},
+//        { id: 3, count: 1 ,skill:[{id:1, lv:2}]},],
+//        [ { id: 5, weight: 1, count: 1 ,property: {keyed: true}} ]
+//        ]);
+//  });
+//});
 //  describe('Dungeon', function () {
 //    it('Test mergeFirstPace', function () {
 //      var cmdStreamLib = require('../commandStream');
@@ -81,34 +81,41 @@ describe('Dungeon', function () {
 //      //console.log(cmd.getEnvironment().mergeFirstPace([1,2,3,4, [5,6,7,8]], [2,4,5]));
 //    });
 
-  it('Should be ok', function (done) {
-    cmdStreamLib = require('../js/commandStream');
-    d = new dungeonLib.Dungeon({
-      stage: 107,
-      randSeed: 1,
-      abIndex: 0,
-      //initialQuests: { '20': { counters: [ 0 ] },  
-      //    '21': { counters: [ 0 ] } },
-      team : [
-        {nam: 'W', cid: 0, gen: 0, hst:0, hcl: 0, exp: 1},
-        {nam: 'M', cid: 1, gen: 0, hst:0, hcl: 0, exp: 1},
-        {nam: 'P', cid: 2, gen: 0, hst:0, hcl: 0, exp: 1},
-        //{nam: 'W1', cid: 0, gen: 0, hst:0, hcl: 0, exp:100000}
-      ]
-    });
-    done();
+//it('Should be ok', function (done) {
+//  cmdStreamLib = require('../js/commandStream');
+//  d = new dungeonLib.Dungeon({
+//    stage: 107,
+//    randSeed: 1,
+//    abIndex: 0,
+//    //initialQuests: { '20': { counters: [ 0 ] },  
+//    //    '21': { counters: [ 0 ] } },
+//    team : [
+//      {nam: 'W', cid: 0, gen: 0, hst:0, hcl: 0, exp: 1},
+//      {nam: 'M', cid: 1, gen: 0, hst:0, hcl: 0, exp: 1},
+//      {nam: 'P', cid: 2, gen: 0, hst:0, hcl: 0, exp: 1},
+//      //{nam: 'W1', cid: 0, gen: 0, hst:0, hcl: 0, exp:100000}
+//    ]
+//  });
+//  done();
 
-    d.initialize();
-      //d.aquireCard(6);
-      //d.getHeroes()[0].attack = 10000;
-    var actions = [
-      {CMD:RPC_GameStartDungeon},
-      {CMD:Request_DungeonAttack, arg: {tar: 12, pos:8, pos1:8, pos2:8}},
-      {CMD:Request_DungeonAttack, arg: {tar: 12, pos:8, pos1:8, pos2:8}},
-      {CMD:Request_DungeonAttack, arg: {tar: 12, pos:8, pos1:8, pos2:8}},
-      {CMD:Request_DungeonAttack, arg: {tar: 12, pos:8, pos1:8, pos2:8}},
-      {CMD:Request_DungeonAttack, arg: {tar: 12, pos:8, pos1:8, pos2:8}},
-//      {CMD:Request_DungeonExplore, arg: {tar: 11, pos:10, pos1:10, pos2:10}},
+//  d.initialize();
+//    //d.aquireCard(6);
+//    //d.getHeroes()[0].attack = 10000;
+//  var actions = [
+//    {CMD:RPC_GameStartDungeon},
+//    {CMD:Request_DungeonExplore, arg: {tar: 9, pos:10, pos1:10, pos2:10}},
+//    {CMD:Request_DungeonExplore, arg: {tar: 4, pos:10, pos1:10, pos2:10}},
+//    {CMD:Request_DungeonExplore, arg: {tar: 3, pos:10, pos1:10, pos2:10}},
+//    {CMD:Request_DungeonExplore, arg: {tar: 2, pos:10, pos1:10, pos2:10}},
+//    {CMD:Request_DungeonExplore, arg: {tar: 1, pos:10, pos1:10, pos2:10}},
+//    {CMD:Request_DungeonExplore, arg: {tar: 0, pos:10, pos1:10, pos2:10}},
+//    {CMD:Request_DungeonExplore, arg: {tar: 6, pos:10, pos1:10, pos2:10}},
+//    {CMD:Request_DungeonExplore, arg: {tar: 7, pos:10, pos1:10, pos2:10}},
+//    {CMD:Request_DungeonAttack, arg: {tar: 0, pos:8, pos1:8, pos2:8}},
+//    //{CMD:Request_DungeonAttack, arg: {tar: 7, pos:8, pos1:8, pos2:8}},
+//    {CMD:Request_DungeonAttack, arg: {tar: 12, pos:8, pos1:8, pos2:8}},
+//    {CMD:Request_DungeonAttack, arg: {tar: 12, pos:8, pos1:8, pos2:8}},
+//    {CMD:Request_DungeonAttack, arg: {tar: 12, pos:8, pos1:8, pos2:8}},
 //      {CMD:Request_DungeonExplore, arg: {tar: 16, pos:10, pos1:10, pos2:10}},
 //      {CMD:Request_DungeonExplore, arg: {tar: 21, pos:10, pos1:10, pos2:10}},
 //      {CMD:Request_DungeonExplore, arg: {tar: 22, pos:10, pos1:10, pos2:10}},
@@ -177,23 +184,23 @@ describe('Dungeon', function () {
 //      //{CMD:Request_DungeonAttack, arg: {tar: 12, pos: 17, pos1:18, pos2:19}},
 //
 //      //{CMD:Request_DungeonCard, arg: {slt: 0}},
-    ]; 
-    getInfo = function(dungeon) {
-      var h = dungeon.heroes;
-      var hInfo = [];
-      for (var k = 0; k < h.length -1; k++) {
-        var v = h[k];
-        hInfo.push({hp:v.health,skill:v.wSpellDB});
-      }
-      return require('util').inspect(hInfo, true, 10);
-    }
-    for (var k = 0; k < actions.length-1; k++) {
-      d.doAction(actions[k]);
-      console.log('--------',k+1,'-----------');
-      console.log(getInfo(d));
-    }
-//    print(d.doAction(actions[actions.length-1]));
-//    d.level.print();
+//  ]; 
+//  //getInfo = function(dungeon) {
+//  //  var h = dungeon.heroes;
+//  //  var hInfo = [];
+//  //  for (var k = 0; k < h.length -1; k++) {
+//  //    var v = h[k];
+//  //    hInfo.push({hp:v.health,skill:v.wSpellDB});
+//  //  }
+//  //  return require('util').inspect(hInfo, true, 10);
+//  //}
+//  for (var k = 0; k < actions.length-1; k++) {
+//    d.doAction(actions[k]);
+//    //console.log('--------',k+1,'-----------');
+//    //console.log(getInfo(d));
+//  }
+//  print(d.doAction(actions[actions.length-1]));
+//  d.level.print();
 //
 //
 //    x = d;
@@ -235,5 +242,5 @@ describe('Dungeon', function () {
 //    //  done();
 //    //}, 100);
 //    });
-  });
+//});
 });

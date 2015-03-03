@@ -17,14 +17,19 @@ STAGE_STATE_PASSED = 2;
 ENERGY_MAX = 100;
 ENERGY_RATE = 360000; // 1min
 TEAMMATE_REWARD_RATIO = 0.2;
+PK_COOLDOWN = 600;
 //////////////////// Log
 serverType = 'None';
 print = console.log;
-dprint = function(obj) { console.log(require('util').inspect(obj, true, 10));}
+dprint = function() { 
+    for (i=0; i< arguments.length; i++){
+        var obj = arguments[i];
+        console.log(require('util').inspect(obj, true, 10));
+    }
+}
 logger = null;
 initServer = function () {
   var pid = process.pid;
-  async = require('async');
   print = function (type, log) {
     if (log == null) {
       log = type;
@@ -142,7 +147,8 @@ getBasicInfo = function (hero) {
     hairColor : 'hcl',
     xp : 'exp',
     isFriend: 'ifn',
-    vipLevel: 'vip'
+    vipLevel: 'vip',
+    notMirror: 'notMirror',
   };
 
   var ret = grabAndTranslate(hero, translateTable);
@@ -153,6 +159,10 @@ getBasicInfo = function (hero) {
       var e = hero.equipment[k];
       if (e.eh) {
         item.push({cid:e.cid, eh:e.eh});
+      } else if (e.enhancement) {
+        item.push({cid: e.id, eh:e.enhancement});
+      } else if (typeof e.cid === 'undefined') {
+        item.push({cid: e.id});
       } else {
         item.push({cid:e.cid});
       }
@@ -300,7 +310,14 @@ function initShop (data) {
     }
   }
 }
-
+function initCampaignTable(data) {
+    firstChangeObj = data['FirstCharge']['objective'];
+    firstChangeObj = firstChangeObj.map(function(elm) {
+        return {award:[{type:2,count:elm.gem}]};
+    });
+    data['FirstCharge']['objective'] = firstChangeObj;
+    return data;
+}
 arenaPirze = function (rank) {
   cfg = queryTable(TABLE_ARENA);
   for (var k in cfg) {
@@ -310,6 +327,53 @@ arenaPirze = function (rank) {
     }
   }
   return []
+}
+
+getPKRewardByDiff = function(diff, stop) {
+	// top5.prize = 150
+	// top15.prize = 50
+	//6->5 =>50 
+	//6->4 =>200
+	var data = queryTable(TABLE_PKREWARD);
+	var begin = stop - diff;
+	var result = data.reduce(function(acc, cfg, idx){
+		//6->5 [{idx:0,count:1}]
+		//6->4 [{idx:0,count:1}, {idx:1,count:1}]
+		if(acc.cur < stop) {
+			if(acc.cur < cfg.top){
+				var newCur = Math.min(stop, cfg.top);
+				var count = newCur - acc.cur;
+				acc.cur = newCur;
+				acc.seg.push({idx:idx,count:count});
+			}
+		}
+		return acc;
+	},{seg:[],cur:begin}).seg.reduce(function(acc,seg) {
+		//{idx:0, count:1} => {prize:[{type:x, count:y*n}]}
+		var prizes  = data[seg.idx].prize.map(function(cfg) {
+			return {type:cfg.type, count:cfg.count * seg.count};
+		})
+		return acc.concat(prizes);
+	},[]);
+	return result;
+}
+
+
+function deepFreeze(o) {
+    var prop, propKey;
+    Object.freeze(o); // First freeze the object.
+    for (propKey in o) {
+        prop = o[propKey];
+        if (!o.hasOwnProperty(propKey) || !(typeof prop === 'object') || Object.isFrozen(prop))
+        {
+            // If the object is on the prototype, not an object, or is already frozen,
+            // skip it. Note that this might leave an unfrozen reference somewhere in the
+            // object if there is an already frozen object containing an unfrozen object.
+            continue;
+        }
+
+        deepFreeze(prop); // Recursively call deepFreeze.
+    }
 }
 var gConfigTable = {};
 initGlobalConfig = function (path, callback) {
@@ -326,15 +390,7 @@ initGlobalConfig = function (path, callback) {
       return cfg;
     } else {
       if (cfg[index]) {
-        switch (type) {
-          case TABLE_ITEM:
-          case TABLE_ROLE: 
-          case TABLE_DUNGEON: 
-            return JSON.parse(JSON.stringify(cfg[index])); //TODO: hotfix
-            break;
-          default:
-            return cfg[index]
-        }
+          return cfg[index]
       } else {
         return null;
       }
@@ -345,8 +401,9 @@ initGlobalConfig = function (path, callback) {
     {name:TABLE_ITEM}, {name:TABLE_CARD}, {name:TABLE_DUNGEON, func:varifyDungeonConfig},
     {name:TABLE_STAGE, func: initStageConfig}, {name:TABLE_QUEST}, {name: TABLE_COSTS},
     {name:TABLE_UPGRADE}, {name:TABLE_ENHANCE}, {name: TABLE_CONFIG}, {name: TABLE_VIP, func:initVipConfig},
-    {name:TABLE_SKILL}, {name:TABLE_CAMPAIGN}, {name: TABLE_DROP}, {name: TABLE_TRIGGER},
-    {name:TABLE_DP},{name:TABLE_ARENA},{name:TABLE_BOUNTY, func:initPowerLimit}
+    {name:TABLE_SKILL}, {name:TABLE_CAMPAIGN, func:initCampaignTable}, {name: TABLE_DROP}, {name: TABLE_TRIGGER},
+    {name:TABLE_DP},{name:TABLE_ARENA},{name:TABLE_BOUNTY, func:initPowerLimit}, {name:TABLE_IAP},{name:TABLE_PKREWARD},
+    {name:TABLE_LOCALIZE},{name:TABLE_FRAGMENT},{name:TABLE_UNIT}
   ];
   if (!path) path = "./";
   configTable.forEach(function (e) {
@@ -354,6 +411,7 @@ initGlobalConfig = function (path, callback) {
     if (!gConfigTable[e.name]) throw Error("Table not found"+e.name);
     if (e.func) gConfigTable[e.name] = e.func(gConfigTable[e.name]);
     gConfigTable[e.name] = prepareForABtest(gConfigTable[e.name]);
+    deepFreeze(gConfigTable[e.name]);
   });
   callback();
 };
@@ -408,8 +466,10 @@ wrapCallback = function() {
 
       if (err.stack) errMsg.stack = err.stack;
 
-      var caller = arguments.callee.caller;
-      if (caller && caller.name) errMsg.caller = caller.name;
+      // in strict mode , arguments.callee is no longer supported
+      // 
+      //var caller = arguments.callee.caller;
+      //if (caller && caller.name) errMsg.caller = caller.name;
 
       logError(errMsg);
 
@@ -482,21 +542,15 @@ mapContact = function (target, source) {
 
 generatePrize = function (cfg, dropInfo,rand) {
   var reward;
-  if (rand == null || typeof rand == 'undefined') {
-    rand = Math.random;
-  }
-  if (cfg == null || typeof cfg == 'undefined') {
-    return [];
-  }
-  return reward = dropInfo.reduce((function(r, p) {
-    return r.concat(cfg[p]);
-  }), []).filter(function(p) {
-    return p && rand() < p.rate;
-  }).map(function(g) {
-    var e;
-    e = selectElementFromWeightArray(g.prize, rand());
-    return e;
-  });
+  if (rand == null || typeof rand == 'undefined') { rand = Math.random; }
+  if (cfg == null || typeof cfg == 'undefined') { return []; }
+  return dropInfo.reduce((function(r, p) { return r.concat(cfg[p]); }), [])
+                 .filter(function(p) { return p && rand() < p.rate; })
+                 .map(function(g) {
+                     var e;
+                     e = selectElementFromWeightArray(g.prize, rand());
+                     return e;
+                 });
 };
 
 
@@ -532,6 +586,21 @@ updateQuestStatus = function (questStatus, player, abindex) {
   return ret;
 };
 
+function swap(array, indexA, indexB) {
+    indexA = Math.floor(indexA);
+    indexB = Math.floor(indexB);
+    var tmp = array[indexA];
+    array[indexA] = array[indexB];
+    array[indexB] = tmp;
+}
+
+newShuffle = function (array, randFunc) {
+    for (var i = 0; i < array.length; i++) {
+        swap(array, i, randFunc()*(array.length-i)+i);
+    }
+    return array;
+};
+
 shuffle = function (array, mask) {
   var indexes = [];
   for (var i = 0; i < array.length; i++) indexes.push(i);
@@ -550,6 +619,43 @@ shuffle = function (array, mask) {
   return result;
 };
 
+translate_with = function(language,keyword,args){
+    var local = queryTable(TABLE_LOCALIZE);
+//    debug("language = "+language+";keyword = "+keyword);
+    var text = "";
+    if (local[language] != null && local[language][keyword] != null){
+        text = local[language][keyword];
+        if(args != null && !Array.isArray(args)) {
+            args = [args];
+        }
+        for (var k in args){
+            var num = +k + 1;
+            var str = "{#" + num.toString() +  "}";
+            text = text.replace(str, args[k]);
+        }
+    }
+//    debug("text = "+text);
+    return text;
+}
+
+BUY_ENERGY_VALUE = 100;
+FREE = -0.001;
+buyEnergyCost = function(times, freeTimes, cost){
+    var prize = FREE;
+    if( times >= freeTimes) 
+        prize = Math.ceil(cost * BUY_ENERGY_VALUE * Math.pow(2,times -freeTimes));
+    return {prize:prize, add:BUY_ENERGY_VALUE};
+}
+
+buyReviveCost = function(times,freeTimes,base){
+  if (times < freeTimes) return 0 ;
+
+  step = base ;
+  return base * (Math.pow(2, times - freeTimes))
+}
+
+
+//
 /////////////////////////// For client
 ENHANCE_LIMIT = 4;
 ENHANCE_MAXLEVEL = 10;
@@ -563,6 +669,7 @@ DUNGEON_ACTION_ATTACK = 5;
 DUNGEON_ACTION_ACTIVATEMECHANISM = 6;
 DUNGEON_ACTION_REVIVE = 7;
 DUNGEON_ACTION_TOUCHBLOCK = 8;
+DUNGEON_ACTION_GETVALIDATE_POS = 9;
 
 DUNGEON_DROP_CARD_SPELL = 49;
 
@@ -593,6 +700,8 @@ ACT_Shock = 110;
 ACT_Blink = 111;
 ACT_Tutorial = 112;
 ACT_Bubble = 113;
+ACT_Tremble = 114;
+ACT_ShowValidatePosLst = 115;
 
 ACT_Block = 201;
 ACT_Enemy = 202;
@@ -656,6 +765,7 @@ Request_DungeonCard = 6;
 Request_DungeonUseItem = 7;
 Request_DungeonRevive = 8;
 Request_DungeonTouch = 9;
+Request_DungeonValidatePos = 39;
 REQUEST_CancelDungeon = 20;
 
 Event_DungeonEnter = 0;
@@ -669,5 +779,7 @@ Event_ForgeUpdate = 7;
 Event_UpdateStoreInfo = 10;
 Event_Fail = 11;
 Event_UpdateQuest = 19;
+Event_DungeonExit = 31;
 
 exports.fileVersion = -1;
+

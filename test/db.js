@@ -1,8 +1,10 @@
+
 shall = require('should');
 require('../js/define');
 dbLib = require('../js/db');
 helperLib = require('../js/helper');
 async = require('async');
+assert = require('assert');
 
 //dbPrefix = 'Develop.';
 //dbIp = "10.4.3.41";
@@ -17,15 +19,55 @@ initServer();
 describe('DB', function () {
   before(function (done) {
     dbLib.initializeDB({
-      "Account": { "IP": dbIp, "PORT": 6379},
-      "Role": { "IP": dbIp, "PORT": 6379},
-      "Publisher": { "IP": dbIp, "PORT": 6379},
-      "Subscriber": { "IP": dbIp, "PORT": 6379}
+      "Account": { "IP": dbIp, "PORT": 6380},
+      "Role": { "IP": dbIp, "PORT": 6380},
+      "Publisher": { "IP": dbIp, "PORT": 6380},
+      "Subscriber": { "IP": dbIp, "PORT": 6380}
     }, function() {
       done();
     });
   });
 
+  it('deliver same message ', function(done) {
+      function delMsg(name) {
+          dbClient.smembers(playerMessagePrefix + name,function(err,ret) {
+              for (var idx in ret) {
+                  var id = ret[idx];
+                  dbLib.removeMessage(name,id);
+              }
+          })
+      }
+      msg1 = {type:1, text: 'this is a msg'};
+      msg2 = {type:1, text: 'this is another msg'};
+      msg3 = {type:1, text: 'this is third msg'};
+      function checkf(ret, checkValue) {
+          assert(Array.isArray(ret), 'should be an array');
+          assert(ret.length == checkValue.length, 'length equal');
+      }
+      var data = [
+      { data:msg1, u:false,check:checkf, checkValue:{length:1}},
+      { data:msg1, u:false,check:checkf, checkValue:{length:2}},
+      { data:msg2, u:false,check:checkf, checkValue:{length:3}},
+      { data:msg1, u:true, check:checkf, checkValue:{length:3}},
+      { data:msg3, u:true, check:checkf, checkValue:{length:4}},
+      ];
+      var name = 'faruba';
+      delMsg('faruba');
+      async.eachSeries(data,function(e,cb) {
+          dbLib.deliverMessage(name, e.data, function(err,ret) {
+              dbLib.fetchMessage(name, function(err, msg) {
+                  e.check(msg, e.checkValue);
+                  cb();
+              });
+          }, null, e.u);
+
+      }, function(err){
+          done();
+      })
+
+  });
+
+  /*
   describe('Mercenary', function () {
     it('update', function (done) {
       var arr = [1,2,3,4,5,6,7,8,9,10];
@@ -158,5 +200,6 @@ describe('DB', function () {
       ], done);
     });
   });
+*/
 });
 

@@ -1,3 +1,4 @@
+"use strict";
 var dbLib = require('./db');
 require('./shop');
 
@@ -35,7 +36,7 @@ function handler_queryRoleInfo(arg, player, handler, rpcID) {
     if (hero) {
       handler([{REQ : rpcID, RET : RET_OK, arg: getBasicInfo(hero)}]);
     } else {
-      handler([{REQ : rpcID, RET : RET_Unknown}]);
+      handler([{REQ : rpcID, RET : RET_PlayerNotExists}]);
     }
   });
 }
@@ -74,6 +75,13 @@ function  handler_doCancelDungeon(arg, player, handler, reqID, socket, flag, req
 }
 addHandler(REQUEST_CancelDungeon, handler_doCancelDungeon, [], '', true);
 
+function  handler_doCheckPos(arg, player, handler, reqID, socket, flag, req) {
+  handler(player.dungeonAction(req));
+  player.saveDB();
+}
+addHandler(Request_DungeonValidatePos ,  handler_doCheckPos, [], '', true);
+
+
 function  handler_doRevive(arg, player, handler, reqID, socket, flag, req) {
   handler(player.dungeonAction(req));
   player.saveDB();
@@ -96,14 +104,14 @@ addHandler(Request_DungeonCard, handler_doCardSpell, ['slt', 'number'], 'do Card
   * sid 位置
   * opn 操作
  */
-USE_ITEM_OPT_EQUIP = 1;
-USE_ITEM_OPT_ENHANCE = 2;
-USE_ITEM_OPT_LEVELUP = 3;
-USE_ITEM_OPT_CRAFT = 4;
-USE_ITEM_OPT_DECOMPOSE = 5;
-USE_ITEM_OPT_INJECTWXP = 6;
-USE_ITEM_OPT_RECYCLE = 7; // 分解装备
-USE_ITEM_OPT_SELL = 8; // 出售
+var USE_ITEM_OPT_EQUIP = 1;
+var USE_ITEM_OPT_ENHANCE = 2;
+var USE_ITEM_OPT_LEVELUP = 3;
+var USE_ITEM_OPT_CRAFT = 4;
+var USE_ITEM_OPT_DECOMPOSE = 5;
+var USE_ITEM_OPT_INJECTWXP = 6;
+var USE_ITEM_OPT_RECYCLE = 7; // 分解装备
+var USE_ITEM_OPT_SELL = 8; // 出售
 function handler_doUseItem(arg, player, handler, rpcID) {
   var slot = Math.floor(arg.sid);
   var opn = Math.floor(arg.opn);
@@ -132,16 +140,16 @@ function handler_doUseItem(arg, player, handler, rpcID) {
       ret = player.upgradeItemQuality(slot);
       break;
     default:
-      ret = player.useItem(slot, arg.sho);
+      ret = player.useItem(slot, opn);
       break;
   }
 
-  evt = {REQ : rpcID, RET : RET_OK};
+  var evt = {REQ : rpcID, RET : RET_OK};
   if (ret.ret) evt.RET = ret.ret;
   if (ret.res) evt.RES = ret.res;
   if (ret.prize) evt.prz = ret.prize;
   if (ret.out) evt.out = ret.out;
-  res = [evt];
+  var res = [evt];
   if (ret.ntf) res = res.concat(ret.ntf);
   handler(res);
   player.saveDB();
@@ -156,7 +164,7 @@ function handler_doRequireMercenaryList(arg, player, handler, rpcID) {
       handler([{REQ : rpcID, RET : RET_OK},
         {NTF: Event_MercenaryList, arg : lst.map(getBasicInfo)}]);
     } else {
-      handler({REQ : rpcID, RET : RET_Unknown});
+      handler({REQ : rpcID, RET : RET_RequireMercenaryFailed});
     }
   });
   player.saveDB();
@@ -166,7 +174,7 @@ addHandler(RPC_RequireMercenaryList,  handler_doRequireMercenaryList,
 
 function handler_doClaimLoginStreakReward(arg, player, handler, rpcID) {
   var ret = player.claimLoginReward();
-  res = [{REQ: rpcID, RET: ret.ret}];
+  var res = [{REQ: rpcID, RET: ret.ret}];
   if (ret.res) res = res.concat(ret.res);
   if (ret.ret === RET_OK) player.saveDB();
   handler(res);
@@ -212,8 +220,20 @@ addHandler(RPC_StoreBuyItem, handler_doBuyItem, [], 'Money!!', true);
 
 function handler_doBuyEnergy(arg, player, handler, rpcID) {
   var diamondCost = 0;
+  var ENERGY_ADD;
   switch (+arg.typ) {
-    case FEATURE_ENERGY_RECOVER: diamondCost = arg.tar - player.energy; break;
+    case FEATURE_ENERGY_RECOVER: 
+      if (player.counters.energyRecover >= player.vipOperation('dayEnergyBuyTimes')){
+          handler(new Error(RET_DungeonNotExist));
+          return;
+      }
+      var recoverTimes = player.counters.energyRecover;
+      var ret = buyEnergyCost(recoverTimes,
+              player.vipOperation('freeEnergyTimes'),
+              player.vipOperation('energyPrize')); 
+      diamondCost = ret.prize;
+      ENERGY_ADD = ret.add ;
+      break;
     case FEATURE_INVENTORY_STROAGE: 
       var x = Math.floor((player.inventory.size() - 30)/5);
       if (x > 5) x = 5;
@@ -225,15 +245,26 @@ function handler_doBuyEnergy(arg, player, handler, rpcID) {
       diamondCost = 30*x + 50;
       break;
     case FEATURE_FRIEND_GOLD: diamondCost = +arg.tar; break;
+    case FEATURE_PK_COOLDOWN: diamondCost = 50; break;
+    case FEATURE_PK_COUNT: diamondCost = 100; break;
+    case FEATURE_REVIVE: 
+      if(typeof player.dungeon == 'undefined' || player.dungeon == null) {
+        handler(new Error(RET_DungeonNotExist));
+        return;
+      }
+      diamondCost = buyReviveCost(player.dungeon.revive, 0,player.vipOperation('reviveBasePrice')); 
+      break;
   }
   var evt = [];
   var product = '';
   if (diamondCost && player.addDiamond(-Math.ceil(diamondCost)) !== false) {
     evt.push({REQ : rpcID, RET : RET_OK});
     if (+arg.typ === FEATURE_ENERGY_RECOVER) {
-      player.energy = arg.tar;
+      player.energy += ENERGY_ADD;
+      player.counters.energyRecover++;
       product = 'energyTime';
       evt.push(player.syncEnergy());
+      evt.push(player.syncCounters(['energyRecover']));
       evt.push({ NTF: Event_InventoryUpdateItem, arg : {dim : player.diamond }});
     } else if (+arg.typ === FEATURE_INVENTORY_STROAGE) {
       product = 'inventory';
@@ -250,11 +281,31 @@ function handler_doBuyEnergy(arg, player, handler, rpcID) {
       evt.push({NTF: Event_FriendInfo, arg: { cap : player.contactBook.limit } });
       evt.push({NTF: Event_InventoryUpdateItem, arg: { dim : player.diamond } });
     } else if (+arg.typ === FEATURE_FRIEND_GOLD) {
-      player.addGold(diamondCost*10);
+      player.addGold(diamondCost*Rate_Gold_Diamond);
       evt.push({NTF: Event_InventoryUpdateItem, arg: {
         dim: player.diamond,
         god: player.gold
       } });
+    } else if (+arg.typ === FEATURE_PK_COOLDOWN) {
+      player.clearCDTime();
+      evt.push({NTF: Event_InventoryUpdateItem, arg: {
+        dim: player.diamond
+      } });
+    } else if (+arg.typ === FEATURE_PK_COUNT) {
+      player.addPkCount(1);
+      evt.push({NTF: Event_InventoryUpdateItem, arg: {
+        dim: player.diamond
+      } });
+    } else if (+arg.typ === FEATURE_REVIVE) {
+        ret = player.aquireItem(ItemId_RevivePotion , 1, true);
+        if (ret && ret.length > 0) {
+            evt = evt.concat(ret.concat({
+                            NTF: Event_InventoryUpdateItem, 
+                            arg:{god:player.gold, dim:player.diamond}}));
+        } else {
+            player.addMoney(p.price.type, cost);
+            evt = [{REQ : rpcID, RET : RET_NotEnoughDiamond}];
+        } ;
     }
     player.saveDB();
   } else {
@@ -335,7 +386,7 @@ function handler_doHireFriend(arg, player, handler, rpcID) {
       handler([{REQ : rpcID, RET : RET_OK},
         {NTF: Event_MercenaryList, arg : lst.map(getBasicInfo)}]);
     } else {
-      handler({REQ : rpcID, RET : RET_Unknown});
+      handler({REQ : rpcID, RET : RET_HireFriendFailed});
     }
   });
 }

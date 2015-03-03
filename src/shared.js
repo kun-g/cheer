@@ -20,7 +20,7 @@ TABLE_STORE = "store";
 TABLE_CONFIG = "config";
 TABLE_DROP = "drop";
 TABLE_DIALOGUE = "dialogue";
-TABLE_CAMPAIGN = "campaign";
+TABLE_CAMPAIGN = "campaigns";
 TABLE_VIP = "vip";
 TABLE_TRIGGER = "triggers";
 TABLE_BROADCAST = "broadcast";
@@ -30,6 +30,12 @@ TABLE_COSTS = "costs";
 TABLE_DP = "dailyPrize";
 TABLE_ARENA = "arena";
 TABLE_BOUNTY = "bounty";
+TABLE_IAP = "iaplist";
+TABLE_SERVERLIST = "serverlist";
+TABLE_PKREWARD = "pkReward";
+TABLE_LOCALIZE = "localize";
+TABLE_FRAGMENT = "fragment";
+TABLE_UNIT = "units";
 /*** GAME CONSTANTS ***/
 ItemId_RevivePotion = 540;
 
@@ -48,6 +54,7 @@ RET_NoEquip = 10;
 RET_NoEnhanceStone = 11;
 RET_EquipCantUpgrade = 12;
 RET_Unknown = 13;
+RET_PlayerInfoError = 13;
 RET_NotEnoughItem = 14;
 RET_TooMuchChat = 15;
 RET_ServerError = 16;
@@ -69,8 +76,8 @@ RET_NoKey = 31;
 RET_CantInvite = 32;
 RET_Issue33 = 33;
 RET_LoginFailed = 34;
-RET_Issue35 = 35;
-RET_Issue36 = 36;
+RET_HireFriendFailed = 35;
+RET_RequireMercenaryFailed = 36;
 RET_Issue37 = 37;
 RET_Issue38 = 38;
 RET_VipLevelIsLow = 39;
@@ -86,59 +93,94 @@ RET_InvalidPaymentInfo = 48;
 RET_SweepPowerNotEnough = 49;
 RET_NotEnoughTimes = 50;
 RET_CantReceivePkAward = 51;
+RET_RewardAlreadyReceived = 52;
+RET_QuestNotExists = 53;
+RET_QuestNotAccepted = 54;
+RET_QuestNotCompleted = 55;
+RET_QuestCompleted = 56;
+RET_UseItemFailed = 57;
+RET_TargetNotExists = 58;
+RET_EquipedItemCannotBeSold = 59;
+RET_ItemSoldFailed = 60;
+RET_ClaimCostFailed = 61;
+RET_FriendNotExists = 62;
+RET_GetLeaderboardInfoFailed = 63;
+RET_ShopVersionNotMatch = 64;
+RET_NoParameter = 65;
+RET_SameMessageExist = 66;
+RET_ReviveLimit = 67;
+RET_EnergyLimit = 68;
+RET_RedeemFailed = 69;
+
 ErrorMsgs = [
-    "操作成功",
+    "操作成功",//0
     "金币数量不足",
     "宝石数量不足",
     "精力值不足",
     "角色职业不符合要求",
-    "角色等级不符合要求",
+    "角色等级不符合要求",//5
     "玩家不存在",
     "道具不存在",
     "背包已满",
     "装备熟练度不足",
-    "缺少装备",
+    "缺少装备",//10
     "缺少强化宝石",
     "装备无法再次升级",
-    "发生了什么错误",
+    "玩家数据有误",
     "道具数量不足",
-    "聊天信息发送过于频繁，请稍等片刻",
+    "聊天信息发送过于频繁，请稍等片刻",//15
     "服务器状态异常，请稍后再试",
     "你的好友列表已经满了",
     "对方的好友列表已经满了",
     "这个属性不能再强化了",
-    "与服务器数据同步出错，请重新登陆",
+    "与服务器数据同步出错，请重新登陆",//20
     "强化失败",
     "副本不存在",
     "关卡尚未解锁",
     "程序版本不匹配",
-    "资源版本不匹配",
+    "资源版本不匹配",//25
     "需要创建角色",
     "错误的登录信息",
     "不允许的名字",
     "角色不存在",
-    "名字已被占用",
+    "名字已被占用",//30
     "没有匹配的钥匙",
     "无法添加对方为好友",
     "错误:33",
     "登录失败",
-    "错误:35",
-    "错误:36",
+    "雇佣队友失败",//35
+    "获取队友列表失败",
     "错误:37",
     "错误:38",
     "VIP等级不足",
-    "物品已经售完",
+    "物品已经售完",//40
     "错误:41",
     "从另外一个设备登录",
     "有新版本更新，请重新登录",
     "与服务器断开连接",
-    "Need Teammate",
+    "Need Teammate",//45
     "缺少配方",
     "缺少材料",
     "付费信息错误，请联系工作人员",
     "战斗力不足",
-    "挑战次数以用尽",
+    "挑战次数以用尽",//50
     "无法领取PK奖励",
+    "奖励已领取",
+    "任务不存在",
+    "任务未领取",
+    "任务未完成",//55
+    "任务已完成",
+    "使用物品失败",
+    "目标不存在",
+    "已装备的道具无法出售",
+    "道具出售失败",//60
+    "获取材料失败",
+    "好友不存在",
+    "获取排名信息失败",
+    "商店版本不匹配",
+    "参数不正确",
+    "you have already sent this message",
+    "Revive Limit ",
 ];
 
 /*** ITEM CATEGORY ***/
@@ -167,6 +209,7 @@ EquipSlot_StoreSuit = 12;//套装
 EquipSlot_StoreHead = 13;//头盔
 EquipSlot_StoreHair = 14;//发型
 EquipSlot_StoreGear = 15;//头饰
+EquipSlot_StoreBack = 16;//背部
 
 /*** 装备类型 ***/
 ITEMSTATUS_NONE = 0;
@@ -219,8 +262,8 @@ LOGIN_ACCOUNT_TYPE_GAMECENTER =  5;
 LOGIN_ACCOUNT_TYPE_91_Android =  6;
 LOGIN_ACCOUNT_TYPE_DK_Android =  7;
 LOGIN_ACCOUNT_TYPE_TB_IOS =  8;
-LOGIN_ACCOUNT_TYPE_TB_Android =  9;
-LOGIN_ACCOUNT_TYPE_Android =  10;
+LOGIN_ACCOUNT_TYPE_TB_Android =  10;
+LOGIN_ACCOUNT_TYPE_Android =  9;
 
 Max_tutorialStage = 3;
 
@@ -257,12 +300,17 @@ BROADCAST_ENHANCE = 2;
 BROADCAST_ITEM_LEVEL = 3;
 BROADCAST_PLAYER_LEVEL = 4;
 BROADCAST_CRAFT = 5;
+BROADCAST_SYSTEM_MSG = 6;
+BROADCAST_ITEM_HIGHT_QULITY = 7; 
 
 /*** FEATURES ***/
 FEATURE_ENERGY_RECOVER = 0;
 FEATURE_INVENTORY_STROAGE = 1;
 FEATURE_FRIEND_STROAGE = 2;
 FEATURE_FRIEND_GOLD = 3;
+FEATURE_PK_COOLDOWN = 4;
+FEATURE_PK_COUNT = 5;
+FEATURE_REVIVE = 6;
 
 /*** NOTIOFICATION OP ID ***/
 NTFOP_ACCEPT = 1;
@@ -282,3 +330,4 @@ Global_Card_Drop_Config = {
     { "weight": 2, "type": 8 }
   ]
 };
+

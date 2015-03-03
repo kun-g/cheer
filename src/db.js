@@ -56,6 +56,7 @@ exports.loadAccount = function (id, handler) { accountDBClient.hgetall(makeDBKey
 exports.getPlayerNameByID = function (id, serverName, cb)  { accountDBClient.hget(makeDBKey([accPrefix, id]), serverName, cb); };
 // TODO: creation after creation
 exports.updateAccount = function (id, key, val, cb){ accountDBClient.hset(makeDBKey([accPrefix, id]), key, val, cb); };
+exports.setNameOfAccount = function (id, name, cb){ accountDBClient.hset(makeDBKey([accPrefix, id]), gServerName, name, cb); };
 //////////////// Player Creation ////////////////
 
 function createNewPlayer (account, server, name, handle) {
@@ -270,7 +271,22 @@ function loadPlayer(name, handler) {
 }
 
 exports.loadPlayer = loadPlayer;
- 
+
+function getAccountByPlayerName(name, callback){
+  dbClient.hget(makeDBKey([playerPrefix, name]), 'accountID', callback)
+}
+exports.getAccountByPlayerName = getAccountByPlayerName;
+
+function updatePlayer(name, key, value, callback){
+  dbClient.hset(makeDBKey([playerPrefix, name]), key, value, callback);
+}
+exports.updatePlayer = updatePlayer;
+
+function setAccountOfPlayer(name, account, callback){
+  updatePlayer(name, 'accountID', account, callback);
+}
+exports.setAccountOfPlayer = setAccountOfPlayer;
+
 ////////////// Player Manipulation //////////////
 function incrBluestarBy (name, point, handler) {
   async.parallel([
@@ -288,20 +304,37 @@ function incrBluestarBy (name, point, handler) {
 }
 exports.incrBluestarBy = incrBluestarBy;
 
-function deliverMessage(name, message, callback, serverName) {
+function deliverMessage(name, message, callback, serverName, unique) {
   var prefix = messagePrefix;
   if (serverName) { prefix = serverName+dbSeparator+'message'+dbSeparator; }
-  dbClient.incr(prefix+'MessageID', function (err, r) {
-    message.messageID = r;
-    async.parallel([
-        function (cb) { dbClient.sadd(playerMessagePrefix+name, r, cb); },
-        function (cb) { dbClient.set(messagePrefix+r, JSON.stringify(message), cb); }
-      ],
-      function (err, result) {
-        publishPlayerChannel(name, 'New Message');
-        if (callback) callback(err, r);
+  var playerMessage = playerMessagePrefix + name;
+
+  if(unique) {
+      dbLib.checkMessageExistence(JSON.stringify(message),messagePrefix, playerMessage,function(err,ret) {
+          if (ret == 1) {
+            if(callback) {callback(Error(RET_SameMessageExist), null);}
+          }
+          else{
+              doAddMsg2DB();
+          }
+      })
+  }
+  else{
+      doAddMsg2DB();
+  }
+  function doAddMsg2DB() {
+      dbClient.incr(prefix+'MessageID', function (err, r) {
+          message.messageID = r;
+          async.parallel([
+              function (cb) { dbClient.sadd(playerMessage, r, cb); },
+              function (cb) { dbClient.set(messagePrefix+r, JSON.stringify(message), cb); }
+              ],
+              function (err, result) {
+                  publishPlayerChannel(name, 'New Message');
+                  if (callback) callback(err, r);
+              });
       });
-  });
+  }
 }
 exports.deliverMessage = deliverMessage;
 
@@ -419,6 +452,7 @@ exports.initializeDB = function (cfg,finishCb) {
   LeaderboardPrefix = 'Leaderboard';
 
   sessionPrefix = dbPrefix + 'Session';
+  ReceiptHistoryPrefix = dbPrefix + 'ReceiptHistory';
 
   PlayerNameSet = dbPrefix + 'UsedName';
   CurrentAccountID = 'CurrentUID';
@@ -567,6 +601,15 @@ exports.initializeDB = function (cfg,finishCb) {
       });
     };
   });
+  dbClient.script('load', helperLib.dbScripts.diffPKRank, function (err, sha) {
+    exports.diffPKRank = function (player, rival, handler) {
+      dbClient.evalsha(sha, 0, 'Arena', player, rival, function (err, ret) {
+        if (handler) { handler(err, ret); }
+      });
+    };
+  });
+
+
   dbClient.script('load', lua_getPvpInfo, function (err, sha) {
     exports.getPvpInfo = function (name, handler) {
       dbClient.evalsha(sha, 0, 'Arena', name, function (err, ret) {
@@ -582,6 +625,15 @@ exports.initializeDB = function (cfg,finishCb) {
       });
     };
   });
+  dbClient.script('load', helperLib.dbScripts.checkMessageExistence, function (err, sha) {
+    exports.checkMessageExistence= function (message, messagePrefix, playerMessage, handler) {
+      dbClient.evalsha(sha, 0, message, messagePrefix, playerMessage, function (err, ret) {
+       if (handler) { handler(err, ret); }
+      });
+    };
+  });
+
+
 
   async.map(scriptConfig,
       function(e, cb) {
@@ -594,7 +646,9 @@ exports.initializeDB = function (cfg,finishCb) {
           cb(err);
         })
       },
-      finishCb);
+      function (err, result) {
+          if (finishCb) finishCb(err, result);
+      });
 }
 
 exports.releaseDB = function () {
@@ -625,9 +679,22 @@ exports.getGlobalPrize = function (handler) { dbClient.get("GlobalPrize", handle
 exports.getServerProperty = function (key, handler) {
   dbClient.hgetall(makeDBKey([serverObjectPrefix, key]), handler);
 };
+exports.setServerProperty = function (key1, key2, value, handler) {
+  dbClient.hset(makeDBKey([serverObjectPrefix, key1]), key2, value, handler);
+};
 exports.getServerConfig = function (key, handler) {
   dbClient.hget("ServerConfig", key, handler);
 };
 exports.setServerConfig = function (key, value, handler) {
   dbClient.hset("ServerConfig", key, value, handler);
 };
+exports.checkReceiptValidate = function(req,cb){
+    dbClient.hexists(ReceiptHistoryPrefix, req, function(err, result){
+        cb(err == null && result != 1);
+    });
+}
+exports.markReceiptInvalidate = function(rep){
+    dbClient.hset(ReceiptHistoryPrefix, rep, 1);
+}
+
+

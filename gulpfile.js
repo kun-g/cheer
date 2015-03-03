@@ -69,23 +69,7 @@ gulp.task('lint', function () {
     .pipe(coffeeLint(null, {max_line_length: {level: 'error', value: 180}}))
     .pipe(coffeeLint.reporter());
 });
-/*
-var gulp = require('gulp');
-var changed = require('gulp-changed');
-var ngmin = require('gulp-ngmin'); // just as an example
 
-var SRC = 'src/*.js';
-var DEST = 'dist';
-
-gulp.task('default', function () {
-gulp.src(SRC)
-.pipe(changed(DEST))
-    // ngmin will only get the files that
-    // changed since the last time it was run
-    .pipe(ngmin())
-    .pipe(gulp.dest(DEST));
-    });
- */
 // npm install gulp yargs gulp-if gulp-uglify
 // var args   = require('yargs').argv;
 // var gulp   = require('gulp');
@@ -102,3 +86,63 @@ gulp.src(SRC)
 //gulp scripts --type production
 
 gulp.task('default', ['watch']);
+
+var changed = require('gulp-changed');
+var through = require('through2');
+var path = require('path');
+var gutil = require('gulp-util');
+var fs = require('fs');
+
+var SRC = 'src/*.js';
+var DEST = 'dist';
+var exec = require('child_process').exec;
+
+function execCallback(cb) {
+	return function (error, out, err) {
+		if (error) {
+			console.log(error.message);
+		} else if (err)  {
+			console.log(err);
+		} else {
+			cb(err, out);
+		}
+	}
+};
+jsbcc = function (src, dest, opts) {
+	opts = opts || {};
+
+	if (!dest) {
+		throw new gutil.PluginError('JSBCC', '`dest` required');
+	}
+
+	return through.obj(function (file, enc, cb) {
+    console.log(enc);
+		if (file.isNull()) {
+			this.push(file);
+			return cb();
+		}
+
+        var jsPath = path.join(src, file.relative);
+        var jscPath = path.join(dest, file.relative)+'c';
+        var jsbccPath = '/home/kun/develop/cocos2d-js-v3.0-rc2/tools/cocos2d-console/plugins/plugin_jscompile/bin/jsbcc';
+        var cmd = '';
+        cmd += jsbccPath + ' ';
+        cmd += jsPath + ' ' + jscPath;
+        console.log(cmd);
+        exec(cmd, execCallback(function (err, result) {
+            this.push(file);
+            cb();
+        }.bind(this)));
+	});
+};
+
+gulp.task('test', function () {
+    gulp.src(SRC)
+    .pipe(changed(DEST, {extension: 'js'}))
+    // ngmin will only get the files that
+    // changed since the last time it was run
+    .pipe(jsbcc('js', 'jsbccED'))
+    .pipe(gulp.dest(DEST));
+  }
+);
+

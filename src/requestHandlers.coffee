@@ -1,3 +1,4 @@
+"use strict"
 require('./define')
 dbLib = require('./db')
 helperLib = require('./helper')
@@ -8,6 +9,50 @@ https = require('https')
 querystring = require('querystring')
 moment = require('moment')
 {Player} = require('./player')
+
+CONST_REWARD_PK_TIMES = 5
+
+ReceivePrize_PK = 0
+ReceivePrize_TimeLimit = 1
+
+
+checkRequest = (req, player, arg, rpcID, cb) ->
+  dbLib.checkReceiptValidate(arg.rep, (isValidate) ->
+    if isValidate
+      req = https.request(req, (res) ->
+        res.setEncoding('utf8')
+        res.on('data', (chunk) ->
+          result = JSON.parse(chunk)
+          logInfo({action: 'VerifyPayment', type: 'Apple', code: result, receipt: arg.bill})
+          if result.status isnt 0 or result.original_transaction_id
+            return cb([{REQ: rpcID, RET: RET_InvalidPaymentInfo}])
+          else
+            receipt = arg.bill
+            #receiptInfo = unwrapReceipt(result.transaction_id)
+            #serverName = 'Master'
+            player.handlePayment({
+              paymentType: 'AppStore',
+              productID: result.receipt.product_id,
+              receipt: receipt,
+            }, (err, result) ->
+              dbLib.markReceiptInvalidate(arg.rep)
+              ret = RET_OK
+              ret = err.message if err?
+              cb([{REQ: rpcID, RET: ret}].concat(result))
+            )
+        )
+        .on('error', (e) ->
+          logError({action: 'VerifyPayment', type: 'Apple', error: e, rep: arg.rep})
+          cb([{REQ: rpcID, RET: RET_InvalidPaymentInfo}])
+        )
+      )
+      req.write(JSON.stringify({"receipt-data": JSON.parse(arg.rep).receipt}))
+      req.end()
+    else
+      cb([{REQ: rpcID, RET: RET_InvalidPaymentInfo}])
+  )
+
+
 
 loginBy = (arg, token, callback) ->
   passportType = arg.tp
@@ -97,26 +142,43 @@ loginBy = (arg, token, callback) ->
         )
       ).on('error', (e) -> logError({action: 'login', type:  "LOGIN_ACCOUNT_TYPE_KY", error: e}))
     when LOGIN_ACCOUNT_TYPE_PP
+      appID = 2739
+      appKey = '01aee5718a33bcbbe790bc0ca7cfb7ee'
+      postBody = 
+        'id': Math.round((new Date()).getTime()/1000)
+        'service': 'account.verifySession'
+        'game': 
+          'gameId': appID
+        'data': 
+          'sid': token
+        'encrypt': 'MD5'
+        'sign': md5Hash('sid='+token+appKey)
+      strBody = JSON.stringify(postBody)
+
       options = {
         host: 'passport_i.25pp.com',
         port: 8080,
         method: 'POST',
-        path: '/index?tunnel-command=2852126756',
-        headers: { 'Content-Length': 32 }
+        path: '/account?tunnel-command=2852126760',
+        headers: 
+          'Content-Type': 'application/json'
+          'Content-Length': strBody.length
       }
       req = http.request(options, (res) ->
         res.setEncoding('utf8')
         res.on('data', (chunk) ->
-          result = JSON.parse('{'+chunk+'}')
-          logInfo({action: 'login', type:  LOGIN_ACCOUNT_TYPE_PP, code: result.status})
-          if result.status is 0
-            callback(null)
+          result = JSON.parse(chunk)
+          logInfo({action: 'login', type:  LOGIN_ACCOUNT_TYPE_PP, code: result.state})
+          if result.state.code is 1
+            #identifier = result.data.creator+result.data.accountId
+            identifier = result.data.nickName
+            callback(null, identifier)
           else
             callback(Error(RET_LoginFailed))
         )
       )
       req.on('error', (e) -> logError({action: 'login', type:  "LOGIN_ACCOUNT_TYPE_PP", error: e}))
-      req.write(token)
+      req.write(strBody)
       req.end()
     #when LOGIN_ACCOUNT_TYPE_TG
     #  dbLib.loadAuth(passport, token, callback)
@@ -139,28 +201,35 @@ exports.route = {
     id: 100,
     func: (arg, dummy, handle, rpcID, socket, registerFlag) ->
       async.waterfall([
-        (cb) ->
-          if not arg.bv?
-            cb(Error(RET_AppVersionNotMatch))
-            logError({action: 'login', reason: 'noBinaryVersion'})
-          else
-            current = queryTable(TABLE_VERSION, 'bin_version')
-            limit = queryTable(TABLE_VERSION, 'bin_version_need')
-            unless limit <= arg.bv <= current
-              cb(Error(RET_AppVersionNotMatch))
-            else
-              cb(null)
-        ,
-        (cb) ->
-          if +arg.rv isnt queryTable(TABLE_VERSION, 'resource_version')
-            cb(Error(RET_ResourceVersionNotMatch))
-          else cb(null)
-        ,
+				#TODO:
+				#(cb) ->
+        #  if not arg.bv?
+        #    cb(Error(RET_AppVersionNotMatch))
+        #    logError({action: 'login', reason: 'noBinaryVersion'})
+        #  else
+        #    current = queryTable(TABLE_VERSION, 'bin_version')
+        #    limit = queryTable(TABLE_VERSION, 'bin_version_need')
+        #    unless limit <= arg.bv <= current
+        #      cb(Error(RET_AppVersionNotMatch))
+        #    else
+        #      cb(null)
+        #,
+        #(cb) ->
+        #  if +arg.rv isnt queryTable(TABLE_VERSION, 'resource_version')
+        #    cb(Error(RET_ResourceVersionNotMatch))
+        #  else cb(null)
+        #,
         (cb) -> if registerFlag then cb(null) else loginBy(arg, arg.tk, cb),
-        (cb) ->
+        (identifier, cb) ->
           tp = arg.tp
           tp = arg.atp if arg.atp?
-          loadPlayer(tp, arg.id, cb)
+          id = arg.id
+          if typeof(identifier) is 'function'
+            loadPlayer(tp, id, identifier)
+          else
+            id = identifier
+            arg.id = id
+            loadPlayer(tp, id, cb)
         ,
         (player, cb) ->
           if player
@@ -185,7 +254,7 @@ exports.route = {
             if player.counters.monthCard
               msg.arg.mcc = player.counters.monthCard
             ev.push(msg)
-            ev.push({NTF: Event_RoleUpdate, arg: { act: { vip: player.vipLevel()} } })
+            ev.push(player.syncVipData())
             async.parallel([
               (cb) -> player.fetchMessage(cb),
               (cb) -> player.updateFriendInfo(cb),
@@ -248,15 +317,7 @@ exports.route = {
         (account, cb) -> dbLib.createNewPlayer(account, gServerName, name, cb),
         (account, cb) ->
           player = new Player()
-          player.setName(name)
-          player.accountID = account
-          player.initialize()
-          player.createHero({ name: name, class: arg.cid, gender: arg.gen, hairStyle: arg.hst, hairColor: arg.hcl })
-          prize = queryTable(TABLE_CONFIG, 'InitialEquipment')
-          for k, p of prize
-            player.claimPrize(p.filter((e) => isClassMatch(arg.cid, e.classLimit)))
-          logUser({ name: name, action: 'register', class: arg.cid, gender: arg.gen, hairStyle: arg.hst, hairColor: arg.hcl })
-          player.saveDB(cb)
+          player.createPlayer(arg, account, cb)
       ], (err, result) ->
         if err
           handle([{REQ: rpcID, RET: +err.message}])
@@ -265,6 +326,28 @@ exports.route = {
       )
     ,
     args: {'pid':'string', 'nam':'string', 'cid':'number', 'gen':'number', 'hst':'number', 'hcl':'number'}
+  },
+  RPC_SwitchHero: {
+    id: 106,
+    func: (arg, player, handler, rpcID, socket) ->
+      type = player.switchHeroType(arg.cid)
+      if player.flags[type]
+        #player.flags[type] = false
+        oldHero = player.hero
+        player.createHero({
+          name: oldHero.name
+          class: arg.cid
+          gender: oldHero.gender
+          hairStyle: oldHero.hairStyle
+          hairColor: oldHero.hairColor
+          }, true)
+        ret = [{REQ: rpcID, RET: RET_OK}]
+        ret.concat(player.syncFlags(true))
+      else
+        ret = [{REQ: rpcID, RET: RET_NotEnoughItem}]
+      handler(ret)
+    ,
+    args: {'cid':'number'}
   },
   RPC_ValidateName: {
     id: 102,
@@ -284,6 +367,13 @@ exports.route = {
         evt.rv = queryTable(TABLE_VERSION, 'resource_version')
         evt.rvurl = queryTable(TABLE_VERSION, 'url')
         evt.bvurl = queryTable(TABLE_VERSION, 'bin_url')
+
+        evt.nv = queryTable(TABLE_VERSION, 'needed_version')
+        evt.lv = queryTable(TABLE_VERSION, 'last_version')
+        evt.sv = queryTable(TABLE_VERSION, 'suggest_version')
+        evt.url = queryTable(TABLE_VERSION, 'url')
+        if queryTable(TABLE_VERSION, 'branch')
+          evt.br = queryTable(TABLE_VERSION, 'branch')
       handler([evt])
     ,
     args: {'sign':'string'}
@@ -326,7 +416,7 @@ exports.route = {
               dungeon.result = DUNGEON_RESULT_FAIL
             finally
               logInfo('Claim Dungeon Award')
-              evt = evt.concat(player.claimDungeonAward(dungeon))
+              evt = evt.concat(player.claimDungeonReward(dungeon))
               logInfo('Releasing Dungeon')
               player.releaseDungeon()
               logInfo('Saving')
@@ -366,7 +456,7 @@ exports.route = {
     id: 1,
     func: (arg, player, handler, rpcID, socket) ->
       player.dungeonData = {}
-      player.startDungeon(+arg.stg, arg.initialDataOnly, arg.pkr, (err, evEnter, extraMsg) ->
+      player.startDungeon(+arg.stg, arg.initialDataOnly, arg.tem, arg.pkr, (err, evEnter, extraMsg) ->
         extraMsg = (extraMsg ? []).concat(player.syncEnergy())
         if typeof evEnter is 'number'
           handler([{REQ: rpcID, RET: evEnter}].concat(extraMsg))
@@ -392,6 +482,8 @@ exports.route = {
 #    args: {'pid':'string', 'rep':'string'},
 #    needPid: true
 #  },
+#
+
   RPC_VerifyPayment: {
     id: 15,
     func: (arg, player, handler, rpcID, socket) ->
@@ -405,35 +497,20 @@ exports.route = {
             path: '/verifyReceipt',
             method: 'POST'
           }
-          req = https.request(options, (res) ->
-            res.setEncoding('utf8')
-            res.on('data', (chunk) ->
-              result = JSON.parse(chunk)
-              logInfo({action: 'VerifyPayment', type: 'Apple', code: result, receipt: arg.bill})
-              if result.status isnt 0 or result.original_transaction_id
-                return handler([{REQ: rpcID, RET: RET_Unknown}])
-
-              receipt = arg.bill
-              #receiptInfo = unwrapReceipt(result.transaction_id)
-              #serverName = 'Master'
-              player.handlePayment({
-                paymentType: 'AppStore',
-                productID: result.product_id,
-                receipt: receipt
-              }, (err, result) ->
-                ret = RET_OK
-                ret = err.message if err?
-                handler([{REQ: rpcID, RET: ret}].concat(result))
-              )
+          checkRequest(options, player,  arg, rpcID, (result) ->
+            if result[0]?.RET is RET_InvalidPaymentInfo
+              #try another
+              options = {
+                hostname: 'buy.itunes.apple.com',
+                #hostname: 'sandbox.itunes.apple.com',
+                port: 443,
+                path: '/verifyReceipt',
+                method: 'POST'
+              }
+              checkRequest(options, player, arg, rpcID,handler)
+            else
+              handler(result)
             )
-          )
-          .on('error', (e) ->
-            logError({action: 'VerifyPayment', type: 'Apple', error: e, rep: arg.rep})
-            handler([{REQ: rpcID, RET: RET_InvalidPaymentInfo}])
-          )
-
-          req.write(JSON.stringify({"receipt-data": arg.rep}))
-          req.end()
     args: {},
     needPid: true
   },
@@ -510,6 +587,7 @@ exports.route = {
             board = result.board
             async.map(board.name, getPlayerHero, (err, result) ->
               ret.lst = result.map( (e, i) ->
+                return null unless e?
                 r = getBasicInfo(e)
                 r.scr = +board.score[i]
                 return r
@@ -523,7 +601,7 @@ exports.route = {
     args: {},
     needPid: true
   },
-  RPC_SubmitBounty: {
+  RPC_MonthcardAward: {
     id: 31,
     func: (arg, player, handler, rpcID, socket) ->
       switch arg.bid
@@ -560,10 +638,11 @@ exports.route = {
         ret = {REQ: rpcID, RET: RET_OK}
         async.map( rivalLst.name, getPlayerHero, (err, result) ->
           ret.arg = result.map( (e, i) ->
+            return null unless e?
             r = getBasicInfo(e)
             r.rnk = +rivalLst.rnk[i]
             return r
-          )
+          ).filter( (e) -> e?)
           handler([ret])
         )
       )
@@ -582,6 +661,8 @@ exports.route = {
             cpl: player.counters.currentPKCount ? 0
             ttl: player.getTotalPkTimes()
             rcv: player.flags.rcvAward ? false
+            tcd: player.getPkCoolDown()
+            apc: player.getAddPkCount()
           }
           handler(ret))
     ,
@@ -607,8 +688,8 @@ exports.route = {
     id: 33,
     func: (arg, player, handler, rpcID, socket) ->
       switch arg.typ
-        when 0
-          if (not (player.counters.currentPKCount?) or player.getTotalPkTimes() > player.counters.currentPKCount or player.flags.rcvAward)
+        when ReceivePrize_PK
+          if (not (player.counters.currentPKCount?) or CONST_REWARD_PK_TIMES > player.counters.currentPKCount or player.flags.rcvAward)
 
             handler([{REQ: rpcID, RET: RET_CantReceivePkAward}])
           else
@@ -617,6 +698,14 @@ exports.route = {
               player.saveDB()
               handler([{REQ: rpcID, RET: RET_OK}].concat(result))
             )
+        when ReceivePrize_TimeLimit
+          {prize, sync}  = player.onCampaign('timeLimitAward')
+          ret ={REQ:rpcID, RET:RET_RewardAlreadyReceived }
+          if prize.length isnt 0
+            ret.prize = prize
+            ret.RET = RET_OK
+          player.saveDB()
+          handler([ret].concat(sync))
     ,
     args: {},
     needPid: true
@@ -644,11 +733,97 @@ exports.route = {
               me:{cnt:+killTimes, rnk: +result.position}}
             handler(ret)
           else
-            handler([{REQ: rpcID, RET: RET_Unknown}])
+            handler([{REQ: rpcID, RET: RET_GetLeaderboardInfoFailed}])
       )
     ,
     args: {},
     needPid: true
-  }
+  },
+  RPC_CommentGameInfo: {
+    id: 37,
+    func: (arg, player, handler, rpcID, socket) ->
+      if arg.cmt?
+        if player.flags.cmt?.cmted
+          player.flags.cmt.auto = arg.cmt.auto
+        else
+          if player.flags.cmt?.cmted is false and arg.cmt.cmted is true
+            player.quests?['183']?['counters'] = [1]
+          player.flags['cmt'] = arg.cmt
+      else
+        player.flags.cmt = {cmted:false, auto: true} unless player.flags.cmt?
+      player.save()
+      ret = {REQ: rpcID, RET: RET_OK}
+      ret.arg ={
+        cmt:player.flags.cmt
+      }
+      handler(ret)
+    ,
+    args: {'cmt':{'cmted':'boolean', 'auto':'boolean'}},
+    needPid: true
+  },
+  Request_LotteryFragment: {
+    id: 38,
+    func: (arg, player, handler, rpcID, socket) ->
+      switch arg.cmd
+        when 0 #cmd=0 抽奖 count抽奖次数 type使用表fragment的第type套奖品
+          if arg.type?
+            {prize, res, ret} = player.getFragment(arg.type, arg.count)
+            player.saveDB()
+            evt = {REQ: rpcID, RET: ret}
+            evt.arg = prize
+            if res? then handler([evt].concat(res))
+            else handler([evt])
+          else
+            handler([{REQ: rpcID, RET: RET_NoParameter}])
+        when 1 #cmd=1 获取免费抽奖CD时间
+          if arg.type?
+            handler({REQ: rpcID,RET:RET_OK, arg:{ fcd: player.getFragTimeCD(arg.type) }})
+          else
+            handler([{REQ: rpcID, RET: RET_NoParameter}])
+    ,
+    args: {'cmd':'number','type':'number'},
+    needPid: true
+  },
+  Request_Redeem: {
+    id: 40,
+    func: (arg, player, handler, rpcID, socket) ->
+      resMessage = []
+      ret = {REQ: rpcID, RET: RET_RedeemFailed, prize:[]}
+      async.waterfall(
+        [
+          (cb) -> helperLib.redeemCode.redeem(arg.code, cb),
+          (config, cb) ->
+            return cb("Redeemed Code") if config.redeemed is true
+            switch Number(config.type)
+              when CodeType_Prize
+                resMessage = player.claimPrize(result.prize)
+                ret.prize = result.prize
+              when CodeType_Invitation
+                if player.inviter or player.invitee.indexOf(config.inviter)
+                  break
+                player.attrSave('inviter', config.inviter)
+                dbWrapper.pushNotice(config.inviter, "New Invitee", player.name)
 
+                dbLib.deliverMessage(
+                  config.inviter,
+                  {
+                    type: MESSAGE_TYPE_InvitationAccept,
+                    name: player.name
+                  }
+                )
+
+            player.saveDB(cb)
+        ],
+        (err, res) ->
+          logInfo({action: 'Redeem', code: arg.code, err: err})
+          if err
+            handler(ret)
+          else
+            ret.RET = RET_OK
+            handler([ret].concat(resMessage))
+      )
+    ,
+    args: {'code':'string'},
+    needPid: true
+  },
 }

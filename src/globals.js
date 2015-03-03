@@ -1,3 +1,6 @@
+CodeType_Prize = 0;
+CodeType_Invitation = 1;
+
 RECEIPT_STATE_NEW = 'NEW';
 RECEIPT_STATE_FAIL = 'FAIL';
 RECEIPT_STATE_AUTHORIZED = 'AUTHORIZED';
@@ -7,6 +10,7 @@ RECEIPT_STATE_CLAIMED = 'CLAIMED';
 MESSAGE_TYPE_FriendApplication = 200;
 MESSAGE_TYPE_SystemReward = 201;
 MESSAGE_TYPE_ChargeDiamond = 202;
+MESSAGE_TYPE_InvitationAccept = 203;
 
 CHAT_TYPE_PLAYER = 0;
 CHAT_TYPE_SYSTEM = 1;
@@ -27,6 +31,7 @@ Event_Broadcast = 25;
 Event_ABIndex = 26;
 Event_UpdateDailyQuest = 27;
 Event_UpdateFlags = 28;
+Event_UpdateCounters = 29;
 Event_BountyUpdate = 30;
 
 Event_ExpiredPID = 100;
@@ -58,6 +63,25 @@ Request_TutorialStageComplete = 27;
 Request_Stastics = 28;
 RPC_ClaimLoginStreakReward = 300;
 
+function fixNumber(num, len){
+    var str = ""+num;
+    if( str.length > len ){
+        str = str.substr(0, len);
+    }
+    while(str.length < len){
+        str = "0" + str;
+    }
+    return str;
+}
+
+wrapReceipt = function(id, pid, zoneId, sid, time, tunnel) {
+    var actorName = fixNumber(id, 8);
+    var productId = fixNumber(pid, 2);
+    var zoneId = fixNumber(zondId, 2);
+    var time = fixNumber(Math.floor((new Date()).valueOf/1000), 10);
+    return actorName+productId+zoneId+time+tunnel;
+}
+
 unwrapReceipt = function(receipt) {
   var id = receipt.slice(0, 8),
       productID = receipt.slice(8, 10),
@@ -77,7 +101,7 @@ var zlib = require('zlib');
 var http = require('http');
 postPaymentInfo = function (level, orderID) {
   var info = unwrapReceipt(orderID);
-  var productList = queryTable(TABLE_CONFIG, 'Product_List');
+  var productList = queryTable(TABLE_IAP, 'list');
   var cfg = productList[info.productID];
   if (!cfg) return ;
   var currencyAmount = cfg.rmb;

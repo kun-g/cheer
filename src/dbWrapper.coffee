@@ -1,3 +1,4 @@
+"use strict"
 require('./globals')
 dbLib = require './db'
 moment = require 'moment'
@@ -98,11 +99,12 @@ getPlayerHero = (name, callback) ->
   ])
 exports.getPlayerHero = getPlayerHero
 
-exports.getMercenaryMember = (name, count, range, delta, names, handler) ->
+exports.getMercenaryMember = (name, count, range, delta, names, appendNames, handler) ->
   heros = []
   dbLib.findMercenary(name, count, range, delta, names,
     (err, heroNames) =>
-      if heroNames
+      heroNames = appendNames.concat(heroNames)
+      if heroNames.length > 0
         async.eachSeries(
           heroNames,
           (e, cb) ->
@@ -115,6 +117,8 @@ exports.getMercenaryMember = (name, count, range, delta, names, handler) ->
           ,
           () -> handler(err, heros)
         )
+      else
+        handler('find nothing', null)
   )
 
 exports.removeMercenaryMember = (battleForce, member, handler) -> mercenaryDel(battleForce, member, handler)

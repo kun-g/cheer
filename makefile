@@ -1,10 +1,13 @@
-include auto-generated-dependencies.d
-
 #vpath %.c src
 #vpath %.h include
+
+all: auto-generated-dependencies.d
+
 auto-generated-dependencies.d :
 	@echo 'Generating dependencies'
 	@sh generate_dependencies.sh
+
+include auto-generated-dependencies.d
 
 #@echo 1 % $% The filename element of an archive member specification
 #@echo 2 @ $@ The filename representing the target

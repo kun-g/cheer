@@ -1,16 +1,18 @@
+"use strict"
 require('./define')
 require('./shared')
 {Wizard} = require './spell'
 {DBWrapper} = require './dbWrapper'
-{createUnit, Hero} = require './unit'
+{createUnit, Hero, Teammate} = require './unit'
 {Item, Card} = require './item'
 {CommandStream, Environment } = require('./commandStream')
 {Bag, CardStack} = require('./container')
 {parse, TriggerManager} = require('./trigger')
+{generateReward} = require('./reward')
 
 seed_random = require('./seed_random')
 speedFormula = { 'a' : 1, 'b' : 60, 'c' : 0.5}
-hitFormula = { 'a' : 1, 'b' : 150, 'c' : 0.75, downLimit : 0.5 }
+hitFormula = { 'a' : 1, 'b' : 150, 'c' : 0.75, downLimit : 0.75 }
 criticalFormula = { 'a' : 7, 'b' : 140, 'c' : 0.1, upLimit : 0.4 }
 
 flagShowRand = false
@@ -199,7 +201,8 @@ class Dungeon
 
     this[k] = v for k, v of data
     @quests = deepCopy(@initialQuests) if @initialQuests?
-    cfg = @getConfig()
+    @config = @getConfig()
+    cfg = @config
     if cfg.triggers
       @triggerManager.installTrigger(t, {}, @) for t in cfg.triggers
 
@@ -258,6 +261,7 @@ class Dungeon
         @xpRate *= 1.1
 
     if @PVP_Pool
+      cfg = JSON.parse(JSON.stringify(cfg))
       cfg.pool.PVP ={}
       cfg.pool.PVP.objects = @PVP_Pool.map((e) ->
         e.weight = 10
@@ -289,8 +293,8 @@ class Dungeon
   initiateHeroes: (team) ->
     team = [] unless team
     ref = 0
-    this.heroes = (
-      new Hero({
+    this.heroes = team.map((e) ->
+      data = {
         name: e.nam,
         class: e.cid,
         gender: e.gen,
@@ -299,13 +303,22 @@ class Dungeon
         equipment: e.itm,
         xp: e.exp,
         order: ref,
-        ref: ref++
-      }) for e in team
+        ref :ref++
+      }
+
+      if e.notMirror
+        return new Hero(data)
+      else
+        return new Teammate(data)
     )
     dummyHero = new Hero({})
     dummyHero.health =0
     this.heroes.push(dummyHero)
     this.heroes.forEach( (e) -> e.faction = 'hero' )
+    thiz = @
+    @cardStack.map((card) ->
+      if card?.func?
+        thiz.getDummyHero().installSpell(card.func,1))
 
   getDummyHero: () -> @heroes[@heroes.length-1]
 
@@ -383,7 +396,12 @@ class Dungeon
     cmd = req?.CMD ? req?.CNF
     switch cmd
       when RPC_GameStartDungeon then action = DUNGEON_ACTION_ENTER_DUNGEON
-      when Request_DungeonSpell then action = DUNGEON_ACTION_CAST_SPELL
+      when Request_DungeonSpell
+        action = DUNGEON_ACTION_CAST_SPELL
+        req.arg ?= {}
+        req.arg.idx ?= 0
+        req.arg.pos ?= -1
+        arg = {i:+req.arg.idx, p:req.arg.pos}
       when REQUEST_CancelDungeon then action = DUNGEON_ACTION_CANCEL_DUNGEON
       when Request_DungeonRevive then action = DUNGEON_ACTION_REVIVE
       when Request_DungeonCard
@@ -401,6 +419,9 @@ class Dungeon
       when Request_DungeonAttack
         action = DUNGEON_ACTION_ATTACK
         arg = {t: +req.arg.tar, p:[+req.arg.pos, +req.arg.pos1, +req.arg.pos2]}
+      when Request_DungeonValidatePos
+        action = DUNGEON_ACTION_GETVALIDATE_POS
+        arg = {id: +req.arg.id}
 
     return @act(action, arg)
 
@@ -438,7 +459,8 @@ class Dungeon
         ret = [] #[{NTF: Event_Fail, arg : {msg:'Main Hero Is Dead'}}]
         if hero.isAlive()
           cmd = DungeonCommandStream({id: 'BeginTurn', type: 'Spell', src: hero}, this)
-          cmd.next({id: 'CastSpell', me: hero, spell: hero.activeSpell})
+          spellId = arg.i #hero.getActiveSpell()[arg.i]
+          cmd.next({id: 'CastSpell', me: hero, spell: spellId, playerChoice: arg.p})
              .next({id: 'EndTurn', type: 'Spell', src: hero})
              .next({id: 'ResultCheck'})
           cmd.process()
@@ -459,12 +481,21 @@ class Dungeon
            .next({id: 'ResultCheck'})
         cmd.process()
       when DUNGEON_ACTION_REVIVE
-        @revive++
-        cmd = DungeonCommandStream({id: 'Revive'}, this)
-        cmd.process()
+        if @revive >= @reviveLimit
+          ret = [{NTF:Event_DungeonExit}]
+        else
+          @revive++
+          cmd = DungeonCommandStream({id: 'Revive'}, this)
+          cmd.process()
+      when DUNGEON_ACTION_GETVALIDATE_POS
+        hero = @heroes[0]
+        ret = [] #[{NTF: Event_Fail, arg : {msg:'Main Hero Is Dead'}}]
+        if hero.isAlive()
+          cmd = DungeonCommandStream({id: 'ValidatePosList', me: hero, spell: arg.id}, this)
+          cmd.process()
       else
         return @onReplayMissMatch()
-    ret.push({NTF:Event_DungeonAction, arg: cmd.translate()}) unless not cmd or (replayMode and not showResult)
+    ret.push({NTF:Event_DungeonAction, arg: cmd?.translate()}) unless not cmd or (replayMode and not showResult)
     return ret
 
   onReplayMissMatch: () ->
@@ -627,7 +658,7 @@ class Level
 
   setupEnterAndExit: (config) ->
     @entrance = this.rand(DG_BLOCKCOUNT)
-    @entrance = config.entrance if config?.entrance?
+    @entrance = JSON.parse(JSON.stringify(config.entrance)) if config?.entrance?
     @exit = this.rand(DG_BLOCKCOUNT-1)
     @exit = DG_BLOCKCOUNT-1 if @exit is @entrance or (@entrance.indexOf? and @entrance.indexOf(@exit) isnt -1)
     @exit = config.exit if config?.exit?
@@ -724,17 +755,26 @@ class Level
       str = '  '
       for i, e of row
         switch (e)
-          when 0 then str += '  '
-          when 1 then str += 'O '
-          when 2 then str += 'X '
-          when 3 then str += 'N '
-          when 5 then str += 'D '
-          when 10 then str += 'H '
+          when 0 then str += '  '    #Block_Empty = 0;
+          when 1 then str += 'O '    #Block_Exit = 1; 
+          when 2 then str += 'X '    #Block_Enemy = 2;
+          when 3 then str += 'N '    #Block_Npc = 3;
+          when 4 then str += '8 '    #Block_LockedExit = 4;
+          when 5 then str += 'D '    #Block_TreasureBox = 5;
+          when 10 then str += 'H '    #Block_Hero = 10;      '
           when 6
             str += y*Dungeon_Width+i/2
             if y*Dungeon_Width+i/2 < 10 then str+=' '
           else str += e+' '
       console.log(str)
+
+
+
+
+
+
+
+
 
 
 class DungeonEnvironment extends Environment
@@ -758,6 +798,7 @@ class DungeonEnvironment extends Environment
       when 'tutorial' then cmd.routine?({id: 'Tutorial', tutorialId: act.tutorialId})
       when 'modifyEnvVariable' then @variable(a.name, a.value)
       when 'shock' then cmd.routine?({id: 'Shock', time: a.time, delay: a.delay, range: a.range})
+      when 'tremble' then cmd.routine?({id: 'Tremble', time: a.time, delay: a.delay, range: a.range})
       when 'blink' then cmd.routine?({id: 'Blink', time: a.time, delay: a.delay, color: a.color})
       when 'changeBGM' then cmd.routine({id: 'ChangeBGM', music: a.music, repeat: a.repeat})
       when 'whiteScreen' then cmd.routine({id: 'WhiteScreen', mode: a.mode, time: a.time, color: a.color})
@@ -812,8 +853,6 @@ class DungeonEnvironment extends Environment
     objects = @dungeon.level.objects
     @dungeon.level.objects = heroes.concat(objects.slice(heroes.length, objects.length))
 
-  incrReviveCount: () -> @dungeon?.reviveCount++
-
   getInitialData: () -> @dungeon?.getInitialData()
 
   getEntrance: () -> @dungeon?.getEntrance()
@@ -848,7 +887,7 @@ class DungeonEnvironment extends Environment
   nextLevel: () -> @dungeon?.nextLevel()
   isDungeonFinished: () -> return @dungeon.currentLevel >= @dungeon.getConfig().levelCount
   createObject: (cfg) -> @dungeon?.level?.createObject(cfg)
-  useItem: (spell, level, cmd) -> @dungeon.getDummyHero().castSpell(spell, level, cmd)
+  useItem: (spell, level, cmd) -> @dungeon.getDummyHero().castSpell(spell, cmd)
   getReviveCount: () -> @dungeon?.revive
   createSpellMsg: (actor, spell, delay) ->
     return [] unless actor? and spell?
@@ -863,6 +902,7 @@ class DungeonEnvironment extends Environment
       delay += spell.delay if spell.delay?
       ev = {id:ACT_EFFECT, dey: delay, eff:spell.effect}
       if actor.isBlock then ev.pos = +actor.pos else ev.act = actor.ref
+      if spell.dir? then ev.dir = spell.dir
       ret.push(ev)
     return ret
 
@@ -988,6 +1028,8 @@ dungeonCSConfig = {
       env.onEvent('onEnterLevel', @)
       if env.isLevelInitialized()
         @routine({id: 'OpenBlock', block: e}) for e in [0..DG_BLOCKCOUNT-1] when env.getBlock(e).explored
+        @routine({id: 'SpellCD', cdInfo:h.getSpellCD()}) for h in env.getObjects() when h.isHero()
+        
       else
         env.levelInitialized()
         if Array.isArray(entrance)
@@ -1010,11 +1052,9 @@ dungeonCSConfig = {
         env.moveHeroes(newPosition)
 
         o.onEvent('onEnterLevel', @) for o in env.getObjects()
+        @routine({id: 'TickSpell'})
 
 
-
-
-      @routine({id: 'TickSpell'})
       heroInfo = env.getAliveHeroes()
                   .filter((e) -> e?.ref? )
                   .sort((a, b) -> return a.order-b.order)
@@ -1069,6 +1109,7 @@ dungeonCSConfig = {
       env.variable('state', state)
     output: (env) ->
       ret =  genUnitInfo(env.variable('wizard'), false, env.variable('state'))
+      return [] unless ret?
       if env.variable('effect')?
         effect = env.variable('effect')
         if ret? then ret = [ret]
@@ -1079,7 +1120,7 @@ dungeonCSConfig = {
         ev.sid = if actor.isBlock then (actor.pos+1)*100+bid else (actor.ref+1)*1000+bid
         if actor.isBlock then ev.pos = +actor.pos else ev.act = actor.ref
         ret.push(ev)
-      return if ret? then ret else []
+      return ret
   },
   TickSpell: {
     callback: (env) -> h.tickSpell(env.variable('tickType'), @) for h in env.getObjects()
@@ -1191,11 +1232,10 @@ dungeonCSConfig = {
     callback: (env) ->
       src = env.variable('src')
       tar = env.variable('tar')
-      return @suicide() unless src.isAlive() and tar.isAlive()
+      return @suicide() unless src.isAlive() and tar.isAlive() and src.isVisible and tar.isVisible
 
       env.variable('damage', src.attack)
       onEvent('Target', @, src, tar)
-
       env.variable('hit', env.compete('hit', src.accuracy, tar.reactivity))
       onEvent('Hit', @, env.variable('src'), env.variable('tar'))
 
@@ -1212,7 +1252,7 @@ dungeonCSConfig = {
           isRange:env.variable('isRange')
         })
       else
-        @routine({id:'Evade', src:tar})
+        @routine({id:'Evade', src:tar, tar: src})
     ,
     output: (env) ->
       if env.variable('isRange')  and env.variable('eff')?
@@ -1227,8 +1267,16 @@ dungeonCSConfig = {
       else
         rangeEff =[]
 
-      flag = if env.variable('hit') then HP_RESULT_TYPE_HIT else HP_RESULT_TYPE_MISS
-      return [{act: env.variable('src').ref, id: ACT_ATTACK, ref: env.variable('tar').ref, res:flag, rng:env.variable('isRange')}].concat(rangeEff)
+      if env.variable('hit')
+        flag = HP_RESULT_TYPE_HIT
+        if env.variable('critical')
+          flag = HP_RESULT_TYPE_CRITICAL
+      else
+        flag = HP_RESULT_TYPE_MISS
+      if env.variable('ignoreAttack')
+        return [].concat(rangeEff)
+      else
+        return [{act: env.variable('src').ref, id: ACT_ATTACK, ref: env.variable('tar').ref, res:flag, rng:env.variable('isRange')}].concat(rangeEff)
   },
   ShiftOrder: {
     output: (env) -> [{id:ACT_SHIFTORDER}]
@@ -1249,7 +1297,6 @@ dungeonCSConfig = {
   Revive: {
     callback: (env) ->
       env.initiateHeroes(env.getInitialData().team)
-      env.incrReviveCount()
       for p in env.getAliveHeroes()
         p.pos = env.getEntrance()[0] ? env.getEntrance()
     ,
@@ -1292,6 +1339,12 @@ dungeonCSConfig = {
       evt.rag = env.variable('range') if env.variable('range')?
       return [evt]
   },
+  Tremble: {
+    output: (env) ->
+      evt = {id: ACT_Tremble, act:env.variable('act'), dey: env.variable('delay'), tim: env.variable('time')}
+      evt.rag = env.variable('range') if env.variable('range')?
+      return [evt]
+  },
   Dialog: { output: (env) -> [{id: ACT_Dialog, did: env.variable('dialogId')}] },
   Tutorial: { output: (env) -> [{id: ACT_Tutorial, tid: env.variable('tutorialId')}] },
   ChangeBGM: {
@@ -1327,26 +1380,42 @@ dungeonCSConfig = {
       tar.isVisible = true
       @routine({id: 'OpenBlock', block:tar.pos})
   },
+  Hide: {
+    callback: (env) -> @routine({id: 'TeleportObject', hiding: true, obj:env.variable('obj')})
+  },
   TeleportObject: {
     callback: (env) ->
       obj = env.variable('obj')
       return @suicide() unless obj.isAlive()
       slot = env.variable('tarPos')
+      isHiding = env.variable('hiding')
       if not slot?
         availableSlot = env.getBlock().filter( (e) -> e.getType() is Block_Empty )
+        if isHiding
+          hidePlace = availableSlot.filter( (e) -> not e.explored )
+          if hidePlace.length > 0
+            availableSlot = hidePlace
+            obj.isVisible = false
+          else
+            env.variable('hiding', false)
+            isHiding = false
+
         slot = env.randMember(availableSlot)
         slot = slot.pos if slot?
       return @suicide() unless slot?
+
       env.variable('orgPos', obj.pos)
       env.variable('tarPos', slot)
-      env.getBlock(slot).explored = true
+      if not isHiding
+        env.getBlock(slot).explored = true
       env.getBlock(obj.pos).removeRef(obj)
       env.getBlock(slot).addRef(obj)
       obj.pos = slot
       return @suicide() unless env.variable('obj').isAlive()
-      @routine({id: 'BlockInfo', block: env.variable('tarPos')})
+      if not  isHiding
+        @routine({id: 'BlockInfo', block: env.variable('tarPos')})
     ,
-    output: (env) -> [{act: env.variable('obj').ref, id: ACT_TELEPORT, pos: env.variable('tarPos')}]
+    output: (env) -> [{act: env.variable('obj').ref, id: ACT_TELEPORT, pos: env.variable('tarPos'), hide:env.variable('hiding')}]
   },
   DropPrize: {
     callback: (env) ->
@@ -1355,7 +1424,7 @@ dungeonCSConfig = {
       showPrize = env.variable('showPrize')
       if dropID?
         if showPrize
-          drop = generatePrize(queryTable(TABLE_DROP),[dropID], () -> env.rand())
+          drop = generateReward(queryTable(TABLE_DROP),[dropID], () -> env.rand())
           if drop[0].type is 1
             env.variable('cid', -1)
           else
@@ -1387,24 +1456,31 @@ dungeonCSConfig = {
       tar = env.variable('castee')
       spell = env.variable('spell')
       delay = env.variable('delay')
+      dir = env.variable('effdirlst')
       ret = env.createSpellMsg(src, { motion : spell.spellAction, delay : spell.spellDelay, effect : spell.spellEffect }, delay) if spell? and src?
 
       if tar?
         info = { motion : spell.targetAction, delay : spell.targetDelay, effect : spell.targetEffect }
-        ret = ret.concat(env.createSpellMsg(t, info, delay)) for t in tar
+        for t,idx in tar
+          info.dir = dir[idx] if dir?[idx]?
+          ret = ret.concat(env.createSpellMsg(t, info, delay))
       
       return ret
   },
   Effect: {
     output: (env) ->
       if env.variable('pos')?
-        [{id:ACT_EFFECT, dey: env.variable('delay'), eff: env.variable('effect'), pos: env.variable('pos')}]
+        result = {id:ACT_EFFECT, dey: env.variable('delay'), eff: env.variable('effect'), pos: env.variable('pos')}
       else
-        [{id:ACT_EFFECT, dey: env.variable('delay'), eff: env.variable('effect'), act: env.variable('act')}]
+        result = {id:ACT_EFFECT, dey: env.variable('delay'), eff: env.variable('effect'), act: env.variable('act')}
+      #console.log('Effect', env.variable('effdir'))
+      if env.variable('effdir')?
+        result.dir = env.variable('effdir')
+      [result]
   },
   CastSpell: {
     callback: (env) ->
-      env.variable('me').castSpell(env.variable('spell'), null, @)
+      env.variable('me').castSpell(env.variable('spell'), @)
   },
   UseItem: {
     callback: (env) ->
@@ -1488,10 +1564,15 @@ dungeonCSConfig = {
 
       if env.variable('tar').health <= env.variable('damage')
         onEvent('DeathStrike', @, env.variable('src'), env.variable('tar'))
-      env.variable('tar').health -= env.variable('damage')
 
       onEvent('CriticalDamage', @, env.variable('src'), env.variable('tar')) if env.variable('critical')
+
+      env.variable('tar').health -= env.variable('damage')
+
       @next({id: 'Dead', tar: env.variable('tar'), killer:env.variable('src'), damage: env.variable('damage')}) unless env.variable('tar').isAlive()
+
+      @getPrevCommand('Attack')?.cmd?.critical = env.variable('critical')
+      @getPrevCommand('Attack')?.cmd?.ignoreAttack = env.variable('ignoreAttack')
     ,
     output: (env) ->
       flag = if env.variable('critical') then HP_RESULT_TYPE_CRITICAL else HP_RESULT_TYPE_HIT
@@ -1561,6 +1642,7 @@ dungeonCSConfig = {
       return ret
   },
   Evade: {
+    callback: (env) -> onEvent('Dodge', @, env.variable('src'), env.variable('tar'))
     output: (env) -> return [{act: env.variable('src').ref, id: ACT_EVADE, dey: 0}] # TODO:delay
   },
   ActivateMechanism: {
@@ -1611,6 +1693,12 @@ dungeonCSConfig = {
           dey:env.variable('dey'),
           dur:env.variable('dur')
         }]
+  },
+  ValidatePosList: {
+    output: (env) ->
+      ret = env.variable('me').getValidatePlayerSelectPoint(env.variable('spell'), env)
+      [{id:ACT_ShowValidatePosLst, ret:ret}]
+
   }
 }
 

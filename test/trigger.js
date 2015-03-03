@@ -1,52 +1,212 @@
 var triggerLib = require('../js/trigger');
+require("../js/define");
 var shall = require('should');
 describe('', function () {
-  describe('Filter object', function () {
-    var objects = [
-      {name: 'o1', roleID: 1, health: 10, faction: 0},
-      {name: 'o2', roleID: 2, health: 11, faction: 1},
-      {name: 'o3', roleID: 3, health: 12, faction: 2},
-      {name: 'o4', roleID: 4, health: 13, faction: 3}
-    ];
-    var factionDB = {
-      0: {
-           1: {attackable: true},
-           3: {attackable: true},
-         }
-    };
-    var fo = triggerLib.filterObject;
-    var env = {
-      getFactionConfig: function (src, tar, flag) {
-                          if (factionDB[src] == null || factionDB[src][tar] == null) return false;
-                          return factionDB[src][tar];
-                        }
-    };
-    var testThis = function (filters, names) {
-      fo({}, objects, filters, env).map(function (e) { return e.name; }).should.eql(names);
-    };
+
+    it('direction', function() {
+
+        var calcDirection = triggerLib.calcDirection;
+        var translatePos = triggerLib.translatePos;
+        var data = [
+        {psrc:12, ptar: [0,6], res: 7},
+        {psrc:12, ptar: [7,2],res: 8},
+        {psrc:12, ptar: [8,4],res: 9},
+        {psrc:12, ptar: [13,14], res: 6},
+        {psrc:12, ptar: [18,24], res: 3},
+        {psrc:12, ptar: [17,22], res: 2},
+        {psrc:12, ptar: [16,20], res: 1},
+        {psrc:12, ptar: [12], res: 5},
+        {psrc:1, ptar: [22,21,20], res: 2},
+        {psrc:20, ptar: [0,1], res: 8},
+        {psrc:12, ptar: [10,11], res: 4},
+        ];
+        
+        for (var i in data) {
+            cfg  = data[i];
+            cfg.ptar.forEach(function(ptar) {
+                var res = calcDirection(translatePos(cfg.psrc), translatePos(ptar));
+                res.should.equal(cfg.res);
+            });
+        }
+    });
+describe('Filter object', function () {
+function alive() { return this.health > 0; }
+var objects = [
+  {name: 'o1', roleID: 1, health: 10, faction: 0, isAlive: alive, pos: 0},
+  {name: 'o2', roleID: 2, health: 11, faction: 1, isAlive: alive, pos: 1},
+  {name: 'o3', roleID: 3, health: 12, faction: 2, isAlive: alive, pos: 2},
+  {name: 'o4', roleID: 4, health: 13, faction: 3, isAlive: alive, pos: 3}
+];
+var factionDB = {
+  0: {
+       1: {attackable: true},
+       3: {attackable: true},
+     }
+};
+var fo = triggerLib.filterObject;
+var areaShape = triggerLib.areaShape;
+var direction = triggerLib.direction;
+var blocks;
+var variable = {};
+var env = {
+  getFactionConfig: function (src, tar, flag) {
+                      if (factionDB[src] == null || factionDB[src][tar] == null) return false;
+                      return factionDB[src][tar];
+                    },
+  getBlock: function (index) {
+      return blocks[index];
+  },
+  variable: function() {
+      return variable;
+  }
+};
+var testThis = function (filters, names) {
+  fo({}, objects, filters, env).map(function (e) { return e.name; }).should.eql(names);
+};
+describe("Role", function () {
     it('same-faction', function () {
-      testThis({type: 'same-faction', faction: 0}, ['o1']);
+        testThis({type: 'same-faction', faction: 0}, ['o1']);
     });
     it('different-faction', function () {
-      testThis({type: 'different-faction', faction: 0}, ['o2', 'o3', 'o4']); 
+        testThis({type: 'different-faction', faction: 0}, ['o2', 'o3', 'o4']); 
     });
     it('target-faction-with-flag', function () {
-      testThis({type: 'target-faction-with-flag', faction: 0, flag: "attackable"}, ['o2', 'o4']); 
+        testThis({type:'target-faction-with-flag', faction:0, flag:"attackable"}, ['o2', 'o4']); 
     });
     it('target-faction-without-flag', function () {
-      testThis({type: 'target-faction-without-flag', faction: 0, flag: "attackable"}, ['o1', 'o3']); 
+        testThis({type:'target-faction-without-flag', faction:0, flag:"attackable"}, ['o1','o3']);
     });
     it('source-faction-with-flag', function () {
-      testThis({type: 'source-faction-with-flag', faction: 3, flag: "attackable"}, ['o1']); 
+        testThis({type: 'source-faction-with-flag', faction: 3, flag: "attackable"}, ['o1']); 
     });
     it('source-faction-without-flag', function () {
-      testThis({type: 'source-faction-without-flag', faction: 3, flag: "attackable"}, ['o2', 'o3', 'o4']); 
+        testThis(
+            {type: 'source-faction-without-flag', faction: 3, flag: "attackable"},
+            ['o2', 'o3', 'o4']
+            ); 
     });
     it('role-id', function () { testThis({type: 'role-id', roleID: 1}, ['o1']); });
     it('alive', function () { testThis({type: 'alive'}, ['o1', 'o2', 'o3', 'o4']); });
-    it('sort', function () { testThis({type: 'sort', by: 'health', reverse: true}, ['o4', 'o3', 'o2', 'o1']); });
-    it('count', function () { testThis({type: 'count', count: 3}, ['o1', 'o2', 'o3']); });
-  });
+    it('sort', function () {
+        testThis({type: 'sort', by: 'health', reverse: true}, ['o4', 'o3', 'o2', 'o1']);
+    });
+    it('count', function () {
+        testThis({type: 'count', count: 3}, ['o1', 'o2', 'o3']);
+    });
+    it('anchor', function () {
+        var opt = {type: 'anchor', anchorPos:[17], shape: areaShape.Line, startDistance: 1, length: 3};
+        opt.direction = direction.North;
+        testThis(opt, ['o3']);
+    });
+});
+describe("anchor", function () {
+    function resetPlayground() {
+        blocks = [];
+        for (var i = 0; i < Dungeon_Height; i++) {
+            for (var j = 0; j < Dungeon_Width; j++) {
+                blocks[i*Dungeon_Width+j] = {
+                    name: "x:"+j+", y:"+i,
+                    pos: i*Dungeon_Width+j,
+                    isBlock: true
+                };
+            }
+        }
+    }
+    resetPlayground();
+
+    var testThis = function (filters, names) {
+      fo({}, blocks, filters, env).map(function (e) { return e.name; }).should.eql(names);
+    };
+    it('Line', function () {
+        var opt = {type: 'anchor', anchorPos:[17], shape: areaShape.Line, startDistance: 1, length: 3};
+        testThis( opt, ['x:3, y:3', 'x:4, y:3']);
+        opt.direction = direction.NorthEast;
+        testThis( opt, ['x:4, y:1', 'x:3, y:2']);
+        opt.direction = direction.South;
+        testThis( opt, ['x:2, y:4', 'x:2, y:5']);
+        opt.direction = direction.NorthWest;
+        testThis( opt, ['x:0, y:1', 'x:1, y:2' ]);
+    });
+    it('Cross1', function () {
+        var opt = {type: 'anchor', anchorPos:[17], shape: areaShape.Cross, startDistance: 0, length: 2};
+        testThis( opt, [
+                        'x:2, y:1',
+                        'x:2, y:2',
+'x:0, y:3', 'x:1, y:3', 'x:2, y:3', 'x:3, y:3', 'x:4, y:3',
+                        'x:2, y:4',
+                        'x:2, y:5',
+        ]);
+    });
+    it('Cross', function () {
+        var opt = {type: 'anchor', anchorPos:[17], shape: areaShape.Cross, startDistance: 1, length: 1};
+        testThis( opt, [
+                        'x:2, y:1',
+                        'x:2, y:2',
+'x:0, y:3', 'x:1, y:3',           'x:3, y:3', 'x:4, y:3',
+                        'x:2, y:4',
+                        'x:2, y:5',
+        ]);
+    });
+    it('Cross', function () {
+        var opt = {type: 'anchor', anchorPos:[17], shape: areaShape.Cross, startDistance: 1, length: 0};
+        testThis( opt, [
+                        'x:2, y:2',
+            'x:1, y:3',            'x:3, y:3',
+                        'x:2, y:4',
+        ]);
+    });
+
+    it('Square', function () {
+        var opt = {type: 'anchor', anchorPos:[17], shape: areaShape.Square, startDistance: 0, length: 3};
+        testThis( opt, [
+            'x:0, y:0', 'x:1, y:0', 'x:2, y:0', 'x:3, y:0', 'x:4, y:0',
+            'x:0, y:1', 'x:1, y:1', 'x:2, y:1', 'x:3, y:1', 'x:4, y:1',
+            'x:0, y:2', 'x:1, y:2', 'x:2, y:2', 'x:3, y:2', 'x:4, y:2',
+            'x:0, y:3', 'x:1, y:3', 'x:2, y:3', 'x:3, y:3', 'x:4, y:3',
+            'x:0, y:4', 'x:1, y:4', 'x:2, y:4', 'x:3, y:4', 'x:4, y:4',
+            'x:0, y:5', 'x:1, y:5', 'x:2, y:5', 'x:3, y:5', 'x:4, y:5'
+        ]);
+    });
+    it('Square', function () {
+        var opt = {
+            type: 'anchor', 
+            anchorPos:[17], 
+            shape: areaShape.Square, 
+            startDistance: 0,
+            length: 2,
+            direction : 7
+        };
+        testThis( opt, [
+                        'x:2, y:1',
+            'x:1, y:2', 'x:2, y:2', 'x:3, y:2',
+'x:0, y:3', 'x:1, y:3', 'x:2, y:3', 'x:3, y:3', 'x:4, y:3',
+            'x:1, y:4', 'x:2, y:4', 'x:3, y:4',
+                        'x:2, y:5',
+        ]);
+    });
+ 
+    it('Triangle', function () {
+        var opt = {type: 'anchor',  anchorPos:[10], shape: areaShape.Triangle, startDistance: 0, length: 3};
+        testThis( opt, [
+                                    'x:2, y:0',
+                        'x:1, y:1', 'x:2, y:1',
+            'x:0, y:2', 'x:1, y:2', 'x:2, y:2',
+                        'x:1, y:3', 'x:2, y:3',
+                                    'x:2, y:4'
+        ]);
+    });
+    it('Triangle', function () {
+        var opt = {type: 'anchor',  anchorPos:[19], direction: 7, shape: areaShape.Triangle, startDistance: 0, length: 3};
+        testThis( opt, [
+                                    'x:4, y:1',
+                        'x:3, y:2', 'x:4, y:2',
+            'x:2, y:3', 'x:3, y:3', 'x:4, y:3' 
+        ]);
+    });
+
+
+});
+});
 
   var obj = {
     name: 'Ken',
@@ -170,6 +330,9 @@ describe('', function () {
           {
             while: {type: 'modifyVariable', name: 'v_i', value: {'+': [1, 'v_i']}},
             condition: {'<': ['v_i', 3]}
+      /*
+       * [ { v_i: { '$lt': 3 } } ]
+       */
           },
           {
             if: {type: 'newVariable', name: 'v_test', value: 2},
