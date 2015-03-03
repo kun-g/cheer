@@ -456,7 +456,7 @@ exports.route = {
     id: 1,
     func: (arg, player, handler, rpcID, socket) ->
       player.dungeonData = {}
-      player.startDungeon(+arg.stg, arg.initialDataOnly, arg.tem, arg.pkr, (err, evEnter, extraMsg) ->
+      player.startDungeon(+arg.stg, arg.initialDataOnly, arg.tem, arg.pkr, arg.rank, (err, evEnter, extraMsg) ->
         extraMsg = (extraMsg ? []).concat(player.syncEnergy())
         if typeof evEnter is 'number'
           handler([{REQ: rpcID, RET: evEnter}].concat(extraMsg))
@@ -469,7 +469,7 @@ exports.route = {
         player.saveDB()
       )
     ,
-    args: {'stg':'number', 'initialDataOnly':'boolean', 'pkr':{type:'string',opt:true}},
+    args: {'stg':'number', 'initialDataOnly':'boolean', 'pkr':{type:'string',opt:true}, rank:{type:'string',opt:true}},
     needPid: true
   },
 #  RPC_ChargeDiamond: {
@@ -672,7 +672,7 @@ exports.route = {
   RPC_SweepStage: {
     id: 35,
     func: (arg, player, handler, rpcID, socket) ->
-      { code, prize, ret } = player.sweepStage(+arg.stg, arg.mul)
+      { code, prize, ret } = player.sweepStage(+arg.stg, arg.mul, arg.rank)
 
       res = {REQ: rpcID, RET: code}
       if prize then res.arg = prize

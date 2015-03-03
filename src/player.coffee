@@ -256,7 +256,7 @@ class Player extends DBWrapper
     else
       return {ret: RET_RewardAlreadyReceived}
 
-  sweepStage: (stage, multiple) ->
+  sweepStage: (stage, multiple, rankIdx=0) ->
     stgCfg = queryTable(TABLE_STAGE, stage, @abIndex)
     return { code: RET_DungeonNotExist, ret: [] } unless stgCfg
 
@@ -271,14 +271,15 @@ class Player extends DBWrapper
       killingInfo: [],
       currentLevel: cfg.levelCount,
       config: cfg,
-      isSweep : true
+      isSweep : true,
+      rankIdx : rankIdx,
     }
     count = 1
     count = 5 if multiple
     ret_result = RET_OK
     prize = []
     ret = []
-    energyCost = stgCfg.cost*count
+    energyCost = (stgCfg.cost[rankIdx] ? stgCfg.cost[0])*count
     itemCost = {id: 871, num: count}
 
     if @stage[stage].state != STAGE_STATE_PASSED
@@ -704,16 +705,17 @@ class Player extends DBWrapper
 
    
 
-  startDungeon: (stage, startInfoOnly, selectedTeam, pkr=null, handler) ->
+  startDungeon: (stage, startInfoOnly, selectedTeam, pkr=null,rankIdx =0, handler) ->
     stageConfig = queryTable(TABLE_STAGE, stage, @abIndex)
     dungeonConfig = queryTable(TABLE_DUNGEON, stageConfig.dungeon, @abIndex)
     unless stageConfig? and dungeonConfig?
       @logError('startDungeon', {reason: 'InvalidStageConfig', stage: stage, stageConfig: stageConfig?, dungeonConfig: dungeonConfig?})
       return handler(null, RET_ServerError)
+    cost = stageConfig.cost[rankIdx] ? stageConfig.cost[0]
     async.waterfall([
       (cb) => if @dungeonData.stage? then cb('OK') else cb(),
       (cb) => if @stageIsUnlockable(stage) then cb() else cb(RET_StageIsLocked),
-      (cb) => if @costEnergy(stageConfig.cost) then cb() else cb(RET_NotEnoughEnergy),
+      (cb) => if @costEnergy(cost) then cb() else cb(RET_NotEnoughEnergy),
       (cb) => @requireMercenary((team) => cb(null, team)),
       (mercenary, cb) =>
         teamCount = stageConfig.team ? 3
@@ -743,7 +745,7 @@ class Player extends DBWrapper
             team = team.concat(mercenary.splice(0, teamCount-team.length))
             @mercenary = []
           else
-            @costEnergy(-stageConfig.cost)
+            @costEnergy(-cost)
             return cb(RET_NeedTeammate)
         cb(null, team, level)
       ,
@@ -772,7 +774,8 @@ class Player extends DBWrapper
           blueStar: blueStar,
           abIndex: @abIndex,
           team: team.map(getBasicInfo),
-          reviveLimit: @getReviveLimit(dungeonConfig.reviveLimit)
+          reviveLimit: @getReviveLimit(dungeonConfig.reviveLimit),
+          rankIdx:rankIdx
         }
 
         @dungeonData.randSeed = rand()

@@ -245,8 +245,14 @@ class Dungeon
     @goldRate = cfg.goldRate ? 1
     @xpRate = cfg.xpRate ? 1
     @wxpRate = cfg.wxpRate ? 1
-    @baseRank = 0 unless @baseRank?
-    @baseRank = cfg.rank if cfg.rank
+    rank = cfg.rank
+    if rank?
+      if Array.isArray(rank)
+        @baseRank = rank[@rankIdx] ? rank[rank.length-1]
+      else
+        @baseRank = rank
+    @baseRank ?= 0
+
     if @infiniteLevel?
       @baseRank += calcInfiniteRank(@infiniteLevel, @formularId)
       infiniteLevel = @infiniteLevel
@@ -1427,7 +1433,7 @@ dungeonCSConfig = {
   DropPrize: {
     callback: (env) ->
       dropID = env.variable('dropID')
-      dropID = env.variable('me').dropPrize unless dropID?
+      dropID = env.variable('me').dropPrize?[env.dungeon.rankIdx] unless dropID?
       showPrize = env.variable('showPrize')
       if dropID?
         if showPrize
