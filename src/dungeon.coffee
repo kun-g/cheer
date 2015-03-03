@@ -427,7 +427,7 @@ class Dungeon
         arg = {t: +req.arg.tar, p:[+req.arg.pos0, +req.arg.pos1, +req.arg.pos2]}
       when Request_DungeonValidatePos
         action = DUNGEON_ACTION_GETVALIDATE_POS
-        arg = {id: +req.arg.id}
+        arg = {id: +req.arg.id, p:[+req.arg.pos0, +req.arg.pos1, +req.arg.pos2]}
 
     return @act(action, arg)
 
@@ -498,11 +498,12 @@ class Dungeon
         hero = @heroes[0]
         ret = [] #[{NTF: Event_Fail, arg : {msg:'Main Hero Is Dead'}}]
         if hero.isAlive()
-          cmd = DungeonCommandStream({id: 'ValidatePosList', me: hero, spell: arg.id}, this)
+          cmd = DungeonCommandStream({id: 'MoveTo', positions: arg.p}, this)
+          cmd.next({id: 'ValidatePosList', me: hero, spell: arg.id})
           cmd.process()
       else
         return @onReplayMissMatch()
-    @level.print()
+    #@level.print()
     ret.push({NTF:Event_DungeonAction, arg: cmd?.translate()}) unless not cmd or (replayMode and not showResult)
     return ret
 
