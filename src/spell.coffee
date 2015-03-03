@@ -320,7 +320,7 @@ class Wizard
         when 'card' then return [false, 'NoCard'] unless env.haveCard(limit.id)
         when 'alive' then return [false, 'Dead'] unless @isAlive()
         when 'visible' then return [false, 'visible'] unless @isVisible
-        when 'needTarget' then return [false, 'No target'] unless target?
+        when 'needTarget' then return [false, 'No target'] unless target.length >0
         when 'countDown'
           return [false, 'NotLearned'] unless thisSpell?
           return [false, 'NotReady'] unless thisSpell.cd <= 0
