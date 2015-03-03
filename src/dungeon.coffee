@@ -401,7 +401,7 @@ class Dungeon
         req.arg ?= {}
         req.arg.idx ?= 0
         req.arg.pos ?= -1
-        arg = {i:+req.arg.idx, p:req.arg.pos}
+        arg = {i:+req.arg.idx, p:req.arg.pos, tp:[+req.arg.pos0, +req.arg.pos1, +req.arg.pos2]}
       when REQUEST_CancelDungeon then action = DUNGEON_ACTION_CANCEL_DUNGEON
       when Request_DungeonRevive then action = DUNGEON_ACTION_REVIVE
       when Request_DungeonCard
@@ -409,16 +409,16 @@ class Dungeon
         arg = {s: +req.arg.slt}
       when Request_DungeonTouch
         action = DUNGEON_ACTION_TOUCHBLOCK
-        arg = {b:+req.arg.tar, p:[+req.arg.pos, +req.arg.pos1, +req.arg.pos2]}
+        arg = {b:+req.arg.tar, p:[+req.arg.pos0, +req.arg.pos1, +req.arg.pos2]}
       when Request_DungeonExplore
         action = DUNGEON_ACTION_EXPLOREBLOCK
-        arg = {b:+req.arg.tar, p:[+req.arg.pos, +req.arg.pos1, +req.arg.pos2]}
+        arg = {b:+req.arg.tar, p:[+req.arg.pos0, +req.arg.pos1, +req.arg.pos2]}
       when Request_DungeonActivate
         action = DUNGEON_ACTION_ACTIVATEMECHANISM
         arg = {t:+req.arg.tar}
       when Request_DungeonAttack
         action = DUNGEON_ACTION_ATTACK
-        arg = {t: +req.arg.tar, p:[+req.arg.pos, +req.arg.pos1, +req.arg.pos2]}
+        arg = {t: +req.arg.tar, p:[+req.arg.pos0, +req.arg.pos1, +req.arg.pos2]}
       when Request_DungeonValidatePos
         action = DUNGEON_ACTION_GETVALIDATE_POS
         arg = {id: +req.arg.id}
@@ -460,7 +460,8 @@ class Dungeon
         if hero.isAlive()
           cmd = DungeonCommandStream({id: 'BeginTurn', type: 'Spell', src: hero}, this)
           spellId = arg.i #hero.getActiveSpell()[arg.i]
-          cmd.next({id: 'CastSpell', me: hero, spell: spellId, playerChoice: arg.p})
+          cmd.next({id: 'MoveTo', positions: arg.tp})
+             .next({id: 'CastSpell', me: hero, spell: spellId, playerChoice: arg.p})
              .next({id: 'EndTurn', type: 'Spell', src: hero})
              .next({id: 'ResultCheck'})
           cmd.process()
@@ -495,6 +496,7 @@ class Dungeon
           cmd.process()
       else
         return @onReplayMissMatch()
+    @level.print()
     ret.push({NTF:Event_DungeonAction, arg: cmd?.translate()}) unless not cmd or (replayMode and not showResult)
     return ret
 
@@ -1228,6 +1230,10 @@ dungeonCSConfig = {
       env.notifyTurnEvent(false, env.variable('type'), env.variable('src'), env.variable('tar'), @)
       @routine({id:'UpdateLockStatues'})
   },
+  MoveTo: {
+    callback: (env) ->
+      env.moveHeroes(env.variable('positions')) if env.variable('positions')
+  }
   Attack: {
     callback: (env) ->
       src = env.variable('src')
