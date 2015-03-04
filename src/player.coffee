@@ -356,7 +356,9 @@ class Player extends DBWrapper
     unless @invitation
       helperLib.redeemCode.newInvitation(@name, (err, res) =>
         if not err?
-          @invitation = res.code
+          @attrSave('invitation', res)
+        else
+          dprint('GenerateInvitation Error:', err)
       )
 
     @inventory.validate()
