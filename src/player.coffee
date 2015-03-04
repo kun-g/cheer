@@ -354,10 +354,11 @@ class Player extends DBWrapper
 
     if @isNewPlayer then @isNewPlayer = false
     unless @invitation
-      _thiz = @
       helperLib.redeemCode.newInvitation(@name, (err, res) =>
         if not err?
-          _thiz.attrSave('invitation', res)
+          @invitation = res
+          @attrSave('invitation')
+          @saveDB()
         else
           dprint('GenerateInvitation Error:', err)
       )

@@ -803,7 +803,8 @@ exports.route = {
                 when CodeType_Invitation
                   if player.inviter or player.invitee.indexOf(config.inviter)
                     break
-                  player.attrSave('inviter', config.inviter)
+                  player.inviter = config.inviter
+                  player.attrSave('inviter')
                   dbWrapper.pushNotice(config.inviter, "New Invitee", player.name)
 
                   dbLib.deliverMessage(
