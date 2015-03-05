@@ -18,6 +18,8 @@ ENERGY_MAX = 100;
 ENERGY_RATE = 360000; // 1min
 TEAMMATE_REWARD_RATIO = 0.2;
 PK_COOLDOWN = 600;
+
+INTERVAL_SECEND = 6000;
 //////////////////// Log
 serverType = 'None';
 print = console.log;
@@ -181,6 +183,7 @@ initStageConfig = function (cfg) {
         chapter.stage.forEach(function (s, index) {
           if (!ret[s.stageId]) {ret[s.stageId] = {abtest : []};}
           s.chapter = chapter.chapterId;
+          s.eliteFixCfg = chapter.eliteFixCfg;
           ret[s.stageId].abtest.push(s);
         });
       });
@@ -188,6 +191,7 @@ initStageConfig = function (cfg) {
       c.stage.forEach(function (s, index) {
         ret[s.stageId] = s; 
         ret[s.stageId].chapter = c.chapterId;
+        ret[s.stageId].eliteFixCfg = c.eliteFixCfg;
       });
     }
   });
