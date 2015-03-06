@@ -798,8 +798,8 @@ exports.route = {
               return cb("Redeemed Code") if config.redeemed is true
               switch Number(config.type)
                 when CodeType_Prize
-                  resMessage = player.claimPrize(result.prize)
-                  ret.prize = result.prize
+                  resMessage = player.claimPrize(config.prize)
+                  ret.prize = config.prize
                 when CodeType_Invitation
                   if player.inviter or player.invitee.indexOf(config.inviter)
                     break
@@ -823,7 +823,7 @@ exports.route = {
               handler(ret)
             else
               ret.RET = RET_OK
-              ret.ntf = resMessage
+              ret.RES = resMessage
               handler(ret)
         )
       else

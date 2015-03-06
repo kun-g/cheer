@@ -417,10 +417,10 @@ class Player extends DBWrapper
             src: MESSAGE_REWARD_TYPE_SYSTEM,
             prize: [{
               type:PRIZETYPE_DIAMOND,
-              count: Math.floor(cfg.price * 0.1)
+              count: Math.floor(cfg.gem * 0.1)
             }],
-            tit: "招募队友充值奖励",
-            txt: "因为你招募的队友"+@name+"充值，你获得了以下奖励:"
+            tit: Localized_Text.InvitationAwardTitle[0],
+            txt: Localized_Text.InvitationAwardContent1[0]+@name+Localized_Text.InvitationAwardContent1[1]
           })
 
       for name in @invitee
@@ -430,10 +430,10 @@ class Player extends DBWrapper
             src: MESSAGE_REWARD_TYPE_SYSTEM,
             prize: [{
               type:PRIZETYPE_DIAMOND,
-              count: Math.floor(cfg.price * 0.1)
+              count: Math.floor(cfg.gem * 0.1)
             }],
-            tit: "招募队友充值奖励",
-            txt: "因为你的招募者"+@name+"充值，你获得了以下奖励:"
+            tit: Localized_Text.InvitationAwardTitle[0],
+            txt: Localized_Text.InvitationAwardContent2[0]+@name+Localized_Text.InvitationAwardContent2[1]
           })
 
       @onCampaign('RMB', {idx:rec.productID, rmb:cfg.price, gem:cfg.gem})
