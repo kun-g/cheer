@@ -1623,6 +1623,8 @@ class Player extends DBWrapper
             me.handlePayment(msg, cb)
           else if msg.type is MESSAGE_TYPE_InvitationAccept
             me.invitee.push(msg.name)
+            dbLib.removeMessage(me.name, msg.messageID)
+            cb(null, [])
           else
             cb(err, msg)
         , (err, msg) ->
