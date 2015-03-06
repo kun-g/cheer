@@ -24,10 +24,12 @@ function RPC (router, send) {
 RPC.prototype.request = function (method, params, callback) {
     var req = {
         method: method,
-        params: params,
-        id: uuid()
+        params: params
     };
-    if (req.id) this.callbacks[req.id] = callback;
+    if (callback) {
+        this.callbacks[req.id] = callback;
+        req.id: uuid();
+    }
     this.send(req);
 };
 
@@ -90,10 +92,9 @@ function RabbitMQ_RPC_Client (serverAddress, user, pass, target_queue, callback)
 
             ok = ok.then(function(queue) {
               rpcClient.send = function (req) {
-                  var corrId = uuid();
-                  ch.sendToQueue(target_queue, new Buffer(JSON.stringify(req)), {
-                    correlationId: corrId, replyTo: queue
-                  });
+                  var config = {replyTo: queue};
+                  if (req.id) config.id = req.id;
+                  ch.sendToQueue(target_queue, new Buffer(JSON.stringify(req)), config);
               };
               callback(rpcClient);
             });
@@ -128,6 +129,55 @@ function RabbitMQ_RPC_Server (serverAddress, user, pass, queue, router, callback
     }).then(null, console.warn);
 }
 
+function TCP_RPC_Client (send, callback) {
+    var rpcClient = new RPC(null);
+    var req = { credentials: amqp.credentials.plain(user, pass) };
+
+    function handleResponse(msg) {
+      var response = JSON.parse(msg);
+      rpcClient.handleResponse(response);
+    }
+
+    rpcClient.send = send;
+    callback(rpcClient);
+    return rpcClient;
+}
+
+function TCP_RPC_Server (port, router, onComplete) {
+    var rpcServer = new RPC(router);
+    var libServer = require('./server');
+    var server = new libServer.Server();
+    var serverConfig = {
+        type: "Worker",
+        port: port,
+        handler: router
+    };
+    var appNet = gServer.startTcpServer(serverConfig);
+
+    //TODO:
+    //amqp.connect(serverAddress, req).then(function(conn) {
+    //  return conn.createChannel().then(function(ch) {
+    //    rpcServer.close = function () { conn.close(); };
+    //    var ok = ch.assertQueue(queue, {durable: false});
+    //    var ok = ok.then(function() {
+    //        ch.prefetch(1);
+    //        return ch.consume(queue, reply);
+    //    });
+    //    return ok.then(function() {
+    //        if (callback) callback();
+    //    });
+
+    //    function reply(msg) {
+    //      rpcServer.handleRequest(JSON.parse(msg.content.toString()), function(res){
+    //          ch.sendToQueue(msg.properties.replyTo,
+    //              new Buffer(JSON.stringify(res)),
+    //              {correlationId: msg.properties.correlationId});
+    //          ch.ack(msg);
+    //      });
+    //    }
+    //  });
+    //}).then(null, console.warn);
+}
 exports.RPC_Error = RPC_Error;
 exports.RabbitMQ_RPC_Server = RabbitMQ_RPC_Server;
 exports.RabbitMQ_RPC_Client = RabbitMQ_RPC_Client;
