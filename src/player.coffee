@@ -358,7 +358,11 @@ class Player extends DBWrapper
     unless @invitation
       helperLib.redeemCode.newInvitation(@name, (err, res) =>
         if not err?
-          @invitation = res.code
+          @invitation = res
+          @attrSave('invitation')
+          @saveDB()
+        else
+          dprint('GenerateInvitation Error:', err)
       )
 
     @inventory.validate()
@@ -415,10 +419,10 @@ class Player extends DBWrapper
             src: MESSAGE_REWARD_TYPE_SYSTEM,
             prize: [{
               type:PRIZETYPE_DIAMOND,
-              count: Math.floor(cfg.price * 0.1)
+              count: Math.floor(cfg.gem * 0.1)
             }],
-            tit: "招募队友充值奖励",
-            txt: "因为你招募的队友"+@name+"充值，你获得了以下奖励:"
+            tit: Localized_Text.InvitationAwardTitle[0],
+            txt: Localized_Text.InvitationAwardContent1[0]+@name+Localized_Text.InvitationAwardContent1[1]
           })
 
       for name in @invitee
@@ -428,10 +432,10 @@ class Player extends DBWrapper
             src: MESSAGE_REWARD_TYPE_SYSTEM,
             prize: [{
               type:PRIZETYPE_DIAMOND,
-              count: Math.floor(cfg.price * 0.1)
+              count: Math.floor(cfg.gem * 0.1)
             }],
-            tit: "招募队友充值奖励",
-            txt: "因为你的招募者"+@name+"充值，你获得了以下奖励:"
+            tit: Localized_Text.InvitationAwardTitle[0],
+            txt: Localized_Text.InvitationAwardContent2[0]+@name+Localized_Text.InvitationAwardContent2[1]
           })
 
       @onCampaign('RMB', {idx:rec.productID, rmb:cfg.price, gem:cfg.gem})
@@ -1001,14 +1005,14 @@ class Player extends DBWrapper
         switch item.subcategory
           when ItemUse_ItemPack
             prize = @claimPrize(item.prize)
-            return { ret: RET_InventoryFull } unless prize
+            return { ret: RET_InventoryFull } unless prize.length > 0
             ret = @removeItem(null, 1, slot)
             return { ret: RET_OK, ntf: ret.concat(prize) }
           when ItemUse_TreasureChest
             return { ret: RET_NoKey } if item.dropKey? and not @haveItem(item.dropKey)
             prz = @generateReward(queryTable(TABLE_DROP), [item.dropId])
             prize = @claimPrize(prz)
-            return { ret: RET_InventoryFull } unless prize
+            return { ret: RET_InventoryFull } unless prize.length > 0
             @log('openTreasureChest', {type: 'TreasureChest', id: item.id, prize: prize, drop: e.drop})
             ret = prize.concat(@removeItem(null, 1, slot))
             ret = ret.concat(this.removeItemById(item.dropKey, 1, true)) if item.dropKey?
@@ -1556,7 +1560,7 @@ class Player extends DBWrapper
           when MESSAGE_TYPE_SystemReward
             ret = @claimPrize(message.prize)
             @log('operateMessage', { type : 'reward', src : message.src, prize : message.prize, ret: ret })
-            if ret
+            if ret? and ret.length > 0
               cb(null, ret)
               dbLib.removeMessage(@name, message.messageID)
             else
