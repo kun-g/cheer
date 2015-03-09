@@ -31,7 +31,7 @@ getCfgByRankIdx = (stageCfg, dungeonCfg,rankIdx, type) ->
           ret = rank[rankIdx] ? rank[rank.length-1] * fix
         else
           ret = rank * fix
-    return ret
+    return Math.ceil(ret)
 
 exports.getCfgByRankIdx = getCfgByRankIdx
 mapDiff = (source, excludeLst) ->
