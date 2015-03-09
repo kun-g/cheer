@@ -13,6 +13,7 @@ http = require('http');
 async = require('async');
 var helperLib = require('./helper');
 var domain = require('domain').create();
+var verify = require('./timeUtils').verify;
 domain.on('error', function (err) {
     console.log("UnhandledError", err, err.message, err.stack);
 });
@@ -497,18 +498,26 @@ function paymentHandler (request, response) {
                     var cfg = config[key];
                     var now = helperLib.currentTime();
                     var moment = require('moment');
-                    if (helperLib.matchDate(now, now, cfg.time) &&
-                        (!intervalCfg[key] || !moment().isSame(intervalCfg[key], 'day'))
-                       ) {
+
+                    var ret1 = verify(now, cfg.time, {}) 
+
+                    // little dirty. intervalCfg was timestamp before ,u
+					// set true means not send when push this code to server
+                    if(typeof intervalCfg[key] != 'boolean'){
+                        intervalCfg[key] = true; 
+                    }
+                    var ret2 =  intervalCfg[key] != true;
+                    var ret = ret1 && ret2;
+                    intervalCfg[key] = ret1;
+                    if (ret1) {
                            cfg.func({helper: helperLib, db: require('./db'), sObj: gServerObject});
-                           intervalCfg[key] = helperLib.currentTime();
                            flag = true;
                        }
                 }
                 if (flag) {
                     dbLib.setServerConfig('Interval', JSON.stringify(intervalCfg));
                 }
-            }, 6000);
+            }, INTERVAL_SECEND);
 
             gHuntingInfo = {};
             dbLib.getServerConfig('huntingInfo', function (err, arg) {
