@@ -33,6 +33,37 @@ g_DEBUG_FLAG = false
 //  tmp = new memwatch.HeapDiff();
 //});
 
+
+function post(url,data,fn){
+	data=data||{};
+	var content=require('querystring').stringify(data);
+	var parse_u=require('url').parse(url,true);
+	var isHttp=parse_u.protocol=='http:';
+	var options={
+		host:parse_u.hostname,
+		port:parse_u.port||(isHttp?80:443),
+		path:parse_u.path,
+		method:'POST',
+		headers:{
+			'Content-Type':'application/x-www-form-urlencoded',
+			'Content-Length':content.length
+		}
+	};
+	var req = require(isHttp?'http':'https').request(options,function(res){
+		var _data='';
+		res.on('data', function(chunk){
+			_data += chunk;
+		});
+		res.on('end', function(){
+			fn!=undefined && fn(_data);
+		});
+	});
+	req.write(content);
+	req.end();
+}
+
+
+
 var libServer = require("./server");
 gServer = new libServer.Server();
 exports.server = gServer;
@@ -270,6 +301,34 @@ function paymentHandler (request, response) {
                 data = null;
             });
         } else if (request.url.substr(0, 5) === '/jdp?') {
+        } else if (request.url.substr(0, 6) === '/ASDK?') {
+			console.log('===============nice===');
+			var sign = sn + plateform + "41b4aa658a5004958053" +
+				"e95a4527862960bff3f49d367780d7bf" +"org.kddxc.koudaidixiachengapk.0.99";
+			var sn = '12345';
+			var plateform = 'asus';
+
+                var b = new Buffer(1024);
+                var len = b.write(sign);
+                sign = md5Hash(b.toString('binary', 0, len));
+
+			post('https://pay.allsdk.com.tw/verifyOrder.do',
+					{sn:sn ,plateform:plateform,token:sign},
+					function(ret) {
+						ret = JSON.parse(ret);
+						if (ret.code == '0000'){
+							deliverReceipt(receipt, plateform, function (err) {
+                        if (err === null) {
+                            logInfo({action: 'AcceptPayment', receipt: receipt, info: out});
+                        } else {
+                            logError({action: 'AcceptPayment', error:err, data: data, receipt:receipt});
+                        }
+                    });
+                } else {
+							logError({action: 'AcceptPayment', error: 'Fail', data: ret});
+                }
+
+            });
         }
     }
 
@@ -509,7 +568,7 @@ function paymentHandler (request, response) {
                     var ret2 =  intervalCfg[key] != true;
                     var ret = ret1 && ret2;
                     intervalCfg[key] = ret1;
-                    if (ret1) {
+                    if (ret) {
                            cfg.func({helper: helperLib, db: require('./db'), sObj: gServerObject});
                            flag = true;
                        }
