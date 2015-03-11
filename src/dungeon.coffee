@@ -75,6 +75,7 @@ changeSeed = (seed) ->
 
   Object.defineProperty(this, 'random', {enumerable:false})
 
+exports.changeSeed = changeSeed
 calcInfiniteX = (infiniteLevel) ->
   if infiniteLevel % 10 is 0
     infiniteLevel/10
@@ -242,6 +243,7 @@ class Dungeon
     ret.blueStar = @blueStar if @blueStar?
     ret.baseRank = @baseRank if @baseRank
     ret.PVP_Pool = @PVP_Pool if @PVP_Pool
+    ret.rankIdx = @rankIdx if @rankIdx
     return ret
 
   getStageConfig: () -> return queryTable(TABLE_STAGE, @stage, @abIndex)
