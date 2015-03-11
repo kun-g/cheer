@@ -48,17 +48,25 @@ class Counter
     if @config.count_down and @isCounted(time) then delta = 0
 
     uplimit = @config.uplimit
+    downlimit = @config.circle_init_value
+    if delta < 0 and uplimit? and typeof downlimit is 'number' and @counter + delta < downlimit
+      @counter = uplimit - 1
+      delta = 1
     if uplimit && @counter + delta > uplimit
-      delta = uplimit - @counter
+      if typeof @config.circle_init_value is 'number'
+        @counter =  @config.circle_init_value - 1
+        delta = 1
+      else
+        delta = uplimit - @counter
 
     @counter += delta
     if delta then @time = time.format()
     return @
 
-  reset: () -> @counter = config.initial_value
+  reset: () -> @counter = @config.initial_value
 
   fulfill: () ->
     if @config.uplimit
-      @counter = config.uplimit
+      @counter = @config.uplimit
 
 exports.Counter = Counter

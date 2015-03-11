@@ -17,6 +17,23 @@ criticalFormula = { 'a' : 7, 'b' : 140, 'c' : 0.1, upLimit : 0.4 }
 
 flagShowRand = false
 
+getCfgByRankIdx = (stageCfg, dungeonCfg,rankIdx, type) ->
+    fix = if rankIdx isnt 0 then stageCfg.eliteFixCfg[rankIdx-1][type] else 1
+    switch type
+      when 'energyCost', 'sweepCost'
+        ret = stageCfg.cost[rankIdx] ? stageCfg.cost[0]*fix
+      when 'sweepPower'
+        return -1 unless stageCfg.sweepPower?
+        ret = stageCfg.sweepPower * fix
+      when 'rank'
+        rank = dungeonCfg.rank ? 0
+        if Array.isArray(rank)
+          ret = rank[rankIdx] ? rank[rank.length-1] * fix
+        else
+          ret = rank * fix
+    return Math.ceil(ret)
+
+exports.getCfgByRankIdx = getCfgByRankIdx
 mapDiff = (source, excludeLst) ->
   result ={}
   for k, v of source when k not in excludeLst and v?
@@ -58,6 +75,7 @@ changeSeed = (seed) ->
 
   Object.defineProperty(this, 'random', {enumerable:false})
 
+exports.changeSeed = changeSeed
 calcInfiniteX = (infiniteLevel) ->
   if infiniteLevel % 10 is 0
     infiniteLevel/10
@@ -225,6 +243,7 @@ class Dungeon
     ret.blueStar = @blueStar if @blueStar?
     ret.baseRank = @baseRank if @baseRank
     ret.PVP_Pool = @PVP_Pool if @PVP_Pool
+    ret.rankIdx = @rankIdx if @rankIdx
     return ret
 
   getStageConfig: () -> return queryTable(TABLE_STAGE, @stage, @abIndex)
@@ -245,13 +264,8 @@ class Dungeon
     @goldRate = cfg.goldRate ? 1
     @xpRate = cfg.xpRate ? 1
     @wxpRate = cfg.wxpRate ? 1
-    rank = cfg.rank
-    if rank?
-      if Array.isArray(rank)
-        @baseRank = rank[@rankIdx] ? rank[rank.length-1]
-      else
-        @baseRank = rank
-    @baseRank ?= 0
+
+    @baseRank = getCfgByRankIdx(@getStageConfig(), cfg, @rankIdx,'rank')
 
     if @infiniteLevel?
       @baseRank += calcInfiniteRank(@infiniteLevel, @formularId)

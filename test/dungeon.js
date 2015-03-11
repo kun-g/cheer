@@ -2,6 +2,73 @@ var dungeonLib = require('../js/dungeon');
 var shall = require('should');
 gServerID = 1;
 initServer();
+var getCfgByRankIdx = dungeonLib.getCfgByRankIdx;
+describe('getCfgByRankIdx', function() {
+        var stageCfg = [
+        {
+            "eliteFixCfg":[{rank:1.3,energyCost: 1.3, sweepCost:2,sweepPower:1.5}],
+            cost: [2],
+            sweepPower: 3,
+            rank:1,
+            exp:[
+                {rank:1,energyCost: 2, sweepCost:2,sweepPower:3},
+                {rank:1.3,energyCost: 2.6, sweepCost:4,sweepPower:4.5},
+            ]
+        },
+        {
+            "eliteFixCfg":[{rank:1.3,energyCost: 1.3, sweepCost:2,sweepPower:1.5}],
+            cost: [2],
+            rank:1,
+            exp:[
+                {rank:1,energyCost: 2, sweepCost:2,sweepPower:-1},
+                {rank:1.3,energyCost: 2.6, sweepCost:4,sweepPower:-1},
+            ]
+         },
+        {
+            "eliteFixCfg":[{rank:1.3,energyCost: 1.3, sweepCost:2,sweepPower:1.5}],
+            cost: [2],
+            sweepPower: 3,
+            rank:[1],
+            exp:[
+                {rank:1,energyCost: 2, sweepCost:2,sweepPower:3},
+                {rank:1.3,energyCost: 2.6, sweepCost:4,sweepPower:4.5},
+            ]
+         }, 
+        {
+            "eliteFixCfg":[{rank:1.3,energyCost: 1.3, sweepCost:2,sweepPower:1.5}],
+            cost: [2],
+            sweepPower: 3,
+            rank:[1, 4],
+            exp:[
+                {rank:1,energyCost: 2, sweepCost:2,sweepPower:3},
+                {rank:4,energyCost: 2.6, sweepCost:4,sweepPower:4.5},
+            ]
+
+        },
+        {
+            "eliteFixCfg":[{rank:1.3,energyCost: 1.3, sweepCost:2,sweepPower:1.5}],
+            cost: [2, 3],
+            sweepPower: 3,
+            rank:[1, 4],
+            exp:[
+                {rank:1,energyCost: 2, sweepCost:2,sweepPower:3},
+                {rank:4,energyCost: 3, sweepCost:3,sweepPower:4.5},
+            ]
+
+        },
+        ];
+        it('test', function(done) {
+            stageCfg.forEach(function(cfg,idx) {
+                for (var i = 0; i <2; i++){
+                    ['rank', 'energyCost', 'sweepPower', 'sweepCost'].forEach(function(name){
+                        var ret = getCfgByRankIdx(cfg,cfg, i, name);
+                        ret.should.equal(cfg.exp[i][name], 'test '+name + '@['+ idx+','+i+']');
+                    });
+                }
+            });
+            done();
+        });
+    });
 
 describe('Dungeon', function () {
   before(function (done) {

@@ -22,6 +22,18 @@ describe('Counter', function () {
         uplimit: 3,
         duration: { time: 'time@ThisCounter', units: 'day' }
       },
+      circleCounter: {
+        initial_value: 0,
+        uplimit: 3,
+        circle_init_value: 1,
+        duration: { time: 'time@ThisCounter', units: 'day' }
+      },
+      circleCounterWithCountDown: {
+        initial_value: 0,
+        uplimit: 3,
+        circle_init_value: 1,
+        count_down: { time: 'time@ThisCounter', units: 'day' },
+      },
     };
 
     it('incr && decr', function () {
@@ -66,6 +78,35 @@ describe('Counter', function () {
         counter.incr(0, "2013-01-13").counter.should.equal(0);
         counter.incr(1, "2013-01-13").counter.should.equal(1);
     });
+    it('circle add', function () {
+        var counter = new Counter(testConfig.circleCounter);
+        counter.incr(1, "2012-12-12").counter.should.equal(1);
+        counter.incr(1, "2012-12-12").counter.should.equal(2);
+        counter.incr(1, "2012-12-12").counter.should.equal(3);
+        counter.incr(1, "2012-12-12").counter.should.equal(1);
+        counter.incr(3, "2012-12-12").counter.should.equal(1);
+    });
+    it('circle decr', function () {
+        var counter = new Counter(testConfig.circleCounter);
+        counter.decr(1, "2012-12-12").counter.should.equal(3);
+        counter.decr(1, "2012-12-12").counter.should.equal(2);
+        counter.decr(1, "2012-12-12").counter.should.equal(1);
+        counter.decr(1, "2012-12-12").counter.should.equal(3);
+        counter.decr(2, "2012-12-12").counter.should.equal(1);
+        counter.incr(1, "2012-12-12").counter.should.equal(2);
+    });
+    it('circle add with countDown', function () {
+        var counter = new Counter(testConfig.circleCounterWithCountDown);
+        counter.incr(1, "2012-12-12").counter.should.equal(1);
+        counter.incr(1, "2012-12-12").counter.should.equal(1);
+        counter.incr(1, "2012-12-13").counter.should.equal(2);
+        counter.incr(1, "2012-12-14").counter.should.equal(3);
+        counter.incr(1, "2012-12-14").counter.should.equal(3);
+        counter.incr(1, "2012-12-15").counter.should.equal(1);
+        counter.incr(2, "2012-12-15").counter.should.equal(1);
+        counter.incr(3, "2012-12-16").counter.should.equal(1);
+    });
+
 });
 
 describe('Campaign', function () {

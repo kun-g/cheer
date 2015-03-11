@@ -7,7 +7,7 @@ moment = require('moment')
 {createUnit, Hero} = require './unit'
 libItem = require './item'
 {CommandStream, Environment, DungeonEnvironment, DungeonCommandStream} = require('./commandStream')
-{Dungeon} = require './dungeon'
+{Dungeon, getCfgByRankIdx} = require './dungeon'
 {Bag, CardStack} = require('./container')
 {diffDate, currentTime, genUtil} = require ('./helper')
 helperLib = require ('./helper')
@@ -279,7 +279,9 @@ class Player extends DBWrapper
     ret_result = RET_OK
     prize = []
     ret = []
-    energyCost = (stgCfg.cost[rankIdx] ? stgCfg.cost[0])*count
+
+    cost = getCfgByRankIdx(stgCfg, null, rankIdx, "sweepCost")
+    energyCost = cost * count
     itemCost = {id: 871, num: count}
 
     if @stage[stage].state != STAGE_STATE_PASSED
@@ -288,7 +290,7 @@ class Player extends DBWrapper
       ret_result = RET_VipLevelIsLow
     else if @energy < energyCost
       ret_result = RET_NotEnoughEnergy
-    else if (not stgCfg.sweepPower?) and stgCfg.sweepPower > @createHero().calculatePower()
+    else if getCfgByRankIdx(stgCfg, null, rankIdx, "sweepPower") > @createHero().calculatePower()
       ret_result = RET_SweepPowerNotEnough
     else
       itemCostRet = @claimCost({id:itemCost.id}, itemCost.num)
@@ -645,14 +647,14 @@ class Player extends DBWrapper
     @counters[propertyName] = arg.value? 0
     @notify(arg.notify.name,arg.notify.arg) if arg.notify?
 
-  stageIsUnlockable: (stage) ->
+  stageIsUnlockable: (stage, rankIdx) ->
     return true if g_DEBUG_FLAG
     return false if getPowerLimit(stage) > @createHero().calculatePower()
     stageConfig = queryTable(TABLE_STAGE, stage, @abIndex)
     if stageConfig.condition then return stageConfig.condition(this, genUtil())
     if stageConfig.event
       return @[stageConfig.event]? and @[stageConfig.event].status is 'Ready'
-    return @stage[stage] and @stage[stage].state != STAGE_STATE_INACTIVE
+    return @stage[stage] and (@stage[stage].state != STAGE_STATE_INACTIVE or (@stage[stage] is STAGE_STATE_PASSED and rankIdx > 0))
 
   changeStage: (stage, state) ->
     stg = queryTable(TABLE_STAGE, stage)
@@ -715,10 +717,10 @@ class Player extends DBWrapper
     unless stageConfig? and dungeonConfig?
       @logError('startDungeon', {reason: 'InvalidStageConfig', stage: stage, stageConfig: stageConfig?, dungeonConfig: dungeonConfig?})
       return handler(null, RET_ServerError)
-    cost = stageConfig.cost[rankIdx] ? stageConfig.cost[0]
+    cost = getCfgByRankIdx(stageConfig, dungeonConfig, rankIdx, "energyCost")
     async.waterfall([
       (cb) => if @dungeonData.stage? then cb('OK') else cb(),
-      (cb) => if @stageIsUnlockable(stage) then cb() else cb(RET_StageIsLocked),
+      (cb) => if @stageIsUnlockable(stage, rankIdx) then cb() else cb(RET_StageIsLocked),
       (cb) => if @costEnergy(cost) then cb() else cb(RET_NotEnoughEnergy),
       (cb) => @requireMercenary((team) => cb(null, team)),
       (mercenary, cb) =>

@@ -38,7 +38,8 @@ doVerify = (time, config) ->
     duration = config.duration
     if duration
       localDuration = moment.duration(time - range)
-      result = result and localDuration < moment.duration(duration)
+      #console.log(' ===time', time, '\nrange',range, '\nlocalDuration', localDuration, '\ndu', moment.duration(duration));
+      result = result and localDuration >= 0 and localDuration < moment.duration(duration)
 
   from = config.from
   to = config.to
