@@ -802,6 +802,7 @@ exports.route = {
               return cb("Redeemed Code") if config.redeemed is true
               switch Number(config.type)
                 when CodeType_Prize
+                  config.prize = JSON.parse(config.prize)
                   resMessage = player.claimPrize(config.prize)
                   ret.prize = config.prize
                 when CodeType_Invitation
