@@ -659,6 +659,31 @@ buyReviveCost = function(times,freeTimes,base){
   return base * (Math.pow(2, times - freeTimes))
 }
 
+getLevelUpConfig = function(levelId, curLevel, exp){
+  var data, _ref1;
+  var result = [];
+  var lvConfig = queryTable(TABLE_LEVEL, levelId);
+  var cfg = lvConfig.levelData;
+  while (((_ref1 = cfg[curLevel]) != null ? _ref1.xp : void 0) <= exp){
+    data = cfg[curLevel];
+    for (var k in data){
+      if (k == 'xp'){
+        continue;
+      }
+      if (result[k] == null){
+        result[k] = [];
+      }
+      if (Array.isArray(data[k])){
+        result[k] = result[k].concat(data[k]);
+      }
+      else{
+        result[k].push(data[k]);
+      }
+    }
+    curLevel++;
+  }
+  return result;
+}
 
 //
 /////////////////////////// For client

@@ -80,6 +80,7 @@ class Player extends DBWrapper
       heroIndex: -1,
       #TODO: hero is duplicated
       hero: {},
+      playerXp: 0,
 
       invitee: [],
       stage: [],
@@ -638,6 +639,7 @@ class Player extends DBWrapper
     if point
       if @energy < point then return false
       @energy -= point
+      @playerXp += point
 
     return true
 
