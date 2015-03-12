@@ -18,7 +18,9 @@ criticalFormula = { 'a' : 7, 'b' : 140, 'c' : 0.1, upLimit : 0.4 }
 flagShowRand = false
 
 getCfgByRankIdx = (stageCfg, dungeonCfg,rankIdx, type) ->
-    fix = if rankIdx isnt 0 then stageCfg.eliteFixCfg[rankIdx-1][type] else 1
+    fix = if rankIdx isnt 0 then stageCfg.eliteFixCfg?[rankIdx-1]?[type] else 1
+    fix ?= 1
+
     switch type
       when 'energyCost', 'sweepCost'
         ret = stageCfg.cost[rankIdx] ? stageCfg.cost[0]*fix
