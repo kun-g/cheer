@@ -13,6 +13,7 @@ http = require('http');
 async = require('async');
 var helperLib = require('./helper');
 var domain = require('domain').create();
+var verify = require('./timeUtils').verify;
 domain.on('error', function (err) {
     console.log("UnhandledError", err, err.message, err.stack);
 });
@@ -31,6 +32,37 @@ g_DEBUG_FLAG = false
 //  console.log( playerCounter );
 //  tmp = new memwatch.HeapDiff();
 //});
+
+
+function post(url,data,fn){
+	data=data||{};
+	var content=require('querystring').stringify(data);
+	var parse_u=require('url').parse(url,true);
+	var isHttp=parse_u.protocol=='http:';
+	var options={
+		host:parse_u.hostname,
+		port:parse_u.port||(isHttp?80:443),
+		path:parse_u.path,
+		method:'POST',
+		headers:{
+			'Content-Type':'application/x-www-form-urlencoded',
+			'Content-Length':content.length
+		}
+	};
+	var req = require(isHttp?'http':'https').request(options,function(res){
+		var _data='';
+		res.on('data', function(chunk){
+			_data += chunk;
+		});
+		res.on('end', function(){
+			fn!=undefined && fn(_data);
+		});
+	});
+	req.write(content);
+	req.end();
+}
+
+
 
 var libServer = require("./server");
 gServer = new libServer.Server();
@@ -269,6 +301,34 @@ function paymentHandler (request, response) {
                 data = null;
             });
         } else if (request.url.substr(0, 5) === '/jdp?') {
+        } else if (request.url.substr(0, 6) === '/ASDK?') {
+			console.log('===============nice===');
+			var sign = sn + plateform + "41b4aa658a5004958053" +
+				"e95a4527862960bff3f49d367780d7bf" +"org.kddxc.koudaidixiachengapk.0.99";
+			var sn = '12345';
+			var plateform = 'asus';
+
+                var b = new Buffer(1024);
+                var len = b.write(sign);
+                sign = md5Hash(b.toString('binary', 0, len));
+
+			post('https://pay.allsdk.com.tw/verifyOrder.do',
+					{sn:sn ,plateform:plateform,token:sign},
+					function(ret) {
+						ret = JSON.parse(ret);
+						if (ret.code == '0000'){
+							deliverReceipt(receipt, plateform, function (err) {
+                        if (err === null) {
+                            logInfo({action: 'AcceptPayment', receipt: receipt, info: out});
+                        } else {
+                            logError({action: 'AcceptPayment', error:err, data: data, receipt:receipt});
+                        }
+                    });
+                } else {
+							logError({action: 'AcceptPayment', error: 'Fail', data: ret});
+                }
+
+            });
         }
     }
 
@@ -497,18 +557,26 @@ function paymentHandler (request, response) {
                     var cfg = config[key];
                     var now = helperLib.currentTime();
                     var moment = require('moment');
-                    if (helperLib.matchDate(now, now, cfg.time) &&
-                        (!intervalCfg[key] || !moment().isSame(intervalCfg[key], 'day'))
-                       ) {
+
+                    var ret1 = verify(now, cfg.time, {}) 
+
+                    // little dirty. intervalCfg was timestamp before ,u
+					// set true means not send when push this code to server
+                    if(typeof intervalCfg[key] != 'boolean'){
+                        intervalCfg[key] = true; 
+                    }
+                    var ret2 =  intervalCfg[key] != true;
+                    var ret = ret1 && ret2;
+                    intervalCfg[key] = ret1;
+                    if (ret) {
                            cfg.func({helper: helperLib, db: require('./db'), sObj: gServerObject});
-                           intervalCfg[key] = helperLib.currentTime();
                            flag = true;
                        }
                 }
                 if (flag) {
                     dbLib.setServerConfig('Interval', JSON.stringify(intervalCfg));
                 }
-            }, 6000);
+            }, INTERVAL_SECEND);
 
             gHuntingInfo = {};
             dbLib.getServerConfig('huntingInfo', function (err, arg) {

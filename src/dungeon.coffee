@@ -18,7 +18,9 @@ criticalFormula = { 'a' : 7, 'b' : 140, 'c' : 0.1, upLimit : 0.4 }
 flagShowRand = false
 
 getCfgByRankIdx = (stageCfg, dungeonCfg,rankIdx, type) ->
-    fix = if rankIdx isnt 0 then stageCfg.eliteFixCfg[rankIdx-1][type] else 1
+    fix = if rankIdx isnt 0 then stageCfg.eliteFixCfg?[rankIdx-1]?[type] else 1
+    fix ?= 1
+
     switch type
       when 'energyCost', 'sweepCost'
         ret = stageCfg.cost[rankIdx] ? stageCfg.cost[0]*fix
@@ -31,7 +33,7 @@ getCfgByRankIdx = (stageCfg, dungeonCfg,rankIdx, type) ->
           ret = rank[rankIdx] ? rank[rank.length-1] * fix
         else
           ret = rank * fix
-    return ret
+    return Math.ceil(ret)
 
 exports.getCfgByRankIdx = getCfgByRankIdx
 mapDiff = (source, excludeLst) ->
@@ -75,6 +77,7 @@ changeSeed = (seed) ->
 
   Object.defineProperty(this, 'random', {enumerable:false})
 
+exports.changeSeed = changeSeed
 calcInfiniteX = (infiniteLevel) ->
   if infiniteLevel % 10 is 0
     infiniteLevel/10
@@ -242,7 +245,7 @@ class Dungeon
     ret.blueStar = @blueStar if @blueStar?
     ret.baseRank = @baseRank if @baseRank
     ret.PVP_Pool = @PVP_Pool if @PVP_Pool
-    ret.rankIdx = @rankIdx if @rankIdx?
+    ret.rankIdx = @rankIdx if @rankIdx
     return ret
 
   getStageConfig: () -> return queryTable(TABLE_STAGE, @stage, @abIndex)

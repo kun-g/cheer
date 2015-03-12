@@ -791,6 +791,10 @@ exports.route = {
       ret = {REQ: rpcID, RET: RET_RedeemFailed, prize:[]}
       if arg.code?
         #redeem
+
+        if arg.code is player.invitation
+          return handler(ret)
+
         async.waterfall(
           [
             (cb) -> helperLib.redeemCode.redeem(arg.code, cb),
@@ -798,14 +802,15 @@ exports.route = {
               return cb("Redeemed Code") if config.redeemed is true
               switch Number(config.type)
                 when CodeType_Prize
+                  config.prize = JSON.parse(config.prize)
                   resMessage = player.claimPrize(config.prize)
                   ret.prize = config.prize
                 when CodeType_Invitation
-                  if player.inviter or player.invitee.indexOf(config.inviter)
-                    break
+                  if player.inviter or player.invitee.indexOf(config.inviter) isnt -1
+                    return cb('Invite Each Other')
                   player.inviter = config.inviter
                   player.attrSave('inviter')
-                  dbWrapper.pushNotice(config.inviter, "New Invitee", player.name)
+                  #DBWrapper.pushNotice(config.inviter, "New Invitee", player.name)
 
                   dbLib.deliverMessage(
                     config.inviter,

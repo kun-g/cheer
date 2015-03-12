@@ -647,14 +647,14 @@ class Player extends DBWrapper
     @counters[propertyName] = arg.value? 0
     @notify(arg.notify.name,arg.notify.arg) if arg.notify?
 
-  stageIsUnlockable: (stage) ->
+  stageIsUnlockable: (stage, rankIdx) ->
     return true if g_DEBUG_FLAG
     return false if getPowerLimit(stage) > @createHero().calculatePower()
     stageConfig = queryTable(TABLE_STAGE, stage, @abIndex)
     if stageConfig.condition then return stageConfig.condition(this, genUtil())
     if stageConfig.event
       return @[stageConfig.event]? and @[stageConfig.event].status is 'Ready'
-    return @stage[stage] and @stage[stage].state != STAGE_STATE_INACTIVE
+    return @stage[stage] and (@stage[stage].state != STAGE_STATE_INACTIVE or (@stage[stage] is STAGE_STATE_PASSED and rankIdx > 0))
 
   changeStage: (stage, state) ->
     stg = queryTable(TABLE_STAGE, stage)
@@ -720,7 +720,7 @@ class Player extends DBWrapper
     cost = getCfgByRankIdx(stageConfig, dungeonConfig, rankIdx, "energyCost")
     async.waterfall([
       (cb) => if @dungeonData.stage? then cb('OK') else cb(),
-      (cb) => if @stageIsUnlockable(stage) then cb() else cb(RET_StageIsLocked),
+      (cb) => if @stageIsUnlockable(stage, rankIdx) then cb() else cb(RET_StageIsLocked),
       (cb) => if @costEnergy(cost) then cb() else cb(RET_NotEnoughEnergy),
       (cb) => @requireMercenary((team) => cb(null, team)),
       (mercenary, cb) =>
@@ -1625,6 +1625,8 @@ class Player extends DBWrapper
             me.handlePayment(msg, cb)
           else if msg.type is MESSAGE_TYPE_InvitationAccept
             me.invitee.push(msg.name)
+            dbLib.removeMessage(me.name, msg.messageID)
+            cb(null, [])
           else
             cb(err, msg)
         , (err, msg) ->
