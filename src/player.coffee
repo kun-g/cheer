@@ -714,8 +714,7 @@ class Player extends DBWrapper
       (cb) => if @dungeonData.stage? then cb('OK') else cb(),
       (cb) => if @stageIsUnlockable(stage) then cb() else cb(RET_StageIsLocked),
       (cb) => if @costEnergy(stageConfig.cost) then cb() else cb(RET_NotEnoughEnergy),
-      (cb) => @requireMercenary((team) => cb(null, team)),
-      (mercenary, cb) =>
+      (cb) =>
         teamCount = stageConfig.team ? 3
         if @stage[stage]? and @stage[stage].level?
           level = @stage[stage].level
@@ -735,12 +734,12 @@ class Player extends DBWrapper
           leftTeamCount = teamCount-team.length
           if Array.isArray(selectedTeam) and selectedTeam.length >=leftTeamCount
             temp = []
-            temp.push(mercenary[idx]) for idx in selectedTeam
+            temp.push(@mercenary[idx]) for idx in selectedTeam
             @updateFriendHiredInfo(temp)
             team = team.concat(temp)
             @mercenary = []
-          else if mercenary.length >= leftTeamCount
-            team = team.concat(mercenary.splice(0, teamCount-team.length))
+          else if @mercenary.length >= leftTeamCount
+            team = team.concat(@mercenary.splice(0, teamCount-team.length))
             @mercenary = []
           else
             @costEnergy(-stageConfig.cost)
