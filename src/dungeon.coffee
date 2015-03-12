@@ -243,8 +243,8 @@ class Dungeon
     ret = { stage: @stage, randSeed: @randSeed, initialQuests: @initialQuests, team: @team, abIndex: @abIndex}
     ret.infiniteLevel = @infiniteLevel if @infiniteLevel?
     ret.blueStar = @blueStar if @blueStar?
-    ret.baseRank = @baseRank if @baseRank
-    ret.PVP_Pool = @PVP_Pool if @PVP_Pool
+    ret.baseRank = @baseRank if @baseRank?
+    ret.PVP_Pool = @PVP_Pool if @PVP_Pool?
     ret.rankIdx = @rankIdx if @rankIdx?
     return ret
 
