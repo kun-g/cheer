@@ -682,6 +682,7 @@ getLevelUpConfig = function(levelId, curLevel, exp){
     }
     curLevel++;
   }
+  result['curLevel'] = curLevel;
   return result;
 }
 

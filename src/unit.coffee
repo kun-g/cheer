@@ -35,6 +35,7 @@ class Unit extends Wizard
     if levelConfig.skill?
       for s in levelConfig.skill when not s.classLimit? or s.classLimit is @class
         @installSpell(s.id, s.level)
+    @level = levelConfig['curLevel']
    #lvConfig = queryTable(TABLE_LEVEL, levelId)
    #cfg = lvConfig.levelData
 

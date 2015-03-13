@@ -1831,6 +1831,7 @@ class Player extends DBWrapper
       NTF:Event_UpdateEnergy,
       arg : {
         eng: @energy,
+        pxp: @playerXp,
         tim: Math.floor(@energyTime.valueOf() / 1000)
       }
     }
