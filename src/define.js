@@ -20,6 +20,8 @@ TEAMMATE_REWARD_RATIO = 0.2;
 PK_COOLDOWN = 600;
 
 INTERVAL_SECEND = 6000;
+
+PLAYERLEVELID = 0;
 //////////////////// Log
 serverType = 'None';
 print = console.log;

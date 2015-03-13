@@ -58,6 +58,8 @@ isInRangeTime = (timeLst,checkTime) ->
 class Player extends DBWrapper
   constructor: (data) ->
     @type = 'player'
+    @memFlags = {}#memory flags 内存中的flag
+    @playerLevel = 0
     now = new Date()
     cfg = {
       dbKeyName: '',
@@ -245,6 +247,7 @@ class Player extends DBWrapper
 
     ret.push(@syncCounters(['energyRecover'],true))
     @createHero()
+    @updateMenFlags(PLAYERLEVELID,0,@playerXp)
     return ret
 
   claimLoginReward: () ->
@@ -639,8 +642,19 @@ class Player extends DBWrapper
     if point
       if @energy < point then return false
       @energy -= point
-      @playerXp += point
+      @playerXp += point#玩家经验，对应玩家等级
+      @updateMenFlags(PLAYERLEVELID,@playerLevel,@playerXp)
 
+    return true
+
+  updateMenFlags: (levelId, curLevel, exp) ->
+    levelConfig = getLevelUpConfig(levelId,curLevel,exp)#更新flag
+    @playerLevel = levelConfig['curLevel']
+    dprint("levelConfig",levelConfig," curLevel",curLevel)
+    if levelConfig.flag
+      for k in levelConfig.flag
+        @memFlags[k] = true
+      dprint("memFlags",@memFlags)
     return true
 
   saveDB: (handler) -> @save(handler)
@@ -2157,6 +2171,11 @@ class Player extends DBWrapper
                   {"type":material.instead.type,"value":material.instead.value,
                   "count":material.count - itemCount}]
     return [{"type":material.type,"value":material.value,"count":material.count}]
+
+  getFlags: (key) ->
+    return @flags[key] if @flags[key]?
+    return @memFlags[key] if @memFlags[key]?
+    return null
 
 playerMessageFilter = (oldMessage, newMessage, name) ->
   message = newMessage
