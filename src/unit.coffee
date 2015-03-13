@@ -30,17 +30,23 @@ class Unit extends Wizard
   levelUp: () ->
     levelId = @getLevelId()
     return false if levelId is false
-    lvConfig = queryTable(TABLE_LEVEL, levelId)
-    cfg = lvConfig.levelData
+    levelConfig = getLevelUpConfig(levelId,@level,@xp)
+    @modifyProperty(levelConfig.property)
+    if levelConfig.skill?
+      for s in levelConfig.skill when not s.classLimit? or s.classLimit is @class
+        @installSpell(s.id, s.level)
+    @level = levelConfig['curLevel']
+   #lvConfig = queryTable(TABLE_LEVEL, levelId)
+   #cfg = lvConfig.levelData
 
-    while cfg[@level]?.xp <= @xp
-      data = cfg[@level]
-      @modifyProperty(data.property)
-      if data.skill?
-        for s in data.skill when not s.classLimit? or s.classLimit is @class
-          @installSpell(s.id, s.level)
-      @level += 1
-      console.log('LevelUp ', JSON.stringify(data.property)) if flagCreation
+   #while cfg[@level]?.xp <= @xp
+   #  data = cfg[@level]
+   #  @modifyProperty(data.property)
+   #  if data.skill?
+   #    for s in data.skill when not s.classLimit? or s.classLimit is @class
+   #      @installSpell(s.id, s.level)
+   #  @level += 1
+   #  console.log('LevelUp ', JSON.stringify(data.property)) if flagCreation
 
   initWithConfig: (roleConfig) ->
     @roleID = roleConfig.classId
@@ -67,11 +73,15 @@ class Unit extends Wizard
 
   modifyProperty: (properties) ->
     return false unless properties?
-    for k, v of properties
-      if this[k]?
-        this[k] += v
-      else
-        this[k] = v
+    if Array.isArray(properties)
+      for s in properties
+        @modifyProperty(properties[s])
+    else
+      for k, v of properties
+        if this[k]?
+          this[k] += v
+        else
+          this[k] = v
     
   gearUp: () ->
     return false unless @equipment?
