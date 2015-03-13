@@ -8,6 +8,7 @@ http = require('http')
 https = require('https')
 querystring = require('querystring')
 moment = require('moment')
+underscore = require('./underscore')
 {Player} = require('./player')
 
 CONST_REWARD_PK_TIMES = 5
@@ -267,7 +268,7 @@ exports.route = {
               )
             ], (err, result) ->
               if player.destroied then return []
-              result = result.reduce(((r, l) -> return r.concat(l);), [])
+              result = result.reduce(((r, l) -> return r.concat(l)), [])
               ev = ev.concat(result)
                      .concat(player.onLogin())
                      .concat(player.syncCampaign())
@@ -788,7 +789,7 @@ exports.route = {
     id: 40,
     func: (arg, player, handler, rpcID, socket) ->
       resMessage = []
-      ret = {REQ: rpcID, RET: RET_RedeemFailed, prize:[]}
+      ret = {REQ: rpcID, RET: RET_RedeemFailed, arg:{}}
       if arg.code?
         #redeem
 
@@ -805,22 +806,33 @@ exports.route = {
                   config.prize = JSON.parse(config.prize)
                   resMessage = player.claimPrize(config.prize)
                   ret.prize = config.prize
+                  player.saveDB(cb)
                 when CodeType_Invitation
-                  if player.inviter or player.invitee.indexOf(config.inviter) isnt -1
+                  if player.inviter or player.invitee[config.inviter]
                     return cb('Invite Each Other')
-                  player.inviter = config.inviter
-                  player.attrSave('inviter')
-                  #DBWrapper.pushNotice(config.inviter, "New Invitee", player.name)
-
-                  dbLib.deliverMessage(
-                    config.inviter,
-                    {
-                      type: MESSAGE_TYPE_InvitationAccept,
-                      name: player.name
-                    }
-                  )
-
-              player.saveDB(cb)
+                  if arg.cfm is true
+                    player.inviter = {}
+                    player.inviter[config.inviter] = {tot: 0, cur: 0}
+                    player.attrSave('inviter')
+                    dbLib.deliverMessage(
+                      config.inviter,
+                      {
+                        type: MESSAGE_TYPE_InvitationAccept,
+                        name: player.name
+                      }
+                    )
+                    player.saveDB(cb)
+                  else
+                    getPlayerHero(
+                      config.inviter,
+                      (err, hero) ->
+                        if err
+                          cb(err)
+                        else
+                          ret.arg.role = getBasicInfo(hero)
+                          cb(null)
+                    )
+                    ret.arg.role = 0;
           ],
           (err, res) ->
             logInfo({action: 'Redeem', code: arg.code, err: err})
@@ -835,12 +847,61 @@ exports.route = {
         #send infomation
         ret.RET = RET_OK
         ret.arg = {}
-        ret.arg.inviter = player.inviter
         ret.arg.invitation = player.invitation
-        ret.arg.invitee = player.invitee
         handler(ret)
     ,
     args: {'code':'string'},
     needPid: true
   },
+  Request_InvitationAward: {
+    id: 41,
+    func: (arg, player, handler, rpcID, socket) ->
+      ret = {REQ: rpcID, RET: RET_RedeemFailed, arg:{}}
+      switch Number(arg.opn)
+        when 0 # get info
+          ret.RET = RET_OK
+          ret.arg = {}
+          ret.arg.inviter = player.inviter
+#          ret.arg.invitation = player.invitation
+          ret.arg.invitee = player.invitee
+          ret.arg.lst = []
+
+          arr_inviteers = ({name:_name, tot:_data.tot, cur:_data.cur} for _name, _data of player.invitee)
+          arr_inviteers.push({name:k1, tot:v1.tot, cur:v1.cur}) for k1, v1 of player.inviter
+
+          sorted_arr_inviteers = underscore.sortBy(arr_inviteers, 'tot')
+          sorted_arr_inviteers = underscore.sortBy(sorted_arr_inviteers, 'cur')
+          sorted_arr_inviteers.reverse()
+
+          from = arg.frm ? 0
+          to = from + ( arg.cnt ? 10)
+          sorted_arr_inviteers = sorted_arr_inviteers.slice(from, to)
+
+          async.map(sorted_arr_inviteers,
+            (invitee, cb) -> getPlayerHero(invitee.name, cb),
+            (err, results) ->
+              logInfo({action: 'getInvitationInfo', err: err})
+              ret.arg.lst = results.map(getBasicInfo)
+              handler(ret)
+          )
+
+        when 1 # receive award
+          retInvAwa = {}
+          async.waterfall([
+            (cb) ->
+              cb('name is null') unless arg.name
+              retInvAwa = player.updateInvitationAward({name:arg.name, type:'receive'}, cb)
+            ],
+            (err, result) ->
+              logInfo({action: 'ReceiveInvitationAward', source: arg.name, err: err})
+              ret.RET = RET_OK
+              ret.RES = retInvAwa.res
+              ret.prize = retInvAwa.prize
+              handler(ret)
+          )
+
+    ,
+    args: {},
+    needPid: true
+  }
 }
