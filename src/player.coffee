@@ -487,10 +487,10 @@ class Player extends DBWrapper
           (receipt, tunnel, cb) => @handleReceipt(payment, tunnel, cb)
         ], postResult)
 
-  updateStageStatus: () ->
+  updateStageStatus: (level) ->
     ret = []
     for s in updateStageStatus(@stage, @, @abIndex)
-      ret = ret.concat(@changeStage(s, STAGE_STATE_ACTIVE))
+      ret = ret.concat(@changeStage(s, STAGE_STATE_ACTIVE, level))
     return ret
 
   updateQuestStatus: () ->
@@ -656,7 +656,7 @@ class Player extends DBWrapper
       return @[stageConfig.event]? and @[stageConfig.event].status is 'Ready'
     return @stage[stage] and (@stage[stage].state != STAGE_STATE_INACTIVE or (@stage[stage] is STAGE_STATE_PASSED and rankIdx > 0))
 
-  changeStage: (stage, state) ->
+  changeStage: (stage, state, level = 0) ->
     stg = queryTable(TABLE_STAGE, stage)
     @stageVersion++
     if stg
@@ -670,7 +670,7 @@ class Player extends DBWrapper
       if stg.isInfinite
         @stage[stage]['level'] = 0 unless @stage[stage].level?
         if state is STAGE_STATE_PASSED
-          @stage[stage].level += 1
+          @stage[stage].level = level
           @notify('stageChanged',{stage:stage})
           if @stage[stage].level%5 is 0
             dbLib.broadcastEvent(BROADCAST_INFINITE_LEVEL, {who: @name, where: stage, many: @stage[stage].level})
@@ -1640,12 +1640,12 @@ class Player extends DBWrapper
       )
     ))
 
-  completeStage: (stage) ->
+  completeStage: (stage, level) ->
     thisStage = queryTable(TABLE_STAGE, stage, @abIndex)
     if this.stage[stage] == null || thisStage == null then return []
-    ret = this.changeStage(stage,  STAGE_STATE_PASSED)
+    ret = this.changeStage(stage,  STAGE_STATE_PASSED, level)
     @onCampaign('Stage')
-    return ret.concat(this.updateStageStatus())
+    return ret.concat(this.updateStageStatus(level))
 
   requireMercenary: (callback) ->
     me = @

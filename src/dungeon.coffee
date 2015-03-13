@@ -78,20 +78,13 @@ changeSeed = (seed) ->
   Object.defineProperty(this, 'random', {enumerable:false})
 
 exports.changeSeed = changeSeed
-calcInfiniteX = (infiniteLevel) ->
-  if infiniteLevel % 10 is 0
-    infiniteLevel/10
-  else if infiniteLevel % 5 is 0
-    infiniteLevel/5 - Math.floor(infiniteLevel/10)
-  else
-    infiniteLevel - Math.floor(infiniteLevel/5) - Math.floor(infiniteLevel/10)
-
 calcInfiniteRank = (infiniteLevel, id) ->
-  x = calcInfiniteX(infiniteLevel)
+  x = infiniteLevel + 1
   if id? and id is 1
    return 1.5*x*x + 2*x + 1
   else
-    return Math.ceil(0.1 * x*x + 0.1*x + 1)
+    #return Math.ceil(0.1 * x*x + 0.1*x + 1)
+    return Math.ceil((x*x + x) / 2)
 
 # 创建怪物的设计：
 # 指定位置 pos
@@ -226,6 +219,8 @@ class Dungeon
     if cfg.triggers
       @triggerManager.installTrigger(t, {}, @) for t in cfg.triggers
 
+    @currentLevel = @infiniteLevel - 1 if @infiniteLevel?
+
   onEvent: (event, cmd) -> @triggerManager.onEvent(event, cmd)
   newFaction: (name) -> @factionDB[name] = {} unless @factionDB[name]
   factionAttack: (src, dst, flag) -> changeFactionRelaction(src, dst, 'attackable', flag)
@@ -267,20 +262,9 @@ class Dungeon
     @xpRate = cfg.xpRate ? 1
     @wxpRate = cfg.wxpRate ? 1
 
-    @baseRank = getCfgByRankIdx(@getStageConfig(), cfg, @rankIdx,'rank')
 
-    if @infiniteLevel?
-      @baseRank += calcInfiniteRank(@infiniteLevel, @formularId)
-      infiniteLevel = @infiniteLevel
-      if infiniteLevel % 10 is 0
-        @goldRate *= 1.5
-        @xpRate *= 1.5
-      else if infiniteLevel % 5 is 0
-        @goldRate *= 1.3
-        @xpRate *= 1.3
-      else
-        @goldRate = 1.1
-        @xpRate *= 1.1
+    unless @infiniteLevel?
+      @baseRank = getCfgByRankIdx(@getStageConfig(), cfg, @rankIdx,'rank')
 
     if @PVP_Pool
       cfg = JSON.parse(JSON.stringify(cfg))
@@ -540,16 +524,21 @@ class Dungeon
 
   nextLevel: () ->
     @currentLevel++
+    level = @currentLevel
+    if @infiniteLevel?
+      level = 0
+      @baseRank = calcInfiniteRank(@currentLevel, @formularId)
+
 
     cfg = @getConfig()
-    if @currentLevel < cfg.levelCount
-      lvConfig = cfg.levels[@currentLevel]
+    if level < cfg.levelCount
+      lvConfig = cfg.levels[level]
       @level = new Level()
       @level.rand = (r) => @rand(r)
       @level.random = (r) => @random(r)
       Object.defineProperty(@level, 'random', {enumerable:false})
       Object.defineProperty(@level, 'rand', {enumerable:false})
-      @level.init(lvConfig, @baseRank, @getHeroes(), @unitCreation[@currentLevel])
+      @level.init(lvConfig, @baseRank, @getHeroes(), @unitCreation[level])
 
 exports.Dungeon = Dungeon
 #////////////////////// Block
@@ -910,7 +899,7 @@ class DungeonEnvironment extends Environment
   getCard: (slot) -> @dungeon?.getCard(slot)
   getQuests: () -> @dungeon?.quests
   nextLevel: () -> @dungeon?.nextLevel()
-  isDungeonFinished: () -> return @dungeon.currentLevel >= @dungeon.getConfig().levelCount
+  isDungeonFinished: () -> return not @dungeon.infiniteLevel? and @dungeon.currentLevel >= @dungeon.getConfig().levelCount
   createObject: (cfg) -> @dungeon?.level?.createObject(cfg)
   useItem: (spell, level, cmd) -> @dungeon.getDummyHero().castSpell(spell, cmd)
   getReviveCount: () -> @dungeon?.revive
@@ -1311,7 +1300,12 @@ dungeonCSConfig = {
     output: (env) -> [{id:ACT_SHIFTORDER}]
   },
   CancelDungeon: {
-    callback: (env) -> @routine({id: 'ClaimResult', win: DUNGEON_RESULT_FAIL})
+    callback: (env) ->
+      result = DUNGEON_RESULT_FAIL
+      if env.dungeon.infiniteLevel?
+        env.dungeon.infiniteLevel = env.dungeon.currentLevel
+        result = DUNGEON_RESULT_WIN
+      @routine({id: 'ClaimResult', win: result})
   },
   ClaimResult: {
     callback: (env) ->

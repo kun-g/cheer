@@ -1,5 +1,24 @@
 require('./define')
 
+getSpecialRewardByInfiniteLevel = (infiniteLevel, prizeCfg) ->
+  ret = []
+  for level, prize of prizeCfg
+    if infiniteLevel % level is 0
+      ret = prize
+  return ret
+
+calcInfinitReward = (infiniteLevel, what, optArg) ->
+  infiniteLevel += 1
+  ret = {}
+  for name in what
+    switch name
+      when 'goldRate','xpRate'
+        val = infiniteLevel
+      when 'reward'
+        val = if infiniteLevel is 0 then [] else getSpecialRewardByInfiniteLevel(infiniteLevel,optArg)
+    ret[name] = val
+  return ret
+
 exports.getRewardModifier = (type) ->
   modifier = @envReward_modifier[type] ? 0
   return modifier + (@reward_modifier[type] ? 0)
@@ -54,12 +73,24 @@ exports.generateDungeonReward = (dungeon) ->
   if result is DUNGEON_RESULT_WIN and dungeon.isSweep
     dropInfo = dropInfo.concat(cfg.dropID[dungeon.rankIdx]) if cfg.dropID[dungeon.rankIdx]
 
-  gr = if result is DUNGEON_RESULT_WIN then (cfg.goldRate ? 1) else 0.5
-  xr = if result is DUNGEON_RESULT_WIN then (cfg.xpRate ? 1) else 0.5
-  wr = if result is DUNGEON_RESULT_WIN then (cfg.wxpRate ? 1) else 0.5
-
   prize = @generateReward(queryTable(TABLE_DROP), dropInfo)
   prize = prize.concat(dungeon.prizeInfo ? [])
+
+  goldRate = (cfg.goldRate ? 1)
+  xpRate   = (cfg.xpRate ? 1)
+  wxpRate  = (cfg.wxpRate ? 1)
+
+  infiniteLevel = dungeon.infiniteLevel
+  if infiniteLevel? and cfg.infinityPrize and result is DUNGEON_RESULT_WIN
+    {reward} = calcInfinitReward(infiniteLevel,['reward'], cfg.infinityPrize)
+    prize = prize.concat(reward)
+
+    {goldRate, xpRate} = calcInfinitReward(infiniteLevel, ['goldRate','xpRate'])
+
+  gr = if result is DUNGEON_RESULT_WIN then goldRate else 0.5
+  xr = if result is DUNGEON_RESULT_WIN then xpRate  else 0.5
+  wr = if result is DUNGEON_RESULT_WIN then wxpRate else 0.5
+
 
   unless dungeon.isSweep
     prize.push({type:PRIZETYPE_GOLD, count:Math.floor(gr*cfg.prizeGold)}) if cfg.prizeGold
@@ -67,16 +98,6 @@ exports.generateDungeonReward = (dungeon) ->
 
   prize.push({type:PRIZETYPE_WXP, count: Math.floor(wr*cfg.prizeWxp)}) if cfg.prizeWxp
 
-  infiniteLevel = dungeon.infiniteLevel
-  if infiniteLevel? and cfg.infinityPrize and result is DUNGEON_RESULT_WIN
-    iPrize = p for p in cfg.infinityPrize when p.level is infiniteLevel
-    if iPrize?
-      iPrize = { type: iPrize.type, value: iPrize.value, count: iPrize.count }
-
-      if iPrize.type is PRIZETYPE_GOLD
-        prize.push({type: PRIZETYPE_GOLD, count: iPrize.count})
-      else
-        prize.push(iPrize)
 
   #TODO:refactor this
   if dungeon.PVP_Pool? and dungeon.result is DUNGEON_RESULT_WIN
@@ -114,7 +135,7 @@ exports.claimDungeonReward = (dungeon, isSweep) ->
   rewardMessage = { NTF: Event_DungeonReward, arg: { res: dungeon.result } }
 
   ret = ret.concat([rewardMessage])
-  if dungeon.result isnt DUNGEON_RESULT_FAIL then ret = ret.concat(this.completeStage(dungeon.stage))
+  if dungeon.result isnt DUNGEON_RESULT_FAIL then ret = ret.concat(this.completeStage(dungeon.stage, dungeon.infiniteLevel))
 
   result = 'Lost'
   result = 'Win' if dungeon.result is DUNGEON_RESULT_WIN
