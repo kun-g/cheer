@@ -81,6 +81,7 @@ class Player extends DBWrapper
       #TODO: hero is duplicated
       hero: {},
 
+      inviter: {},
       invitee: {},
       stage: [],
       quests: {},

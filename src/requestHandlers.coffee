@@ -813,7 +813,6 @@ exports.route = {
                   if arg.cfm is true
                     player.inviter = {}
                     player.inviter[config.inviter] = {tot: 0, cur: 0}
-                    player.attrSave('inviter')
                     dbLib.deliverMessage(
                       config.inviter,
                       {
