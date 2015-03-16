@@ -1630,7 +1630,9 @@ class Player extends DBWrapper
             me.saveDB()
             cb(null, [])
           else if msg.type is MESSAGE_TYPE_InvitationAwardUpdate
-            cb( (me.updateInvitationAward({name:msg.name, type:'add', gem:msg.gem})).err, [])
+            _err = (me.updateInvitationAward({name:msg.name, type:'add', gem:msg.gem})).err
+            dbLib.removeMessage(me.name, msg.messageID)
+            cb( _err, [])
           else
             cb(err, msg)
         , (err, msg) ->
@@ -2166,7 +2168,7 @@ class Player extends DBWrapper
     awdInfo = @inviter[config.name] ? @invitee[config.name]
     return {err:'updateInvitationAward: source player is not my invitee/r'} unless awdInfo?
     ret = {}
-    switch type
+    switch config.type
       when 'add'
         config.gem = 0 unless config.gem?
         awdInfo.tot += Number(config.gem)
