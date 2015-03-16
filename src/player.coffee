@@ -385,7 +385,7 @@ class Player extends DBWrapper
 
 
   handleReceipt: (payment, tunnel, cb) ->
-    productList = queryTable(TABLE_IAP, 'list')
+    productList = queryTable(TABLE_IAPLIST, 'list')
     myReceipt = payment.receipt
     rec = unwrapReceipt(myReceipt)
 

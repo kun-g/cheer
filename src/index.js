@@ -108,7 +108,7 @@ function initiateFluentLogger() {
 
 
 function isRMBMatch(amount, receipt) {
-    productList = queryTable(TABLE_IAP, 'list');
+    productList = queryTable(TABLE_IAPLIST, 'list');
     rec = unwrapReceipt(receipt);
     cfg = productList[rec.productID];
     return cfg && cfg.price == amount;
