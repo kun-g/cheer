@@ -309,7 +309,8 @@ class Dungeon
         equipment: e.itm,
         xp: e.exp,
         order: ref,
-        ref :ref++
+        ref :ref++,
+        skill: e.ski,
       }
 
       if e.notMirror

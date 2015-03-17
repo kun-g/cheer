@@ -110,7 +110,7 @@ class Player extends DBWrapper
       stageVersion: 1,
       questVersion: 1,
       energyVersion: 1
-
+      
       abIndex: rand(),
     }
     for k,v of libReward.config
@@ -528,6 +528,7 @@ class Player extends DBWrapper
       gender: arg.gen
       hairStyle: arg.hst
       hairColor: arg.hcl
+      skill:{}
       })
     prize = queryTable(TABLE_ROLE, arg.cid)?.initialEquipment
     @claimPrize(prize)
@@ -553,6 +554,7 @@ class Player extends DBWrapper
       if isSwitch
         heroData.xp = @hero.xp
         heroData.equipment = @heroBase[heroData.class]?.equipment or {}
+        heroData.skill = @heroBase[heroData.class]?.skill or {}
         @heroBase[heroData.class] = heroData
         @switchHero(heroData.class)
         @putOnEquipmentAfterSwitched(heroData.class)
@@ -1008,6 +1010,31 @@ class Player extends DBWrapper
   queryItemSlot: (item) -> @inventory.queryItemSlot(item)
 
   getItemAt: (slot) -> @inventory.get(slot)
+
+  getUpgradeSkillCost: (skillId) ->
+    cfg = @hero.skill?[skillId]
+    if cfg?
+      curLevel = cfg.level
+    else
+      curLevel = 0
+
+    data = queryTable(TABLE_SKILL,skillId)
+    return {} unless data.level_upgrage_cost?[curLevel]?
+    return {costId:data.level_upgrage_cost[curLevel], upgrageSkillLevel:curLevel+1}
+
+  upgradeSkill: (skillId) ->
+    {costId,upgrageSkillLevel} = @getUpgradeSkillCost(skillId)
+
+    return {ret: RET_NothingTodo} unless costId?
+    
+    ret = @claimCost(costId)
+    return { ret: RET_NotEnough } unless ret?
+
+    @hero.skill ?= {}
+    @hero.skill[skillId] ?= {level:0}
+    @hero.skill[skillId].level = upgrageSkillLevel
+    @saveDB()
+    return ret
 
   useItem: (slot, opn)->#opn 时装系统装备卸下时需要
     item = @getItemAt(slot)

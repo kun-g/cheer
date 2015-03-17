@@ -127,7 +127,8 @@ createMirrorHero = function (data) {
     gender: data.gender,
     hairStyle: data.hairStyle,
     hairColor: data.hairColor,
-    equipment: data.equipment
+    equipment: data.equipment,
+    skill: data.skill,
   };
   hero = new Hero(hero);
   battleForce = hero.calculatePower();
@@ -153,6 +154,7 @@ getBasicInfo = function (hero) {
     isFriend: 'ifn',
     vipLevel: 'vip',
     notMirror: 'notMirror',
+    skill:'ski',
   };
 
   var ret = grabAndTranslate(hero, translateTable);
