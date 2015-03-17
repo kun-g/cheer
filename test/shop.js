@@ -7,9 +7,9 @@ describe('Shop',function(){
             type: 'fixed',
             currency: 'gold',
             goods: [
-              { id : 1, count: 1, price: 20, limit: {count: 5} } },
-              { id : 2, count: 1, price: 20 } },
-              { id : 3, count: 1, price: 20 }, limit: {vip: 5} }
+                { id : 1, count: 1, price: 20, limit: {count: 5} },
+                { id : 2, count: 1, price: 20 },
+                { id : 3, count: 1, price: 20, limit: {vip: 5} }
             ]
         };
 
@@ -25,8 +25,8 @@ describe('Shop',function(){
             type: 'random',
             currency: 'diamond',
             goods: [
-              [ { weight: 1, id: 1, prize: 10 }, { weight: 1, id: 2, prize: 1 } ],
-              [ { weight: 1, id: 3, prize: 10 } ]
+                [ { weight: 1, id: 1, prize: 10 }, { weight: 1, id: 2, prize: 1 } ],
+                [ { weight: 1, id: 3, prize: 10 } ]
             ]
         };
 
@@ -40,11 +40,7 @@ describe('Shop',function(){
         libShop.createShop({}).should.throw('Missing Type');
         libShop.createShop({type: 'fixed'}).should.throw('Missing currency');
         libShop.createShop({type: 'fixed', currency: 'gold'}).should.throw('Missing goods');
-        libShop.createShop({
-            type: 'fixed',
-            currency: 'gold',
-            goods: [ { id : 1 } ]
-        }).should.throw('Missing price');
+        libShop.createShop({type: 'fixed', currency: 'gold', goods: [ {id: 1} ] }).should.throw('Missing price');
     });
 
     it('optional parameters', function() {
@@ -60,9 +56,9 @@ describe('Shop',function(){
             type: 'fixed',
             currency: 'gold',
             goods: [
-              { id : 1, count: 1, price: 20 }, limit: {count: 5} },
-              { id : 2, count: 1, price: 10 }, limit: {vip: 2}},
-              { id : 3, count: 1, price: 20 }, limit: {vip: 5} }
+              { id : 1, count: 1, price: 20, limit: {count: 5} },
+              { id : 2, count: 1, price: 10, limit: {vip: 2} },
+              { id : 3, count: 1, price: 20, limit: {vip: 5} }
             ]
         };
 
