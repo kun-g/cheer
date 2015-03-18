@@ -492,7 +492,7 @@ deepCopy = function (obj) {
     var ret = {};
     if (Array.isArray(obj)) ret = [];
     for (k in obj) {
-      v = obj[k];
+      var v = obj[k];
       ret[k] = deepCopy(v);
     }
     return ret;
