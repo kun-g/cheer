@@ -85,7 +85,8 @@ class Player extends DBWrapper
       hero: {},
       playerXp: 0,
 
-      invitee: [],
+      inviter: {},
+      invitee: {},
       stage: [],
       quests: {},
 
@@ -416,32 +417,33 @@ class Player extends DBWrapper
         @counters['monthCard'] = 30
         ret = ret.concat(@syncEvent())
       @rmb += cfg.price
-      if @inviter
-        dbLib.deliverMessage(
-          @inviter,
-          {
-            type: MESSAGE_TYPE_SystemReward,
-            src: MESSAGE_REWARD_TYPE_SYSTEM,
-            prize: [{
-              type:PRIZETYPE_DIAMOND,
-              count: Math.floor(cfg.gem * 0.1)
-            }],
-            tit: Localized_Text.InvitationAwardTitle[0],
-            txt: Localized_Text.InvitationAwardContent1[0]+@name+Localized_Text.InvitationAwardContent1[1]
-          })
-
-      for name in @invitee
-        dbLib.deliverMessage(name,
-          {
-            type: MESSAGE_TYPE_SystemReward,
-            src: MESSAGE_REWARD_TYPE_SYSTEM,
-            prize: [{
-              type:PRIZETYPE_DIAMOND,
-              count: Math.floor(cfg.gem * 0.1)
-            }],
-            tit: Localized_Text.InvitationAwardTitle[0],
-            txt: Localized_Text.InvitationAwardContent2[0]+@name+Localized_Text.InvitationAwardContent2[1]
-          })
+#      if @inviter
+#        for k1,v1 of @inviter
+#          dbLib.deliverMessage(
+#            k1,
+#            {
+#              type: MESSAGE_TYPE_SystemReward,
+#              src: MESSAGE_REWARD_TYPE_SYSTEM,
+#              prize: [{
+#                type:PRIZETYPE_DIAMOND,
+#                count: Math.floor(cfg.gem * 0.1)
+#              }],
+#              tit: Localized_Text.InvitationAwardTitle[0],
+#              txt: Localized_Text.InvitationAwardContent1[0]+@name+Localized_Text.InvitationAwardContent1[1]
+#            })
+#
+#      for k2,v2 of @invitee
+#        dbLib.deliverMessage(k2,
+#          {
+#            type: MESSAGE_TYPE_SystemReward,
+#            src: MESSAGE_REWARD_TYPE_SYSTEM,
+#            prize: [{
+#              type:PRIZETYPE_DIAMOND,
+#              count: Math.floor(cfg.gem * 0.1)
+#            }],
+#            tit: Localized_Text.InvitationAwardTitle[0],
+#            txt: Localized_Text.InvitationAwardContent2[0]+@name+Localized_Text.InvitationAwardContent2[1]
+#          })
 
       @onCampaign('RMB', {idx:rec.productID, rmb:cfg.price, gem:cfg.gem})
       @counters.chargeDiamond ?= 0
@@ -451,7 +453,7 @@ class Player extends DBWrapper
         @counters['888'] += 1
         ret.push(@claimPrize({type:PRIZETYPE_ITEM, value:1630,count:1}))
 
-      @notify('onChargeDiamond')
+      @notify('onChargeDiamond', {gem:cfg.gem})
       ret.push({NTF: Event_PlayerInfo, arg: { rmb: @rmb, mcc: @counters.monthCard}})
       ret.push(@syncVipData())
       postPaymentInfo(@createHero().level, myReceipt, payment.paymentType)
@@ -1686,9 +1688,14 @@ class Player extends DBWrapper
             dbLib.removeMessage(me.name, msg.messageID)
             me.handlePayment(msg, cb)
           else if msg.type is MESSAGE_TYPE_InvitationAccept
-            me.invitee.push(msg.name)
+            me.invitee[msg.name] = {tot: 0, cur: 0}
             dbLib.removeMessage(me.name, msg.messageID)
+            me.saveDB()
             cb(null, [])
+          else if msg.type is MESSAGE_TYPE_InvitationAwardUpdate
+            _err = (me.updateInvitationAward({name:msg.name, type:'add', gem:msg.gem})).err
+            dbLib.removeMessage(me.name, msg.messageID)
+            cb( _err, [])
           else
             cb(err, msg)
         , (err, msg) ->
@@ -2222,6 +2229,25 @@ class Player extends DBWrapper
     return @flags[key] if @flags[key]?
     return @memFlags[key] if @memFlags[key]?
     return null
+
+  updateInvitationAward: (config, cb) ->
+    return {err:'updateInvitationAward: config is null'} unless config?
+    return {err:'updateInvitationAward: config.name is null'} unless config.name?
+    return {err:'updateInvitationAward: config.type is null'} unless config.type?
+    awdInfo = @inviter[config.name] ? @invitee[config.name]
+    return {err:'updateInvitationAward: source player is not my invitee/r'} unless awdInfo?
+    ret = {}
+    switch config.type
+      when 'add'
+        config.gem = 0 unless config.gem?
+        awdInfo.tot += Number(config.gem)
+        awdInfo.cur += Number(config.gem)
+      when 'receive'
+        ret.prize = [{type:PRIZETYPE_DIAMOND, count: Math.floor(awdInfo.cur)}]
+        ret.res = @claimPrize(ret.prize)
+        awdInfo.cur = 0
+    @saveDB(cb)
+    return ret
 
 playerMessageFilter = (oldMessage, newMessage, name) ->
   message = newMessage

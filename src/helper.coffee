@@ -103,6 +103,20 @@ exports.initLeaderboard = (config) ->
 
       v.func(player.name, obj[field])
 
+  exports.updateInvitationAwardMessage = (player, awardGem) ->
+    sendUpdateMsg = (players) ->
+      for k,v of players
+        dbLib.deliverMessage(
+          k,
+          {
+            type: MESSAGE_TYPE_InvitationAwardUpdate,
+            name: player.name,
+            gem: awardGem
+          })
+
+    if player.inviter then sendUpdateMsg(player.inviter)
+    sendUpdateMsg(player.invitee)
+
   tickLeaderboard = (board, cb) ->
     cfg = localConfig[board]
     if cfg.resetTime and matchDate(srvCfg[cfg.name], currentTime(), cfg.resetTime)
@@ -441,6 +455,7 @@ exports.observers = {
     #TODO:
     exports.assignLeaderboard(obj, exports.LeaderboardIdx.Arena)
   onChargeDiamond: (obj, arg) ->
+    exports.updateInvitationAwardMessage(obj, Math.floor(arg.gem*0.1))
     exports.assignLeaderboard(obj, exports.LeaderboardIdx.TopTenRich)
   onBuyTreasures: (obj, arg) ->
     exports.assignLeaderboard(obj, exports.LeaderboardIdx.BuyLikeWomen)
