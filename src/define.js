@@ -409,7 +409,7 @@ initGlobalConfig = function (path, callback) {
     {name:TABLE_STAGE, func: initStageConfig}, {name:TABLE_QUEST}, {name: TABLE_COSTS},
     {name:TABLE_UPGRADE}, {name:TABLE_ENHANCE}, {name: TABLE_CONFIG}, {name: TABLE_VIP, func:initVipConfig},
     {name:TABLE_SKILL}, {name:TABLE_CAMPAIGN, func:initCampaignTable}, {name: TABLE_DROP}, {name: TABLE_TRIGGER},
-    {name:TABLE_DP},{name:TABLE_ARENA},{name:TABLE_BOUNTY, func:initPowerLimit}, {name:TABLE_IAP},{name:TABLE_PKREWARD},
+    {name:TABLE_DP},{name:TABLE_ARENA},{name:TABLE_BOUNTY, func:initPowerLimit}, {name:TABLE_IAPLIST},{name:TABLE_PKREWARD},
     {name:TABLE_LOCALIZE},{name:TABLE_FRAGMENT},{name:TABLE_UNIT}
   ];
   if (!path) path = "./";
