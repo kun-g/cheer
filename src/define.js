@@ -790,16 +790,7 @@ ExploreResult_DeadEnd = -1
 isInstantAction = function (act) { return act > 100; };
 
 RPC_GameStartDungeon = 1;
-Request_DungeonExplore = 2;
-Request_DungeonActivate = 3;
-Request_DungeonAttack = 4;
-Request_DungeonSpell = 5;
-Request_DungeonCard = 6;
-Request_DungeonUseItem = 7;
-Request_DungeonRevive = 8;
 Request_DungeonTouch = 9;
-Request_DungeonValidatePos = 39;
-REQUEST_CancelDungeon = 20;
 
 Event_DungeonEnter = 0;
 Event_SyncVersions = 1;

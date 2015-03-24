@@ -16,6 +16,15 @@ CONST_REWARD_PK_TIMES = 5
 ReceivePrize_PK = 0
 ReceivePrize_TimeLimit = 1
 
+USE_ITEM_OPT_EQUIP = 1
+USE_ITEM_OPT_ENHANCE = 2
+USE_ITEM_OPT_LEVELUP = 3
+USE_ITEM_OPT_CRAFT = 4
+USE_ITEM_OPT_DECOMPOSE = 5
+USE_ITEM_OPT_INJECTWXP = 6
+USE_ITEM_OPT_RECYCLE = 7
+# 分解装备
+USE_ITEM_OPT_SELL = 8
 
 checkRequest = (req, player, arg, rpcID, cb) ->
   dbLib.checkReceiptValidate(arg.rep, (isValidate) ->
@@ -902,5 +911,481 @@ exports.route = {
     ,
     args: {},
     needPid: true
-  }
+  },
+  ###########################################################################################
+  SyncData:{
+    id: 0,
+    func: (arg, player, handler) ->
+      ev = []
+      #logWarn({ action : 'syncData', arg : arg });
+      arg.forEach (e) ->
+        if e == 'inv'
+          ev.push player.syncBag(true)
+        else if e == 'fog'
+          ev = ev.concat(player.syncFurance(true))
+        else if e == 'stg'
+          ev = ev.concat(player.syncStage(true))
+        else if e == 'act'
+          ev = ev.concat(player.syncHero(true))
+        else if e == 'dgn'
+          ev = ev.concat(player.syncDungeon(true))
+        else if e == 'eng'
+          ev = ev.concat(player.syncEnergy(true))
+        else if e == 'qst'
+          ev = ev.concat(player.syncQuest(true))
+        #else if (e == 'frd') { ev = ev.concat(player.syncQuest(true)); }
+        return
+      handler(ev)
+  },
+  QueryRoleInfo:{
+    id: 26,
+    func: (arg, player, handler, rpcID) ->
+      dbWrapper.getPlayerHero(arg.nam, (err, hero) ->
+        if hero
+          handler([ {
+            REQ: rpcID
+            RET: RET_OK
+            arg: getBasicInfo(hero)
+          } ])
+        else
+          handler( [ {
+            REQ: rpcID
+            RET: RET_PlayerNotExists
+          } ])
+      )
+  },
+
+  ExploreDungeon :{
+    id: 2,
+    func: (arg, player, handler, reqID, socket, flag, req) ->
+      handler(player.dungeonAction(req))
+      player.saveDB()
+  },
+
+  DoActivate :{
+    id: 3,
+    func: (arg, player, handler, reqID, socket, flag, req) ->
+      handler(player.dungeonAction(req))
+      player.saveDB()
+  },
+
+  DoAttack :{
+    id: 4,
+    func: (arg, player, handler, reqID, socket, flag, req) ->
+      handler(player.dungeonAction(req))
+      player.saveDB()
+  },
+
+  DoSpell :{
+    id: 5,
+    func: (arg, player, handler, reqID, socket, flag, req) ->
+      handler(player.dungeonAction(req))
+      player.saveDB()
+  },
+
+  DoCancelDungeon :{
+    id: 20,
+    func: (arg, player, handler, reqID, socket, flag, req) ->
+      handler(player.dungeonAction(req))
+      player.saveDB()
+  },
+
+  DoCheckPos :{
+    id: 39,
+    func: (arg, player, handler, reqID, socket, flag, req) ->
+      handler(player.dungeonAction(req))
+      player.saveDB()
+  },
+
+  DoRevive :{
+    id: 8,
+    func: (arg, player, handler, reqID, socket, flag, req) ->
+      handler(player.dungeonAction(req))
+      player.saveDB()
+  },
+
+  DoCardSpell :{
+    id: 6,
+    func: (arg, player, handler, reqID, socket, flag, req) ->
+      ret = player.dungeonAction(req)
+      unless ret?
+        ret = [ {
+          NTF: Event_Fail
+          msg: '_FIXME_Response_Invalid@' + 'handler_doCardSpell'
+        } ]
+      handler(ret)
+      player.saveDB()
+  },
+
+# 出售
+
+  DoUseItem :{
+    id: 7,
+    func: (arg, player, handler, rpcID) ->
+      slot = Math.floor(arg.sid)
+      opn = Math.floor(arg.opn)
+      ret = null
+      switch opn
+        when USE_ITEM_OPT_INJECTWXP
+          ret = player.injectWXP(arg.opd, slot)
+        when USE_ITEM_OPT_SELL
+          ret = player.sellItem(slot, arg.sho)
+        when USE_ITEM_OPT_LEVELUP
+          ret = player.levelUpItem(slot, arg.sho)
+        when USE_ITEM_OPT_ENHANCE
+          ret = player.enhanceItem(slot)
+        when USE_ITEM_OPT_RECYCLE
+          ret = player.recycleItem(slot)
+        when USE_ITEM_OPT_DECOMPOSE
+          ret = player.transformGem(arg.cid, arg.opc)
+        when USE_ITEM_OPT_CRAFT
+          ret = player.upgradeItemQuality(slot)
+        else
+          ret = player.useItem(slot, opn)
+          break
+      evt ={
+        REQ: rpcID
+        RET: RET_OK
+      }
+      evt.RET = ret.ret if ret.ret?
+      evt.RES = ret.res if ret.res?
+      evt.prz = ret.prize if ret.prize?
+      evt.out = ret.out if ret.out?
+      res = [ evt ]
+      res = res.concat(ret.ntf) if ret.ntf?
+      handler(res)
+      player.saveDB()
+  },
+
+  DoRequireMercenaryList :{
+    id: 12,
+    func: (arg, player, handler, rpcID) ->
+      player.mercenary = []
+      player.requireMercenary((lst) ->
+        if lst?
+          handler([
+            {
+              REQ: rpcID
+              RET: RET_OK
+            },
+            {
+              NTF: Event_MercenaryList
+              arg: lst.map(getBasicInfo)
+            }
+          ])
+        else
+          handler({
+            REQ: rpcID
+            RET: RET_RequireMercenaryFailed
+          }))
+      player.saveDB()
+  },
+
+  DoClaimLoginStreakReward :{
+    id: 300,
+    func: (arg, player, handler, rpcID) ->
+      ret = player.claimLoginReward()
+      res = [ {
+        REQ: rpcID
+        RET: ret.ret
+      } ]
+      if ret.res
+        res = res.concat(ret.res)
+      if ret.ret == RET_OK
+        player.saveDB()
+      handler(res)
+  },
+
+# Request_RefreshRefreshMercenaryList
+
+  DoRefreshMercenaryList :{
+    id: 13,
+    func: (arg, player, handler, rpcID) ->
+      if player.addGold(RECRUIT_COST)
+        player.log('refreshMercenaryList')
+        player.replaceMercenary(arg.sid, (teammate) ->
+          handler([
+            {
+              REQ: rpcID
+              RET: RET_OK
+              arg: getBasicInfo(teammate)
+            }
+            {
+              NTF: Event_InventoryUpdateItem
+              arg: god: player.gold
+            }
+          ]))
+      else
+        handler([ {
+          REQ: rpcID
+          RET: RET_NotEnoughGold
+        } ])
+      player.saveDB()
+  },
+
+# Request_ClaimDungeonReward 
+
+  DoCalimDungeonReward :{
+    id: 11,
+    func: (arg, player, handler) ->
+      #var ret = player.claimDungeonAward();
+      #handler(ret);
+      player.saveDB()
+  },
+
+  DoBuyItem :{
+    id: 9,
+    func: (arg, player, handler, rpcID) ->
+      ret = gShop.sellProduct(arg.sid, arg.cnt, arg.ver, player)
+      if typeof ret == 'number'
+        handler([ {
+          REQ: rpcID
+          RET: ret
+        } ])
+      else
+        handler([ {
+          REQ: rpcID
+          RET: RET_OK
+        } ].concat(ret))
+      player.saveDB()
+  },
+
+  DoBuyEnergy :{
+    id: 16,
+    func: (arg, player, handler, rpcID) ->
+      `var x`
+      diamondCost = 0
+      ENERGY_ADD = undefined
+      switch +arg.typ
+        when FEATURE_ENERGY_RECOVER
+          if player.counters.energyRecover >= player.vipOperation('dayEnergyBuyTimes')
+            handler new Error(RET_DungeonNotExist)
+            return
+          recoverTimes = player.counters.energyRecover
+          ret = buyEnergyCost(recoverTimes, player.vipOperation('freeEnergyTimes'), player.vipOperation('energyPrize'))
+          diamondCost = ret.prize
+          ENERGY_ADD = ret.add
+        when FEATURE_INVENTORY_STROAGE
+          x = Math.floor((player.inventory.size() - 30) / 5)
+          if x > 5
+            x = 5
+          diamondCost = 30 * x + 50
+        when FEATURE_FRIEND_STROAGE
+          x = Math.floor((player.contactBook.limit - 20) / 5)
+          if x > 5
+            x = 5
+          diamondCost = 30 * x + 50
+        when FEATURE_FRIEND_GOLD
+          diamondCost = +arg.tar
+        when FEATURE_PK_COOLDOWN
+          diamondCost = 50
+        when FEATURE_PK_COUNT
+          diamondCost = 100
+        when FEATURE_REVIVE
+          if typeof player.dungeon == 'undefined' or player.dungeon == null
+            handler new Error(RET_DungeonNotExist)
+            return
+          diamondCost = buyReviveCost(player.dungeon.revive, 0, player.vipOperation('reviveBasePrice'))
+      evt = []
+      product = ''
+      if diamondCost and player.addDiamond(-Math.ceil(diamondCost)) != false
+        evt.push
+          REQ: rpcID
+          RET: RET_OK
+        if +arg.typ == FEATURE_ENERGY_RECOVER
+          player.energy += ENERGY_ADD
+          player.counters.energyRecover++
+          product = 'energyTime'
+          evt.push player.syncEnergy()
+          evt.push player.syncCounters([ 'energyRecover' ])
+          evt.push
+            NTF: Event_InventoryUpdateItem
+            arg: dim: player.diamond
+        else if +arg.typ == FEATURE_INVENTORY_STROAGE
+          product = 'inventory'
+          evt.push
+            NTF: Event_InventoryUpdateItem
+            arg:
+              cap: player.extendInventory(5)
+              dim: player.diamond
+        else if +arg.typ == FEATURE_FRIEND_STROAGE
+          product = 'friend'
+          player.contactBook.limit = +player.contactBook.limit + 5
+          dbLib.extendFriendLimit player.name
+          evt.push
+            NTF: Event_FriendInfo
+            arg: cap: player.contactBook.limit
+          evt.push
+            NTF: Event_InventoryUpdateItem
+            arg: dim: player.diamond
+        else if +arg.typ == FEATURE_FRIEND_GOLD
+          player.addGold diamondCost * Rate_Gold_Diamond
+          evt.push
+            NTF: Event_InventoryUpdateItem
+            arg:
+              dim: player.diamond
+              god: player.gold
+        else if +arg.typ == FEATURE_PK_COOLDOWN
+          player.clearCDTime()
+          evt.push
+            NTF: Event_InventoryUpdateItem
+            arg: dim: player.diamond
+        else if +arg.typ == FEATURE_PK_COUNT
+          player.addPkCount 1
+          evt.push
+            NTF: Event_InventoryUpdateItem
+            arg: dim: player.diamond
+        else if +arg.typ == FEATURE_REVIVE
+          ret = player.aquireItem(ItemId_RevivePotion, 1, true)
+          if ret and ret.length > 0
+            evt = evt.concat(ret.concat(
+              NTF: Event_InventoryUpdateItem
+              arg:
+                god: player.gold
+                dim: player.diamond))
+          else
+            player.addMoney p.price.type, cost
+            evt = [ {
+              REQ: rpcID
+              RET: RET_NotEnoughDiamond
+            } ]
+        player.saveDB()
+      else
+        evt = [ {
+          REQ: rpcID
+          RET: RET_NotEnoughDiamond
+        } ]
+      logUser
+        name: player.name
+        action: 'buy'
+        product: product
+        payMethod: 'diamond'
+        item: product
+        cost: diamondCost
+      handler evt
+      return
+  },
+
+  DoClaimQuestReward :{
+    id: 18,
+    func: (arg, player, handler, rpcID) ->
+      ret = player.claimQuest(arg.qid)
+      if typeof ret == 'number'
+        handler [ {
+          REQ: rpcID
+          RET: ret
+        } ]
+      else
+        handler [ {
+          REQ: rpcID
+          RET: RET_OK
+        } ].concat(ret)
+      player.saveDB()
+  },
+
+  DoUpdateTutorial :{
+    id: 27,
+    func: (arg, player, handler, rpcID) ->
+      player.log 'updateTutorial', tutorial: arg.stg
+      player.tutorialStage = +arg.stg
+      player.saveDB()
+  },
+
+  DoChat :{
+    id: 19,
+    func: (arg, player, handler, rpcID) ->
+      dbLib.broadcast
+        NTF: Event_ChatInfo
+        arg:
+          src: player.name
+          typ: CHAT_TYPE_PLAYER
+          txt: arg.txt
+          vip: player.vipLevel()
+          cla: player.hero.class
+          pow: player.battleForce
+      logUser
+        name: player.name
+        action: 'chat'
+        type: 'global'
+        text: arg.txt
+      #TODO:聊天信息间隔
+      handler
+        REQ: rpcID
+        RET: RET_OK
+  },
+
+  DoInviteFriend :{
+    id: 21,
+    func: (arg, player, handler, rpcID) ->
+      player.inviteFriend arg.nam, arg.id, (err, ret) ->
+        handler
+          REQ: rpcID
+          RET: err.message
+        return
+      return
+  },
+
+  DoRemoveFriend :
+    id: 22,
+    func: (arg, player, handler, rpcID) ->
+      handler
+        REQ: rpcID
+        RET: player.removeFriend(arg.nam)
+      return
+
+  DoHireFriend :
+    id: 23,
+    func: (arg, player, handler, rpcID) ->
+      player.hireFriend arg.nam, (lst) ->
+        if Array.isArray(lst)
+          handler [
+            {
+              REQ: rpcID
+              RET: RET_OK
+            }
+            {
+              NTF: Event_MercenaryList
+              arg: lst.map(getBasicInfo)
+            }
+          ]
+        else
+          handler
+            REQ: rpcID
+            RET: RET_HireFriendFailed
+        return
+      return
+
+  DoWhisper :
+    id: 24,
+    func: (arg, player, handler, rpcID) ->
+      player.whisper arg.nam, arg.txt, (err, ret) ->
+        if err == null
+          err = RET_OK
+        handler
+          REQ: rpcID
+          RET: err
+        return
+      return
+
+  DoOperateNotify :
+    id: 25,
+    func: (arg, player, handler, rpcID) ->
+      player.operateMessage arg.typ, arg.sid, arg.opn, (err, ret) ->
+        if err == null
+          err = RET_OK
+        if ret
+          ret = [ {
+            REQ: rpcID
+            RET: err
+          } ].concat(ret)
+        else
+          ret = [ {
+            REQ: rpcID
+            RET: err
+          } ]
+        handler ret
+        player.saveDB()
+        return
+      return
+
 }

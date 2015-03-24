@@ -45,24 +45,10 @@ Event_SystemReward = 201;
 
 Event_CampaignLoginStreak = 300;
 
-Request_SyncData = 0;
-RPC_StoreBuyItem = 9;
 Request_StoreUpdateItemRemain = 10;
 Request_ClaimDungeonReward = 11; // [sid]
-RPC_RequireMercenaryList = 12; // nop
-RPC_RefreshMercenaryList = 13; // id list
-RPC_BuyFeature = 16;
-RPC_ClaimQuestReward = 18;
-RPC_Chat = 19;
-RPC_InviteFriend = 21;
-RPC_RemoveFriend = 22;
-RPC_HireFriend = 23;
-RPC_Whisper = 24;
 RPC_OperateNotify = 25;
-RPC_RoleInfo = 26;
-Request_TutorialStageComplete = 27;
 Request_Stastics = 28;
-RPC_ClaimLoginStreakReward = 300;
 
 function fixNumber(num, len){
     var str = ""+num;
