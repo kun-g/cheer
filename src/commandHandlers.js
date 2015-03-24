@@ -143,6 +143,7 @@ function handler_doUseItem(arg, player, handler, rpcID) {
     case UPGRAGE_SKILL:
       var skillId = slot;
       ret = player.upgradeSkill(skillId);
+      break;
     default:
       ret = player.useItem(slot, opn);
       break;
