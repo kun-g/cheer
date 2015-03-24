@@ -1055,6 +1055,7 @@ class Player extends DBWrapper
     store.skill[skillId] ?= {level:0}
     store.skill[skillId].level = curLevel + 1
     @saveDB()
+    ret = [@syncHero(true)].concat(ret)
     return {ret:RET_OK,ntf:ret}
 
   useItem: (slot, opn)->#opn 时装系统装备卸下时需要
