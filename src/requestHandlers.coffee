@@ -902,5 +902,35 @@ exports.route = {
     ,
     args: {},
     needPid: true
+  },
+
+  Request_Shops : {
+    id:42,
+    func: (arg, player, handler, rpcID, socket) ->
+      ret = {REQ: rpcID, RET: RET_GetInfoFailed, arg:{}}
+      switch Number(arg.opn)
+        when 0 # check version / get info
+          shop = player.getShop(arg.name)
+          if arg.ver isnt shop.version
+            ret.arg.shop = shop.dump2()
+          ret.RET = RET_OK
+          handler(ret)
+        when 1 # purchase
+          shop = player.getShop(arg.name)
+          sell_rst = shop.sell(player, arg.idx, arg.cnt, arg.ver)
+          if sell_rst.error?
+            logError({action: 'Shop.sell', error: sell_rst.error})
+            ret.RET = RET_PurchaseFailed
+            handler(ret)
+          else
+            ret.RET = RET_OK
+            if sell_rst.version?
+              ret.arg.shop = shop.dump2()
+            player.saveDB();
+            handler([ret].concat(sell_rst.ret))
+        else # miss opn
+          handler(ret)
+    args: {},
+    needPid: true
   }
 }

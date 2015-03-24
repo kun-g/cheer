@@ -113,6 +113,8 @@ Shop.prototype.dump = function (player) {
   return {items : items, categories : categories, version : this.version};
 };
 
+//--------------------------------------------------------------------------//
+
 Shop.prototype.sell = function (customer, index, count, version) {
     var ret = {};
     if( this.version !== version ){
@@ -130,7 +132,7 @@ Shop.prototype.sell = function (customer, index, count, version) {
     if( count == null || count < 0 ) count = 1;
 
     var good = this.goods[index];
-    if( !good ) throw 'Missing good';
+    if( !good ) throw new Error('Missing good');
 
     if( good.limit ){
         if (good.limit.vip != null && good.limit.vip > customer.vipLevel()){
@@ -171,7 +173,6 @@ Shop.prototype.sell = function (customer, index, count, version) {
             if( good.limit.count < count ){
                 count = good.limit.count;
             }
-            //good.limit.count -= count; todo:
         }
     }
 
@@ -189,15 +190,21 @@ Shop.prototype.sell = function (customer, index, count, version) {
     }
 
     var itemCount = good.count * count;
+    ret.ret = [];
     ret.ret = customer.aquireItem(good.id, itemCount, true);
     if( !(ret.ret && ret.ret.length > 0) ){
         customer.addMoney(this.currency, cost);
-        return -1;//todo:
+        ret.error = {
+            message: 'Inventory full'
+        };
+        return ret;
     }
+    ret.ret.concat({NTF: Event_InventoryUpdateItem, arg:{god:player.gold, dim:player.diamond, mst:player.masterCoin}});
 
     if( good.limit && good.limit.count != null ){
         good.limit.count -= count;
         this.version += 1;
+        ret.version = this.version;
     }
 
     ret.result = {
@@ -208,13 +215,42 @@ Shop.prototype.sell = function (customer, index, count, version) {
     return ret;
 };
 
-var createShop = function(config){
+Shop.prototype.dump2 = function () {
+    var goods = this.goods.filter(function (p) {
+        //if (p.limit && p.limit.vip != null && p.limit.vip > player.vipLevel()) return false;
+        return true;
+    }).map(function (p, index) {
+        var ret = {
+            idx : index,
+            cid : p.id,
+            cnt : p.count,
+            prc : p.price
+        };
+
+        if(p.limit && p.limit.date){
+            ret.date = p.limit.date;
+        }
+        return ret;
+    });
+
+    if (items.length <= 0) {
+        logError({type:'emptyShopList', goods: this.goods});
+    }
+
+    return {goods: goods, version: this.version, currency: this.currency, resetTime: this.resetTime};
+};
+
+var createShop = function(config, shop){
     if( !config ) throw new Error('Missing Config');
     if( !config.type ) throw new Error('Missing Type');
     if( !config.currency ) throw new Error('Missing currency');
     if( !config.goods ) throw new Error('Missing goods');
 
-    var shop = new Shop();
+    if( shop == null ){
+        shop = new Shop();
+    }else{
+        shop.version = (shop.version || 0) + 1;
+    }
 
     shop.goods = [];
     for( var index in config.goods ){
@@ -243,6 +279,19 @@ var createShop = function(config){
 
     shop.type = config.type;
     shop.currency = config.currency;
+
+    if( config.resetTime ){
+        var nowTime = moment();
+        if( nowTime.hour() < config.resetTime.hour ||
+            (nowTime.hour() == config.resetTime.hour && nowTime.minute() < config.resetTime.minute) ){
+            nowTime.subtract(1, 'day');
+        }
+        nowTime.hour(config.resetTime.hour || 0);
+        nowTime.minute(config.resetTime.minute || 0);
+        nowTime.second(0);
+        shop.resetTime = config.resetTime;
+        shop.createTime = nowTime.format();
+    }
 
     return shop;
 };

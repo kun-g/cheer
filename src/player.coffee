@@ -18,6 +18,7 @@ async = require('async')
 libReward = require('./reward')
 libCampaign = require("./campaign")
 libTime = require('./timeUtils.js')
+libShop = require('./shop');
 campaign_LoginStreak = new libCampaign.Campaign(queryTable(TABLE_DP))
 
 #TODO this must be remove
@@ -77,6 +78,7 @@ class Player extends DBWrapper
       inventory: Bag(InitialBagSize),
       gold: 0,
       diamond: 0,
+      masterCoin: 0,
       equipment: {},
       heroBase: {},
       heroIndex: -1,
@@ -105,6 +107,7 @@ class Player extends DBWrapper
       accountID: -1,
       campaignState: {},
       infiniteTimer: currentTime(),
+      shops: {},
 
       inventoryVersion: 1,
       heroVersion: 1,
@@ -2202,6 +2205,23 @@ class Player extends DBWrapper
         awdInfo.cur = 0
     @saveDB(cb)
     return ret
+
+  getShop: (shopName) ->
+    return {err:'generateShop: shopName null'} unless shopName?
+    shopConfig = queryTable(shopName)
+    if @shops[shopName] and shopConfig.resetTime
+      creTime = moment(shops[shopName].createTime || 0)
+      curTime = moment()
+      return @shops[shopName] if curTime.diff(creTime, 'day', true) < 1
+
+    try
+      @shops[shopName] = libShop.createShop(shopConfig, @shops[shopName])
+      @saveDB()
+      return @shops[shopName]
+    catch err
+      logError({type: 'getShop', err: err, cfg: shopConfig})
+
+
 
 playerMessageFilter = (oldMessage, newMessage, name) ->
   message = newMessage
