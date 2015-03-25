@@ -1827,7 +1827,7 @@ class Player extends DBWrapper
         return ret
       )).filter((e) -> e!=null)
 
-    ev = {NTF: Event_InventoryUpdateItem, arg: { cap: bag.limit, dim: this.diamond, god: this.gold, syn: this.inventoryVersion, itm: items } }
+    ev = {NTF: Event_InventoryUpdateItem, arg: { cap: bag.limit, dim: this.diamond, god: this.gold, mst:this.masterCoin, syn: this.inventoryVersion, itm: items } }
     if forceUpdate then ev.arg.clr = true
     return ev
 
@@ -2210,16 +2210,20 @@ class Player extends DBWrapper
     return {err:'generateShop: shopName null'} unless shopName?
     shopConfig = queryTable(shopName)
     if @shops[shopName] and shopConfig.resetTime
-      creTime = moment(shops[shopName].createTime || 0)
+      creTime = moment(@shops[shopName].createTime || 0)
       curTime = moment()
-      return @shops[shopName] if curTime.diff(creTime, 'day', true) < 1
+      if curTime.diff(creTime, 'day', true) < 1
+        @shops[shopName].__proto__ = libShop.Shop.prototype
+        return @shops[shopName]
 
     try
       @shops[shopName] = libShop.createShop(shopConfig, @shops[shopName])
       @saveDB()
+      @shops[shopName].__proto__ = libShop.Shop.prototype
       return @shops[shopName]
     catch err
       logError({type: 'getShop', err: err, cfg: shopConfig})
+      return {err: err}
 
 
 

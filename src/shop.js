@@ -199,7 +199,7 @@ Shop.prototype.sell = function (customer, index, count, version) {
         };
         return ret;
     }
-    ret.ret.concat({NTF: Event_InventoryUpdateItem, arg:{god:player.gold, dim:player.diamond, mst:player.masterCoin}});
+    ret.ret.concat({NTF: Event_InventoryUpdateItem, arg:{god:customer.gold, dim:customer.diamond, mst:customer.masterCoin}});
 
     if( good.limit && good.limit.count != null ){
         good.limit.count -= count;
@@ -234,7 +234,7 @@ Shop.prototype.dump2 = function () {
         return ret;
     });
 
-    if (items.length <= 0) {
+    if (goods.length <= 0) {
         logError({type:'emptyShopList', goods: this.goods});
     }
 
@@ -298,5 +298,6 @@ var createShop = function(config, shop){
 };
 
 exports.createShop = createShop;
+exports.Shop = Shop;
 
 gShop = new Shop();
