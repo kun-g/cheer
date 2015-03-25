@@ -36,6 +36,11 @@ class Unit extends Wizard
       for s in levelConfig.skill when not s.classLimit? or s.classLimit is @class
         @installSpell(s.id, s.level)
     @level = levelConfig['curLevel']
+
+    if @skill?
+      for skillId, data of @skill
+        @installSpell(skillId, data.level)
+
    #lvConfig = queryTable(TABLE_LEVEL, levelId)
    #cfg = lvConfig.levelData
 
@@ -295,6 +300,7 @@ class Mirror extends Unit
       hairColor: heroData.hcl,
       equipment: heroData.itm,
       xp: heroData.exp,
+      skill:heroData.skill,
     })
     battleForce = hero.calculatePower()
 

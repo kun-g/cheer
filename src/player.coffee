@@ -20,6 +20,7 @@ libCampaign = require("./campaign")
 libTime = require('./timeUtils.js')
 campaign_LoginStreak = new libCampaign.Campaign(queryTable(TABLE_DP))
 
+AllClassIDs =[0,1,2,131,132,164,216,217,218]
 #TODO this must be remove
 isInRangeTime = (timeLst,checkTime) ->
   ([].concat(timeLst)).reduce((acc, dur) ->
@@ -111,7 +112,7 @@ class Player extends DBWrapper
       stageVersion: 1,
       questVersion: 1,
       energyVersion: 1
-
+      
       abIndex: rand(),
     }
     for k,v of libReward.config
@@ -530,6 +531,7 @@ class Player extends DBWrapper
       gender: arg.gen
       hairStyle: arg.hst
       hairColor: arg.hcl
+      skill:{}
       })
     prize = queryTable(TABLE_ROLE, arg.cid)?.initialEquipment
     @claimPrize(prize)
@@ -555,6 +557,7 @@ class Player extends DBWrapper
       if isSwitch
         heroData.xp = @hero.xp
         heroData.equipment = @heroBase[heroData.class]?.equipment or {}
+        heroData.skill = @heroBase[heroData.class]?.skill or {}
         @heroBase[heroData.class] = heroData
         @switchHero(heroData.class)
         @putOnEquipmentAfterSwitched(heroData.class)
@@ -1010,6 +1013,50 @@ class Player extends DBWrapper
   queryItemSlot: (item) -> @inventory.queryItemSlot(item)
 
   getItemAt: (slot) -> @inventory.get(slot)
+
+  getUpgradeSkillInfo: (skillId, type, arg) ->
+    switch type
+      when 'class'
+        return AllClassIDs.reduce((acc, classId) ->
+          skillLst = queryTable(TABLE_ROLE, classId)?["availableSkillList"]
+          if Array.isArray(skillLst) and skillLst.indexOf(skillId) isnt -1
+            acc.push(classId)
+          return acc
+        ,[])
+      when 'cost'
+        data = queryTable(TABLE_SKILL,skillId)
+        return data.level_upgrage_cost?[arg]
+      when 'currentSkillState'
+        classIds = @getUpgradeSkillInfo(skillId, 'class')
+        return {} unless classIds.length > 0
+        if classIds.indexOf(@hero.class) isnt -1
+          store = @hero
+        else
+          store = @heroBase[classIds[0]]
+          return {} unless store?
+        return {curLevel : store.skill?[skillId]?.level ? 0, store:store}
+      
+    return {}
+          
+
+  upgradeSkill: (skillId) ->
+    {curLevel,store} = @getUpgradeSkillInfo(skillId, 'currentSkillState')
+    return {ret: RET_ClassNotUnlock} unless curLevel?
+    
+    costId = @getUpgradeSkillInfo(skillId, 'cost', curLevel)
+
+    return { ret: RET_NothingTodo } unless costId?
+    ret = []
+    if costId isnt -1
+      ret = @claimCost(costId)
+      return { ret: RET_NotEnough } unless ret?
+
+    store.skill ?= {}
+    store.skill[skillId] ?= {level:0}
+    store.skill[skillId].level = curLevel + 1
+    @saveDB()
+    ret = [@syncHero(true)].concat(ret)
+    return {ret:RET_OK,ntf:ret}
 
   useItem: (slot, opn)->#opn 时装系统装备卸下时需要
     item = @getItemAt(slot)

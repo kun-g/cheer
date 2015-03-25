@@ -25,6 +25,7 @@ USE_ITEM_OPT_INJECTWXP = 6
 USE_ITEM_OPT_RECYCLE = 7
 # 分解装备
 USE_ITEM_OPT_SELL = 8
+UPGRAGE_SKILL = 9
 
 checkRequest = (req, player, arg, rpcID, cb) ->
   dbLib.checkReceiptValidate(arg.rep, (isValidate) ->
@@ -1040,6 +1041,9 @@ exports.route = {
           ret = player.transformGem(arg.cid, arg.opc)
         when USE_ITEM_OPT_CRAFT
           ret = player.upgradeItemQuality(slot)
+        when  UPGRAGE_SKILL
+          skillId = slot
+          ret = player.upgradeSkill(skillId)
         else
           ret = player.useItem(slot, opn)
           break
