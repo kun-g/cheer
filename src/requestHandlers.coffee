@@ -911,7 +911,7 @@ exports.route = {
       switch Number(arg.opn)
         when 0 # check version / get info
           shop = player.getShop(arg.name)
-          if arg.ver isnt shop.version
+          if (not arg.ver?) or (arg.ver isnt shop.version)
             ret.arg.shop = shop.dump2()
           ret.RET = RET_OK
           handler(ret)

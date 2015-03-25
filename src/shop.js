@@ -216,6 +216,7 @@ Shop.prototype.sell = function (customer, index, count, version) {
 };
 
 Shop.prototype.dump2 = function () {
+    var crc = this.currency;
     var goods = this.goods.filter(function (p) {
         //if (p.limit && p.limit.vip != null && p.limit.vip > player.vipLevel()) return false;
         return true;
@@ -223,10 +224,10 @@ Shop.prototype.dump2 = function () {
         var ret = {
             idx : index,
             cid : p.id,
-            cnt : p.count,
-            prc : p.price
+            cnt : p.count
         };
-
+        ret.cost = {};
+        ret.cost[crc] = p.price;
         if(p.limit && p.limit.date){
             ret.date = p.limit.date;
         }
