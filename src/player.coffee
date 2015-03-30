@@ -650,7 +650,7 @@ class Player extends DBWrapper
     if point
       if @energy < point then return false
       @energy -= point
-      @playerXp += point#玩家经验，对应玩家等级
+      @playerXp += point if point > 0 #玩家经验，对应玩家等级
       @updateMenFlags(PLAYERLEVELID,@playerLevel,@playerXp)
 
     return true
