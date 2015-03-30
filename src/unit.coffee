@@ -80,7 +80,7 @@ class Unit extends Wizard
     return false unless properties?
     if Array.isArray(properties)
       for s in properties
-        @modifyProperty(properties[s])
+        @modifyProperty(s)
     else
       for k, v of properties
         if this[k]?
