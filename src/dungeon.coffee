@@ -409,7 +409,7 @@ class Dungeon
         req.arg.idx ?= 0
         req.arg.pos ?= -1
         arg = {i:+req.arg.idx, p:req.arg.pos, tp:[+req.arg.pos0, +req.arg.pos1, +req.arg.pos2]}
-      when REQUEST_CancelDungeon then action = DUNGEON_ACTION_CANCEL_DUNGEON
+      when Request_CancelDungeon then action = DUNGEON_ACTION_CANCEL_DUNGEON
       when Request_DungeonRevive then action = DUNGEON_ACTION_REVIVE
       when Request_DungeonCard
         action = DUNGEON_ACTION_USE_ITEM_SPELL
