@@ -133,6 +133,8 @@ class PrenticeLst extends Serializer
     #@prenticeLst = [] unless Array.isArray(@prenticeLst)
 
 
+  genName: (idx) ->
+    @master.name+'徒孙'+idx+'号'
   setMaster: (@master) ->
     for classId, data of @master.heroBase when classId isnt 'undefined'
       @masterSkill[classId] = (new Hero(data)).wSpellDB
@@ -145,13 +147,14 @@ class PrenticeLst extends Serializer
     idx = index ? @prenticeLst.length
     quality = @prenticeLst[idx]?.quality ? PrenticeQulity.White
     data = underscore.extend(data, {quality:quality})
+    data.name = @genName(idx)
     if index?
       rmRet = @_removeEquipment(idx)
       ret.ntf = rmRet.concat(ret.ntf) if rmRet?
     @prenticeLst[idx] = new Prentice(data)
     res = @_aquireInitEquipment(idx, data.class)
     ret.ntf = res.concat(ret.ntf) if ret.res?
-    ret.ntf = [@syncPrentice([idx])].concat(ret.ntf)
+    ret.ntf = [@syncPrentice()].concat(ret.ntf)
     return ret
 
   _removeEquipment: (idx) ->
@@ -224,6 +227,7 @@ class PrenticeLst extends Serializer
     ret = @master.claimCost(cost)
     if ret?
       @prenticeLst[idx].upgradeQuality()
+      return {ret:RET_OK,ntf: [@syncPrentice()].concat(ret)}
   getInfo: (idx,type,keys) ->
     @prenticeLst[idx]?.queryInfo(type,keys)
   getBasicInfo: (idxs) ->

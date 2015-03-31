@@ -1434,21 +1434,15 @@ exports.route = {
     id: 43,
     func: (arg, player, handler, rpcID) ->
       switch arg.op
-        when PRENTICE_OP_CREATE, PRENTICE_OP_REBORN
-          temp = {
-            name: 'zsp_30',
-            gender: 0,
-            class: 1,
-            hairStyle : 3,
-            hairColor: 1,
-            pIdx: arg.pIdx,
-          }
-          arg = temp
+        when PRENTICE_OP_CREATE
+          {ret,ntf} = player.prenticeLst.add(arg)
+        when  PRENTICE_OP_REBORN
           {ret,ntf} = player.prenticeLst.add(arg,arg.pIdx)
         when PRENTICE_OP_UPGRADE
           {ret,ntf} = player.prenticeLst.upgrade(arg.pIdx)
-      ret.REQ = rpcID
-      handler([ret].concat(ntf))
+      result = [{RET: ret, REQ: rpcID}]
+      result = [result].concat(ntf) if ntf?
+      handler(result)
       player.saveDB()
     needPid: true
   },
