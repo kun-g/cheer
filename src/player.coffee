@@ -151,6 +151,7 @@ class PrenticeLst extends Serializer
     @prenticeLst[idx] = new Prentice(data)
     res = @_aquireInitEquipment(idx, data.class)
     ret.ntf = res.concat(ret.ntf) if ret.res?
+    ret.ntf = [@syncPrentice([idx])].concat(ret.ntf)
     return ret
 
   _removeEquipment: (idx) ->
@@ -246,10 +247,12 @@ class PrenticeLst extends Serializer
   
   syncPrentice:(idxs) ->
     ret = {
+      NTF:Event_UpdatePrentice,
+      arg:{
         #lst:@prenticeLst.queryInfo('basicInfo')
         max:@maxPrentice,
         lst:@getBasicInfo(idxs)
-        
+      }
     }
     return ret
 
