@@ -155,6 +155,7 @@ getBasicInfo = function (hero) {
     vipLevel: 'vip',
     notMirror: 'notMirror',
     skill:'ski',
+    quality: 'qua',
   };
 
   var ret = grabAndTranslate(hero, translateTable);
@@ -412,7 +413,7 @@ initGlobalConfig = function (path, callback) {
     {name:TABLE_UPGRADE}, {name:TABLE_ENHANCE}, {name: TABLE_CONFIG}, {name: TABLE_VIP, func:initVipConfig},
     {name:TABLE_SKILL}, {name:TABLE_CAMPAIGN, func:initCampaignTable}, {name: TABLE_DROP}, {name: TABLE_TRIGGER},
     {name:TABLE_DP},{name:TABLE_ARENA},{name:TABLE_BOUNTY, func:initPowerLimit}, {name:TABLE_IAPLIST},{name:TABLE_PKREWARD},
-    {name:TABLE_LOCALIZE},{name:TABLE_FRAGMENT},{name:TABLE_UNIT}
+    {name:TABLE_LOCALIZE},{name:TABLE_FRAGMENT},{name:TABLE_UNIT}, {name:TABLE_PRENTICE},
   ];
   if (!path) path = "./";
   configTable.forEach(function (e) {
@@ -806,6 +807,7 @@ Event_UpdateStoreInfo = 10;
 Event_Fail = 11;
 Event_UpdateQuest = 19;
 Event_DungeonExit = 31;
+Event_UpdatePrentice = 32;
 
 exports.fileVersion = -1;
 

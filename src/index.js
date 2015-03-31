@@ -460,7 +460,7 @@ function paymentHandler (request, response) {
         gServerConfig = {
             type: "Worker",
             port: g_ipConfig.Port,
-            handler: require("./commandHandlers").route
+            handler: {}//require("./commandHandlers").route
         };
         gServerID =  g_svConfig.ID;
         gServerName = g_svConfig.Name;

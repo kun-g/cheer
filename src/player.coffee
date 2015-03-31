@@ -19,6 +19,7 @@ libReward = require('./reward')
 libCampaign = require("./campaign")
 libTime = require('./timeUtils.js')
 campaign_LoginStreak = new libCampaign.Campaign(queryTable(TABLE_DP))
+{doGetProperty} = require('./trigger')
 
 AllClassIDs =[0,1,2,131,132,164,216,217,218]
 #TODO this must be remove
@@ -56,6 +57,205 @@ isInRangeTime = (timeLst,checkTime) ->
 #
 #exports.getSlotFreezeInfo  = getSlotFreezeInfo
 # ======================== Player
+
+doSetProperty = (obj, key, value) ->
+  if typeof key is 'string'
+    properties = key.split('.')
+  else
+    properties = [key]
+  poped = properties.pop()
+  for k in properties
+    if not obj[k]?
+      obj[k] ={}
+    obj = obj[k]
+
+  obj[poped] = value
+
+
+PrenticeQulity =
+  White: 0
+  Blue: 1
+  Orange: 2
+
+
+Object.defineProperty(PrenticeQulity, 'size', {
+  enumerable : false,
+  configurable : false,
+  value:underscore.keys(PrenticeQulity).length
+  })
+
+class Prentice extends Serializer
+  constructor: (data) ->
+    cfg = {
+      quality: PrenticeQulity.White,
+      name : '',
+      class:0,
+      gender : 'gen',
+      hairStyle : 'hst',
+      hairColor : 'hcl',
+      equipment:[],
+    }
+
+    super(data, cfg, {})
+  upgradeQuality: () ->
+    @quality++
+  queryInfo: (type, args) ->
+    switch type
+      when 'skills'
+        data =  @getConfig('unlockSkill')
+        unlockSkillIds = underscore.range(@quality)
+          .reduce((acc, quality) ->
+            return acc.concat(data[quality])
+          ,[])
+
+        validateSkill = args[@class]?.skill ? []
+        return underscore.pick(validateSkill, unlockSkillIds)
+      when 'canUpdateQuality'
+        return @quality < PrenticeQulity.Orange
+      when 'basicInfo'
+        ret = underscore.pick(@, args)
+        return ret
+
+  getConfig:(type) ->
+    queryTable(TABLE_PRENTICE, @class)?[type]
+
+
+class PrenticeLst extends Serializer
+  constructor: (data) ->
+    @battleLst =[]
+    @masterSkill ={}
+    cfg = {
+      prenticeLst: [],
+      maxPrentice: 2,
+    }
+    super(data, cfg, {})
+
+    #@prenticeLst = [] unless Array.isArray(@prenticeLst)
+
+
+  setMaster: (@master) ->
+    for classId, data of @master.heroBase when classId isnt 'undefined'
+      @masterSkill[classId] = (new Hero(data)).wSpellDB
+    @onMasterChange(master)
+  add: (data, index) ->
+    if index? and not @prenticeLst[index]?
+      return {ret: RET_PrenticeNotExist}
+    ret = @_canAdd(data.class,not index?)
+    return ret unless ret.ret is RET_OK
+    idx = index ? @prenticeLst.length
+    quality = @prenticeLst[idx]?.quality ? PrenticeQulity.White
+    data = underscore.extend(data, {quality:quality})
+    if index?
+      rmRet = @_removeEquipment(idx)
+      ret.ntf = rmRet.concat(ret.ntf) if rmRet?
+    @prenticeLst[idx] = new Prentice(data)
+    res = @_aquireInitEquipment(idx, data.class)
+    ret.ntf = res.concat(ret.ntf) if ret.res?
+    return ret
+
+  _removeEquipment: (idx) ->
+    @prenticeLst[idx].equipment.reduce((acc, slot) =>
+      acc.concat(@master.removeItem(null, 1, slot))
+    ,[])
+  _aquireInitEquipment: (idx,cid) ->
+    equipLst = @getConfig(cid,'initialEquip') ? []
+    reward = equipLst.map((itemId) ->
+      {type:PRIZETYPE_ITEM, value:itemId,count:1})
+    @master.claimPrize(reward,true,idx)
+
+  _canAdd: (classId, isNewPrentice) ->
+    return {ret:RET_PrenticeUplimit} if isNewPrentice and @count() >= @maxPrentice
+    return {ret:RET_PrenticeClassLock} unless @master.isUnlockClass(classId)
+    if isNewPrentice
+      cost = @getConfig('globalCfg','unlockCost')[@count()]
+    else
+      cost = @getConfig('globalCfg','rebornCost')
+    return {ret: RET_OK} unless cost?
+    ntf = @master.claimCost(cost)
+    ret = {ret: RET_OK, ntf:ntf}
+    ret.ret = RET_ItemNotExist unless ntf?
+    return ret
+  _getIdxByName: (name) ->
+    
+    ret = -1
+    @prenticeLst.every((e,idx) ->
+      if e.name is name
+        ret = idx
+        return false
+    )
+    return ret
+
+  getConfig:(key, type) ->
+    queryTable(TABLE_PRENTICE, key)?[type]
+
+  getEquip: (idx) ->
+    if typeof idx is 'number'
+      idxLst = [idx]
+    else if idx is 'allBattle'
+      idxLst = @battleLst
+    else
+      idxLst = [0..@count()-1]
+
+    idxLst.reduce((acc,i) =>
+      return acc.concat(@prenticeLst[i].equipment)
+    ,[])
+  delEquip: (prenticeIdx, idx) ->
+    if @prenticeLst[prenticeIdx]?.equipment?[idx]?
+      delete @prenticeLst[prenticeIdx].equipment[idx]
+  addEquip: (prenticeIdx,idx,slot) ->
+    @prenticeLst[prenticeIdx].equipment[idx] = slot
+  count: () -> @prenticeLst.length
+  go4War: (team) ->
+    @battleLst = team.reduce((acc, data) =>
+      idx = @_getIdxByName(data.name)
+      if idx isnt -1
+        return acc.push( idx)
+      return acc)
+    
+  upgrade: (idx) ->
+    unless @getInfo(idx, 'canUpdateQuality',['class','quality'])
+      return {ret: RET_PrenticeUpdateLimit}
+
+    info = @getInfo(idx, 'basicInfo',['class','quality'])
+    return {ret:RET_PrenticeInvalidate} unless info?
+    cost = @getConfig(info.class,'upgradeCost')[info.quality]
+    ret = @master.claimCost(cost)
+    if ret?
+      @prenticeLst[idx].upgradeQuality()
+  getInfo: (idx,type,keys) ->
+    @prenticeLst[idx]?.queryInfo(type,keys)
+  getBasicInfo: (idxs) ->
+    count = @count()
+    if count is 0
+      idxs = []
+    else if not idxs?
+      idxs = [0..count - 1]
+    idxs.map((idx) =>
+      info = @getInfo(idx,'basicInfo',['name','gender', 'class',
+      'hairStyle', 'hairColor', 'quality', 'equipment'])
+      info.equipment = info.equipment.map((slot) =>
+        item = @master.inventory.get(slot)
+        if item?
+          return { cid: item.classId, eh: item.enhancement }
+        return {}
+      )
+      info.skill = @prenticeLst[idx].queryInfo('skills', @masterSkill)
+      return info
+    )
+  
+  syncPrentice:(idxs) ->
+    ret = {
+        #lst:@prenticeLst.queryInfo('basicInfo')
+        max:@maxPrentice,
+        lst:@getBasicInfo(idxs)
+        
+    }
+    return ret
+
+    
+  onMasterChange: (master) ->
+    @masterSkill[@master.class] =  (new Hero(@master.hero)).wSpellDB
+
 class Player extends DBWrapper
   constructor: (data) ->
     @type = 'player'
@@ -63,7 +263,9 @@ class Player extends DBWrapper
     @playerLevel = 0
     now = new Date()
     cfg = {
-      dbKeyName: '',
+    
+
+    
       name: '',
       questTableVersion: -1,
       stageTableVersion: -1,
@@ -84,6 +286,8 @@ class Player extends DBWrapper
       #TODO: hero is duplicated
       hero: {},
       playerXp: 0,
+
+      prenticeLst: new PrenticeLst(),
 
       inviter: {},
       invitee: {},
@@ -111,8 +315,10 @@ class Player extends DBWrapper
       heroVersion: 1,
       stageVersion: 1,
       questVersion: 1,
-      energyVersion: 1
+      prenticeVersion: 1,
       
+      energyVersion: 1,
+
       abIndex: rand(),
     }
     for k,v of libReward.config
@@ -161,11 +367,47 @@ class Player extends DBWrapper
     else
       logUser(msg)
 
+  # param prenticeIdxOrAll
+  # null for getting master's
+  # num for getting the num index of prentice's
+  # 'all' for getting all 
+  # 'allBattle' for getting master and prentice who go for war
+  getEquipRef: (prenticeIdxOrAll) ->
+    if not prenticeIdxOrAll?
+      return @equipment
+    else if typeof  prenticeIdxOrAll is 'number'
+      return @prenticeLst.getEquip(prenticeIdxOrAll)
+    else
+      return @equipment.concat(@prenticeLst.getEquip(prenticeIdxOrAll))
+
+  addEquipRef: (idx,slot,prenticeIdx) ->
+    if not prenticeIdx?
+      @equipment[idx] = slot
+    else
+      @prenticeLst.addEquip(prenticeIdx,idx,slot)
+  # param prenticeIdx
+  # null for deleting master's
+  # num for deleting the num index of prentice's
+  delEquipRef: (idx, prenticeIdx) ->
+    if not  prenticeIdx?
+      delete @equipment[idx]
+    else if typeof  prenticeIdx is 'number'
+      return @prenticeLst.delEquip(prenticeIdx, idx)
+
+  findEquipRef: (slot) ->
+    for k, v of @getEquipRef()
+      return {where:'master', idx:k} if (+v) is (+slot)
+    if @prenticeLst.count() > 0
+      for k in [0..@prenticeLst.count()-1]
+        for i, v of @getEquipRef(+k)
+          return {where:'prentice', prenticeIdx: k, idx:i} if (+v) is (+slot)
+    return {}
+
   isEquiped: (slot) ->
-    equipment = (e for i, e of @equipment)
+    equipment = (e for i, e of @getEquipRef('all'))
     return equipment.indexOf(+slot) != -1
 
-  migrate: () -> #TODO:deprecated
+  migrate: (prenticeIdx) -> #TODO:deprecated
     flag = false
     for slot, item of @inventory.container when item?
       if item.transPrize?
@@ -250,6 +492,7 @@ class Player extends DBWrapper
     ret.push(@syncCounters(['energyRecover'],true))
     @createHero()
     @updateMenFlags(PLAYERLEVELID,0,@playerXp)
+    @prenticeLst.setMaster(@)
     return ret
 
   claimLoginReward: () ->
@@ -545,6 +788,9 @@ class Player extends DBWrapper
       })
     @saveDB(cb)
 
+  isUnlockClass: (classId) ->
+    classId is @hero.class or @heroBase[classId]?
+
   putOnEquipmentAfterSwitched: (heroClass)->
     return unless underscore.isEmpty(@heroBase[heroClass].equipment)
     prize = queryTable(TABLE_ROLE, heroClass)?.initialEquipment
@@ -571,7 +817,7 @@ class Player extends DBWrapper
     else if @hero
       bag = @inventory
       equip = []
-      temp = underscore.uniq(@equipment)
+      temp = underscore.uniq(@getEquipRef())
       equip.push({
         cid: bag.get(e).classId
         eh: bag.get(e).enhancement }) for i, e of temp when bag.get(e)?
@@ -601,7 +847,7 @@ class Player extends DBWrapper
       @heroBase[@hero.class] = {}
       for k, v of @hero
         @heroBase[@hero.class][k] = JSON.parse(JSON.stringify(v)) if k isnt 'equipment'
-      @heroBase[@hero.class].equipment = JSON.parse(JSON.stringify(@equipment))
+      @heroBase[@hero.class].equipment = JSON.parse(JSON.stringify(@getEquipRef()))
 
     for k, v of @heroBase[hClass]
       @hero[k] = JSON.parse(JSON.stringify(v))
@@ -743,7 +989,10 @@ class Player extends DBWrapper
       (cb) => if @dungeonData.stage? then cb('OK') else cb(),
       (cb) => if @stageIsUnlockable(stage, rankIdx) then cb() else cb(RET_StageIsLocked),
       (cb) => if @costEnergy(cost) then cb() else cb(RET_NotEnoughEnergy),
-      (cb) => @requireMercenary((team) => cb(null, team)),
+      (cb) => @requireMercenary(
+        (team) =>
+          cb(null, team)
+        ,stageConfig.teamType),
       (mercenary, cb) =>
         teamCount = stageConfig.team ? 3
         if @stage[stage]? and @stage[stage].level?
@@ -774,6 +1023,8 @@ class Player extends DBWrapper
           else
             @costEnergy(-cost)
             return cb(RET_NeedTeammate)
+
+          @prenticeLst.go4War(team)
         cb(null, team, level)
       ,
       (team, level, cb) =>
@@ -910,7 +1161,7 @@ class Player extends DBWrapper
 
     return ret
 
-  claimPrize: (prize, allOrFail = true) ->
+  claimPrize: (prize, allOrFail = true,prenticeIdx) ->
     return [] unless prize?
     prize = [prize] unless Array.isArray(prize)
 
@@ -920,7 +1171,7 @@ class Player extends DBWrapper
       @inventoryVersion++
       switch p.type
         when PRIZETYPE_ITEM
-          res = @aquireItem(p.value, p.count, allOrFail)
+          res = @aquireItem(p.value, p.count, allOrFail,prenticeIdx)
           if not (res? and res.length >0)
             return [] if allOrFail
           gServerObject.notify('playerClaimItem',{player:@name,item:p.value})
@@ -932,11 +1183,11 @@ class Player extends DBWrapper
         when PRIZETYPE_WXP
           continue unless p.count
           equipUpdate = []
-          for i, k of @equipment
+          for i, k of @getEquipRef('allBattle')
             e = @getItemAt(k)
             unless e?
               logError({action: 'claimPrize', reason: 'equipmentNotExist', name: @name, equipSlot: k, index: i})
-              delete @equipment[k]
+              delete @equipment[k] #TODO faruba
               continue
             e.xp = e.xp+p.count
             equipUpdate.push({sid: k, xp: e.xp})
@@ -960,6 +1211,9 @@ class Player extends DBWrapper
               @counters['worldBoss'][p.counter] = 0 unless @counters['worldBoss'][p.counter]?
               @counters['worldBoss'][p.counter] += p.delta
               helperLib.assignLeaderboard(@, p.boardId)
+            when "setValue"
+              target = if p.target is 'player' then @ else gServerObject
+              doSetProperty(target, p.key, p.value)
     return ret
 
   isQuestAchieved: (qid) ->
@@ -1012,7 +1266,8 @@ class Player extends DBWrapper
 
   queryItemSlot: (item) -> @inventory.queryItemSlot(item)
 
-  getItemAt: (slot) -> @inventory.get(slot)
+  getItemAt: (slot) ->
+    return @inventory.get(slot)
 
   getUpgradeSkillInfo: (skillId, type, arg) ->
     switch type
@@ -1058,12 +1313,12 @@ class Player extends DBWrapper
     ret = [@syncHero(true)].concat(ret)
     return {ret:RET_OK,ntf:ret}
 
-  useItem: (slot, opn)->#opn 时装系统装备卸下时需要
+  useItem: (slot, opn, prenticeIdx = null)->#opn 时装系统装备卸下时需要
     item = @getItemAt(slot)
     myClass = @hero.class
     return { ret: RET_ItemNotExist } unless item?
     return { ret: RET_RoleClassNotMatch } unless isClassMatch(myClass, item.classLimit)
-    @log('useItem', { slot: slot, id: item.id })
+    @log('useItem', { slot: slot, id: item.id ,pIdx: prenticeIdx})
 
     switch item.category
       when ITEM_USE
@@ -1090,7 +1345,7 @@ class Player extends DBWrapper
                 ret = ret.concat(this.syncEnergy())
             return { ret: RET_OK, ntf: ret }
       when ITEM_EQUIPMENT
-        ret = @equipItem(slot)
+        ret = @equipItem(slot,prenticeIdx)
         return { ret: RET_OK, ntf: [ret] }
       when ITEM_RECIPE
         if item.recipeTarget?
@@ -1121,7 +1376,7 @@ class Player extends DBWrapper
        #    return {out:recipe.prize, ntf:recipe.res}
         
 
-    logError({action: 'useItem', reason: 'unknow', catogory: item.category, subcategory: item.subcategory, id: item.id})
+    logError({action: 'useItem', reason: 'unknow', catogory: item.category, subcategory: item.subcategory, id: item.id, pIdx: prenticeIdx})
     return {ret: RET_UseItemFailed}
 
   doAction: (routine) ->
@@ -1129,8 +1384,8 @@ class Player extends DBWrapper
     cmd.process()
     return cmd.translate()
 
-  aquireItem: (item, count, allOrFail) ->
-    @doAction({id: 'AquireItem', item: item, count: count, allorfail: allOrFail})
+  aquireItem: (item,  count, allOrFail,prenticeIdx) ->
+    @doAction({id: 'AquireItem', item: item, count: count, allorfail: allOrFail,pIdx:prenticeIdx})
 
   removeItemById: (id, count, allorfail) ->
     @doAction({id: 'RemoveItem', item: id, count: count, allorfail: allorfail})
@@ -1153,18 +1408,20 @@ class Player extends DBWrapper
   #getSlotFreezeInfo: (slot) -> getSlotFreezeInfo(@,slot)
 
   unequipItem: (slot) ->
-    for k, v of @equipment
-      delete @equipment[k] if (+v) is (+slot)
+    {where, prenticeIdx, idx}= @findEquipRef(slot)
+    if where?
+      @delEquipRef(idx, prenticeIdx)
     return
 
-  equipItem: (slot) ->
+  equipItem: (slot, prenticeIdx = null) ->
     #info = @getSlotFreezeInfo(slot)
 
     item = @getItemAt(slot)
     return { ret: RET_RoleLevelNotMatch } if item.rank? and @createHero().level < item.rank
     ret = {NTF: Event_InventoryUpdateItem, arg: {syn:@inventoryVersion, itm: []}}
 
-    equip = @equipment[item.subcategory]
+    equipment = @getEquipRef(prenticeIdx)
+    equip = equipment[item.subcategory]
     tmp = {sid: slot, sta: 0}
 
     if equip is slot
@@ -1172,14 +1429,14 @@ class Player extends DBWrapper
     else
       if equip?
         @unequipItem(equip)
-        ret.arg.itm.push({sid: equip, sta: 0})
-      @equipment[item.subcategory] = slot
+        ret.arg.itm.push({sid: equip, sta: 0, pIdx : prenticeIdx})
+      @addEquipRef(item.subcategory, slot, prenticeIdx)
       if item.extraSlots?
         for v_slot in item.extraSlots
-          if @equipment[v_slot]?
-            ret.arg.itm.push({sid: @equipment[v_slot], sta: 0})
-            @unequipItem(@equipment[v_slot])
-          @equipment[v_slot] = slot
+          if equipment[v_slot]?
+            ret.arg.itm.push({sid: equipment[v_slot], sta: 0, pIdx: prenticeIdx})
+            @unequipItem(equipment[v_slot])
+          @addEquipRef(v_slot, slot, prenticeIdx)
       tmp.sta = 1
     ret.arg.itm.push(tmp)
     delete ret.arg.itm if ret.arg.itm.length < 1
@@ -1187,7 +1444,7 @@ class Player extends DBWrapper
     @onEvent('Equipment')
     return ret
 
-  levelUpItem: (slot) ->
+  levelUpItem: (slot, prenticeIdx) ->
     item = @getItemAt(slot)
     return { ret: RET_ItemNotExist } unless item?
     return { ret: RET_EquipCantUpgrade } unless item.upgradeTarget? and @createHero().level > item.rank
@@ -1202,13 +1459,13 @@ class Player extends DBWrapper
     return { ret: RET_InsufficientEquipXp } if item.xp < exp
     return { ret: RET_NotEnoughGold } if this.gold < cost
 
-    delete @equipment[k] for k, s of @equipment when s is slot
+    @unequipItem(slot)
 
-    this.addGold(-cost)
+    @addGold(-cost)
     ret = this.removeItem(null, 1, slot)
     newItem = libItem.createItem(item.upgradeTarget)
     newItem.enhancement = item.enhancement
-    ret = ret.concat(this.aquireItem(newItem))
+    ret = ret.concat(this.aquireItem(newItem, 1,null, prenticeIdx))
     eh = newItem.enhancement.map((e) -> {id:e.id, lv:e.level})
     ret = ret.concat({
       NTF: Event_InventoryUpdateItem,
@@ -1223,7 +1480,7 @@ class Player extends DBWrapper
       dbLib.broadcastEvent(BROADCAST_ITEM_LEVEL, {who: @name, what: item.id, many: newItem.rank})
 
     @onEvent('Equipment')
-    return { out: {cid: newItem.id, sid: @queryItemSlot(newItem), stc: 1, sta: 1, eh: eh}, res: ret }
+    return { out: {cid: newItem.id, sid: @queryItemSlot(newItem), stc: 1, sta: 1, eh: eh, pIdx:prenticeIdx}, res: ret }
 
   upgradeItemQuality: (slot) ->
     item = @getItemAt(slot)
@@ -1717,17 +1974,13 @@ class Player extends DBWrapper
     @onCampaign('Stage')
     return ret.concat(this.updateStageStatus(level))
 
-  requireMercenary: (callback) ->
+  # teamType :[withoutPrentice| withPrentice| onlyPrentice]
+  requireMercenary: (callback, teamType = 'withoutPrentice') ->
     me = @
-    if not callback then return
-    if @mercenary.length >= MERCENARYLISTLEN
-      callback(@mercenary.map( (h) -> new Hero(h)))
-    else
-      #// TODO: range  & count to config
+    getBlackWhiteListDepandOnContacBook = () =>
       validateFriend = []
       @counters.friendHireTime ?={}
-      filtedName = [@name]
-      filtedName = filtedName.concat(@mercenary.map((m) -> m.name))
+      filtedName = [@name].concat(@mercenary.map((m) -> m.name))
       if @contactBook?
         filtedName = filtedName.concat(@contactBook.book)
         validateFriend = underscore.sample(@contactBook.book.filter((name) =>
@@ -1735,13 +1988,31 @@ class Player extends DBWrapper
           res = not times? or times < 1
           return res
         ),5)
+      return {filtedName: filtedName, validateFriend: validateFriend }
 
+
+    if not callback then return
+
+    if teamType is 'onlyPrentice'
+      @mercenary = me.prenticeLst.getBasicInfo()
+      callback(@mercenary.map( (h) -> new Hero(h)))
+      return
+
+
+    if @mercenary.length >= MERCENARYLISTLEN
+      callback(@mercenary.map( (h) -> new Hero(h)))
+    else
+      #// TODO: range  & count to config
+
+      {filtedName,validateFriend} = getBlackWhiteListDepandOnContacBook()
       getMercenaryMember(@name, 5, 30, 1, filtedName,validateFriend
         (err, heroData) ->
+          if teamType is 'withPrentice'
+            heroData = me.prenticeLst.getBasicInfo().concat(heroData)
           if heroData
             me.mercenary = me.mercenary.concat(heroData.filter((e) -> e?))
             me.mercenary = underscore.uniq(me.mercenary,false, (obj) -> obj.name)
-            me.requireMercenary(callback)
+            me.requireMercenary(callback, teamType)
           else
             callback(null)
       )
@@ -1856,11 +2127,15 @@ class Player extends DBWrapper
     items = bag.container
       .map(wrapCallback(this, (e, index) =>
         return null unless e? and bag.queryItemSlot(e)?
-        ret = {sid: bag.queryItemSlot(e), cid: e.id, stc: e.count}
+        slot = bag.queryItemSlot(e)
+        ret = {sid: slot, cid: e.id, stc: e.count}
 
         if e.xp? then ret.xp = e.xp
-        for i, equip of this.equipment when equip is index
+
+        {where, prenticeIdx, idx}= @findEquipRef(slot)
+        if where?
           ret.sta = 1
+          ret.pIdx = prenticeIdx
 
         if e.enhancement
           ret.eh = e.enhancement.map((e) -> {id:e.id, lv:e.level})
@@ -1916,6 +2191,9 @@ class Player extends DBWrapper
     if forceUpdate then ev.arg.clr = true
     
     return ev
+
+  syncPrentice: (forceUpdate) ->
+    @prenticeLst.syncPrentice()
 
   syncVipData: (forceUpdate) ->
     vipOp = [
@@ -2002,7 +2280,8 @@ class Player extends DBWrapper
       heroVersion : 'act',
       #//dungeonVersion : 'dgn',
       stageVersion : 'stg',
-      questVersion : 'qst'
+      questVersion : 'qst',
+      prenticeVersion : 'pre',
     }
 
     versions = grabAndTranslate(this, translateTable)
@@ -2250,6 +2529,7 @@ class Player extends DBWrapper
     @saveDB(cb)
     return ret
 
+
 playerMessageFilter = (oldMessage, newMessage, name) ->
   message = newMessage
   messageIDMap = {}
@@ -2290,7 +2570,7 @@ class PlayerEnvironment extends Environment
   removeItem: (item, count, slot, allorfail) ->
     result = {ret: @player?.inventory.remove(item, count, slot, allorfail), version: @player.inventoryVersion}
     if result.ret isnt []
-      delete @player.equipment[k] for k, s of @player.equipment when s is slot
+      @player.unequipItem(slot)
     return result
   translateAction: (cmd) ->
     return [] unless cmd?
@@ -2327,7 +2607,7 @@ playerCSConfig = {
       return [{NTF: Event_InventoryUpdateItem, arg: arg}]
   },
   UseItem: {
-    output: (env) -> return env.player.useItem(env.variable('slot')).ntf
+    output: (env) -> return env.player.useItem(env.variable('slot'),null,env.variable('pIdx')).ntf
   },
   AquireItem: {
     callback: (env) ->
@@ -2343,7 +2623,7 @@ playerCSConfig = {
       @routine({id: 'ItemChange', ret: ret, version: env.player.inventoryVersion})
       if ret
         for e in ret when env.player.getItemAt(e.slot).autoUse
-          @next({id: 'UseItem', slot: e.slot})
+          @next({id: 'UseItem', slot: e.slot, pIdx:env.variable('pIdx')})
   },
   RemoveItem: {
     callback: (env) ->
@@ -2367,5 +2647,9 @@ getVip = (rmb) ->
 
 registerConstructor(Player)
 exports.Player = Player
+registerConstructor(Prentice)
+exports.Prentice = Prentice
+registerConstructor(PrenticeLst)
+exports.PrenticeLst =PrenticeLst
 exports.playerMessageFilter = playerMessageFilter
 exports.getVip = getVip

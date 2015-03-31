@@ -27,6 +27,10 @@ USE_ITEM_OPT_RECYCLE = 7
 USE_ITEM_OPT_SELL = 8
 UPGRAGE_SKILL = 9
 
+PRENTICE_OP_CREATE = 0
+PRENTICE_OP_REBORN = 1
+PRENTICE_OP_UPGRADE = 2
+
 checkRequest = (req, player, arg, rpcID, cb) ->
   dbLib.checkReceiptValidate(arg.rep, (isValidate) ->
     if isValidate
@@ -934,9 +938,12 @@ exports.route = {
           ev = ev.concat(player.syncEnergy(true))
         else if e == 'qst'
           ev = ev.concat(player.syncQuest(true))
+        else if e == 'pre'
+          ev = ev.concat(player.syncPrentice(true))
         #else if (e == 'frd') { ev = ev.concat(player.syncQuest(true)); }
         return
       handler(ev)
+    needPid: true
   },
   QueryRoleInfo:{
     id: 26,
@@ -954,6 +961,7 @@ exports.route = {
             RET: RET_PlayerNotExists
           } ])
       )
+    needPid: true
   },
 
   ExploreDungeon :{
@@ -961,6 +969,7 @@ exports.route = {
     func: (arg, player, handler, reqID, socket, flag, req) ->
       handler(player.dungeonAction(req))
       player.saveDB()
+    needPid: true
   },
 
   DoActivate :{
@@ -968,6 +977,7 @@ exports.route = {
     func: (arg, player, handler, reqID, socket, flag, req) ->
       handler(player.dungeonAction(req))
       player.saveDB()
+    needPid: true
   },
 
   DoAttack :{
@@ -975,6 +985,7 @@ exports.route = {
     func: (arg, player, handler, reqID, socket, flag, req) ->
       handler(player.dungeonAction(req))
       player.saveDB()
+    needPid: true
   },
 
   DoSpell :{
@@ -982,6 +993,7 @@ exports.route = {
     func: (arg, player, handler, reqID, socket, flag, req) ->
       handler(player.dungeonAction(req))
       player.saveDB()
+    needPid: true
   },
 
   DoCancelDungeon :{
@@ -989,6 +1001,7 @@ exports.route = {
     func: (arg, player, handler, reqID, socket, flag, req) ->
       handler(player.dungeonAction(req))
       player.saveDB()
+    needPid: true
   },
 
   DoCheckPos :{
@@ -996,6 +1009,7 @@ exports.route = {
     func: (arg, player, handler, reqID, socket, flag, req) ->
       handler(player.dungeonAction(req))
       player.saveDB()
+    needPid: true
   },
 
   DoRevive :{
@@ -1003,6 +1017,7 @@ exports.route = {
     func: (arg, player, handler, reqID, socket, flag, req) ->
       handler(player.dungeonAction(req))
       player.saveDB()
+    needPid: true
   },
 
   DoCardSpell :{
@@ -1016,6 +1031,7 @@ exports.route = {
         } ]
       handler(ret)
       player.saveDB()
+    needPid: true
   },
 
 # 出售
@@ -1025,6 +1041,7 @@ exports.route = {
     func: (arg, player, handler, rpcID) ->
       slot = Math.floor(arg.sid)
       opn = Math.floor(arg.opn)
+      pIdx = arg.pIdx
       ret = null
       switch opn
         when USE_ITEM_OPT_INJECTWXP
@@ -1032,7 +1049,7 @@ exports.route = {
         when USE_ITEM_OPT_SELL
           ret = player.sellItem(slot, arg.sho)
         when USE_ITEM_OPT_LEVELUP
-          ret = player.levelUpItem(slot, arg.sho)
+          ret = player.levelUpItem(slot, pIdx)
         when USE_ITEM_OPT_ENHANCE
           ret = player.enhanceItem(slot)
         when USE_ITEM_OPT_RECYCLE
@@ -1045,7 +1062,7 @@ exports.route = {
           skillId = slot
           ret = player.upgradeSkill(skillId)
         else
-          ret = player.useItem(slot, opn)
+          ret = player.useItem(slot, opn, pIdx)
           break
       evt ={
         REQ: rpcID
@@ -1059,6 +1076,7 @@ exports.route = {
       res = res.concat(ret.ntf) if ret.ntf?
       handler(res)
       player.saveDB()
+    needPid: true
   },
 
   DoRequireMercenaryList :{
@@ -1083,6 +1101,7 @@ exports.route = {
             RET: RET_RequireMercenaryFailed
           }))
       player.saveDB()
+    needPid: true
   },
 
   DoClaimLoginStreakReward :{
@@ -1098,6 +1117,7 @@ exports.route = {
       if ret.ret == RET_OK
         player.saveDB()
       handler(res)
+    needPid: true
   },
 
 # Request_RefreshRefreshMercenaryList
@@ -1125,6 +1145,7 @@ exports.route = {
           RET: RET_NotEnoughGold
         } ])
       player.saveDB()
+    needPid: true
   },
 
 # Request_ClaimDungeonReward 
@@ -1135,6 +1156,7 @@ exports.route = {
       #var ret = player.claimDungeonAward();
       #handler(ret);
       player.saveDB()
+    needPid: true
   },
 
   DoBuyItem :{
@@ -1152,6 +1174,7 @@ exports.route = {
           RET: RET_OK
         } ].concat(ret))
       player.saveDB()
+    needPid: true
   },
 
   DoBuyEnergy :{
@@ -1268,6 +1291,7 @@ exports.route = {
         cost: diamondCost
       handler evt
       return
+    needPid: true
   },
 
   DoClaimQuestReward :{
@@ -1285,6 +1309,7 @@ exports.route = {
           RET: RET_OK
         } ].concat(ret)
       player.saveDB()
+    needPid: true
   },
 
   DoUpdateTutorial :{
@@ -1293,6 +1318,7 @@ exports.route = {
       player.log 'updateTutorial', tutorial: arg.stg
       player.tutorialStage = +arg.stg
       player.saveDB()
+    needPid: true
   },
 
   DoChat :{
@@ -1316,6 +1342,7 @@ exports.route = {
       handler
         REQ: rpcID
         RET: RET_OK
+    needPid: true
   },
 
   DoInviteFriend :{
@@ -1327,17 +1354,20 @@ exports.route = {
           RET: err.message
         return
       return
+    needPid: true
   },
 
-  DoRemoveFriend :
+  DoRemoveFriend :{
     id: 22,
     func: (arg, player, handler, rpcID) ->
       handler
         REQ: rpcID
         RET: player.removeFriend(arg.nam)
       return
+    needPid: true
+  },
 
-  DoHireFriend :
+  DoHireFriend :{
     id: 23,
     func: (arg, player, handler, rpcID) ->
       player.hireFriend arg.nam, (lst) ->
@@ -1358,8 +1388,10 @@ exports.route = {
             RET: RET_HireFriendFailed
         return
       return
+    needPid: true
+  },
 
-  DoWhisper :
+  DoWhisper :{
     id: 24,
     func: (arg, player, handler, rpcID) ->
       player.whisper arg.nam, arg.txt, (err, ret) ->
@@ -1370,8 +1402,10 @@ exports.route = {
           RET: err
         return
       return
+    needPid: true
+  },
 
-  DoOperateNotify :
+  DoOperateNotify :{
     id: 25,
     func: (arg, player, handler, rpcID) ->
       player.operateMessage arg.typ, arg.sid, arg.opn, (err, ret) ->
@@ -1391,5 +1425,29 @@ exports.route = {
         player.saveDB()
         return
       return
+    needPid: true
+  },
 
+  PrenticeOpt:{
+    id: 43,
+    func: (arg, player, handler, rpcID) ->
+      switch arg.op
+        when PRENTICE_OP_CREATE, PRENTICE_OP_REBORN
+          temp = {
+            name: 'zsp_30',
+            gender: 0,
+            class: 1,
+            hairStyle : 3,
+            hairColor: 1,
+            pIdx: arg.pIdx,
+          }
+          arg = temp
+          {ret,ntf} = player.prenticeLst.add(arg,arg.pIdx)
+        when PRENTICE_OP_UPGRADE
+          {ret,ntf} = player.prenticeLst.upgrade(arg.pIdx)
+      ret.REQ = rpcID
+      handler([ret].concat(ntf))
+      player.saveDB()
+    needPid: true
+  },
 }
