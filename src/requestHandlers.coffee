@@ -1082,6 +1082,7 @@ exports.route = {
   DoRequireMercenaryList :{
     id: 12,
     func: (arg, player, handler, rpcID) ->
+      teamType = queryTable(TABLE_STAGE, arg.stg,player.abIndex).teamType
       player.mercenary = []
       player.requireMercenary((lst) ->
         if lst?
@@ -1099,7 +1100,8 @@ exports.route = {
           handler({
             REQ: rpcID
             RET: RET_RequireMercenaryFailed
-          }))
+          })
+      ,teamType)
       player.saveDB()
     needPid: true
   },
