@@ -209,8 +209,9 @@ class PrenticeLst extends Serializer
     @battleLst = team.reduce((acc, data) =>
       idx = @_getIdxByName(data.name)
       if idx isnt -1
-        return acc.push( idx)
-      return acc)
+        acc.push(idx)
+      return acc
+    ,[])
     
   upgrade: (idx) ->
     unless @getInfo(idx, 'canUpdateQuality',['class','quality'])
@@ -1013,7 +1014,7 @@ class Player extends DBWrapper
           leftTeamCount = teamCount-team.length
           if Array.isArray(selectedTeam) and selectedTeam.length >=leftTeamCount
             temp = []
-            temp.push(mercenary[idx]) for idx in selectedTeam
+            temp.push(mercenary[idx]) for idx in selectedTeam when mercenary[idx]?
             @updateFriendHiredInfo(temp)
             team = team.concat(temp)
             @mercenary = []
@@ -1187,7 +1188,8 @@ class Player extends DBWrapper
             e = @getItemAt(k)
             unless e?
               logError({action: 'claimPrize', reason: 'equipmentNotExist', name: @name, equipSlot: k, index: i})
-              delete @equipment[k] #TODO faruba
+              @unequipItem(k)
+              #delete @equipment[k] #TODO faruba
               continue
             e.xp = e.xp+p.count
             equipUpdate.push({sid: k, xp: e.xp})
