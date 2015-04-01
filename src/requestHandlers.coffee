@@ -1418,6 +1418,14 @@ exports.route = {
               ret.arg.shop = shop.dump2()
             player.saveDB();
             handler([ret].concat(sell_rst.ret))
+        when 2 # consume diamond to refresh
+          shop = player.getShop(arg.name, true) ? {}
+          return handler(ret) if shop.err?
+          ret.arg.shop = shop.dump2()
+          ret.RET = RET_OK
+          handler([ret].concat(
+            {NTF: Event_InventoryUpdateItem, arg:{god:player.gold, dim:player.diamond, mst:player.masterCoin}}
+          ))
         else # miss opn
           handler(ret)
     args: {},

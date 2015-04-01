@@ -2253,18 +2253,23 @@ class Player extends DBWrapper
     @saveDB(cb)
     return ret
 
-  getShop: (shopName) ->
+  getShop: (shopName, refresh) ->
     return {err:'generateShop: shopName null'} unless shopName?
     shopConfig = queryTable(shopName)
-    if @shops[shopName] and shopConfig.resetTime
-      creTime = moment(@shops[shopName].createTime || 0)
-      curTime = moment()
-      if curTime.diff(creTime, 'day', true) < 1
-        @shops[shopName].__proto__ = libShop.Shop.prototype
-        return @shops[shopName]
+    return {err:'generateShop: shopConfig null'} unless shopConfig?
+    
+    if not refresh
+      if @shops[shopName] and shopConfig.resetTime
+        creTime = moment(@shops[shopName].createTime || 0)
+        curTime = moment()
+        if curTime.diff(creTime, 'day', true) < 1
+          @shops[shopName].__proto__ = libShop.Shop.prototype
+          return @shops[shopName]
 
     try
-      @shops[shopName] = libShop.createShop(shopConfig, @shops[shopName])
+      @shops[shopName] = libShop.createShop(shopConfig, @shops[shopName], refresh)
+      if refresh is true
+        @addMoney(@shops[shopName].refreshCurrentCost.type, -@shops[shopName].refreshCurrentCost.price) if @shops[shopName].refreshCurrentCost?
       @saveDB()
       @shops[shopName].__proto__ = libShop.Shop.prototype
       return @shops[shopName]

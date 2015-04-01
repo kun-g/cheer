@@ -238,10 +238,17 @@ Shop.prototype.dump2 = function () {
         logError({type:'emptyShopList', goods: this.goods});
     }
 
-    return {goods: goods, version: this.version, currency: this.currency, resetTime: this.resetTime};
+    return {
+        goods: goods,
+        version: this.version,
+        currency: this.currency,
+        resetTime: this.resetTime,
+        refCost: this.refreshCurrentCost,
+        refTimes: this.refreshTimes
+    };
 };
 
-var createShop = function(config, shop){
+var createShop = function(config, shop, refresh){
     if( !config ) throw new Error('Missing Config');
     if( !config.type ) throw new Error('Missing Type');
     if( !config.currency ) throw new Error('Missing currency');
@@ -250,6 +257,9 @@ var createShop = function(config, shop){
     if( shop == null ){
         shop = new Shop();
     }else{
+        if( refresh ){
+            shop.refreshTimes = (shop.refreshTimes || 0) + 1;
+        }
         shop.version = (shop.version || 0) + 1;
     }
 
@@ -293,6 +303,13 @@ var createShop = function(config, shop){
         shop.resetTime = config.resetTime;
         shop.createTime = nowTime.format();
     }
+
+    // refreshBasicCost:{currency:'diamond', price:50}
+    shop.refreshBasicCost = deepCopy(config.refreshBasicCost);
+
+    var REFRESH_FACTOR = 0.5;
+    shop.refreshCurrentCost = deepCopy(config.refreshBasicCost);
+    shop.refreshCurrentCost.price = Math.floor(shop.refreshBasicCost.price * ( 1 + (shop.refreshTimes || 0) * REFRESH_FACTOR ));
 
     return shop;
 };
