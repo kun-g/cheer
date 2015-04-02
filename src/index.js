@@ -302,24 +302,27 @@ function paymentHandler (request, response) {
             });
         } else if (request.url.substr(0, 5) === '/jdp?') {
         } else if (request.url.substr(0, 6) === '/ASDK?') {
-			console.log('===============nice===');
-			var sign = sn + plateform + "41b4aa658a5004958053" +
-				"e95a4527862960bff3f49d367780d7bf" +"org.kddxc.koudaidixiachengapk.0.99";
-			var sn = '12345';
-			var plateform = 'asus';
+			var data = urlLib.parse(request.url, true).query
+            var receipt = data.receipt;
+            var sn = data.sn;
+			var productID = "org.kddxc.koudaidixiachengapk.0.99";// data.pId;
+			var platform = 'asus';
+			var AppId = "41b4aa658a5004958053";
+			var AppKey = "e95a4527862960bff3f49d367780d7bf";
+			var sign = sn + platform + AppId + AppKey + productID;
 
                 var b = new Buffer(1024);
                 var len = b.write(sign);
                 sign = md5Hash(b.toString('binary', 0, len));
 
-			post('https://pay.allsdk.com.tw/verifyOrder.do',
-					{sn:sn ,plateform:plateform,token:sign},
+			post('http://113.196.57.113/verifyOrder.do',
+					{sn:sn ,platform:platform,token:sign},
 					function(ret) {
 						ret = JSON.parse(ret);
-						if (ret.code == '0000'){
-							deliverReceipt(receipt, plateform, function (err) {
+						if (ret.code == '0000' && isRMBMatch(data.price,receipt)){
+							deliverReceipt(receipt, platform, function (err) {
                         if (err === null) {
-                            logInfo({action: 'AcceptPayment', receipt: receipt, info: out});
+                            logInfo({action: 'AcceptPayment', receipt: receipt, info: data});
                         } else {
                             logError({action: 'AcceptPayment', error:err, data: data, receipt:receipt});
                         }
