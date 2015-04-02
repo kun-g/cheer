@@ -265,6 +265,7 @@ exports.route = {
             if player.counters.monthCard
               msg.arg.mcc = player.counters.monthCard
             ev.push(msg)
+            ev.push({NTF: Event_InventoryUpdateItem, arg:{god:player.gold, dim:player.diamond, mst:player.masterCoin}})
             ev.push(player.syncVipData())
             async.parallel([
               (cb) -> player.fetchMessage(cb),

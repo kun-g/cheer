@@ -199,7 +199,7 @@ Shop.prototype.sell = function (customer, index, count, version) {
         };
         return ret;
     }
-    ret.ret.concat({NTF: Event_InventoryUpdateItem, arg:{god:customer.gold, dim:customer.diamond, mst:customer.masterCoin}});
+    ret.ret.push({NTF: Event_InventoryUpdateItem, arg:{god:customer.gold, dim:customer.diamond, mst:customer.masterCoin}});
 
     if( good.limit && good.limit.count != null ){
         good.limit.count -= count;
@@ -210,7 +210,6 @@ Shop.prototype.sell = function (customer, index, count, version) {
     ret.result = {
         good: {id:good.id, count:count, price:good.price}
     };
-    ret.ret.concat({NTF: -1, arg:{/*currency:customer[this.currency]*/}}); //todo:
 
     return ret;
 };
