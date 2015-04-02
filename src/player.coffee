@@ -90,9 +90,9 @@ class Prentice extends Serializer
       quality: PrenticeQulity.White,
       name : '',
       class:0,
-      gender : 'gen',
-      hairStyle : 'hst',
-      hairColor : 'hcl',
+      gender : 0,
+      hairStyle : 0,
+      hairColor : 0,
       equipment:[],
     }
 
@@ -126,7 +126,7 @@ class PrenticeLst extends Serializer
     @masterSkill ={}
     cfg = {
       prenticeLst: [],
-      maxPrentice: 2,
+      maxPrentice: 20,
     }
     super(data, cfg, {})
 
@@ -134,7 +134,7 @@ class PrenticeLst extends Serializer
 
 
   genName: (idx) ->
-    @master.name+'徒孙'+idx+'号'
+    @master.name+'徒孙'+(idx+1)+'号'
   setMaster: (@master) ->
     for classId, data of @master.heroBase when classId isnt 'undefined'
       @masterSkill[classId] = (new Hero(data)).wSpellDB
@@ -148,6 +148,7 @@ class PrenticeLst extends Serializer
     quality = @prenticeLst[idx]?.quality ? PrenticeQulity.White
     data = underscore.extend(data, {quality:quality})
     data.name = @genName(idx)
+    ret.ntf ?= []
     if index?
       rmRet = @_removeEquipment(idx)
       ret.ntf = rmRet.concat(ret.ntf) if rmRet?
@@ -180,12 +181,12 @@ class PrenticeLst extends Serializer
     ret.ret = RET_ItemNotExist unless ntf?
     return ret
   _getIdxByName: (name) ->
-    
     ret = -1
     @prenticeLst.every((e,idx) ->
       if e.name is name
         ret = idx
         return false
+      return true
     )
     return ret
 
@@ -255,7 +256,7 @@ class PrenticeLst extends Serializer
       arg:{
         #lst:@prenticeLst.queryInfo('basicInfo')
         max:@maxPrentice,
-        lst:@getBasicInfo(idxs)
+        lst:@getBasicInfo(idxs).map(getBasicInfo)
       }
     }
     return ret
@@ -1432,6 +1433,7 @@ class Player extends DBWrapper
     equipment = @getEquipRef(prenticeIdx)
     equip = equipment[item.subcategory]
     tmp = {sid: slot, sta: 0}
+    tmp.pIdx = prenticeIdx if prenticeIdx?
 
     if equip is slot
       @unequipItem(slot)
@@ -2144,7 +2146,7 @@ class Player extends DBWrapper
         {where, prenticeIdx, idx}= @findEquipRef(slot)
         if where?
           ret.sta = 1
-          ret.pIdx = prenticeIdx
+          ret.pIdx = prenticeIdx if prenticeIdx?
 
         if e.enhancement
           ret.eh = e.enhancement.map((e) -> {id:e.id, lv:e.level})

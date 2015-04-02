@@ -1441,7 +1441,7 @@ exports.route = {
         when PRENTICE_OP_UPGRADE
           {ret,ntf} = player.prenticeLst.upgrade(arg.pIdx)
       result = [{RET: ret, REQ: rpcID}]
-      result = [result].concat(ntf) if ntf?
+      result = result.concat(ntf) if ntf?
       handler(result)
       player.saveDB()
     needPid: true
