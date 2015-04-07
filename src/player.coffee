@@ -128,6 +128,7 @@ class PrenticeLst extends Serializer
     cfg = {
       prenticeLst: [],
       maxPrentice: 20,
+      arenaLst: []
     }
     super(data, cfg, {})
 
@@ -218,7 +219,9 @@ class PrenticeLst extends Serializer
         acc.push(idx)
       return acc
     ,[])
-    
+  getArenaLst: () -> return @arenaLst
+  setArenaLst: (idxArray) ->
+    @arenaLst = idxArray
   upgrade: (idx) ->
     unless @getInfo(idx, 'canUpdateQuality',['class','quality'])
       return {ret: RET_PrenticeUpdateLimit}

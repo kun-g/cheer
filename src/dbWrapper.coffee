@@ -99,6 +99,28 @@ getPlayerHero = (name, callback) ->
   ])
 exports.getPlayerHero = getPlayerHero
 
+getPlayerArenaPrentices = (name, indexes, callback) ->
+  playerLib = require('./player')
+  async.waterfall([
+    (cb) -> dbClient.hget(playerPrefix+name, 'prenticeLst', cb),
+    (prenticeLstData, cb) ->
+      try
+        prenticeLstData = JSON.parse(prenticeLstData)
+        prenticeLst = new playerLib.PrenticeLst(data)
+
+        arenaLst = prenticeLst.getArenaLst()
+        prentices = []
+        for idx in arenaLst
+          prentices.push(prenticeLst.getBasicInfo(idx))
+      catch e
+        err = e
+        prentices = []
+      finally
+        if callback then callback(err, prentices)
+        cb()
+  ])
+exports.getPlayerArenaPrentices = getPlayerArenaPrentices
+
 exports.getMercenaryMember = (name, count, range, delta, names, appendNames, handler) ->
   heros = []
   dbLib.findMercenary(name, count, range, delta, names,

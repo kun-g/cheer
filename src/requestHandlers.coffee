@@ -2,7 +2,7 @@
 require('./define')
 dbLib = require('./db')
 helperLib = require('./helper')
-{DBWrapper, getPlayerHero} = require './dbWrapper'
+{DBWrapper, getPlayerHero, getPlayerArenaPrentices} = require './dbWrapper'
 async = require('async')
 http = require('http')
 https = require('https')
@@ -646,7 +646,7 @@ exports.route = {
     args: {},
     needPid: true
   },
-  RPC_GetPkRivals: {
+  RPC_GetPkRivals: { #todo:将玩家PK配置中的徒弟们也返回给客户端
     id: 32,
     func: (arg, player, handler, rpcID, socket) ->
       dbLib.searchRival(player.name, (err, rivalLst) ->
@@ -679,6 +679,7 @@ exports.route = {
             rcv: player.flags.rcvAward ? false
             tcd: player.getPkCoolDown()
             apc: player.getAddPkCount()
+            prt: player.prenticeLst.arenaLst
           }
           handler(ret))
     ,
