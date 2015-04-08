@@ -3,7 +3,7 @@ require('./define')
 require('./shop')
 moment = require('moment')
 {Serializer, registerConstructor} = require './serializer'
-{DBWrapper, getMercenaryMember, updateMercenaryMember, addMercenaryMember, getPlayerHero} = require './dbWrapper'
+{DBWrapper, getMercenaryMember, updateMercenaryMember, addMercenaryMember, getPlayerHero, getPlayerArenaPrentices} = require './dbWrapper'
 {createUnit, Hero} = require './unit'
 libItem = require './item'
 {CommandStream, Environment, DungeonEnvironment, DungeonCommandStream} = require('./commandStream')
@@ -294,6 +294,7 @@ class Player extends DBWrapper
       gold: 0,
       diamond: 0,
       masterCoin: 0,
+      arenaCoin: 0,
       equipment: {},
       heroBase: {},
       heroIndex: -1,
@@ -1080,13 +1081,21 @@ class Player extends DBWrapper
           if @getAddPkCount() == 0
             @timestamp.pkCoolDown = currentTime()
           getPlayerHero(pkr, wrapCallback(this, (err, heroData) ->
-            @dungeonData.PVP_Pool = if heroData? then [getBasicInfo(heroData)]
-            dbLib.diffPKRank(@name, pkr,wrapCallback(this, (err, result) ->
-              result = [0,0]  unless Array.isArray(result)
-              @dungeonData.PVP_Score_diff = result[0]
-              @dungeonData.PVP_Score_origin = result[1]
-              cb('OK')
-            ))))
+            if heroData?
+              pvpPool = [getBasicInfo(heroData)]
+            @dungeonData.PVP_Pool = pvpPool ? []
+            heroData = heroData ? {}
+            getPlayerArenaPrentices(heroData.name, (err, prentices) =>
+              if err then console.log('ERROR:', err)
+              @dungeonData.PVP_Pool.concat(prentices)
+              dbLib.diffPKRank(@name, pkr,wrapCallback(this, (err, result) ->
+                result = [0,0]  unless Array.isArray(result)
+                @dungeonData.PVP_Score_diff = result[0]
+                @dungeonData.PVP_Score_origin = result[1]
+                cb('OK')
+              ))
+            )
+          ))
         else
           cb('OK')
       ], (err) =>

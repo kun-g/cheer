@@ -646,7 +646,7 @@ exports.route = {
     args: {},
     needPid: true
   },
-  RPC_GetPkRivals: { #todo:将玩家PK配置中的徒弟们也返回给客户端
+  RPC_GetPkRivals: {
     id: 32,
     func: (arg, player, handler, rpcID, socket) ->
       dbLib.searchRival(player.name, (err, rivalLst) ->
@@ -659,7 +659,19 @@ exports.route = {
             r.rnk = +rivalLst.rnk[i]
             return r
           ).filter( (e) -> e?)
-          handler([ret])
+          #将玩家PK配置中的徒弟们也返回给客户端
+          async.map(
+            ret.arg,
+            (basicHero, cb) ->
+              getPlayerArenaPrentices(basicHero.nam, (err, prentices) ->
+                basicHero.prt = prentices
+                cb(err, basicHero)
+              )
+            ,
+            (err, results) ->
+              ret.arg = results
+              handler([ret])
+          )
         )
       )
     ,
@@ -669,19 +681,22 @@ exports.route = {
   RPC_PVPInfoUpdate: {
     id: 34,
     func: (arg, player, handler, rpcID, socket) ->
-      helperLib.getPositionOnLeaderboard(helperLib.LeaderboardIdx.Arena,
-        player.name, 0 ,0, (err, result) ->
-          ret = {REQ: rpcID, RET: RET_OK}
-          ret.arg ={
-            rnk: result.position
-            cpl: player.counters.currentPKCount ? 0
-            ttl: player.getTotalPkTimes()
-            rcv: player.flags.rcvAward ? false
-            tcd: player.getPkCoolDown()
-            apc: player.getAddPkCount()
-            prt: player.prenticeLst.arenaLst
-          }
-          handler(ret))
+      if arg.opn is 1
+        player.prenticeLst.setArenaLst(arg.lst) if arg.lst?
+      else
+        helperLib.getPositionOnLeaderboard(helperLib.LeaderboardIdx.Arena,
+          player.name, 0 ,0, (err, result) ->
+            ret = {REQ: rpcID, RET: RET_OK}
+            ret.arg = {
+              rnk: result.position
+              cpl: player.counters.currentPKCount ? 0
+              ttl: player.getTotalPkTimes()
+              rcv: player.flags.rcvAward ? false
+              tcd: player.getPkCoolDown()
+              apc: player.getAddPkCount()
+              prt: player.prenticeLst.arenaLst
+            }
+            handler(ret))
     ,
     args: {},
     needPid: true

@@ -99,7 +99,10 @@ getPlayerHero = (name, callback) ->
   ])
 exports.getPlayerHero = getPlayerHero
 
-getPlayerArenaPrentices = (name, indexes, callback) ->
+getPlayerArenaPrentices = (name, callback) ->
+  if not name?
+    callback('getPlayerArenaPrentices: name is null', []) if callback
+    return
   playerLib = require('./player')
   async.waterfall([
     (cb) -> dbClient.hget(playerPrefix+name, 'prenticeLst', cb),
