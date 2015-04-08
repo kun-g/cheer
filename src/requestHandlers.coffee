@@ -682,7 +682,11 @@ exports.route = {
     id: 34,
     func: (arg, player, handler, rpcID, socket) ->
       if arg.opn is 1
-        player.prenticeLst.setArenaLst(arg.lst) if arg.lst?
+        if arg.lst?
+          player.prenticeLst.setArenaLst(arg.lst)
+          player.saveDB()
+        ret = {REQ: rpcID, RET: RET_OK}
+        handler(ret)
       else
         helperLib.getPositionOnLeaderboard(helperLib.LeaderboardIdx.Arena,
           player.name, 0 ,0, (err, result) ->
@@ -696,7 +700,8 @@ exports.route = {
               apc: player.getAddPkCount()
               prt: player.prenticeLst.arenaLst
             }
-            handler(ret))
+            handler(ret)
+        )
     ,
     args: {},
     needPid: true
