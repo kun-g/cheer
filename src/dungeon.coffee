@@ -1566,6 +1566,8 @@ dungeonCSConfig = {
       hp = env.variable('hp')
       return @suicide() unless hp? and hp > 0
       onEvent('Heal', @, env.variable('src'), env.variable('tar'))
+      if env.variable('tar').health + env.variable('hp') > env.variable('tar').maxHP
+        env.variable('hp') = env.variable('tar').maxHP - env.variable('tar').health
       env.variable('tar').health += env.variable('hp')
     ,
     output: (env) ->

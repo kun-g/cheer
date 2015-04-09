@@ -71,6 +71,7 @@ class Unit extends Wizard
       for k,v of roleConfig.xproperty
         xproperty[k] = Math.ceil(v*@rank)
       @modifyProperty(xproperty)
+      @maxHP = @health
       console.log('xRank ', @rank) if flagCreation
       console.log('xProperty ', JSON.stringify(xproperty)) if flagCreation
 
@@ -345,6 +346,7 @@ class Monster extends Unit
 
     @attack = Math.ceil(@attack *0.75)
     @health = Math.ceil(@health *2)
+    @maxHP = @health
 
   isMonster: () -> true
 
