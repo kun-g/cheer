@@ -109,7 +109,7 @@ getPlayerArenaPrentices = (name, callback) ->
     (prenticeLstData, cb) ->
       try
         prenticeLstData = JSON.parse(prenticeLstData)
-        prenticeLst = new playerLib.PrenticeLst(data)
+        prenticeLst = new playerLib.PrenticeLst(prenticeLstData)
 
         arenaLst = prenticeLst.getArenaLst()
         prentices = []
