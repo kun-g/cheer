@@ -596,7 +596,7 @@ exports.route = {
       from = arg.src
       to = arg.src+arg.cnt-1
       switch arg.typ
-        when helperLib.LeaderboardIdx.RevangeChallengeCoin, helperLib.LeaderboardIdx.ChallengeCoin
+        when helperLib.LeaderboardIdx.Revange, helperLib.LeaderboardIdx.ChallengeCoin
           gMiner.getPositionOnLeaderboard(arg.typ, player.name, from,to, (err, result) ->
             if err?
               logError({action: 'getRevengeLst', error: err})

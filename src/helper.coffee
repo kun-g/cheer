@@ -436,7 +436,7 @@ exports.LeaderboardIdx = {
   TopTenRich :5
   BuyLikeWomen : 6
   ChallengeCoin : 8
-  RevangeChallengeCoin :9
+  Revange :9
 }
 itemNeedBoardcastIdLst = [1475,1476,1478,1480,1482,].concat([1580..1611]).concat([1624..1626]).concat([1628,1629])
 itemNeedBoardcast = (itemId) ->

@@ -1258,7 +1258,8 @@ class Player extends DBWrapper
               target = if p.target is 'player' then @ else gServerObject
               doSetProperty(target, p.key, p.value)
             when "rob"
-              ret = ret.concat(gMiner.rob(p.victim, @, p.value))
+              if p.victim?
+                ret = ret.concat(gMiner.rob(p.victim, @, p.value))
     return ret
 
   isQuestAchieved: (qid) ->

@@ -52,6 +52,9 @@ class ResourceRecod extends Serializer
   canBeRobbed: () ->
     @beRobbed
 
+  isValidate: () ->
+    return @name? and @name isnt 'undefined'
+
   setName: (@name) ->
   
 
@@ -70,7 +73,7 @@ class Mine extends DBWrapper
     suspect = @miner[byWho.name]
     return new Error(RET_NOT_IN_MINE) unless victim? and suspect?
     actualCount = victim.subCoin(count, @minCoin)
-    victim.hateYou(suspect)
+    victim.hateYou(byWho.name)
     byWho.addChallengeCoin(actualCount)
 
     @_updateRobLst(victim)
@@ -79,7 +82,7 @@ class Mine extends DBWrapper
 
     
   _updateRobLst: (victim)->
-    if victim.canBeRobbed()
+    if victim.canBeRobbed() and @isValidate()
       helperLib.assignLeaderboard(victim, helperLib.LeaderboardIdx.ChallengeCoin)
     else
       helperLib.remveMemberFromLeaderboard(helperLib.LeaderboardIdx.ChallengeCoin,victim.name)
@@ -100,6 +103,7 @@ class Mine extends DBWrapper
   regist: (name) ->
     return if @miner[name]?
     @miner[name] = new ResourceRecod()
+    @miner[name].setName(name)
     @save()
 
   _syncPlayerCc: (player) ->
@@ -122,7 +126,7 @@ class Mine extends DBWrapper
 
   getPositionOnLeaderboard: (typ, name, from, to ,cb) ->
     switch typ
-      when helperLib.LeaderboardIdx.RevangeChallengeCoin
+      when helperLib.LeaderboardIdx.Revange
         @getRevengeLst(name,from, to, cb)
       when helperLib.LeaderboardIdx.ChallengeCoin
         helperLib.getPositionOnLeaderboard(typ, name, from, to,
