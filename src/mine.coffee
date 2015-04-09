@@ -7,10 +7,11 @@ getPlayerAndPrentice = (name, callback) ->
   async.waterfall([
     (cb) ->  getPlayerHero(name,cb),
     (hero, cb) ->
+      heroData = getBasicInfo(hero)
       getPlayerArenaPrentices(name,(err, prentices) ->
         unless err?
-          hero.pre = prentices
-        cb(err, hero))
+          heroData.pre = prentices.map(getBasicInfo)
+        cb(err, heroData))
   ],callback)
 
 
