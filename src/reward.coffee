@@ -44,6 +44,8 @@ rearrangePrize = (prize) ->
     lastElem = v
 
   return res
+
+exports.rearrangePrize = rearrangePrize #for debug
 exports.generateReward = (config, dropInfo, rand) ->
   rand = Math.random unless rand
   return [] unless config
@@ -60,6 +62,12 @@ exports.generateReward = (config, dropInfo, rand) ->
          )
   return rearrangePrize(res)
 
+injectRobReward = (victim, suspect, reward) ->
+  reward.map((e) ->
+    if e.type is PRIZETYPE_FUNCTION and e.func is 'rob'
+      e.victim = victim
+    return e
+  )
 exports.generateDungeonReward = (dungeon) ->
   result = dungeon.result
   cfg = dungeon.config
@@ -112,7 +120,10 @@ exports.generateDungeonReward = (dungeon) ->
       when PRIZETYPE_ITEM then e.count *= 1+@getRewardModifier('dungeon_item_count')
 
     if e.count then e.count = Math.floor(e.count)
-  return rearrangePrize(prize)
+  prize = rearrangePrize(prize)
+  if dungeon.Rob_Pool?
+    prize = injectRobReward(dungeon.Rob_Pool[0].name, @,prize)
+  return prize
 
 exports.claimDungeonReward = (dungeon, isSweep) ->
   return [] unless dungeon?

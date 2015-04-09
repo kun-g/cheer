@@ -14,11 +14,13 @@ async = require('async');
 var helperLib = require('./helper');
 var domain = require('domain').create();
 var verify = require('./timeUtils').verify;
+var Mine = require('./mine').Mine;
 domain.on('error', function (err) {
     console.log("UnhandledError", err, err.message, err.stack);
 });
 
-g_DEBUG_FLAG = false
+g_DEBUG_FLAG = false;
+gMiner = null;
 //playerCounter = 0;
 //memwatch = require('memwatch');
 //var tmp = new memwatch.HeapDiff();
@@ -473,6 +475,8 @@ function paymentHandler (request, response) {
         require('./helper').initLeaderboard(queryTable(TABLE_LEADBOARD));
         domain.run(init);
 
+        gMiner = new Mine();
+        gMiner.load();
         // Pay
         urlLib = require('url');
         cryptoLib = require('crypto');

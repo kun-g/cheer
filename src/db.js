@@ -448,6 +448,7 @@ exports.initializeDB = function (cfg,finishCb) {
   friendPrefix = dbPrefix + 'friend' + dbSeparator;
   sharedPrefix = dbPrefix + 'shared' + dbSeparator;
   limitsPrefix = dbPrefix + 'limits' + dbSeparator;
+  challengePrefix = dbPrefix + 'challengeCoin';
 
   LeaderboardPrefix = 'Leaderboard';
 

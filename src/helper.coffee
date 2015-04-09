@@ -70,7 +70,7 @@ exports.initLeaderboard = (config) ->
               error:err})
       )
 
-  for key, cfg of config
+  for key, cfg of config when cfg?.name?
     localConfig[key] = { func: generateHandler(cfg.name, cfg) }
     localConfig[key][k] = v for k, v of cfg
 
@@ -138,6 +138,10 @@ exports.initLeaderboard = (config) ->
       ), {name: [], score: []})
       cb(err, result)
     )
+  exports.remveMemberFromLeaderboard = (board, name, cb) ->
+    tickLeaderboard(board)
+    cfg = localConfig[board]
+    dbLib.remveMemberFromLeaderboard(cfg.name, name, cb)
 
 exports.array2map = (keys, value) ->
   size = keys.length
@@ -431,6 +435,8 @@ exports.LeaderboardIdx = {
   WorldBoss : 4
   TopTenRich :5
   BuyLikeWomen : 6
+  ChallengeCoin : 8
+  RevangeChallengeCoin :9
 }
 itemNeedBoardcastIdLst = [1475,1476,1478,1480,1482,].concat([1580..1611]).concat([1624..1626]).concat([1628,1629])
 itemNeedBoardcast = (itemId) ->

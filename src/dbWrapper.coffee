@@ -4,7 +4,6 @@ dbLib = require './db'
 moment = require 'moment'
 async = require('async')
 {Serializer, registerConstructor} = require './serializer'
-
 gLoadingRecord = []
 
 class DBWrapper extends Serializer
@@ -109,12 +108,10 @@ getPlayerArenaPrentices = (name, callback) ->
     (prenticeLstData, cb) ->
       try
         prenticeLstData = JSON.parse(prenticeLstData)
-        prenticeLst = new playerLib.PrenticeLst(data)
+        prenticeLst = new playerLib.PrenticeLst(prenticeLstData)
 
         arenaLst = prenticeLst.getArenaLst()
-        prentices = []
-        for idx in arenaLst
-          prentices.push(prenticeLst.getBasicInfo(idx))
+        prentices =  arenaLst.map(prenticeLst.getBasicInfo)
       catch e
         err = e
         prentices = []
@@ -162,6 +159,8 @@ exports.updateLeaderboard = (board, member, score, callback) ->
   dbClient.zadd(makeDBKey([board], LeaderboardPrefix), score, member, callback)
 exports.removeLeaderboard = (board, callback) ->
   dbClient.del(makeDBKey([board], LeaderboardPrefix), callback)
+exports.remveMemberFromLeaderboard = (obard, member, callback) ->
+  dbClient.zrem(makeDBKey([board], LeaderboardPrefix), member, callback)
 
 exports.getPositionOnLeaderboard = (board, member, rev, callback) ->
   key = makeDBKey([board], LeaderboardPrefix)
