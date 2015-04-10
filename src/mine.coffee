@@ -8,7 +8,7 @@ getPlayerAndPrentice = (name, callback) ->
     (cb) ->  getPlayerHero(name,cb),
     (hero, cb) ->
       heroData = getBasicInfo(hero)
-      getPlayerArenaPrentices(name,(err, prentices) ->
+      getPlayerArenaPrentices(name,false,(err, prentices) ->
         unless err?
           heroData.pre = prentices.map(getBasicInfo)
         cb(err, heroData))

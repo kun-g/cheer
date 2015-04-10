@@ -677,7 +677,7 @@ exports.route = {
           async.map(
             ret.arg,
             (basicHero, cb) ->
-              getPlayerArenaPrentices(basicHero.nam, (err, prentices) ->
+              getPlayerArenaPrentices(basicHero.nam, true, (err, prentices) ->
                 basicHero.prt = prentices
                 cb(err, basicHero)
               )

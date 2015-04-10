@@ -1100,7 +1100,8 @@ class Player extends DBWrapper
               pvpPool = [getBasicInfo(heroData)]
             @dungeonData.PVP_Pool = pvpPool ? []
             heroData = heroData ? {}
-            getPlayerArenaPrentices(heroData.name, (err, prentices) =>
+            isArena = stageConfig.pvp is 'arena'
+            getPlayerArenaPrentices(heroData.name, isArena, (err, prentices) =>
               if err then console.log('ERROR:', err)
               @dungeonData.PVP_Pool.concat(prentices)
               dbLib.diffPKRank(@name, pkr,wrapCallback(this, (err, result) ->

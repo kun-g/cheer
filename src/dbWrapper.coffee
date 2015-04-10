@@ -98,7 +98,7 @@ getPlayerHero = (name, callback) ->
   ])
 exports.getPlayerHero = getPlayerHero
 
-getPlayerArenaPrentices = (name, callback) ->
+getPlayerArenaPrentices = (name, isOnlyArena, callback) ->
   if not name?
     callback('getPlayerArenaPrentices: name is null', []) if callback
     return
@@ -110,8 +110,10 @@ getPlayerArenaPrentices = (name, callback) ->
         prenticeLstData = JSON.parse(prenticeLstData)
         prenticeLst = new playerLib.PrenticeLst(prenticeLstData)
 
-        arenaLst = prenticeLst.getArenaLst()
-        prentices =  arenaLst.map(prenticeLst.getBasicInfo)
+        if isOnlyArena
+          prentices = prenticeLst.getArenaLst().map(prenticeLst.getBasicInfo)
+        else
+          prentices =  prenticeLst.getBasicInfo()
       catch e
         err = e
         prentices = []
