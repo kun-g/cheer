@@ -1092,9 +1092,8 @@ class Player extends DBWrapper
         cb()
       ,
       (cb) =>
-        if stageConfig.pvp? and pkr? and (@getPkCoolDown() == 0 or @getAddPkCount() > 0)
-          if @getAddPkCount() == 0
-            @timestamp.pkCoolDown = currentTime()
+        if stageConfig.pvp? and pkr?
+          @dungeonData.PVP_Pool = []
           getPlayerHero(pkr, wrapCallback(this, (err, heroData) ->
             if heroData?
               pvpPool = [getBasicInfo(heroData)]
@@ -1122,7 +1121,7 @@ class Player extends DBWrapper
         else
           @loadDungeon()
           if @dungeon?
-            if stageConfig.initialAction then stageConfig.initialAction(@,  genUtil)
+            if stageConfig.initialAction then stageConfig.initialAction(@,  genUtil())
             if stageConfig.eventName then msg = @syncEvent()
             @log('startDungeon', {dungeonData: @dungeonData, err: err})
             ret = if startInfoOnly then @dungeon.getInitialData() else @dungeonAction({CMD:RPC_GameStartDungeon})
@@ -1705,7 +1704,7 @@ class Player extends DBWrapper
   getPrivilege: (name) -> @vipOperation(name)
   getTotalPkTimes: () -> return @getPrivilege('pkCount')
   getAddPkCount: () ->
-    @counters.addPKCount = 0 unless @counters.addPKCount?
+    @counters.addPKCount ?= 0
     return @counters.addPKCount
 
   getReviveLimit: (reviveLimit) ->
@@ -1714,7 +1713,7 @@ class Player extends DBWrapper
   getPkCoolDown: () ->
     if @counters.addPKCount? and @counters.addPKCount > 0
       return 0
-    @timestamp.pkCoolDown = 0 unless @timestamp.pkCoolDown?
+    @timestamp.pkCoolDown ?= 0
     timePass = libTime.diff(currentTime(), @timestamp.pkCoolDown).asSeconds()
     if timePass >= PK_COOLDOWN
       return 0
