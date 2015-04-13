@@ -1502,7 +1502,7 @@ exports.route = {
   PrenticeOpt:{
     id: 43,
     func: (arg, player, handler, rpcID) ->
-      switch arg.op
+      switch arg.opn
         when PRENTICE_OP_CREATE
           {ret,ntf} = player.prenticeLst.add(arg)
         when  PRENTICE_OP_REBORN
@@ -1518,7 +1518,7 @@ exports.route = {
   ChallengeCoinOpt:{
     id: 44,
     func: (arg, player, handler, rpcID) ->
-      switch arg.op
+      switch arg.opn
         when CHALLENGECOIN_OP_GRAB #grab
           {ret, ntf} = gMiner.grab(player)
         when 1 # test rob
