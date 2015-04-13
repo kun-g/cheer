@@ -879,6 +879,22 @@ class Player extends DBWrapper
     @costedDiamond += point if type is 'diamond'
     return this[type]
 
+  addMoneyAndSync:(type,point) ->
+    switch type
+      when PRIZETYPE_GOLD
+        func = @addGold
+        fun = 'gold'
+      when PRIZETYPE_DIAMOND
+        func = @addDiamond
+        stype = 'diamond'
+      when PRIZETYPE_CHCOIN
+        func = @addChallengeCoin
+        stype = 'challengeCoin'
+      else
+        throw 'Invalidate_Money_Type'
+    ret = {NTF: Event_InventoryUpdateItem, arg: {syn: @inventoryVersion}}
+    ret.arg[stype] =  func(point)
+    return ret
   addDiamond: (point) -> @addMoney('diamond', point)
 
   addGold: (point) -> @addMoney('gold', point)
@@ -1196,9 +1212,8 @@ class Player extends DBWrapper
           retRM = @inventory.remove(p.value, p.count*count, null, true)
           return {type:'noenoughitem', value:p.value, count:p.count*count} unless retRM and retRM.length > 0
           ret = @doAction({id: 'ItemChange', ret: retRM, version: @inventoryVersion})
-        when PRIZETYPE_GOLD then ret.push({NTF: Event_InventoryUpdateItem, arg: {syn: @inventoryVersion, god: @addGold(-p.count*count)}})
-        when PRIZETYPE_DIAMOND then ret.push({NTF: Event_InventoryUpdateItem, arg: {syn: @inventoryVersion, dim: @addDiamond(-p.count*count)}})
-        when PRIZETYPE_CHCOIN  then ret.push({NTF: Event_InventoryUpdateItem, arg: {syn: @inventoryVersion, dim: @addChallengeCoin(-p.count*count)}})
+        when PRIZETYPE_GOLD,PRIZETYPE_DIAMOND ,PRIZETYPE_CHCOIN
+          ret.push(@addMoneyAndSync(-p.count*count))
 
 
     return ret
@@ -1219,9 +1234,8 @@ class Player extends DBWrapper
           gServerObject.notify('playerClaimItem',{player:@name,item:p.value})
           ret = ret.concat(res)
 
-        when PRIZETYPE_GOLD then ret.push({NTF: Event_InventoryUpdateItem, arg: {syn: @inventoryVersion, god: @addGold(p.count)}}) if p.count > 0
-        when PRIZETYPE_DIAMOND then ret.push({NTF: Event_InventoryUpdateItem, arg: {syn: @inventoryVersion, dim: @addDiamond(p.count)}}) if p.count > 0
-        when PRIZETYPE_CHCOIN then ret.push({NTF: Event_InventoryUpdateItem, arg: {syn: @inventoryVersion, dim: @addChallengeCoin(p.count)}}) if p.count > 0
+        when PRIZETYPE_GOLD, PRIZETYPE_DIAMOND ,PRIZETYPE_CHCOIN
+          ret.push(@addMoneyAndSync(-p.count*count)) if p.count > 0
         when PRIZETYPE_EXP then ret.push({NTF: Event_RoleUpdate, arg: {syn: @heroVersion, act: {exp: @addHeroExp(p.count)}}}) if p.count > 0
         when PRIZETYPE_WXP
           continue unless p.count

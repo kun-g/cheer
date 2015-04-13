@@ -47,8 +47,10 @@ class ResourceRecod extends Serializer
     @beRobbed = true
 
   grab: (me,resetCoin) ->
-    me.addChallengeCoin(@coinSource.count)
+    count = @coinSource.count
+    ntf = me.addMoneyAndSync(PRIZETYPE_CHCOIN,@coinSource.count)
     @reset(resetCoin)
+    return {ntf:ntf,cnt:count,ret:RET_OK}
   
   canBeRobbed: () ->
     @beRobbed

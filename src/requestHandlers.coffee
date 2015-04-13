@@ -1520,12 +1520,12 @@ exports.route = {
     func: (arg, player, handler, rpcID) ->
       switch arg.opn
         when CHALLENGECOIN_OP_GRAB #grab
-          {ret, ntf} = gMiner.grab(player)
+          {ret, ntf,cnt} = gMiner.grab(player)
         when 1 # test rob
           {ret, ntf} = gMiner.rob(arg.nam, player,2)
         when 2 #debug print
           gMiner.print()
-      result = [{RET: ret, REQ: rpcID}]
+      result = [{RET: ret, REQ: rpcID,cnt:cnt}]
       result = result.concat(ntf) if ntf?
       handler(result)
       player.saveDB()
