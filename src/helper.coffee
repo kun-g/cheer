@@ -6,6 +6,21 @@ dbLib = require('./db')
 dbWrapper = require('./dbWrapper')
 async = require('async')
 
+implementing = (mixins..., classReference) ->
+  classReference.__super__ = {
+    constructor: (data) ->
+      for mixin in mixins when typeof mixin is 'function'
+        args = data[mixin.name] ? []
+        args = if Array.isArray(args) then args else [args]
+        mixin.apply(@,args)
+  }
+  for mixin in mixins
+    for key, value of mixin::
+      classReference::[key] = value
+  classReference
+
+
+exports.implementing = implementing
 addFeature = (obj, key ,type, hooks) ->
   config = {
     enumerable : false,
@@ -460,6 +475,9 @@ exports.observers = {
   onBuyTreasures: (obj, arg) ->
     exports.assignLeaderboard(obj, exports.LeaderboardIdx.BuyLikeWomen)
   onRestWorldBossCounter: (obj, arg) ->
+  
+  onApplyModifier:(obj, arg) ->
+    obj.guild?.applyModifier(arg)
 }
 
 exports.redeemCode = {
