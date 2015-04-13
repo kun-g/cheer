@@ -883,7 +883,7 @@ class Player extends DBWrapper
     switch type
       when PRIZETYPE_GOLD
         func = @addGold
-        fun = 'gold'
+        stype = 'gold'
       when PRIZETYPE_DIAMOND
         func = @addDiamond
         stype = 'diamond'
