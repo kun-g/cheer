@@ -883,13 +883,13 @@ class Player extends DBWrapper
     switch type
       when PRIZETYPE_GOLD
         func = @addGold
-        stype = 'gold'
+        stype = 'god'
       when PRIZETYPE_DIAMOND
         func = @addDiamond
-        stype = 'diamond'
+        stype = 'dim'
       when PRIZETYPE_CHCOIN
         func = @addChallengeCoin
-        stype = 'challengeCoin'
+        stype = 'chc'
       else
         throw 'Invalidate_Money_Type'
     ret = {NTF: Event_InventoryUpdateItem, arg: {syn: @inventoryVersion}}
