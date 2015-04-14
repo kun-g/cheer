@@ -213,10 +213,10 @@ genCampaignUtil = () ->
     currentTime: currentTime,
     today: moment(),
     serverObj : gServerObject,
-    isFristInTime:(dateLst, lastInTime, time2check) ->
+    isFristInTime:(dateLst, lastInTime, time2check,unit = 'day') ->
       dateLst.reduce((acc, time) ->
         return true if acc
-        return diffDate(time, time2check, 'day') is 0 and diffDate(lastInTime, time2check) isnt 0
+        return diffDate(time, time2check, unit) is 0 and diffDate(lastInTime, time2check,unit) isnt 0
       ,false)
     ,
     moment:moment

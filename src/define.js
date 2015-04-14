@@ -1,5 +1,6 @@
 require('./shared');
 var triggerLib = require('./trigger');
+var underscore = require('./underscore');
 
 DUNGEON_RESULT_DONE = 2;
 DUNGEON_RESULT_WIN = 1;
@@ -260,22 +261,21 @@ function initVipConfig (cfg){
   return ret;
 }
 
-var powerLimitInfo = {};
+var limitInfo = {};
 function initPowerLimit(cfg) {
 	cfg.forEach(function (bounty) {
 		bounty.level.forEach(function (level) {
-			var powerLimit = 0;
-			if (typeof level.powerLimit == 'number') {
-				powerLimit = level.powerLimit;
-			}
-			powerLimitInfo[level.stage] = powerLimit;
+            limit = underscore.pick(level,['powerLimit', 'levelLimit', 'guildLimit'])
+            limit = underscore.defaults(limit, {powerLimit : 0 levelLimit : 0 guildLimit : 0})
+            limitInfo[level.stage] = limit
+    
 		})
 	})
 	return cfg;
 }
 
 getPowerLimit = function(stageId){
-	var powerLimit = powerLimitInfo[stageId];
+	var powerLimit = limitInfo[stageId].powerLimit;
 	if (powerLimit == null) {
 		return 0;
 	}

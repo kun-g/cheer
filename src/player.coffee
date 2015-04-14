@@ -902,15 +902,9 @@ class Player extends DBWrapper
   addChallengeCoin: (point) ->
     @addMoney('challengeCoin', point, @getMaxChallengeCoin())
   getMaxChallengeCoin: () ->
-    challengeCoinCaculatePoion = 15
-    vipCoin = @vipOperation('challengeCoin')
-    leftPrenticeCoin = challengeCoinCaculatePoion - vipCoin
-    prenticeCount = @prenticeLst.count()
-    if leftPrenticeCoin >= prenticeCount
-      return vipCoin +  prenticeCount
-    else
-      return challengeCoinCaculatePoion + Math.floor((prenticeCount - leftPrenticeCoin)/2)
+    return @vipOperation('challengeCoin')
 
+    
   addHeroExp: (point) ->
     if point
       prevLevel = @createHero().level

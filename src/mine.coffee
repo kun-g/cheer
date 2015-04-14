@@ -3,6 +3,7 @@
 {DBWrapper, getPlayerHero, getPlayerArenaPrentices} = require('./dbWrapper')
 helperLib = require ('./helper')
 underscore = require('./underscore')
+{verify,diff,currentTime} = require('./timeUtils')
 getPlayerAndPrentice = (name, callback) ->
   async.waterfall([
     (cb) ->  getPlayerHero(name,cb),
@@ -43,12 +44,30 @@ class ResourceRecod extends Serializer
 
   reset: (coin) ->
     @revengeLst = []
-    @coinSource = {count: coin, grabTimestamp:0}
+    @coinSource = {count: coin, grabTimestamp:currentTime()}
     @beRobbed = true
 
-  grab: (me,resetCoin) ->
+  checkGrab: () ->
+    duration = 1
+    timeExp = {
+      or:[ {
+        duration: { hour: duration },
+        time: { time: "time@Arguments", startOf: 'day', offset: { hour: 12 } }
+      },
+      {
+        duration: { hour: duration },
+        time: { time: "time@Arguments", startOf: 'day', offset: { hour: 20 } }
+    } ]}
+ 
+    now = currentTime()
+    return verify(now, timeExp,{}) and diff(@coinSource.grabTimestamp, now).asHours() > duration
+
+
+  grab: (me) ->
+    return {ret:RET_Cant_Grab} unless @checkGrab()
     count = @coinSource.count
     ntf = me.addMoneyAndSync(PRIZETYPE_CHCOIN,@coinSource.count)
+    resetCoin = @getRestCoinCount(me)
     @reset(resetCoin)
     return {ntf:ntf,cnt:count,ret:RET_OK}
   
@@ -91,6 +110,18 @@ class Mine extends DBWrapper
       helperLib.remveMemberFromLeaderboard(helperLib.LeaderboardIdx.ChallengeCoin,victim.name)
 
     @save()
+
+  getRestCoinCount: (player) ->
+    challengeCoinCaculatePoion = 15
+    defaultCoin = 5
+
+    leftPrenticeCoin = challengeCoinCaculatePoion - defaultCoin
+    prenticeCount = player.prenticeLst.count?() ? 0
+    if leftPrenticeCoin >= prenticeCount
+      return  defaultCoin +  prenticeCount
+    else
+      return challengeCoinCaculatePoion + Math.floor((prenticeCount - leftPrenticeCoin)/2)
+
 
   grab: (player) ->
     me = @miner[player?.name]
