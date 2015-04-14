@@ -141,7 +141,7 @@ exports.initLeaderboard = (config) ->
   exports.remveMemberFromLeaderboard = (board, name, cb) ->
     tickLeaderboard(board)
     cfg = localConfig[board]
-    dbLib.remveMemberFromLeaderboard(cfg.name, name, cb)
+    dbWrapper.remveMemberFromLeaderboard(cfg.name, name, cb)
 
 exports.array2map = (keys, value) ->
   size = keys.length

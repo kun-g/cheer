@@ -120,7 +120,6 @@ class Prentice extends Serializer
   getConfig:(type) ->
     queryTable(TABLE_PRENTICE, @class)?[type]
 
-
 class PrenticeLst extends Serializer
   constructor: (data) ->
     @battleLst =[]
@@ -129,6 +128,8 @@ class PrenticeLst extends Serializer
       prenticeLst: [],
       maxPrentice: 20,
       arenaLst: []
+      cache:{},
+
     }
     super(data, cfg, {})
 
@@ -245,7 +246,8 @@ class PrenticeLst extends Serializer
       info = @getInfo(idx,'basicInfo',['name','gender', 'class',
       'hairStyle', 'hairColor', 'quality', 'equipment'])
       info.equipment = info.equipment.map((slot) =>
-        item = @master.inventory.get(slot)
+
+        item = @master?.inventory.get(slot)
         if item?
           return { cid: item.classId, eh: item.enhancement }
         return {}
@@ -268,6 +270,12 @@ class PrenticeLst extends Serializer
     
   onMasterChange: (master) ->
     @masterSkill[@master.class] =  (new Hero(@master.hero)).wSpellDB
+
+  dump:() ->
+    @cache = @getBasicInfo()
+    super()
+
+
 
 class Player extends DBWrapper
   constructor: (data) ->
@@ -1112,7 +1120,8 @@ class Player extends DBWrapper
             isArena = stageConfig.pvp is 'arena'
             getPlayerArenaPrentices(heroData.name, isArena, (err, prentices) =>
               if err then console.log('ERROR:', err)
-              @dungeonData.PVP_Pool.concat(prentices)
+              prentices = prentices.map(getBasicInfo)
+              @dungeonData.PVP_Pool = @dungeonData.PVP_Pool.concat(prentices)
               dbLib.diffPKRank(@name, pkr,wrapCallback(this, (err, result) ->
                 result = [0,0]  unless Array.isArray(result)
                 @dungeonData.PVP_Score_diff = result[0]
