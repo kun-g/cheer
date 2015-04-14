@@ -11,28 +11,51 @@ class Upgradeable extends Serializer
 
   upgrade: (oprator,args) ->
     return {ret:RET_Not_Upgradeable} unless @canUpgrade(oprator,args)
+    cost =  @upgradeCost(@level)
+    return {ret:RET_Not_Upgradeable} unless cost?
+    ntf = oprator.claimCost(cost)
+    if ntf?
+      level += 1
+    return ntf
 
-  currentLevel:(level) ->
-    if level?
-      @setter(level)
-    else
-      @getter()
+  currentLevel:() ->
+    @level
 
-  upgradeCost: (level) ->
 
+  #override
+  upgradeCost: (level) ->  null
   canUpgrade: (oprator,args) -> true
 
 Modifier = implementing(Serializer, Upgradeable, class _Modifier
   constructor: (data) ->
-    super(data,{},{})
+    cfg ={
+      type:''
+      activeTimeStamp:0
+    }
+    super({
+      Upgradeable:{getter:'getter', setter:'setter'},
+      Serializer: [data, cfg,{}]
+    })
+ 
+
+  getConfig: (key) ->
+    queryTable(TABLE_GUILD,'modifier')?[@type]
 
   active: (oprator) ->
 
-  applyModifier: (args) ->
+  _isActive = () ->
+    if verify(helperLib.currentTime(), @getConfig('active').stayOpen, {})
+      return true
+  applyModifier: (event, target) ->
+    if @active._isActive()
+      1
 
-  #override 
-  canUpgrade: () ->
   claimActiveCost: () ->
+
+  #override Upgradeable
+  upgradeCost: (level) ->
+    @getConfig('upgradeCost')?[@currentLevel()]
+
 )
 
 class AppendGoldModifier extends Modifier

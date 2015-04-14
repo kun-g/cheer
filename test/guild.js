@@ -1,6 +1,11 @@
 shall = require('should');
-rdescribe('util function test',function(){
-    it(' getSlotFreezeInfo', function(done) {
+describe('Upgradeable',function(){
+    it('', function(done) {
+    });
+});
+
+describe('Modifyer',function(){
+    it('', function(done) {
     });
 });
  
