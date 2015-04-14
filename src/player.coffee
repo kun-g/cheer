@@ -1267,7 +1267,7 @@ class Player extends DBWrapper
               doSetProperty(target, p.key, p.value)
             when "rob"
               if p.victim?
-                ret = ret.concat(gMiner.rob(p.victim, @, p.value))
+                ret = ret.concat(gMiner.rob(p.victim, @, p.count))
     return ret
 
   isQuestAchieved: (qid) ->
@@ -2202,7 +2202,7 @@ class Player extends DBWrapper
         return ret
       )).filter((e) -> e!=null)
 
-    ev = {NTF: Event_InventoryUpdateItem, arg: { cap: bag.limit, dim: this.diamond, god: this.gold, mst:this.masterCoin, syn: this.inventoryVersion, itm: items } }
+    ev = {NTF: Event_InventoryUpdateItem, arg: { cap: bag.limit, dim: this.diamond, god: this.gold, chc: this.challengeCoin, mst:this.masterCoin, syn: this.inventoryVersion, itm: items } }
     if forceUpdate then ev.arg.clr = true
     return ev
 

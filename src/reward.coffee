@@ -121,8 +121,8 @@ exports.generateDungeonReward = (dungeon) ->
 
     if e.count then e.count = Math.floor(e.count)
   prize = rearrangePrize(prize)
-  if dungeon.getStageConfig.pvp isnt 'arena' and dungeon.PVP_Pool[0].name?
-    prize = injectRobReward(dungeon.PVP_Pool[0].name, @,prize)
+  if dungeon.getStageConfig.pvp isnt 'arena' and dungeon.PVP_Pool[0].nam?
+    prize = injectRobReward(dungeon.PVP_Pool[0].nam, @,prize)
   return prize
 
 exports.claimDungeonReward = (dungeon, isSweep) ->
