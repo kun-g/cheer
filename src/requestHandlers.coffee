@@ -1525,8 +1525,8 @@ exports.route = {
           {ret, ntf} = gMiner.rob(arg.nam, player,2)
         when 2 #debug print
           gMiner.print()
-      ret.cnt = cnt if cnt?
       result = [{RET: ret, REQ: rpcID,max:player.getMaxChallengeCoin()}]
+      result[0].cnt = cnt if cnt?
       result = result.concat(ntf) if ntf?
       handler(result)
       player.saveDB()
