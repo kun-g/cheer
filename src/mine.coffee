@@ -129,6 +129,7 @@ class Mine extends DBWrapper
     {ntf,cnt,ret} = me.grab(player, @maxCoin)
     @_updateRobLst(me)
     ret = { ret:ret, ntf : ntf}
+    ret.cnt = cnt if cnt?
     if ret is RET_OK
       ret.ntf = [@_syncPlayerCc(player)].concat(ret.ntf)
     return ret
