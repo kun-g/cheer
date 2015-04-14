@@ -1207,7 +1207,7 @@ class Player extends DBWrapper
           return {type:'noenoughitem', value:p.value, count:p.count*count} unless retRM and retRM.length > 0
           ret = @doAction({id: 'ItemChange', ret: retRM, version: @inventoryVersion})
         when PRIZETYPE_GOLD,PRIZETYPE_DIAMOND ,PRIZETYPE_CHCOIN
-          ret.push(@addMoneyAndSync(-p.count*count))
+          ret.push(@addMoneyAndSync(p.type, -p.count*count))
 
 
     return ret
@@ -1229,7 +1229,7 @@ class Player extends DBWrapper
           ret = ret.concat(res)
 
         when PRIZETYPE_GOLD, PRIZETYPE_DIAMOND ,PRIZETYPE_CHCOIN
-          ret.push(@addMoneyAndSync(-p.count*count)) if p.count > 0
+          ret.push(@addMoneyAndSync(p.type, p.count)) if p.count > 0
         when PRIZETYPE_EXP then ret.push({NTF: Event_RoleUpdate, arg: {syn: @heroVersion, act: {exp: @addHeroExp(p.count)}}}) if p.count > 0
         when PRIZETYPE_WXP
           continue unless p.count
