@@ -893,7 +893,7 @@ class Player extends DBWrapper
       else
         throw 'Invalidate_Money_Type'
     ret = {NTF: Event_InventoryUpdateItem, arg: {syn: @inventoryVersion}}
-    ret.arg[stype] =  func(point)
+    ret.arg[stype] =  underscore.bind(func,@,point)()
     return ret
   addDiamond: (point) -> @addMoney('diamond', point)
 

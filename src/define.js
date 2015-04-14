@@ -266,7 +266,7 @@ function initPowerLimit(cfg) {
 	cfg.forEach(function (bounty) {
 		bounty.level.forEach(function (level) {
             limit = underscore.pick(level,['powerLimit', 'levelLimit', 'guildLimit'])
-            limit = underscore.defaults(limit, {powerLimit : 0 levelLimit : 0 guildLimit : 0})
+            limit = underscore.defaults(limit, {powerLimit : 0, levelLimit : 0, guildLimit : 0})
             limitInfo[level.stage] = limit
     
 		})

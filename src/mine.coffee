@@ -60,7 +60,18 @@ class ResourceRecod extends Serializer
     } ]}
  
     now = currentTime()
-    return verify(now, timeExp,{}) and diff(@coinSource.grabTimestamp, now).asHours() > duration
+    return verify(now, timeExp,{}) and Math.abs(diff(@coinSource.grabTimestamp, now).asHours()) > duration
+
+  getRestCoinCount: (player) ->
+    challengeCoinCaculatePoion = 15
+    defaultCoin = 5
+
+    leftPrenticeCoin = challengeCoinCaculatePoion - defaultCoin
+    prenticeCount = player.prenticeLst.count?() ? 0
+    if leftPrenticeCoin >= prenticeCount
+      return  defaultCoin +  prenticeCount
+    else
+      return challengeCoinCaculatePoion + Math.floor((prenticeCount - leftPrenticeCoin)/2)
 
 
   grab: (me) ->
@@ -104,31 +115,23 @@ class Mine extends DBWrapper
 
     
   _updateRobLst: (victim)->
-    if victim.canBeRobbed() and @isValidate()
+    if victim.canBeRobbed() and victim.isValidate()
       helperLib.assignLeaderboard(victim, helperLib.LeaderboardIdx.ChallengeCoin)
     else
       helperLib.remveMemberFromLeaderboard(helperLib.LeaderboardIdx.ChallengeCoin,victim.name)
 
     @save()
 
-  getRestCoinCount: (player) ->
-    challengeCoinCaculatePoion = 15
-    defaultCoin = 5
-
-    leftPrenticeCoin = challengeCoinCaculatePoion - defaultCoin
-    prenticeCount = player.prenticeLst.count?() ? 0
-    if leftPrenticeCoin >= prenticeCount
-      return  defaultCoin +  prenticeCount
-    else
-      return challengeCoinCaculatePoion + Math.floor((prenticeCount - leftPrenticeCoin)/2)
-
 
   grab: (player) ->
     me = @miner[player?.name]
     return {ret:RET_PlayerNotExists} unless me?
-    me.grab(player, @maxCoin)
+    {ntf,cnt,ret} = me.grab(player, @maxCoin)
     @_updateRobLst(me)
-    return { ret:RET_OK, ntf : @_syncPlayerCc(player)}
+    ret = { ret:ret, ntf : ntf}
+    if ret is RET_OK
+      ret.ntf = [@_syncPlayerCc(player)].concat(ret.ntf)
+    return ret
 
   getRevengeLst: (name, from, to, handler) ->
     if @miner[name]?
