@@ -31,6 +31,7 @@
     "gulp-footer": "^1.0.4",
     "gulp-gzip": "0.0.5",
     "gulp-if": "0.0.5",
+		"gulp-debug": "*",
     "gulp-mocha": "^0.4.1",
     "gulp-s3": "^0.1.1",
     "gulp-tar": "^0.1.1",

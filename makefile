@@ -6,6 +6,7 @@ all: auto-generated-dependencies.d
 auto-generated-dependencies.d :
 	@echo 'Generating dependencies'
 	@sh generate_dependencies.sh
+	@ln ../build/shared.js js/
 
 include auto-generated-dependencies.d
 
@@ -39,3 +40,8 @@ help:
 	$(PR) --omit-pagination --width=80 --columns=4
 test :
 	@
+
+ln:
+	@ln ../build/shared.js js/
+gtest:
+	gulp compileTest

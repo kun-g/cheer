@@ -1,4 +1,4 @@
-/*
+###
 var routerLib= require('../js/router');
 var shall = require('should');
 
@@ -27,7 +27,7 @@ describe('Router', function () {
         checkLst :{'name0':'string', age0:'number', danger0:'boolean', food0:'object'},
         result: true,
         errHandler:null,
-        
+
       },
       {
         args :{name1:'p1', age1:1, danger1:false, food1:['apple','bread']},
@@ -54,11 +54,8 @@ describe('Router', function () {
         errHandler:argErrorHandler,
       },
 
-
-
-
     ];
-    
+
     data.forEach(function(e) {
       //routerLib.checkArgs(e.args, e.checkLst,e.errHandler);
       if (e.result) {
@@ -70,4 +67,4 @@ describe('Router', function () {
   });
 });
 
-*/
+###

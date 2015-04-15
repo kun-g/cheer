@@ -1,21 +1,20 @@
+shall = require('should')
+require '../js/define'
+playerLib = require('../js/player')
+#var assert = require("assert");
+#var serialLib = require('../serializer');
+#var dungeonLib = require('../js/dungeon');
+#var should = require('should');
+#var spellLib = require('../js/spell');
+#var helpLib = require('../js/helper');
+#var itemLib = require('../item');
+#require('../shared');
+#initServer();
+#gServerName = 'UnitTest';
+#gServerID = 1;
+#dbPrefix = gServerName+'.';
 
-shall = require('should');
-require('../js/define');
-var playerLib = require('../js/player');
-//var assert = require("assert");
-//var serialLib = require('../serializer');
-//var dungeonLib = require('../js/dungeon');
-//var should = require('should');
-//var spellLib = require('../js/spell');
-//var helpLib = require('../js/helper');
-//var itemLib = require('../item');
-//require('../shared');
-//initServer();
-//gServerName = 'UnitTest';
-//gServerID = 1;
-//dbPrefix = gServerName+'.';
-
-/*
+###
 var async = require('async');
 
 var dbLib = require('../js/db');
@@ -33,8 +32,6 @@ dbLib.initializeDB({
 gServerObject = {
   getType: function () { return 'server'; }
 };
-
-
 
 var playerName = 'unitTestQ';
 //var othersName = 'pawn';
@@ -68,39 +65,97 @@ describe('countUp', function () {
   });
 });
 
-*/
-var getSlotFreezeInfo = playerLib.getSlotFreezeInfo; 
+###
 
-
-describe('util function test',function(){
-    it(' getSlotFreezeInfo', function(done) {
-        bag =[
-            {classId:1,subcategory:1,extraSlots:[2,3]},
-            {classId:2,subcategory:4},
-            {classId:3,subcategory:5,extraSlots:[6,7]},
-            {classId:4,subcategory:8,extraSlots:[9]},
-            {classId:5,subcategory:5,extraSlots:[3,4]},
+getSlotFreezeInfo = playerLib.getSlotFreezeInfo
+describe 'util function test', ->
+  it ' getSlotFreezeInfo', (done) ->
+    bag = [
+      {
+        classId: 1
+        subcategory: 1
+        extraSlots: [
+          2
+          3
         ]
-        player = {
-            getItemAt: function(idx){
-                return bag[idx];
-            },
-            equipment:[0,1,2,3]
-        };
-    var ret = getSlotFreezeInfo(player, 4);
+      }
+      {
+        classId: 2
+        subcategory: 4
+      }
+      {
+        classId: 3
+        subcategory: 5
+        extraSlots: [
+          6
+          7
+        ]
+      }
+      {
+        classId: 4
+        subcategory: 8
+        extraSlots: [ 9 ]
+      }
+      {
+        classId: 5
+        subcategory: 5
+        extraSlots: [
+          3
+          4
+        ]
+      }
+    ]
+    player =
+      getItemAt: (idx) ->
+        bag[idx]
+      equipment: [
+        0
+        1
+        2
+        3
+      ]
+    ret = getSlotFreezeInfo(player, 4)
+    exp = 
+      info: [
+        {
+          cid: 1
+          slots: [
+            1
+            2
+            3
+          ]
+        }
+        {
+          cid: 2
+          slots: [ 4 ]
+        }
+        {
+          cid: 3
+          slots: [
+            5
+            6
+            7
+          ]
+        }
+        {
+          cid: 4
+          slots: [
+            8
+            9
+          ]
+        }
+      ]
+      freezeBy: [
+        1
+        2
+        3
+      ]
+    ret.should.eql exp
+    done()
+    return
+  return
 
-    var exp = {info:[
-            {cid:1,slots:[1,2,3]},
-            {cid:2,slots:[4]},
-            {cid:3,slots:[5,6,7]},
-            {cid:4,slots:[8,9]},
-        ], freezeBy:[1,2,3]};
-    ret.should.eql( exp );
-    done();
-        
-    });
-});
-/*
+###
 //describe('Helper', function () {
 //  it('Object', function () {
 //    var t ={};
@@ -176,7 +231,6 @@ describe('Player', function () {
     });
   });
 
-
   describe("player", function() {
       it("powerLimit", function (done) {
           helpLib.assignLeaderboard = function(a,b){}
@@ -220,12 +274,12 @@ describe('Player', function () {
 //      //x.startDungeon(104, true, console.log);
       });
     });
-  
+
     describe('SimpleProtocol', function () {
       var parseLib = require('../js/requestStream');
       var encoder = new parseLib.SimpleProtocolEncoder();
       var decoder = new parseLib.SimpleProtocolDecoder();
-  
+
       it('Should work with message pack & AES', function (done) {
         encoder.setFlag('messagePack');
         encoder.setFlag('size');
@@ -250,9 +304,8 @@ describe('Player', function () {
         encoder.writeObject({a: '123'});
       });
     });
-  
-  
-  describe('CommandStream', function () {
+
+    describe('CommandStream', function () {
     var cmdLib = require('../js/commandStream');
     it('Should work with this test run', function () {
       var cmdConfig = {
@@ -303,7 +356,7 @@ describe('Player', function () {
       prizeInfo :[],
       random:function (){return 0.4;}
       };
-      
+
       var player = new playerLib.Player();
       cmd = dungeonLib.DungeonCommandStream({id: 'DropPrize',dropID:5,showPrize:true},dung);
       cmd.environment.rand =function (){return 0.4;}
@@ -314,8 +367,6 @@ describe('Player', function () {
 
       done();
     });
-
-
 
     it('spell test', function () {
       dungeon = new dungeonLib.Dungeon({
@@ -373,8 +424,7 @@ describe('Player', function () {
       var tar = me.selectTarget({targetSelection: {pool:'self', filter: ['Visible', 'Alive']}}, cmd);
       tar[0].should.have.property('name').equal(me.name);
 
-      
-      //"levelConfig":[
+            //"levelConfig":[
       //{ "modifications": {"attack":{func:forTest,c:{level:0.5}}}, "level": 1},
       //{ "modifications": {"attack":{func:forTest,c:{level:0.8}}}, "level": 1},
       //{ "modifications": {"attack":{func:forTest,c:{level:0.9}}}, "level": 2},
@@ -441,8 +491,6 @@ describe('Player', function () {
     //  //me.castSpell(0, 1, cmd).should.equal('NotReady');
     //  me.doAction(thisSpell, [ {type: 'clearSpellCD'} ], {}, [me], cmd);
 
-
-
     //  //me.health = 10;
     //  //me.doAction(thisSpell, [ {type: 'setProperty', modifications: {health: {src: {health:1}, c:10} }} ],  {}, [me], cmd);
     //  //me.health.should.equal(30);
@@ -458,7 +506,6 @@ describe('Player', function () {
       me.removeSpell(1, cmd);
       me.wTriggers.should.not.have.property('onBeDamage');
       me.wTriggers.should.not.have.property('onBeSpellDamage');
-
 
       // install && uninstall
       it('buff bug', function(done) {
@@ -488,7 +535,6 @@ describe('Player', function () {
 
         cmd = dungeonLib.DungeonCommandStream({id: 'InitiateAttack', block:0});
         cmd.getEnvironment = function () { return env }
-
 
         cmd.process();
         dprint([hero.attack,'step 1',hero.wSpellDB]);
@@ -1120,4 +1166,4 @@ describe('Player', function () {
 //  });
 //});
 
-*/
+###

@@ -6,6 +6,7 @@ var mocha = require('gulp-mocha');
 var coffeeLint = require('gulp-coffeelint');
 var cache = require('gulp-cached');
 var cover = require('gulp-coverage');
+var debug = require('gulp-debug');
 //var tar = require('gulp-tar');
 //var gzip = require('gulp-gzip');
 //var s3 = require('gulp-gzip');
@@ -16,16 +17,28 @@ var paths = {
   coffees: ['src/*.coffee'],
   js: ['src/*.js'],
   scripts: ['js/*.js'],
-  tests: ['test/*.js']
+  tests: ['test/src/*.coffee']
 };
 
 gulp.task('mocha', function () {
-  gulp.src(paths.tests, { read: false })
+  gulp.src('test/*.js', { read: false })
+  	.pipe(debug())
     .pipe(mocha({
       reporter: 'nyan',
     }))
     .on('error', console.log);
 });
+
+gulp.task('compileTest', function () {
+  return gulp.src(paths.tests)
+  	.pipe(debug())
+    .pipe(cache('compile'))
+    .pipe(coffee())
+    //.pipe(uglify())
+    .pipe(gulp.dest('test'))
+    .on('error', console.log);
+});
+
 
 gulp.task('coverage', function () {
   gulp.src(paths.tests, { read: false })
@@ -59,7 +72,7 @@ gulp.task('compile', function () {
 
 gulp.task('watch', function () {
   gulp.watch(paths.coffees, ['lint', 'compile']);
-  gulp.watch(paths.tests, ['mocha']);
+  gulp.watch(paths.tests, ['compileTest','mocha']);
   gulp.watch(paths.js, ['js']);
 });
 
