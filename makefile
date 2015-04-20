@@ -43,5 +43,6 @@ test :
 
 ln:
 	@ln ../build/shared.js js/
+	@ln ../build/tunnel_config.js js/
 gtest:
 	gulp compileTest

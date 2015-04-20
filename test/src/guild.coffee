@@ -1,10 +1,8 @@
 shall = require('should')
-libGuild = require('../js/guild')
-Upgradeable = libGuild.Upgradeable
-Modifier = libGuild.Modifier
-libPlayer = require('../js/timeUtils')
+{Upgradeable, Modifier, Building, GuildMember, Authority} = require('../js/guild')
+{implementing} = require('../js/helper')
 moment = require('moment')
-player = 
+player =
   faction: 'hero'
   upgrade: null
   claimCost: (cost) ->
@@ -24,7 +22,6 @@ describe 'Upgradeable', ->
       d[level]
 
     up = new Upgradeable
-    console.log up
     up.currentLevel().should.eql 0, 'initialize value'
     up.upgrade player
     up.currentLevel().should.eql 1, 'succ upgrade to 1'
@@ -38,6 +35,55 @@ describe 'Upgradeable', ->
     done()
     return
   return
+
+describe 'Authority', ->
+  Authority::_getConfig = (id) ->
+    data = [
+      {
+            desc: 'some describe info',
+            tab: {
+              'r1':{'add':true, 'del':false},
+              'r2':{'add':true, 'del':true},
+              'r2':{'add':false, 'del':true},
+            }
+      },
+    ]
+    return data[id].tab
+
+  TAu = implementing(Authority, class _TAu
+    constructor:() ->
+      cfg = {f1:'add', f2:'del'}
+      super({Authority:[0, cfg, @]})
+    f1:(arg,arg2) -> arg+arg2+'f1'
+    f2:(arg,arg2) -> arg+arg2+'f2'
+    f3:(arg,arg2) -> arg+arg2+'f3'
+  )
+  tau = new TAu()
+
+  it '', (done) ->
+    ['f1','f2','f3'].forEach((func) ->
+      tau[func].should.be.a.Function
+    )
+    ['f1','f2'].forEach((func) ->
+      console.log('=call', func)
+      tau[func]('r2','a','b').should.eql('ab'+func)
+      tau[func]('r3','a','b').should.eql({ret:RET_AuthorityLimit})
+    )
+    tau.f3('a','b').should.eql('abf3')
+    done()
+
+  it 'constructor', (done) ->
+    TAu = implementing(Authority, class _TAu
+      constructor:() ->
+        cfg = {f1:'add', f2:'del'}
+        super({Authority:[0, cfg, @]})
+    )
+    TAu.should.throw('no such method')
+ 
+    done()
+
+    
+
 describe 'Modifyer', ->
 
   Modifier::getConfig = (key) ->
@@ -74,6 +120,43 @@ describe 'Modifyer', ->
           event: 'createObj'
         }
       ]
+      '+wxp':{
+          describe:'土豪是怎么练成的',
+          upgradeCost:[1,2], #//[build_cost, upgrade_to_1_cost,.. upgrade_to_n_cost]
+          active:{
+              cost:3,
+              stayOpen:{
+                  time: { time: 'activeTimeStamp@date', duration:{week:1}}
+              }
+          },
+          target:['hero'], #//'npc','monster'
+          modifyData:[ {
+              type:'wxp',
+              value: [1.2, 1.2,1.3], #//[level_0_modify_data,..level_n_modify_data]
+              event:'claimReward'
+          } ]
+
+      },
+      '+health':{
+          describe:'土豪是怎么练成的',
+          upgradeCost:[1,2], #[build_cost, upgrade_to_1_cost,.. upgrade_to_n_cost]
+          active:{ 
+              cost:3, 
+              stayOpen:{
+                  time: { time: 'activeTimeStamp@date', duration:{week:1}}
+              }
+          },
+          target:['hero'], #'npc','monster'
+          modifyData:[ {
+              type:'health',
+              value: [1.2, 1.2,1.3], #[level_0_modify_data,..level_n_modify_data]
+              event:'createObj',
+          } ]
+
+
+      }
+
+
     temp = data[@type][key]
     console.log 'get ', temp, '====key', key
     temp
@@ -131,6 +214,19 @@ describe 'Modifyer', ->
     done()
     return
   return
+
+describe 'Building', ->
+  building = new Building()
+
+  it 'add building', (done) ->
+    building.addBuilding('+gold').ret.should.eql(RET_OK)
+    building.addBuilding('+gold').ret.should.eql(RET_SameBuildingExsit)
+    building.addBuilding('+health').ret.should.eql(RET_OK)
+    done()
+
+  it 'upgrade', (done) ->
+    done()
+
 describe 'GuildManager', ->
   it 'active', (done) ->
     done()

@@ -4,9 +4,10 @@
 //  appName: 'DR'
 //});
 //var agent = require('webkit-devtools-agent');
+
+gShop = require('./shop').gShop;
 require('./define');
 require('./tunnel_config');
-require('./shop');
 dbLib = require('./db');
 dbWrapper = require('./dbWrapper');
 http = require('http');
@@ -14,10 +15,12 @@ async = require('async');
 var helperLib = require('./helper');
 var domain = require('domain').create();
 var verify = require('./timeUtils').verify;
+var GuildManager = require('./guild').GuildManager;
 domain.on('error', function (err) {
     console.log("UnhandledError", err, err.message, err.stack);
 });
 
+var gGuildManager = null;
 g_DEBUG_FLAG = false
 //playerCounter = 0;
 //memwatch = require('memwatch');
@@ -473,6 +476,9 @@ function paymentHandler (request, response) {
         require('./helper').initLeaderboard(queryTable(TABLE_LEADBOARD));
         domain.run(init);
 
+        gGuildManager = new GuildManager();
+        gGuildManager.load();
+ 
         // Pay
         urlLib = require('url');
         cryptoLib = require('crypto');

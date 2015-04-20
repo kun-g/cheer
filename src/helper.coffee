@@ -13,10 +13,17 @@ implementing = (mixins..., classReference) ->
         args = data[mixin.name] ? []
         args = if Array.isArray(args) then args else [args]
         mixin.apply(@,args)
+
   }
   for mixin in mixins
     for key, value of mixin::
-      classReference::[key] = value
+      if not classReference::[key]?
+        classReference::[key] = value
+      else
+        if classReference.__super__[key]?
+          throw 'same name method is not allowed here'
+        classReference.__super__[key] = value
+      #classReference::[key] = value unless classReference::[key]?
   classReference
 
 
@@ -177,10 +184,14 @@ currentTime = (needObject) ->
     return obj.format(time_format)
 exports.currentTime = currentTime
 
+
 diffDate = (date, today, flag = 'day') ->
+  diffTime(date, today, flag, 'day')
+
+diffTime = (date, today, flag = 'day', unit) ->
   return null unless date
-  date = moment(date).startOf('day') if date
-  today = moment(today).startOf('day')
+  date = moment(date).startOf(unit) if date
+  today = moment(today).startOf(unit)
   duration = moment.duration(today.diff(date))
   switch flag
     when 'second' then return duration.asSeconds()

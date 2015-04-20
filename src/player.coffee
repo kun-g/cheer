@@ -18,7 +18,7 @@ async = require('async')
 libReward = require('./reward')
 libCampaign = require("./campaign")
 libTime = require('./timeUtils.js')
-libShop = require('./shop');
+libShop = require('./shop')
 campaign_LoginStreak = new libCampaign.Campaign(queryTable(TABLE_DP))
 {doGetProperty} = require('./trigger')
 
@@ -29,6 +29,7 @@ isInRangeTime = (timeLst,checkTime) ->
     return true if acc
     return (checkTime.diff(moment(dur.beginTime)) >0 and checkTime.diff(moment(dur.endTime)) < 0)
   ,false)
+
 
 #campaign_StartupClient = new libCampaign.Campaign(gNewCampainTable.startupPlayer)
 
@@ -119,6 +120,7 @@ class Prentice extends Serializer
 
   getConfig:(type) ->
     queryTable(TABLE_PRENTICE, @class)?[type]
+
 
 
 class PrenticeLst extends Serializer
@@ -1912,6 +1914,9 @@ class Player extends DBWrapper
               dbLib.removeMessage(@name, message.messageID)
             else
               cb(RET_InventoryFull, ret)
+          when MESSAGE_TYPE_GuildInvite, MESSAGE_TYPE_GuildJoin,MESSAGE_TYPE_GuildKick
+            #TODO faruba
+            1
       , (err, result) =>
         if friendFlag then return @updateFriendInfo(callback)
         if callback then callback(err, result.reduce( ((r, l) -> if l then return r.concat(l) else return r), [] ))
@@ -2578,6 +2583,8 @@ class Player extends DBWrapper
       logError({type: 'getShop', err: err, cfg: shopConfig})
       return {err: err}
 
+  getGuildId:() ->
+    return gGuildManager.findPlayerGuild(@name)
 
 
 playerMessageFilter = (oldMessage, newMessage, name) ->

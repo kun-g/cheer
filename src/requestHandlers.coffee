@@ -10,6 +10,7 @@ querystring = require('querystring')
 moment = require('moment')
 underscore = require('./underscore')
 {Player} = require('./player')
+require('./shop')
 
 CONST_REWARD_PK_TIMES = 5
 
@@ -1475,7 +1476,7 @@ exports.route = {
             ret.RET = RET_OK
             if sell_rst.version?
               ret.arg.shop = shop.dump2()
-            player.saveDB();
+            player.saveDB()
             handler([ret].concat(sell_rst.ret))
         when 2 # consume diamond to refresh
           shop = player.getShop(arg.name, true) ? {}
@@ -1506,4 +1507,25 @@ exports.route = {
       player.saveDB()
     needPid: true
   },
+  GuildOp: {
+    id: 45,
+    func: (arg, player, handler, rpcID) ->
+      # opn, typ ,gid
+      switch arg.opn
+        when 0 #guild op create delete upgarade
+          {ret,ntf} = gGuildManager.guildOp(arg.typ, arg.gid player)
+        when 1 #member join leave invite
+          {ret,ntf} = gGuildManager.memberOp(arg.typ, player, arg.nam)
+        when 2 #building upgrate active
+          {ret,ntf} = gGuildManager.buildingOp(arg.typ, arg.btp, player)
+        when 3 #query 
+          {ret, data} = gGuildManager.queryInfo(arg.typ, arg.que,player.getGuildId())
+
+      result = {RET:ret,REQ:rpcID}
+      result.arg = data if data?
+      result = [result].concat(ntf)
+      handler(result)
+      gGuildManager.save()
+
+  }
 }
