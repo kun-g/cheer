@@ -1,5 +1,6 @@
 require('./shared');
 var triggerLib = require('./trigger');
+var underscore = require('./underscore');
 
 DUNGEON_RESULT_DONE = 2;
 DUNGEON_RESULT_WIN = 1;
@@ -225,40 +226,25 @@ initStageConfig = function (cfg) {
 };
 
 function initVipConfig (cfg){
-  var ret = {};
-  var VIP = {};
-  var requirement = [];
-  var levels = [];
-  VIP.requirement = requirement;
-  VIP.levels = levels;
-  ret.VIP = VIP;
-  if (cfg.VIP){
-    var c = cfg;
-    if (c.VIP.requirement) {
-      var requirementCount = c.VIP.requirement.length;
-      //init
-      for (var kk in c.VIP.requirement){
-        ret.VIP.requirement[kk] = {};
-        ret.VIP.requirement[kk].rmb = c.VIP.requirement[kk].rmb;
-        ret.VIP.requirement[kk].privilege = [];
+  function myExtend(source,parent) {
+      for (var idx in parent) {
+          var data =  parent[idx];
+          if (underscore.find(source, function(item) { return item.name == data.name; }) == null) {
+             source.push(data);
+          }
       }
-      //
-      for (var k = 0;k < c.VIP.requirement.length;k++){
-        var privil = c.VIP.requirement[k].privilege;
-        if (privil){
-          for (var i = 0;i < privil.length;i++)
-            for (var j = k;j < requirementCount;j++){
-                ret.VIP.requirement[j].privilege[privil[i].name] = privil[i].data;
-            }
-        }
+  }
+  var ret = deepCopy(cfg);
+  for (var typeName in ret){
+      var cfgData = cfg[typeName];
+      for (var idx in cfgData.requirement ){
+          if(idx == 0){ continue; }
+          myExtend(cfgData.requirement[idx],cfgData.requirement[idx-1])
       }
-    }
-    if (c.VIP.levels){
-      ret.VIP.levels = c.VIP.levels;
-    }
   }
   return ret;
 }
+exports.initVipConfig = initVipConfig ;
 
 var powerLimitInfo = {};
 function initPowerLimit(cfg) {
@@ -818,6 +804,7 @@ Event_Fail = 11;
 Event_UpdateQuest = 19;
 Event_DungeonExit = 31;
 Event_UpdatePrentice = 32;
+Event_GuildInfo = 33;
 
 exports.fileVersion = -1;
 
