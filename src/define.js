@@ -400,6 +400,7 @@ initGlobalConfig = function (path, callback) {
     {name:TABLE_SKILL}, {name:TABLE_CAMPAIGN, func:initCampaignTable}, {name: TABLE_DROP}, {name: TABLE_TRIGGER},
     {name:TABLE_DP},{name:TABLE_ARENA},{name:TABLE_BOUNTY, func:initPowerLimit}, {name:TABLE_IAPLIST},{name:TABLE_PKREWARD},
     {name:TABLE_LOCALIZE},{name:TABLE_FRAGMENT},{name:TABLE_UNIT},{name:TABLE_SHOP_MASTER}, {name:TABLE_PRENTICE},
+    {name:TABLE_GUILD}, {name:TABLE_AUTHOTITY},
   ];
   if (!path) path = "./";
   configTable.forEach(function (e) {

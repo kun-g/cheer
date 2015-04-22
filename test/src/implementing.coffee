@@ -24,7 +24,7 @@ class B
     @fB = 'B'
 
 
-Test = implementing(A, B,class _Test
+Test = implementing(A, B,class Test
   constructor: () ->
     super({
       A:{name:'CA'},

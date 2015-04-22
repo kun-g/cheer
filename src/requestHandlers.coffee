@@ -1513,13 +1513,15 @@ exports.route = {
       # opn, typ ,gid
       switch arg.opn
         when 0 #guild op create delete upgarade
-          {ret,ntf} = gGuildManager.guildOp(arg.typ, arg.gid player)
-        when 1 #member join leave invite
-          {ret,ntf} = gGuildManager.memberOp(arg.typ, player, arg.nam)
-        when 2 #building upgrate active
+          {ret,ntf} = gGuildManager.guildOp(arg.typ, arg.gid,player,arg)
+        when 1 #member join leave invite, acceptJoin{nam, ans}
+          {ret,ntf} = gGuildManager.memberOp(arg.typ, arg.gid, player, arg)
+        when 2 #building upgrade active
           {ret,ntf} = gGuildManager.buildingOp(arg.typ, arg.btp, player)
         when 3 #query 
-          {ret, data} = gGuildManager.queryInfo(arg.typ, arg.que,player.getGuildId())
+          {ret, data} = gGuildManager.queryInfo(arg.typ, arg.que,player.getGuildId(), arg,handler)
+        when 4 #debug
+          dprint(gGuildManager)
 
       result = {RET:ret,REQ:rpcID}
       result.arg = data if data?

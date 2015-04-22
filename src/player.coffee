@@ -1914,9 +1914,12 @@ class Player extends DBWrapper
               dbLib.removeMessage(@name, message.messageID)
             else
               cb(RET_InventoryFull, ret)
-          when MESSAGE_TYPE_GuildInvite, MESSAGE_TYPE_GuildJoin,MESSAGE_TYPE_GuildKick
-            #TODO faruba
-            1
+          when   MESSAGE_TYPE_GuildInvite
+            if operation is NTFOP_ACCEPT
+              gGuildManager.acceptInvite(message.tokenId,cb)
+            else
+              cb(null,[])
+            dbLib.removeMessage(@name, message.messageID)
       , (err, result) =>
         if friendFlag then return @updateFriendInfo(callback)
         if callback then callback(err, result.reduce( ((r, l) -> if l then return r.concat(l) else return r), [] ))
@@ -2584,7 +2587,7 @@ class Player extends DBWrapper
       return {err: err}
 
   getGuildId:() ->
-    return gGuildManager.findPlayerGuild(@name)
+    return gGuildManager.getplayerGid(@name)
 
 
 playerMessageFilter = (oldMessage, newMessage, name) ->

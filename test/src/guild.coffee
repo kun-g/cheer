@@ -72,15 +72,15 @@ describe 'Authority', ->
     tau.f3('a','b').should.eql('abf3')
     done()
 
-  it 'constructor', (done) ->
-    TAu = implementing(Authority, class _TAu
-      constructor:() ->
-        cfg = {f1:'add', f2:'del'}
-        super({Authority:[0, cfg, @]})
-    )
-    TAu.should.throw('no such method')
- 
-    done()
+#  it 'constructor', (done) ->
+#    TAu = implementing(Authority, class _TAu
+#      constructor:() ->
+#        cfg = {f1:'add', f2:'del'}
+#        super({Authority:[0, cfg, @]})
+#    )
+#    TAu.should.throw('no such method')
+# 
+#    done()
 
     
 

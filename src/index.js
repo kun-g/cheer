@@ -20,7 +20,7 @@ domain.on('error', function (err) {
     console.log("UnhandledError", err, err.message, err.stack);
 });
 
-var gGuildManager = null;
+gGuildManager = null;
 g_DEBUG_FLAG = false
 //playerCounter = 0;
 //memwatch = require('memwatch');

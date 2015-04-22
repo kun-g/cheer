@@ -12,6 +12,8 @@ MESSAGE_TYPE_SystemReward = 201;
 MESSAGE_TYPE_ChargeDiamond = 202;
 MESSAGE_TYPE_InvitationAccept = 203;
 MESSAGE_TYPE_InvitationAwardUpdate = 204;
+MESSAGE_TYPE_GuildInvite = 205;
+MESSAGE_TYPE_GuildRequestJoin = 206;
 
 CHAT_TYPE_PLAYER = 0;
 CHAT_TYPE_SYSTEM = 1;

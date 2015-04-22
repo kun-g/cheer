@@ -449,6 +449,8 @@ exports.initializeDB = function (cfg,finishCb) {
   sharedPrefix = dbPrefix + 'shared' + dbSeparator;
   limitsPrefix = dbPrefix + 'limits' + dbSeparator;
 
+  guildPrifex = dbPrefix + 'guilds';
+
   LeaderboardPrefix = 'Leaderboard';
 
   sessionPrefix = dbPrefix + 'Session';

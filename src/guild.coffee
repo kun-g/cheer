@@ -2,6 +2,8 @@
 {Serializer, registerConstructor} = require('./serializer')
 {DBWrapper } = require('./dbWrapper')
 {Shop} = require('./shop')
+{Bag} = require('./container')
+dbLib = require('./db')
 {currentTime, verify} = require('./timeUtils')
 underscore = require('./underscore')
 
@@ -15,7 +17,7 @@ class Upgradeable
     return {ret:RET_Not_Upgradeable} unless cost?
     ntf = oprator.claimCost(cost)
     if ntf?
-      ntf = nft.concat(@customCost(oprator,args))
+      ntf = ntf.concat(@customCost(oprator,args))
       @level += 1
     return ntf
 
@@ -34,18 +36,19 @@ class Upgradeable
 exports.Upgradeable = Upgradeable
 
 class Authority
-  constructor: (id, cfg, bindee) ->
+  constructor: (id, cfg, bindee,@debug) ->
     @config = @_getConfig(id)
     @_bindFunc(cfg,bindee)
 
   check: (role,action) ->
+    return @debug if @debug?
     @config[role]?[action] ? false
 
   _getConfig: (id) ->
     queryTable(TABLE_AUTHOTITY,id).tab
   
   _bindFunc:(cfg, bindee) ->
-    genFunc= (originF, name) ->
+    genFunc= (originF, name,action) ->
       (role, args...) ->
         if @check(role,action)
           return originF.apply(@,args)
@@ -56,12 +59,12 @@ class Authority
     bindee.__originFunc={}
     for funcInClass, action of cfg
       if typeof bindee[funcInClass] isnt 'function'
-        throw 'no such method'
+        throw 'no such method =>[' + funcInClass + ']'
       bindee.__originFunc[funcInClass] = bindee[funcInClass]
-      bindee[funcInClass] = genFunc(bindee.__originFunc[funcInClass] , funcInClass)
+      bindee[funcInClass] = genFunc(bindee.__originFunc[funcInClass] , funcInClass,action)
       
 exports.Authority = Authority
-Modifier = implementing(Serializer, Upgradeable, class _Modifier
+Modifier = implementing(Serializer, Upgradeable, class Modifier
   constructor: (data) ->
     cfg ={
       type:''
@@ -76,7 +79,7 @@ Modifier = implementing(Serializer, Upgradeable, class _Modifier
 
   getType: () -> @type
   getConfig: (key) ->
-    queryTable(TABLE_GUILD,'modifier')?[@type]
+    queryTable(TABLE_GUILD,'building')?[@type][key]
   
   currentTime:currentTime
 
@@ -108,133 +111,251 @@ Modifier = implementing(Serializer, Upgradeable, class _Modifier
 
   #override Upgradeable
   upgradeCost: (level) ->
-    @getConfig('upgradeCost')?[level]
-    super()
+    @getConfig('upgradeCost')?[level+1]
 
 )
 exports.Modifier = Modifier
 
-class Building extends Serializer
+Building = implementing(Serializer, Authority, class Building
   constructor: (data) ->
     cfg = {
         modifierLst:[]
     }
-    super(data, cfg, {})
+    super({
+      Serializer:[data, cfg, {}],
+      Authority:[0,{'active','upgrade'},@]
+    })
 
-  upgradeBuilding :(type,oprator) ->
+  _upgradeBuilding :(oprator,type) ->
     modifier = @getModifierByType(type)
     return {ret: RET_InvalidateModifier} unless modifier?
-    return modifier.upgrade(oprator)
+    ntf = modifier.upgrade(oprator)
+    return ntf if ntf.ret?
+    return {ret: RET_OK, ntf:ntf}
 
-  addBuilding :(type,oprator) ->
+  _addBuilding :(oprator,type) ->
     return {ret:RET_SameBuildingExsit} if @getModifierByType(type)?
     cost = @getBuildCost(type)
     ntf = oprator.claimCost(cost)
     return {ret: RET_ItemNotExist} unless ntf?
-    @modifierLst.push(new Modifier(type))
+    @modifierLst.push(new Modifier({type:type}))
     return {ret:RET_OK,ntf:ntf}
 
-  active: (type, oprator) ->
+  active: (oprator,type) ->
     modifier = @getModifierByType(type)
     return {ret: RET_InvalidateModifier} unless modifier?
-    modifier.active(oprator)
+    ntf = modifier.active(oprator)
+    if ntf?
+      ret = {ret:RET_OK,ntf:ntf}
+    else
+      ret = {ret:RET_NotEnoughItem}
+    return ret
     
+  upgrade: (oprator, type) ->
+    ret = @_upgradeBuilding(oprator, type)
+    if ret.ret isnt RET_InvalidateModifier
+      return ret
+    return @_addBuilding(oprator, type)
+
   applyModifier: (event,target) ->
     modifierLst.reduce((acc, modifier) ->
       modifier.applyModifier(event,acc)
     ,target)
   getBuildCost: (type) ->
-    queryTable(TABLE_GUILD,'modifier')[type]?upgradeCost[0]
+    queryTable(TABLE_GUILD,'building')[type]?upgradeCost[0]
 
   getModifierByType: (type) ->
     for modifier in @modifierLst
       return modifier if modifier.getType() is type
     return null
+)
 
 exports.Building = Building
 
 
-class GuildMember extends Serializer
+GuildRole ={
+  A:0
+  B:1
+  Guest:'guest'
+}
+GuildMember =  implementing(Serializer, Authority, class GuildMember
   constructor: (data) ->
     cfg = {
       max: 20
       playerLst:[] # {name,lastLogin,role}
+      nextSeri: -1
+      joinRecoder:{}
+      gid: -1
     }
-    super(data, cfg, {})
+    super({
+      Serializer:[data, cfg, {}],
+      Authority:[0,{'join','invite', 'leave', 'acceptJoin'},@]})
+
+  setGuildId:(@gid) ->
 
   #player managment
-  invite: (admin, name, id,callback) ->
-    msg = {type:  MESSAGE_TYPE_GuildInvite, name: this.name}
+  _isSameRecoderExist:(msg) ->
+    for k,v of @joinRecoder
+      return true if underscore.isMatch(v,msg)
+    return false
+  _appendMemberCheck: (msg) ->
+    return {ret:RET_GuildMemberLimit} if @playerLst.length >= @max
+    return {ret:RET_NothingTodo} if @isHave(msg.name)
+    return {ret:RET_NothingTodo} if @_isSameRecoderExist(msg)
+    return {ret:RET_OK}
+  invite: (admin, arg) ->
+    name = arg.nam
+    return {ret:RET_CantInvite} if name is admin.name
+    msg = {type:  MESSAGE_TYPE_GuildInvite, name: name, gid:@gid}
+
+    ret = @_appendMemberCheck(msg)
+    return ret if ret.ret isnt RET_OK
+
+    msg.tokenId = @addJoinRecoder(msg)
     async.series([
-      (cb) ->
-        if id?
-          dbLib.getPlayerNameByID(id, gServerName, (err, theName) ->
-            if theName then name = theName
-            cb(err)
-          )
-        else
-          cb(null)
-      (cb) => if name is admin.name then cb(new Error(RET_CantInvite)) else cb (null),
-      (cb) => if @isHave(name) then cb(new Error(RET_OK)) else cb (null),
       (cb) -> dbLib.playerExistenceCheck(name, cb),
       (cb) -> dbLib.deliverMessage(name, msg, cb, null, true),
-    ], (err, result) ->
-      err = new Error(RET_OK) unless err?
-      if callback then callback(err)
-    )
+    ], (err, result) ->)
+    return {ret:RET_OK}
 
+  join: (me, arg) ->
+    msg = {type: MESSAGE_TYPE_GuildRequestJoin, name: me.name}
+    return {ret:RET_OK} if @_isSameRecoderExist(msg)
+    @addJoinRecoder(msg)
+    return {ret:RET_OK}
 
-  join: (player,callback) ->
+  acceptJoin: (admin,arg) ->
+    name = arg.nam
+    for tokenId, msg of @joinRecoder
+      if msg.name is name and msg.type is  MESSAGE_TYPE_GuildRequestJoin
+        if arg.ans is NTFOP_ACCEPT
+          @doJoin(msg.name)
+        delete @joinRecoder[tokenId]
+        return {ret:RET_OK}
+    return {ret:RET_OK}
 
-  kick: (admin,name,id,msg,callback) ->
+  getJoinRequestLst: () ->
 
+  doJoin: (player) ->
+    return {ret:RET_OK} if @isHave(player)
+    @playerLst.push({name:player,lastLogin:0,role:GuildRole.A})
+    gGuildManager.registNewGuildMember(player, @gid)
+    return {ret:RET_OK}
+    
 
-  leave: (name,callback) ->
+  leave: (player, callback) ->
     @playerLst = @playerLst.filter((member) -> member.name isnt name)
+    gGuildManager.unregistGuildMember({name:player})
+    callback({ret:RET_OK})
 
-  add: (name,id,callback) ->
+  changeRole: (name,roleType,callback) ->
+    member= @_findPlayer(name)
+    return {ret:RET_InvalidOp} unless member?
+    member.role = roleType
+    callback({ret:RET_OK})
+
+    
 
   #player action
   onMemberLogin: (name) ->
+    member= @_findPlayer(name)
+    member.lastLogin = currentTime()
+    @playerLst.sort((a,b) -> b -a)
 
-  query: (type) ->
+  queryInfo: (type,args) ->
+    #when 'max','cnt','joinReq'
     switch type
       when 'max'
-        return @_getMaxMemberCount()
+        return @max()
+      when 'cnt'
+        return @playerLst.length
+      when 'joinReq'
+        return @joinRecoder
       when 'members'
-        @playerLst
+        @playerLst.slice(args.src,args.src+args.cnt)
+      when 'memberByName'
+        @playerLst.filter((mem) -> mem.name is args.name)[0]
 
   isHave: (name) ->
-    underscore.findIndex(@playerLst, (member) -> member.name is name) isnt -1
+    @_findPlayer(name)?
+  _findPlayer: (name) ->
+    idx = underscore.findIndex(@playerLst, (member) -> member.name is name)
+    return null if idx is -1
+    return @playerLst[idx]
   
 
   #(type, admin, target, memberRecoder) ->
-  _getMaxMemberCount: () ->
-    return @max
+
+  acceptInvite: (tokenId, callback) ->
+    cache = @joinRecoder[tokenId]
+    callback {ret: RET_InvalidOp} unless cache?
+    ret = @doJoin(chche.name)
+    delete @joinRecoder[tokenId]
+    return ret
+  addJoinRecoder: (msg) ->
+    tokenId = @_getNextSeri()
+    @joinRecoder[tokenId] = msg
+    return tokenId
+
+  _getNextSeri: () ->
+    @nextSeri += 1
+    return @nextSeri
+
+
+)
  
-Guild = implementing(Serializer, Upgradeable, class _Guild
+Guild = implementing(Serializer, Upgradeable, class Guild
   constructor: (data) ->
     cfg ={
-      id:-1
-      building: Building
-      shop: Shop
-      store:Bag
-      memberLst: GuildMember
+      gid:-1
+      nam: ''
+      building: new Building()
+      shop: new Shop()
+      store:Bag(InitialBagSize)
+      memberLst: new GuildMember()
       xp:0
+      level:0
     }
     super({
       Upgradeable:[],
       Serializer: [data, cfg,{}]
     })
-  queryInfo: (type) ->
+    @memberLst.setGuildId(@gid)
+  queryInfo: (lst,args) ->
+    result = {}
+    for name in lst
+      switch name
+        when 'gid','nam', 'xp'
+          ret = @[name]
+        when 'lvl'
+          ret = @level
+        when 'max','cnt','joinReq', 'members','memberByName'
+          ret =  @memberLst.queryInfo(name,args)
+        when 'bud'
+          ret = @building.queryInfo()
+        when 'shp'
+          ret = @shop.queryInfo()
+      result[name] = ret
+    return result
 
   onUseEnergy: (name,value) ->
     if @memberLst.isHave(name)
       @_addXp(value)
 
 
-  memberOp: () ->
-    @memberLst.memberOp()
+  memberOp: (type, admin, arg) ->
+    if admin?
+      role = @_getMemberRole(admin.name)
+      @memberLst[type](role, admin, arg) # with authority check
+    else
+      @memberLst[type](arg)# without authority check
+  buildingOp:(admin, type, building) ->
+    if admin?
+        role = @_getMemberRole(admin.name)
+        @building[type](role, admin, building) # with authority check
+      else
+        @building[type](admin, building)# without authority check
+
   _addXp: (value) ->
     @xp += value if value > 0
   _subXp: (value) ->
@@ -242,7 +363,12 @@ Guild = implementing(Serializer, Upgradeable, class _Guild
     temp = @xp - value
     return false if temp < 0
     @xp = temp
-    return true
+  getGuildId: () ->
+    @gid
+  _getMemberRole:(name) ->
+    role = @queryInfo(['memberByName'],{name:name}).memberByName?.role
+    return if role? then role else GuildRole.Guest
+
 )
 
 class GuildManager extends DBWrapper
@@ -250,87 +376,123 @@ class GuildManager extends DBWrapper
     cfg ={
       guildLst:[],
       playerRef:{}
-      nextGid: -1
     }
     super(data,cfg, {})
+    @setDBKeyName(guildPrifex)
+  
+  #opration
+  memberOp: (type, gid, admin, arg) ->
+    guild = @findPlayerGuild({id:gid})
+    return {ret:RET_InvalidGuild} unless guild?
+    guild.memberOp(type, admin, arg)
+   
+  buildingOp: (type,building,player) ->
+   guild = @findPlayerGuild({id:player.getGuildId()})
+   return {ret:RET_InvalidGuild} unless guild?
+   guild.buildingOp(player,type, building)
+  
+  guildOp: (type, gid, player,arg) ->
+    switch type
+      when 'create'
+        return {ret:RET_InvalidOp} if player.getGuildId()?
+        return @_createGuild(player,arg.nam)
+      when 'delete'
+        return {ret:RET_InvalidOp} unless player.getGuildId()?
+        return @_deleteGuild(player.name)
+      when 'upgrade'
+        1
 
-  _createGuild: (player) ->
-  joinGuild: (player) ->
-  destroyGuild: (player) ->
+  #query 
+  findPlayerGuild: (nameOrId) ->
+    if nameOrId.name?
+      return @guildLst[@playerRef[nameOrId.name]]
+    else if nameOrId.id?
+      return @guildLst[nameOrId.id]
+    else if nameOrId = 'lst'
+      return @guildLst.filter((g) -> g?)
 
-  queryInfo: (type,subType, gid) ->
+  getplayerGid: (name) ->
+    @playerRef[name]
+
+  queryInfo: (type,subType, gid,args,cb) ->
     switch  type
       when 'guild'
-        switch arg.que
+        switch subType
           when 'info'
-            {
-              NTF:Event_GuildInfo
-              arg:[
-                {
-                  bid:1,nam:'b1',max:20,cnt:10,lvl:1,xp:20
-                  bud:[{typ:'gold',lvl:1} ],
-                  shp:3,
-                }
-              ]
-            }
+            guild = @findPlayerGuild({id:gid})
+            guild = if guild? then [guild] else []
+            return @_getGuildInfo(guild, ["gid", "nam", "max", "cnt", "shp", "xp", "bud", "lvl"])
           when 'list'
-            {
-              NTF:Event_GuildInfo
-              arg:[
-                {bid:1,nam:'b1',max:20,cnt:10,lvl:1,}
-                {bid:2,nam:'b2',max:20,cnt:10,lvl:1}
-              ]
-            }
+            return @_getGuildInfo(@findPlayerGuild('lst'),['gid','nam','max','cnt','lvl'])
           when 'inv'
             {
               NTF:Event_InventoryUpdateItem
             }
       when 'member'
+        guild = @findPlayerGuild({id:gid})
+        return {ret: RET_InvalidGuild} unless guild?
+        if subType is 'basicInfo'
+        else
+          cb({RET: RET_OK, arg:guild.queryInfo([subType],args)})
         #src cnt 
-        ret = getBasicInfo() #gst ->role
+        #ret = getBasicInfo() #gst ->role
 
 
-  buildingOp: (type, building, player,args) ->
 
-  memberOp: (type, admin, target) ->
-    guild = @findePlayerGuild(admin.name)
-    return {ret:RET_InvalidGuild} unless guild?
-    guild.memberOp(type, admin, target, @)
-    
-  _getGuildByGid: (gid) ->
-    guild = @guildLst[gid]
-    if guild? and not guild.isValidate()
-      @guildLst[gid] =  guild = null
-    return guild
-      
-  _getNextGid: () ->
-    gid = underscore.findIndex(@guildLst, (guild) -> not guild.isValidate())
-    return gid unless gid is -1
-    @nextGid += 1
-    return @nextGid
-
-  buildingOp: (type,building,player,args) ->
-
-  guildOp: (type, gid, player) ->
-    switch type
-      when 'create'
-        return {ret:RET_InvalidOp} if player.getGuildId()?
-        return @_createGuild(player)
-      when 'delete'
-        return {ret:RET_InvalidOp} unless player.getGuildId()?
-        return @_deleteGuild(player)
-      when 'upgrade'
-        1
-  findePlayerGuild: (name) ->
-    @_getGuildByGid(@playerRef[name])
+  #priave method
+  _getGuildInfo: (guildLst, proLst) ->
+    return {
+      ret: RET_OK,
+      ntf: {
+          NTF:Event_GuildInfo
+          arg:@findPlayerGuild('lst').map((guild) -> guild.queryInfo(proLst))
+        }
+    }
 
   registNewGuildMember:(name, gid) ->
     return {ret:RET_InvalidOp} if  @playerRef[name]?
     @playerRef[name] = gid
 
-  unregistNewGuildMember: (name) ->
-    if @playerRef[name]?
+  unregistGuildMember: (nameOrId) ->
+    name = nameOrId.name
+    if name? and @playerRef[name]?
       delete @playerRef[name]
+    else
+      id = nameOrId.id
+      for name,gid of @playerRef
+        if gid is id
+          delete @playerRef[name]
+      
+  _getNewGuidId: () ->
+    gid = underscore.findIndex(@guildLst, (guild) -> not guild?)
+    return gid unless gid is -1
+    return @guildLst.length
+
+  _createGuild: (player,name) ->
+    cost = @_getConfig('buildCost')
+    ntf = player.claimCost(cost)
+    if ntf?
+      gid = @_getNewGuidId()
+      guild = new Guild({gid:gid, name:name})
+      @guildLst[gid] = guild
+      guild.memberOp('doJoin',null, player.name)
+      return {ret:RET_OK, ntf:ntf}
+    return {ret:RET_NotEnoughItem}
+    
+  _deleteGuild: (player) ->
+    guild = @findPlayerGuild({name:player})
+    gid = guild.getGuildId()
+    @unregistGuildMember({id:gid})
+    @guildLst[gid] = null
+    return {ret:RET_OK}
+  _getConfig: (key) ->
+    queryTable(TABLE_GUILD,'guild')[key]
 
 
 exports.GuildManager = GuildManager
+registerConstructor(GuildManager)
+registerConstructor(Modifier)
+registerConstructor(Building)
+registerConstructor(GuildMember)
+registerConstructor(Guild)
+
