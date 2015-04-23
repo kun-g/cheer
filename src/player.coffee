@@ -121,8 +121,6 @@ class Prentice extends Serializer
   getConfig:(type) ->
     queryTable(TABLE_PRENTICE, @class)?[type]
 
-
-
 class PrenticeLst extends Serializer
   constructor: (data) ->
     @battleLst =[]
@@ -131,6 +129,8 @@ class PrenticeLst extends Serializer
       prenticeLst: [],
       maxPrentice: 20,
       arenaLst: []
+      cache:{},
+
     }
     super(data, cfg, {})
 
@@ -247,7 +247,7 @@ class PrenticeLst extends Serializer
       info = @getInfo(idx,'basicInfo',['name','gender', 'class',
       'hairStyle', 'hairColor', 'quality', 'equipment'])
       info.equipment = info.equipment.map((slot) =>
-        item = @master.inventory.get(slot)
+        item = @master?.inventory.get(slot)
         if item?
           return { cid: item.classId, eh: item.enhancement }
         return {}
@@ -270,6 +270,12 @@ class PrenticeLst extends Serializer
     
   onMasterChange: (master) ->
     @masterSkill[@master.class] =  (new Hero(@master.hero)).wSpellDB
+
+  dump:() ->
+    @cache = @getBasicInfo()
+    super()
+
+
 
 class Player extends DBWrapper
   constructor: (data) ->
@@ -297,6 +303,7 @@ class Player extends DBWrapper
       diamond: 0,
       masterCoin: 0,
       arenaCoin: 0,
+      challengeCoin: 0,
       equipment: {},
       heroBase: {},
       heroIndex: -1,
@@ -344,7 +351,7 @@ class Player extends DBWrapper
 
     @envReward_modifier = gReward_modifier
     versionCfg = {
-      inventoryVersion: ['gold', 'diamond', 'inventory', 'equipment'],
+      inventoryVersion: ['gold', 'diamond', 'inventory', 'equipment', 'challengeCoin'],
       heroVersion: ['heroIndex', 'hero', 'heroBase'],
       stageVersion: 'stage',
       questVersion: 'quests',
@@ -511,6 +518,7 @@ class Player extends DBWrapper
     @createHero()
     @updateMenFlags(PLAYERLEVELID,0,@playerXp)
     @prenticeLst.setMaster(@)
+    gMiner?.regist(@name)
     return ret
 
   claimLoginReward: () ->
@@ -572,7 +580,7 @@ class Player extends DBWrapper
           r = []
           for k, v of p
             r = r.concat(v)
-          r = r.filter((e) => not (e.type >= PRIZETYPE_GOLD and e.type <= PRIZETYPE_WXP and e.count <= 0))
+          r = r.filter((e) => not ((PRIZETYPE_GOLD <= e.type <= PRIZETYPE_WXP or e.type is PRIZETYPE_CHCOIN) and e.count <= 0))
           prize.push(r)
           ret = ret.concat(@claimPrize(r))
         @log('sweepDungeon', { stage: stage, multiple: multiple, reward: prize })
@@ -871,17 +879,40 @@ class Player extends DBWrapper
       @hero[k] = JSON.parse(JSON.stringify(v))
     @equipment = JSON.parse(JSON.stringify(@heroBase[hClass].equipment))
 
-  addMoney: (type, point) ->
+  addMoney: (type, point, max) ->
     return this[type] unless point
     return false if point + this[type] < 0
     this[type] = Math.floor(this[type]+point)
+    this[type] = max if max? and this[type] > max
     @costedDiamond += point if type is 'diamond'
     return this[type]
 
+  addMoneyAndSync:(type,point) ->
+    switch type
+      when PRIZETYPE_GOLD
+        func = @addGold
+        stype = 'god'
+      when PRIZETYPE_DIAMOND
+        func = @addDiamond
+        stype = 'dim'
+      when PRIZETYPE_CHCOIN
+        func = @addChallengeCoin
+        stype = 'chc'
+      else
+        throw 'Invalidate_Money_Type'
+    ret = {NTF: Event_InventoryUpdateItem, arg: {syn: @inventoryVersion}}
+    ret.arg[stype] =  underscore.bind(func,@,point)()
+    return ret
   addDiamond: (point) -> @addMoney('diamond', point)
 
   addGold: (point) -> @addMoney('gold', point)
 
+  addChallengeCoin: (point) ->
+    @addMoney('challengeCoin', point, @getMaxChallengeCoin())
+  getMaxChallengeCoin: () ->
+    return @vipOperation('challengeCoin')
+
+    
   addHeroExp: (point) ->
     if point
       prevLevel = @createHero().level
@@ -1079,17 +1110,18 @@ class Player extends DBWrapper
         cb()
       ,
       (cb) =>
-        if stageConfig.pvp? and pkr? and (@getPkCoolDown() == 0 or @getAddPkCount() > 0)
-          if @getAddPkCount() == 0
-            @timestamp.pkCoolDown = currentTime()
+        if stageConfig.pvp? and pkr?
+          @dungeonData.PVP_Pool = []
           getPlayerHero(pkr, wrapCallback(this, (err, heroData) ->
             if heroData?
               pvpPool = [getBasicInfo(heroData)]
             @dungeonData.PVP_Pool = pvpPool ? []
             heroData = heroData ? {}
-            getPlayerArenaPrentices(heroData.name, (err, prentices) =>
+            isArena = stageConfig.pvp is 'arena'
+            getPlayerArenaPrentices(heroData.name, isArena, (err, prentices) =>
               if err then console.log('ERROR:', err)
-              @dungeonData.PVP_Pool.concat(prentices)
+              prentices = prentices.map(getBasicInfo)
+              @dungeonData.PVP_Pool = @dungeonData.PVP_Pool.concat(prentices)
               dbLib.diffPKRank(@name, pkr,wrapCallback(this, (err, result) ->
                 result = [0,0]  unless Array.isArray(result)
                 @dungeonData.PVP_Score_diff = result[0]
@@ -1108,7 +1140,7 @@ class Player extends DBWrapper
         else
           @loadDungeon()
           if @dungeon?
-            if stageConfig.initialAction then stageConfig.initialAction(@,  genUtil)
+            if stageConfig.initialAction then stageConfig.initialAction(@,  genUtil())
             if stageConfig.eventName then msg = @syncEvent()
             @log('startDungeon', {dungeonData: @dungeonData, err: err})
             ret = if startInfoOnly then @dungeon.getInitialData() else @dungeonAction({CMD:RPC_GameStartDungeon})
@@ -1171,6 +1203,7 @@ class Player extends DBWrapper
     haveEnoughtMoney = prize.reduce( (r, l) =>
       if l.type is PRIZETYPE_GOLD and @gold < l.count*count then return false
       if l.type is PRIZETYPE_DIAMOND and @diamond < l.count*count then return false
+      if l.type is PRIZETYPE_CHCOIN and @challengeCoin < l.count*count then return false
       return r
     , true)
     return {type:'noenoughmoney'} unless haveEnoughtMoney
@@ -1182,8 +1215,9 @@ class Player extends DBWrapper
           retRM = @inventory.remove(p.value, p.count*count, null, true)
           return {type:'noenoughitem', value:p.value, count:p.count*count} unless retRM and retRM.length > 0
           ret = @doAction({id: 'ItemChange', ret: retRM, version: @inventoryVersion})
-        when PRIZETYPE_GOLD then ret.push({NTF: Event_InventoryUpdateItem, arg: {syn: @inventoryVersion, god: @addGold(-p.count*count)}})
-        when PRIZETYPE_DIAMOND then ret.push({NTF: Event_InventoryUpdateItem, arg: {syn: @inventoryVersion, dim: @addDiamond(-p.count*count)}})
+        when PRIZETYPE_GOLD,PRIZETYPE_DIAMOND ,PRIZETYPE_CHCOIN
+          ret.push(@addMoneyAndSync(p.type, -p.count*count))
+
 
     return ret
 
@@ -1203,8 +1237,8 @@ class Player extends DBWrapper
           gServerObject.notify('playerClaimItem',{player:@name,item:p.value})
           ret = ret.concat(res)
 
-        when PRIZETYPE_GOLD then ret.push({NTF: Event_InventoryUpdateItem, arg: {syn: @inventoryVersion, god: @addGold(p.count)}}) if p.count > 0
-        when PRIZETYPE_DIAMOND then ret.push({NTF: Event_InventoryUpdateItem, arg: {syn: @inventoryVersion, dim: @addDiamond(p.count)}}) if p.count > 0
+        when PRIZETYPE_GOLD, PRIZETYPE_DIAMOND ,PRIZETYPE_CHCOIN
+          ret.push(@addMoneyAndSync(p.type, p.count)) if p.count > 0
         when PRIZETYPE_EXP then ret.push({NTF: Event_RoleUpdate, arg: {syn: @heroVersion, act: {exp: @addHeroExp(p.count)}}}) if p.count > 0
         when PRIZETYPE_WXP
           continue unless p.count
@@ -1240,6 +1274,9 @@ class Player extends DBWrapper
             when "setValue"
               target = if p.target is 'player' then @ else gServerObject
               doSetProperty(target, p.key, p.value)
+            when "rob"
+              if p.victim?
+                ret = ret.concat(gMiner.rob(p.victim, @, p.count))
     return ret
 
   isQuestAchieved: (qid) ->
@@ -1673,6 +1710,7 @@ class Player extends DBWrapper
       when 'energyPrize' then return cfg?.privilege?.energyPrize ? 1
       when 'appendRevive' then return cfg?.privilege?.appendRevive ? 0
       when 'reviveBasePrice' then return cfg?.privilege?.reviveBasePrice ? 60
+      when 'challengeCoin' then return cfg?.privilege?.challengeCoin ? 4
 
   vipLevel: () -> @vipOperation('vipLevel')
   getBlueStarCost: () -> @vipOperation('blueStarCost')
@@ -1683,7 +1721,7 @@ class Player extends DBWrapper
   getPrivilege: (name) -> @vipOperation(name)
   getTotalPkTimes: () -> return @getPrivilege('pkCount')
   getAddPkCount: () ->
-    @counters.addPKCount = 0 unless @counters.addPKCount?
+    @counters.addPKCount ?= 0
     return @counters.addPKCount
 
   getReviveLimit: (reviveLimit) ->
@@ -1692,7 +1730,7 @@ class Player extends DBWrapper
   getPkCoolDown: () ->
     if @counters.addPKCount? and @counters.addPKCount > 0
       return 0
-    @timestamp.pkCoolDown = 0 unless @timestamp.pkCoolDown?
+    @timestamp.pkCoolDown ?= 0
     timePass = libTime.diff(currentTime(), @timestamp.pkCoolDown).asSeconds()
     if timePass >= PK_COOLDOWN
       return 0
@@ -2179,7 +2217,7 @@ class Player extends DBWrapper
         return ret
       )).filter((e) -> e!=null)
 
-    ev = {NTF: Event_InventoryUpdateItem, arg: { cap: bag.limit, dim: this.diamond, god: this.gold, mst:this.masterCoin, syn: this.inventoryVersion, itm: items } }
+    ev = {NTF: Event_InventoryUpdateItem, arg: { cap: bag.limit, dim: this.diamond, god: this.gold, chc: this.challengeCoin, mst:this.masterCoin, syn: this.inventoryVersion, itm: items } }
     if forceUpdate then ev.arg.clr = true
     return ev
 

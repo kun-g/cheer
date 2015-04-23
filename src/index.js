@@ -16,11 +16,13 @@ var helperLib = require('./helper');
 var domain = require('domain').create();
 var verify = require('./timeUtils').verify;
 var GuildManager = require('./guild').GuildManager;
+var Mine = require('./mine').Mine;
 domain.on('error', function (err) {
     console.log("UnhandledError", err, err.message, err.stack);
 });
 
 gGuildManager = null;
+gMiner = null;
 g_DEBUG_FLAG = false
 //playerCounter = 0;
 //memwatch = require('memwatch');
@@ -479,6 +481,9 @@ function paymentHandler (request, response) {
         gGuildManager = new GuildManager();
         gGuildManager.load();
  
+        gMiner = new Mine();
+        gMiner.load();
+
         // Pay
         urlLib = require('url');
         cryptoLib = require('crypto');

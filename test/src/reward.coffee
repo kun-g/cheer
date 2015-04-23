@@ -185,4 +185,47 @@ describe 'Reward', ->
     it 'sweep reward', ->
     return
   it 'Claim', ->
+  it 'rearrangePrize', ->
+    prizeInfo = [
+      {
+        type: PRIZETYPE_GOLD
+        count: 1
+      }
+      {
+        type: PRIZETYPE_ITEM
+        value: 854
+        count: 1
+      }
+      {
+        type: PRIZETYPE_ITEM
+        value: 854
+        count: 1
+      }
+      {
+        type: PRIZETYPE_ITEM
+        value: 854
+        count: 1
+      }
+      {
+        type: PRIZETYPE_ITEM
+        value: 855
+        count: 1
+      }
+      {
+        type: PRIZETYPE_GOLD
+        count: 110
+      }
+      {
+        type: PRIZETYPE_FUNCTION
+        func: 'rob'
+        count: 1
+      }
+      {
+        type: PRIZETYPE_FUNCTION
+        func: 'rob'
+        count: 1
+      }
+    ]
+    console.log libReward.rearrangePrize(prizeInfo)
+    return
   return

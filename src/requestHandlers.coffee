@@ -32,6 +32,7 @@ PRENTICE_OP_CREATE = 0
 PRENTICE_OP_REBORN = 1
 PRENTICE_OP_UPGRADE = 2
 
+CHALLENGECOIN_OP_GRAB = 0
 checkRequest = (req, player, arg, rpcID, cb) ->
   dbLib.checkReceiptValidate(arg.rep, (isValidate) ->
     if isValidate
@@ -593,27 +594,40 @@ exports.route = {
   RPC_QueryLeaderboard: {
     id: 30,
     func: (arg, player, handler, rpcID, socket) ->
-      helperLib.getPositionOnLeaderboard(arg.typ,
-        player.name,
-        arg.src,
-        arg.src+arg.cnt-1,
-        (err, result) ->
-          ret = {REQ: rpcID, RET: RET_OK}
-          if arg.me? then ret.me = result.position
-          if result.board?
-            board = result.board
-            async.map(board.name, getPlayerHero, (err, result) ->
-              ret.lst = result.map( (e, i) ->
-                return null unless e?
-                r = getBasicInfo(e)
-                r.scr = +board.score[i]
-                return r
-              )
+      from = arg.src
+      to = arg.src+arg.cnt-1
+      switch arg.typ
+        when helperLib.LeaderboardIdx.Revange, helperLib.LeaderboardIdx.ChallengeCoin
+          gMiner.getPositionOnLeaderboard(arg.typ, player.name, from,to, (err, result) ->
+            if err?
+              logError({action: 'getRevengeLst', error: err})
+              handler(new Error(RET_PlayerNotExists))
+            else
+              ret = {REQ: rpcID, RET: RET_OK}
+              ret.lst = result
               handler([ret])
-            )
-          else
-            handler([ret])
-      )
+          )
+        else
+          helperLib.getPositionOnLeaderboard(arg.typ,
+            player.name,
+            from, to,
+            (err, result) ->
+              ret = {REQ: rpcID, RET: RET_OK}
+              if arg.me? then ret.me = result.position
+              if result.board?
+                board = result.board
+                async.map(board.name, getPlayerHero, (err, result) ->
+                  ret.lst = result.map( (e, i) ->
+                    return null unless e?
+                    r = getBasicInfo(e)
+                    r.scr = +board.score[i]
+                    return r
+                  )
+                  handler([ret])
+                )
+              else
+                handler([ret])
+          )
     ,
     args: {},
     needPid: true
@@ -664,7 +678,7 @@ exports.route = {
           async.map(
             ret.arg,
             (basicHero, cb) ->
-              getPlayerArenaPrentices(basicHero.nam, (err, prentices) ->
+              getPlayerArenaPrentices(basicHero.nam, true, (err, prentices) ->
                 basicHero.prt = prentices
                 cb(err, basicHero)
               )
@@ -699,7 +713,7 @@ exports.route = {
               rcv: player.flags.rcvAward ? false
               tcd: player.getPkCoolDown()
               apc: player.getAddPkCount()
-              prt: player.prenticeLst.arenaLst
+              prt: player.prenticeLst.getArenaLst()
             }
             handler(ret)
         )
@@ -868,7 +882,7 @@ exports.route = {
                           ret.arg.role = getBasicInfo(hero)
                           cb(null)
                     )
-                    ret.arg.role = 0;
+                    ret.arg.role = 0
           ],
           (err, res) ->
             logInfo({action: 'Redeem', code: arg.code, err: err})
@@ -1494,7 +1508,7 @@ exports.route = {
   PrenticeOpt:{
     id: 43,
     func: (arg, player, handler, rpcID) ->
-      switch arg.op
+      switch arg.opn
         when PRENTICE_OP_CREATE
           {ret,ntf} = player.prenticeLst.add(arg)
         when  PRENTICE_OP_REBORN
@@ -1506,6 +1520,23 @@ exports.route = {
       handler(result)
       player.saveDB()
     needPid: true
+  },
+  ChallengeCoinOpt:{
+      id: 44,
+      func: (arg, player, handler, rpcID) ->
+        switch arg.opn
+          when CHALLENGECOIN_OP_GRAB #grab
+            {ret, ntf,cnt} = gMiner.grab(player)
+          when 1 # test rob
+            {ret, ntf} = gMiner.rob(arg.nam, player,2)
+          when 2 #debug print
+            gMiner.print()
+        result = [{RET: ret, REQ: rpcID,max:player.getMaxChallengeCoin()}]
+        result[0].cnt = cnt if cnt?
+        result = result.concat(ntf) if ntf?
+        handler(result)
+        player.saveDB()
+      needPid: true
   },
   GuildOp: {
     id: 45,
@@ -1534,5 +1565,5 @@ exports.route = {
         dealWithResult(ret)
       gGuildManager.save()
 
-  }
+    }
 }
