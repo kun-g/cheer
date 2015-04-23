@@ -70,7 +70,7 @@ exports.initLeaderboard = (config) ->
               error:err})
       )
 
-  for key, cfg of config
+  for key, cfg of config when cfg?.name?
     localConfig[key] = { func: generateHandler(cfg.name, cfg) }
     localConfig[key][k] = v for k, v of cfg
 
@@ -138,6 +138,10 @@ exports.initLeaderboard = (config) ->
       ), {name: [], score: []})
       cb(err, result)
     )
+  exports.remveMemberFromLeaderboard = (board, name, cb) ->
+    tickLeaderboard(board)
+    cfg = localConfig[board]
+    dbWrapper.remveMemberFromLeaderboard(cfg.name, name, cb)
 
 exports.array2map = (keys, value) ->
   size = keys.length
@@ -209,10 +213,10 @@ genCampaignUtil = () ->
     currentTime: currentTime,
     today: moment(),
     serverObj : gServerObject,
-    isFristInTime:(dateLst, lastInTime, time2check) ->
+    isFristInTime:(dateLst, lastInTime, time2check,unit = 'day') ->
       dateLst.reduce((acc, time) ->
         return true if acc
-        return diffDate(time, time2check, 'day') is 0 and diffDate(lastInTime, time2check) isnt 0
+        return diffDate(time, time2check, unit) is 0 and diffDate(lastInTime, time2check,unit) isnt 0
       ,false)
     ,
     moment:moment
@@ -431,6 +435,8 @@ exports.LeaderboardIdx = {
   WorldBoss : 4
   TopTenRich :5
   BuyLikeWomen : 6
+  ChallengeCoin : 8
+  Revange :9
 }
 itemNeedBoardcastIdLst = [1475,1476,1478,1480,1482,].concat([1580..1611]).concat([1624..1626]).concat([1628,1629])
 itemNeedBoardcast = (itemId) ->

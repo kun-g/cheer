@@ -4,7 +4,6 @@ dbLib = require './db'
 moment = require 'moment'
 async = require('async')
 {Serializer, registerConstructor} = require './serializer'
-
 gLoadingRecord = []
 
 class DBWrapper extends Serializer
@@ -99,7 +98,7 @@ getPlayerHero = (name, callback) ->
   ])
 exports.getPlayerHero = getPlayerHero
 
-getPlayerArenaPrentices = (name, callback) ->
+getPlayerArenaPrentices = (name, isOnlyArena, callback) ->
   if not name?
     callback('getPlayerArenaPrentices: name is null', []) if callback
     return
@@ -108,13 +107,14 @@ getPlayerArenaPrentices = (name, callback) ->
     (cb) -> dbClient.hget(playerPrefix+name, 'prenticeLst', cb),
     (prenticeLstData, cb) ->
       try
-        prenticeLstData = JSON.parse(prenticeLstData)
-        prenticeLst = new playerLib.PrenticeLst(prenticeLstData)
+        prenticeLstData = JSON.parse(prenticeLstData)?.save
+        arenaLst =prenticeLstData.arenaLst ? []
+        cache = prenticeLstData.cache ? []
 
-        arenaLst = prenticeLst.getArenaLst()
-        prentices = []
-        for idx in arenaLst
-          prentices.push(prenticeLst.getBasicInfo(idx))
+        if isOnlyArena
+          prentices = arenaLst.map((idx) -> cache[idx]).filter((e) -> e?)
+        else
+          prentices =  cache
       catch e
         err = e
         prentices = []
@@ -162,6 +162,8 @@ exports.updateLeaderboard = (board, member, score, callback) ->
   dbClient.zadd(makeDBKey([board], LeaderboardPrefix), score, member, callback)
 exports.removeLeaderboard = (board, callback) ->
   dbClient.del(makeDBKey([board], LeaderboardPrefix), callback)
+exports.remveMemberFromLeaderboard = (board, member, callback) ->
+  dbClient.zrem(makeDBKey([board], LeaderboardPrefix), member, callback)
 
 exports.getPositionOnLeaderboard = (board, member, rev, callback) ->
   key = makeDBKey([board], LeaderboardPrefix)

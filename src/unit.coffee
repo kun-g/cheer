@@ -314,6 +314,7 @@ class Mirror extends Unit
     @xp = heroData.exp
     @levelUp()
 
+    @dropPrize =  heroData.dropPrize
     @counterAttack = true
     @health = Math.ceil(battleForce * (6/18.5))
     @attack = Math.ceil(battleForce * (0.3/18.5))
