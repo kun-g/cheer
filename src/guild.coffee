@@ -17,7 +17,6 @@ class Upgradeable
     return {ret:RET_Not_Upgradeable} unless cost?
     ntf = oprator.claimCost(cost)
     if ntf?
-      ntf = ntf.concat(@customCost(oprator,args))
       @level += 1
     return ntf
 
@@ -28,10 +27,6 @@ class Upgradeable
   #override
   upgradeCost: (level) -> null
   canUpgrade: (oprator,args) -> true
-  #!!! this function will cost other resource ,
-  #if you over write this function, please make sure 
-  #when canUpgrade return true,customCost shouldn't fail to claim cost 
-  customCost : () -> []
 
 exports.Upgradeable = Upgradeable
 
@@ -113,6 +108,8 @@ Modifier = implementing(Serializer, Upgradeable, class Modifier
   upgradeCost: (level) ->
     @getConfig('upgradeCost')?[level+1]
 
+  queryInfo: ()->
+    {typ:@type, lvl:@level, stm:@activeTimeStamp}
 )
 exports.Modifier = Modifier
 
@@ -168,6 +165,9 @@ Building = implementing(Serializer, Authority, class Building
     for modifier in @modifierLst
       return modifier if modifier.getType() is type
     return null
+  queryInfo: ()->
+    @modifierLst.map((b) -> b.queryInfo())
+
 )
 
 exports.Building = Building
@@ -266,7 +266,7 @@ GuildMember =  implementing(Serializer, Authority, class GuildMember
     #when 'max','cnt','joinReq'
     switch type
       when 'max'
-        return @max()
+        return @max
       when 'cnt'
         return @playerLst.length
       when 'joinReq'
@@ -334,7 +334,7 @@ Guild = implementing(Serializer, Upgradeable, class Guild
         when 'bud'
           ret = @building.queryInfo()
         when 'shp'
-          ret = @shop.queryInfo()
+          ret = 1 #@shop.queryInfo()
       result[name] = ret
     return result
 
@@ -421,19 +421,20 @@ class GuildManager extends DBWrapper
           when 'info'
             guild = @findPlayerGuild({id:gid})
             guild = if guild? then [guild] else []
-            return @_getGuildInfo(guild, ["gid", "nam", "max", "cnt", "shp", "xp", "bud", "lvl"])
+            ret = @_getGuildInfo(guild, ["gid", "nam", "max", "cnt", "shp", "xp", "bud", "lvl"])
           when 'list'
-            return @_getGuildInfo(@findPlayerGuild('lst'),['gid','nam','max','cnt','lvl'])
+            ret = @_getGuildInfo(@findPlayerGuild('lst'),['gid','nam','max','cnt','lvl'])
           when 'inv'
-            {
+            ret = {
               NTF:Event_InventoryUpdateItem
             }
+        cb(ret)
       when 'member'
         guild = @findPlayerGuild({id:gid})
         return {ret: RET_InvalidGuild} unless guild?
         if subType is 'basicInfo'
         else
-          cb({RET: RET_OK, arg:guild.queryInfo([subType],args)})
+          cb({ret: RET_OK, data:guild.queryInfo([subType],args)})
         #src cnt 
         #ret = getBasicInfo() #gst ->role
 
@@ -443,7 +444,7 @@ class GuildManager extends DBWrapper
   _getGuildInfo: (guildLst, proLst) ->
     return {
       ret: RET_OK,
-      ntf: {
+      data: {
           NTF:Event_GuildInfo
           arg:@findPlayerGuild('lst').map((guild) -> guild.queryInfo(proLst))
         }
