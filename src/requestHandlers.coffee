@@ -712,7 +712,7 @@ exports.route = {
               rcv: player.flags.rcvAward ? false
               tcd: player.getPkCoolDown()
               apc: player.getAddPkCount()
-              prt: player.prenticeLst.arenaLst
+              prt: player.prenticeLst.getArenaLst()
             }
             handler(ret)
         )
