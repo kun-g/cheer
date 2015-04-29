@@ -1,6 +1,7 @@
 "use strict"
 {conditionCheck} = require('./trigger')
 moment = require('moment')
+libItem = require('./item')
 
 dbLib = require('./db')
 dbWrapper = require('./dbWrapper')
@@ -70,7 +71,137 @@ addVersionControl = (obj, cfgKey, versionRecoderList =[]) ->
   else
     registerVersionControl(obj[cfgKey], cfgInfo, versionRecoderList)
 
+rearragenPrize= (prize) ->
+  prize = [prize] unless Array.isArray(prize)
+  itemPrize = []
+  otherPrize = []
+  for p in prize when p?
+    if p.type is PRIZETYPE_ITEM
+      if p.count > 0 then itemPrize.push(p)
+    else
+      otherPrize.push(p)
+  if itemPrize.length > 1
+    itemPrize = [{
+      type: PRIZETYPE_ITEM,
+      value: itemPrize.map((e) -> return {item: e.value, count: e.count}),
+      count: 0
+    }]
 
+  return itemPrize.concat(otherPrize)
+
+addMoneyAndSync= (oprator,type,point) ->
+    switch type
+      when PRIZETYPE_GOLD
+        func =  'addGold'
+        stype = 'god'
+      when PRIZETYPE_DIAMOND
+        func = 'addDiamond'
+        stype = 'dim'
+      when PRIZETYPE_CHCOIN
+        func = 'addChallengeCoin'
+        stype = 'chc'
+      else
+        throw 'Invalidate_Money_Type'
+    ret = {NTF: Event_InventoryUpdateItem, arg: {syn: oprator.inventoryVersion}}
+    ret.arg[stype] =  oprator[func](point)
+    return ret
+
+claimCost_witherr = (oprator, cost, count = 1) ->
+  if Array.isArray(cost)
+    cfg = {material:cost}
+  else if typeof cost is 'object'
+    cfg ={material:[{type:0, value:cost.id, count:1}]}
+  else
+    cfg = queryTable(TABLE_COSTS, cost)
+
+  return {type:'noconfig'} unless cfg?
+  dprint("claimCost_witherr cfg:",cfg)
+  prize = rearragenPrize(cfg.material)
+  dprint("claimCost_witherr rearragen prize:",prize)
+  haveEnoughtMoney = prize.reduce( (r, l) =>
+    if l.type is PRIZETYPE_GOLD and oprator.gold < l.count*count then return false
+    if l.type is PRIZETYPE_DIAMOND and oprator.diamond < l.count*count then return false
+    if l.type is PRIZETYPE_CHCOIN and oprator.challengeCoin < l.count*count then return false
+    return r
+  , true)
+  return {type:'noenoughmoney'} unless haveEnoughtMoney
+  ret = []
+  for p in prize when p?
+    oprator.inventoryVersion++
+    switch p.type
+      when PRIZETYPE_ITEM
+        retRM = oprator.inventory.remove(p.value, p.count*count, null, true)
+        return {type:'noenoughitem', value:p.value, count:p.count*count} unless retRM and retRM.length > 0
+        ret =  oprator.doAction?({id: 'ItemChange', ret: retRM, version: oprator.inventoryVersion}) ? []
+      when PRIZETYPE_GOLD,PRIZETYPE_DIAMOND ,PRIZETYPE_CHCOIN
+        ret= ret.concat(addMoneyAndSync(oprator, p.type, -p.count*count))
+
+  return ret
+
+exports.claimCost= (oprator, cost, count = 1) ->
+  ret = claimCost_witherr(oprator, cost, count)
+  dprint("claimCost ret:",ret)
+  return null unless Array.isArray(ret)
+  return ret
+
+
+exports.claimPrize = (oprator, prize, allOrFail = true,prenticeIdx) ->
+  return [] unless prize?
+  prize = [prize] unless Array.isArray(prize)
+
+  ret = []
+
+  for p in prize when p?
+    oprator.inventoryVersion++
+    switch p.type
+      when PRIZETYPE_ITEM
+        res = oprator.aquireItem(p.value, p.count, allOrFail,prenticeIdx)
+        if not (res? and res.length >0)
+          return [] if allOrFail
+        gServerObject.notify('playerClaimItem',{player:oprator.name,item:p.value})
+        ret = ret.concat(res)
+
+      when PRIZETYPE_GOLD, PRIZETYPE_DIAMOND ,PRIZETYPE_CHCOIN
+        ret.push(addMoneyAndSync(oprator, p.type, p.count)) if p.count > 0
+      when PRIZETYPE_EXP then ret.push({NTF: Event_RoleUpdate, arg: {syn: oprator.heroVersion, act: {exp: oprator.addHeroExp(p.count)}}}) if p.count > 0
+      when PRIZETYPE_WXP
+        continue unless p.count
+        equipUpdate = []
+        for i, k of oprator.getEquipRef('allBattle')
+          e = oprator.getItemAt(k)
+          unless e?
+            logError({action: 'claimPrize', reason: 'equipmentNotExist', name: oprator.name, equipSlot: k, index: i})
+            oprator.unequipItem(k)
+            continue
+          e.xp = e.xp+p.count
+          equipUpdate.push({sid: k, xp: e.xp})
+        if equipUpdate.length > 0
+          ret.push({NTF: Event_InventoryUpdateItem, arg: {syn: oprator.inventoryVersion, itm: equipUpdate}})
+      when PRIZETYPE_FUNCTION
+        switch p.func
+          when "setFlag"
+            oprator.flags[p.flag] = p.value
+            ret = ret.concat(oprator.syncFlags(true)).concat(oprator.syncEvent())
+          when "countUp"
+            if p.target is 'server'
+              gServerObject.counters[p.counter] = 0 unless gServerObject.counters[p.counter]?
+              gServerObject.counters[p.counter]++
+              gServerObject.notify('countersChanged',{type : p.counter, delta: 1})
+            else
+              oprator.counters[p.counter]++
+              oprator.notify('countersChanged',{type : p.counter})
+              ret = ret.concat(oprator.syncCounters([], true)).concat(oprator.syncEvent())
+          when "updateLeaderboard"
+            oprator.counters['worldBoss'][p.counter] = 0 unless oprator.counters['worldBoss'][p.counter]?
+            oprator.counters['worldBoss'][p.counter] += p.delta
+            helperLib.assignLeaderboard(oprator, p.boardId)
+          when "setValue"
+            target = if p.target is 'player' then oprator. else gServerObject
+            doSetProperty(target, p.key, p.value)
+          when "rob"
+            if p.victim?
+              ret = ret.concat(gMiner.rob(p.victim, oprator, p.count))
+  return ret
 
 CONST_MAX_WORLD_BOSS_TIMES = 200
 exports.ConstValue = {WorldBossTimes : CONST_MAX_WORLD_BOSS_TIMES}
@@ -452,6 +583,24 @@ exports.calculateTotalItemXP = (item) ->
     xp += cfg.xp
   return xp
 
+exports.createItem = (item) ->
+  if Array.isArray(item)
+    return ({item: createItem(e.item), count: e.count} for e in item)
+  else if typeof item is 'number'
+    return libItem.createItem(item)
+  else
+    return item
+
+
+exports.addItemTo = (itemId,count,continer) ->
+  item = exports.createItem(itemId)
+  return showMeTheStack() unless item?
+  if item.expiration
+    item.date = currentTime(true).valueOf()
+    item.attrSave('date')
+
+  continer.add(item, count, true)
+  
 # Observer
 exports.LeaderboardIdx = {
   BattleForce : 0
@@ -494,7 +643,7 @@ exports.observers = {
   onRestWorldBossCounter: (obj, arg) ->
   
   onApplyModifier:(obj, arg) ->
-    obj.guild?.applyModifier(arg)
+    gGuildManager.onApplyModifier(obj, arg)
 }
 
 exports.redeemCode = {

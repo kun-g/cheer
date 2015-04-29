@@ -1,4 +1,4 @@
-{implementing} = require('./helper')
+{addItemTo,implementing,claimCost} = require('./helper')
 {Serializer, registerConstructor} = require('./serializer')
 {DBWrapper } = require('./dbWrapper')
 {Shop} = require('./shop')
@@ -98,10 +98,12 @@ Modifier = implementing(Serializer, Upgradeable, class Modifier
       return @getConfig('modifyData').reduce((acc,modifier) =>
         mValue = modifier.value[@level] ? underscore.last(modifier.value)
         if event is modifier.event and acc[modifier.type]? and mValue
+          console.log('==============before', acc[modifier.type], modifier.type)
           acc[modifier.type] = Math.ceil(acc[modifier.type]* mValue)
+          console.log('==============after', acc[modifier.type], modifier.type)
         return acc
       ,target)
-     return target
+    return target
 
 
   #override Upgradeable
@@ -155,7 +157,7 @@ Building = implementing(Serializer, Authority, class Building
     return @_addBuilding(oprator, type)
 
   applyModifier: (event,target) ->
-    modifierLst.reduce((acc, modifier) ->
+    @modifierLst.reduce((acc, modifier) ->
       modifier.applyModifier(event,acc)
     ,target)
   getBuildCost: (type) ->
@@ -303,7 +305,6 @@ GuildMember =  implementing(Serializer, Authority, class GuildMember
 
 
 )
- 
 Guild = implementing(Serializer, Upgradeable, class Guild
   constructor: (data) ->
     cfg ={
@@ -311,16 +312,38 @@ Guild = implementing(Serializer, Upgradeable, class Guild
       nam: ''
       building: new Building()
       shop: new Shop()
-      store:Bag(InitialBagSize)
+      inventory:Bag(InitialBagSize)
       memberLst: new GuildMember()
       xp:0
       level:0
+      gold:0
+      diamond:0
+      inventoryVersion:0
     }
     super({
       Upgradeable:[],
       Serializer: [data, cfg,{}]
     })
     @memberLst.setGuildId(@gid)
+  applyModifier: (event, target) ->
+    @building.applyModifier(event,target)
+  checkCost: (prizeLst) ->
+    prizeInfo.every((p) =>
+      switch p.type
+        when PRIZETYPE_GUILD_ITEM
+          return @inventory
+        when PRIZETYPE_GUILD_XP
+          return true
+    )
+    
+  claimCost: (prizeLst) ->
+    helperLib.claimCost(@,cost,count)
+    
+  claimPrize: (prize, allorfail, prenticeIdx) ->
+    helperLib.claimPrize(@, prize, allorfail, prenticeIdx)
+
+  aquireItem:(item,  count) ->
+    addItemTo(item,count,@inventory)
   queryInfo: (lst,args) ->
     result = {}
     for name in lst
@@ -335,6 +358,8 @@ Guild = implementing(Serializer, Upgradeable, class Guild
           ret = @building.queryInfo()
         when 'shp'
           ret = 1 #@shop.queryInfo()
+        when 'itm'
+          ret = 2
       result[name] = ret
     return result
 
@@ -379,7 +404,17 @@ class GuildManager extends DBWrapper
     }
     super(data,cfg, {})
     @setDBKeyName(guildPrifex)
-  
+
+  claimReward: (prizeLst, gid) ->
+    guild = @findPlayerGuild({id:gid})
+    return [] unless guild?
+    syncKey = guild.claimReward(prizeLst)
+    @_getGuildInfo([guild],syncKey)
+  claimCost: (costLst, gid) ->
+    guild = @findPlayerGuild({id:gid})
+    return [] unless guild?
+    syncKey = guild.claimCost(costLst)
+    @_getGuildInfo([guild],syncKey)
   #opration
   memberOp: (type, gid, admin, arg) ->
     guild = @findPlayerGuild({id:gid})
@@ -439,6 +474,10 @@ class GuildManager extends DBWrapper
         #ret = getBasicInfo() #gst ->role
 
 
+  onApplyModifier:(obj, arg) ->
+   guild = @findPlayerGuild({name:obj.name})
+   return obj unless guild?
+   guild.applyModifier(arg.evt,obj)
 
   #priave method
   _getGuildInfo: (guildLst, proLst) ->
@@ -446,7 +485,7 @@ class GuildManager extends DBWrapper
       ret: RET_OK,
       data: {
           NTF:Event_GuildInfo
-          arg:@findPlayerGuild('lst').map((guild) -> guild.queryInfo(proLst))
+          arg:guildLst.map((guild) -> guild.queryInfo(proLst))
         }
     }
 

@@ -343,7 +343,7 @@ class Player extends DBWrapper
       prenticeVersion: 1,
       
       energyVersion: 1,
-
+      reward_modifier:{}
       abIndex: rand(),
     }
     for k,v of libReward.config
@@ -887,22 +887,6 @@ class Player extends DBWrapper
     @costedDiamond += point if type is 'diamond'
     return this[type]
 
-  addMoneyAndSync:(type,point) ->
-    switch type
-      when PRIZETYPE_GOLD
-        func = @addGold
-        stype = 'god'
-      when PRIZETYPE_DIAMOND
-        func = @addDiamond
-        stype = 'dim'
-      when PRIZETYPE_CHCOIN
-        func = @addChallengeCoin
-        stype = 'chc'
-      else
-        throw 'Invalidate_Money_Type'
-    ret = {NTF: Event_InventoryUpdateItem, arg: {syn: @inventoryVersion}}
-    ret.arg[stype] =  underscore.bind(func,@,point)()
-    return ret
   addDiamond: (point) -> @addMoney('diamond', point)
 
   addGold: (point) -> @addMoney('gold', point)
@@ -1164,121 +1148,21 @@ class Player extends DBWrapper
 
     return packQuestEvent(@quests, qid, @questVersion)
 
-  rearragenPrize: (prize) ->
-    prize = [prize] unless Array.isArray(prize)
-    itemPrize = []
-    otherPrize = []
-    for p in prize when p?
-      if p.type is PRIZETYPE_ITEM
-        if p.count > 0 then itemPrize.push(p)
-      else
-        otherPrize.push(p)
-    if itemPrize.length > 1
-      itemPrize = [{
-        type: PRIZETYPE_ITEM,
-        value: itemPrize.map((e) -> return {item: e.value, count: e.count}),
-        count: 0
-      }]
-
-    return itemPrize.concat(otherPrize)
-
   claimCost: (cost, count = 1) ->
-    ret = @claimCost_witherr(cost, count)
-    dprint("claimCost ret:",ret)
-    return null unless Array.isArray(ret)
-    return ret
+    helperLib.claimCost(@,cost,count)
+    
+  claimPrize: (prize, allorfail, prenticeIdx) ->
+    helperLib.claimPrize(@, prize, allorfail, prenticeIdx)
+  
+  claimGuildReward: (prizeLst) ->
+    gid = @getGuildId()
+    return [] unless gid?
+    gGuildManager.claimReward(prizeLst,gid)
 
-  claimCost_witherr: (cost, count = 1) ->
-    if Array.isArray(cost)
-      cfg = {material:cost}
-    else if typeof cost is 'object'
-      cfg ={material:[{type:0, value:cost.id, count:1}]}
-    else
-      cfg = queryTable(TABLE_COSTS, cost)
-
-    return {type:'noconfig'} unless cfg?
-    dprint("claimCost_witherr cfg:",cfg)
-    prize = @rearragenPrize(cfg.material)
-    dprint("claimCost_witherr rearragen prize:",prize)
-    haveEnoughtMoney = prize.reduce( (r, l) =>
-      if l.type is PRIZETYPE_GOLD and @gold < l.count*count then return false
-      if l.type is PRIZETYPE_DIAMOND and @diamond < l.count*count then return false
-      if l.type is PRIZETYPE_CHCOIN and @challengeCoin < l.count*count then return false
-      return r
-    , true)
-    return {type:'noenoughmoney'} unless haveEnoughtMoney
-    ret = []
-    for p in prize when p?
-      @inventoryVersion++
-      switch p.type
-        when PRIZETYPE_ITEM
-          retRM = @inventory.remove(p.value, p.count*count, null, true)
-          return {type:'noenoughitem', value:p.value, count:p.count*count} unless retRM and retRM.length > 0
-          ret = @doAction({id: 'ItemChange', ret: retRM, version: @inventoryVersion})
-        when PRIZETYPE_GOLD,PRIZETYPE_DIAMOND ,PRIZETYPE_CHCOIN
-          ret.push(@addMoneyAndSync(p.type, -p.count*count))
-
-
-    return ret
-
-  claimPrize: (prize, allOrFail = true,prenticeIdx) ->
-    return [] unless prize?
-    prize = [prize] unless Array.isArray(prize)
-
-    ret = []
-
-    for p in prize when p?
-      @inventoryVersion++
-      switch p.type
-        when PRIZETYPE_ITEM
-          res = @aquireItem(p.value, p.count, allOrFail,prenticeIdx)
-          if not (res? and res.length >0)
-            return [] if allOrFail
-          gServerObject.notify('playerClaimItem',{player:@name,item:p.value})
-          ret = ret.concat(res)
-
-        when PRIZETYPE_GOLD, PRIZETYPE_DIAMOND ,PRIZETYPE_CHCOIN
-          ret.push(@addMoneyAndSync(p.type, p.count)) if p.count > 0
-        when PRIZETYPE_EXP then ret.push({NTF: Event_RoleUpdate, arg: {syn: @heroVersion, act: {exp: @addHeroExp(p.count)}}}) if p.count > 0
-        when PRIZETYPE_WXP
-          continue unless p.count
-          equipUpdate = []
-          for i, k of @getEquipRef('allBattle')
-            e = @getItemAt(k)
-            unless e?
-              logError({action: 'claimPrize', reason: 'equipmentNotExist', name: @name, equipSlot: k, index: i})
-              @unequipItem(k)
-              continue
-            e.xp = e.xp+p.count
-            equipUpdate.push({sid: k, xp: e.xp})
-          if equipUpdate.length > 0
-            ret.push({NTF: Event_InventoryUpdateItem, arg: {syn: @inventoryVersion, itm: equipUpdate}})
-        when PRIZETYPE_FUNCTION
-          switch p.func
-            when "setFlag"
-              @flags[p.flag] = p.value
-              ret = ret.concat(@syncFlags(true)).concat(@syncEvent())
-            when "countUp"
-              if p.target is 'server'
-                gServerObject.counters[p.counter] = 0 unless gServerObject.counters[p.counter]?
-                gServerObject.counters[p.counter]++
-                gServerObject.notify('countersChanged',{type : p.counter, delta: 1})
-              else
-                @counters[p.counter]++
-                @notify('countersChanged',{type : p.counter})
-                ret = ret.concat(@syncCounters([], true)).concat(@syncEvent())
-            when "updateLeaderboard"
-              @counters['worldBoss'][p.counter] = 0 unless @counters['worldBoss'][p.counter]?
-              @counters['worldBoss'][p.counter] += p.delta
-              helperLib.assignLeaderboard(@, p.boardId)
-            when "setValue"
-              target = if p.target is 'player' then @ else gServerObject
-              doSetProperty(target, p.key, p.value)
-            when "rob"
-              if p.victim?
-                ret = ret.concat(gMiner.rob(p.victim, @, p.count))
-    return ret
-
+  claimGuildCost: (costLst) ->
+    gid = @getGuildId()
+    return [] unless gid?
+    gGuildManager.claimCost(costLst,gid)
   isQuestAchieved: (qid) ->
     return false unless @quests[qid]?
     quest = queryTable(TABLE_QUEST, qid, @abIndex)
@@ -2653,14 +2537,6 @@ playerMessageFilter = (oldMessage, newMessage, name) ->
   return message
 
 #///////////////////////////////// item
-createItem = (item) ->
-  if Array.isArray(item)
-    return ({item: createItem(e.item), count: e.count} for e in item)
-  else if typeof item is 'number'
-    return libItem.createItem(item)
-  else
-    return item
-
 itemLib = require('./item')
 class PlayerEnvironment extends Environment
   constructor: (@player) ->
@@ -2710,14 +2586,10 @@ playerCSConfig = {
   AquireItem: {
     callback: (env) ->
       count = env.variable('count') ? 1
-      item = createItem(env.variable('item'))
-      return showMeTheStack() unless item?
-      if item.expiration
-        item.date = helperLib.currentTime(true).valueOf()
-        item.attrSave('date')
+      itemId = env.variable('item')
+      ret = helperLib.addItemTo(itemId,count,env.player.inventory)
       #TODO
       #env.variable('allorfail')
-      ret = env.player.inventory.add(item, count, true)
       @routine({id: 'ItemChange', ret: ret, version: env.player.inventoryVersion})
       if ret
         for e in ret when env.player.getItemAt(e.slot).autoUse

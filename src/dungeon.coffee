@@ -314,9 +314,11 @@ class Dungeon
       }
 
       if e.notMirror
-        return new Hero(data)
+        hero = new Hero(data)
+        hero = hero.notify('onApplyModifier', {evt:'createObj'})
       else
-        return new Teammate(data)
+        hero = new Teammate(data)
+      return hero
     )
     dummyHero = new Hero({})
     dummyHero.health =0
@@ -1564,11 +1566,12 @@ dungeonCSConfig = {
   Heal: {
     callback: (env) ->
       hp = env.variable('hp')
+      tar = env.variable('tar')
       return @suicide() unless hp? and hp > 0
-      onEvent('Heal', @, env.variable('src'), env.variable('tar'))
-      if env.variable('tar').health + env.variable('hp') > env.variable('tar').maxHP
-        env.variable('hp') = env.variable('tar').maxHP - env.variable('tar').health
-      env.variable('tar').health += env.variable('hp')
+      onEvent('Heal', @, env.variable('src'), tar)
+      if tar.health + hp > tar.maxHP
+        env.variable('hp',tar.maxHP - tar.health)
+      tar.health += hp
     ,
     output: (env) ->
       [{act: env.variable('tar').ref, id: ACT_POPHP, num: env.variable('hp'), flg: HP_RESULT_TYPE_HEAL, dey: env.variable('delay') ? 0.3}]

@@ -1,4 +1,5 @@
 require('./define')
+underscore = require('./underscore')
 
 getSpecialRewardByInfiniteLevel = (infiniteLevel, prizeCfg) ->
   ret = []
@@ -19,9 +20,16 @@ calcInfinitReward = (infiniteLevel, what, optArg) ->
     ret[name] = val
   return ret
 
+getGuildModifyResult = (cfg,oprator) ->
+  cfg = underscore.extend(cfg, {name:oprator.name,faction:'player'})
+  installObserver(cfg)
+  cfg.notyfy('onApplyModifier',{evt:'claimCost'})
+
 exports.getRewardModifier = (type) ->
+  guildMoifier = {}
   modifier = @envReward_modifier[type] ? 0
-  return modifier + (@reward_modifier[type] ? 0)
+  guildMoifier[type] =  modifier + (@reward_modifier[type] ? 0)
+  getGuildModifyResult(guildMoifier)[type]
 
 rearrangePrize = (prize) ->
   prize = [prize] unless Array.isArray(prize)
