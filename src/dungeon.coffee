@@ -1606,7 +1606,7 @@ dungeonCSConfig = {
       ret = []
 
       if damage > 0
-        delay = 0.3
+        delay = 0.5
         delay = env.variable('hurtDelay') if env.variable('hurtDelay')
         delay = env.variable('delay') if env.variable('delay')
         ret.push({act:env.variable('tar').ref, id: ACT_HURT, dey:delay}) unless env.variable('ignoreHurt')
