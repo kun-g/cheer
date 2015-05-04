@@ -1536,5 +1536,24 @@ exports.route = {
       handler(result)
       player.saveDB()
     needPid: true
+  },
+  RPC_LineUp:{
+    id: 999, #todo:
+    func: (arg, player, handler, rpcID) ->
+      ret = {REQ: rpcID, RET:RET_Issue41, arg:{}}
+      switch Number(arg.opn)
+        when 0 #get
+          ret.arg.lin = player.lineUps
+          ret.RET = RET_OK
+        when 1 #set
+          if arg.lin and Array.isArray(arg.lin)
+            for l in arg.lin
+              if not Array.isArray(l) then l = []
+            player.lineUps = arg.lin
+            player.saveDB()
+            ret.RET = RET_OK
+      handler(ret)
+    ,
+    needPid: true
   }
 }

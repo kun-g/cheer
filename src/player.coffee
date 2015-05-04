@@ -312,7 +312,7 @@ class Player extends DBWrapper
       playerXp: 0,
 
       prenticeLst: new PrenticeLst(),
-
+      lineUps:[],
       inviter: {},
       invitee: {},
       stage: [],
