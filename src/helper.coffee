@@ -70,6 +70,15 @@ addVersionControl = (obj, cfgKey, versionRecoderList =[]) ->
       registerVersionControl(obj, versionKeyList, versionRecoderList)
   else
     registerVersionControl(obj[cfgKey], cfgInfo, versionRecoderList)
+####################################
+aquireItem: (item,  count, allOrFail,prenticeIdx) ->
+  @doAction({id: 'AquireItem', item: item, count: count, allorfail: allOrFail,pIdx:prenticeIdx})
+
+removeItemById: (id, count, allorfail) ->
+  @doAction({id: 'RemoveItem', item: id, count: count, allorfail: allorfail})
+removeItem: (item, count, slot) ->
+  @doAction({id: 'RemoveItem', item: item, count: count, slot: slot})
+
 
 rearragenPrize= (prize) ->
   prize = [prize] unless Array.isArray(prize)

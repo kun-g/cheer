@@ -1,4 +1,5 @@
 require('./define')
+{initObserveration} = require('./helper')
 underscore = require('./underscore')
 
 getSpecialRewardByInfiniteLevel = (infiniteLevel, prizeCfg) ->
@@ -22,14 +23,15 @@ calcInfinitReward = (infiniteLevel, what, optArg) ->
 
 getGuildModifyResult = (cfg,oprator) ->
   cfg = underscore.extend(cfg, {name:oprator.name,faction:'player'})
-  installObserver(cfg)
-  cfg.notyfy('onApplyModifier',{evt:'claimCost'})
+  initObserveration(cfg)
+  cfg.installObserver('onApplyModifier')
+  cfg.notify('onApplyModifier',{evt:'claimReward'})
 
 exports.getRewardModifier = (type) ->
   guildMoifier = {}
   modifier = @envReward_modifier[type] ? 0
   guildMoifier[type] =  modifier + (@reward_modifier[type] ? 0)
-  getGuildModifyResult(guildMoifier)[type]
+  getGuildModifyResult(guildMoifier,@)[type]
 
 rearrangePrize = (prize) ->
   prize = [prize] unless Array.isArray(prize)
@@ -129,7 +131,7 @@ exports.generateDungeonReward = (dungeon) ->
 
     if e.count then e.count = Math.floor(e.count)
   prize = rearrangePrize(prize)
-  if dungeon.getStageConfig.pvp isnt 'arena' and dungeon.PVP_Pool[0].nam?
+  if dungeon.getStageConfig.pvp isnt 'arena' and dungeon.PVP_Pool?[0].nam?
     prize = injectRobReward(dungeon.PVP_Pool[0].nam, @,prize)
   return prize
 

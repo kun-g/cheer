@@ -2565,24 +2565,7 @@ playerCommandStream = (cmd, player=null) ->
   cmdStream = new CommandStream(cmd, null, playerCSConfig, env)
   return cmdStream
 
-playerCSConfig = {
-  ItemChange: {
-    output: (env) ->
-      ret = env.variable('ret')
-      return [] unless ret and ret.length > 0
-      items = ret.map( (e) ->
-        item = env.player.getItemAt(e.slot)
-        evt = {sid: Number(e.slot), cid: e.id, stc: e.count}
-        if item?.date then evt.ts = item.date
-        return evt
-      )
-      arg = { syn:env.variable('version') }
-      arg.itm = items
-      return [{NTF: Event_InventoryUpdateItem, arg: arg}]
-  },
-  UseItem: {
-    output: (env) -> return env.player.useItem(env.variable('slot'),null,env.variable('pIdx')).ntf
-  },
+basicCSConfig = {
   AquireItem: {
     callback: (env) ->
       count = env.variable('count') ? 1
@@ -2601,6 +2584,26 @@ playerCSConfig = {
       @routine({id: 'ItemChange', ret: ret, version: version})
   },
 }
+
+playerCSConfig = underscore.extend({
+  ItemChange: {
+    output: (env) ->
+      ret = env.variable('ret')
+      return [] unless ret and ret.length > 0
+      items = ret.map( (e) ->
+        item = env.player.getItemAt(e.slot)
+        evt = {sid: Number(e.slot), cid: e.id, stc: e.count}
+        if item?.date then evt.ts = item.date
+        return evt
+      )
+      arg = { syn:env.variable('version') }
+      arg.itm = items
+      return [{NTF: Event_InventoryUpdateItem, arg: arg}]
+  },
+  UseItem: {
+    output: (env) -> return env.player.useItem(env.variable('slot'),null,env.variable('pIdx')).ntf
+  },
+}, basicCSConfig)
 
 getVip = (rmb) ->
   tbl = queryTable(TABLE_VIP, "VIP")

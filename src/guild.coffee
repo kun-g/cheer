@@ -18,6 +18,7 @@ class Upgradeable
     ntf = oprator.claimCost(cost)
     if ntf?
       @level += 1
+      @afterUpgrade(@level)
     return ntf
 
   currentLevel:() ->
@@ -27,7 +28,7 @@ class Upgradeable
   #override
   upgradeCost: (level) -> null
   canUpgrade: (oprator,args) -> true
-
+  afterUpgrade:(level) ->null
 exports.Upgradeable = Upgradeable
 
 class Authority
@@ -98,9 +99,7 @@ Modifier = implementing(Serializer, Upgradeable, class Modifier
       return @getConfig('modifyData').reduce((acc,modifier) =>
         mValue = modifier.value[@level] ? underscore.last(modifier.value)
         if event is modifier.event and acc[modifier.type]? and mValue
-          console.log('==============before', acc[modifier.type], modifier.type)
           acc[modifier.type] = Math.ceil(acc[modifier.type]* mValue)
-          console.log('==============after', acc[modifier.type], modifier.type)
         return acc
       ,target)
     return target
@@ -440,11 +439,14 @@ class GuildManager extends DBWrapper
   #query 
   findPlayerGuild: (nameOrId) ->
     if nameOrId.name?
-      return @guildLst[@playerRef[nameOrId.name]]
+      id = @playerRef[nameOrId.name]
+      return null unless id?
+      return @guildLst[id]
     else if nameOrId.id?
       return @guildLst[nameOrId.id]
-    else if nameOrId = 'lst'
+    else if nameOrId is 'lst'
       return @guildLst.filter((g) -> g?)
+    return null
 
   getplayerGid: (name) ->
     @playerRef[name]

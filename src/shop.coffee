@@ -2,9 +2,12 @@ moment = require('moment')
 {Serializer, registerConstructor} = require('./serializer')
 
 class Shop extends Serializer
-  constructor: () ->
-    @version = 0
-    @stock = []
+  constructor: (data) ->
+    cfg = {
+      version : 0
+      stock : []
+    }
+    super(data, cfg, {})
 
   addProduct: (index, product) ->
     return unless product? and index?
