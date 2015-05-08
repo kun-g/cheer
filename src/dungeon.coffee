@@ -315,7 +315,7 @@ class Dungeon
 
       if e.notMirror
         hero = new Hero(data)
-        hero = hero.notify('onApplyModifier', {evt:'createObj'})
+        #hero = hero.notify('onApplyModifier', {evt:'createObj'})
       else
         hero = new Teammate(data)
       return hero

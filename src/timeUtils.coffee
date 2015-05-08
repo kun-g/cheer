@@ -1,7 +1,7 @@
 "use strict"
 moment = require('./moment')
-_s = require("./underscore.string.js")
-_ = require("./underscore.js")
+_s = require('./underscore.string')
+_ = require('./underscore')
 
 _.mixin(_s.exports())
 _.mixin({ includeString: _s.include, reverseString: _s.reverse })

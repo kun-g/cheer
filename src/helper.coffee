@@ -6,7 +6,7 @@ libItem = require('./item')
 dbLib = require('./db')
 dbWrapper = require('./dbWrapper')
 async = require('async')
-
+{Environment, CommandStream} = require('./commandStream')
 implementing = (mixins..., classReference) ->
   classReference.__super__ = {
     constructor: (data) ->
@@ -71,13 +71,68 @@ addVersionControl = (obj, cfgKey, versionRecoderList =[]) ->
   else
     registerVersionControl(obj[cfgKey], cfgInfo, versionRecoderList)
 ####################################
-aquireItem: (item,  count, allOrFail,prenticeIdx) ->
-  @doAction({id: 'AquireItem', item: item, count: count, allorfail: allOrFail,pIdx:prenticeIdx})
+class PlayerEnvironment extends Environment
+  constructor: (@player) ->
 
-removeItemById: (id, count, allorfail) ->
-  @doAction({id: 'RemoveItem', item: id, count: count, allorfail: allorfail})
-removeItem: (item, count, slot) ->
-  @doAction({id: 'RemoveItem', item: item, count: count, slot: slot})
+  removeItem: (item, count, slot, allorfail) ->
+    result = {ret: @player?.inventory.remove(item, count, slot, allorfail), version: @player.inventoryVersion}
+    if result.ret isnt []
+      @player.unequipItem?(slot)
+    return result
+  translateAction: (cmd) ->
+    return [] unless cmd?
+    ret = []
+    out = cmd.output()
+    ret = out if out
+
+    for i, routine of cmd.cmdRoutine
+      out = routine?.output()
+      ret = ret.concat(out) if out?
+
+    return ret.concat(@translateAction(cmd.nextCMD))
+
+  translate: (cmd) -> @translateAction(cmd)
+
+exports.basicCSConfig = {
+  AquireItem: {
+    callback: (env) ->
+      count = env.variable('count') ? 1
+      itemId = env.variable('item')
+      ret = exports.addItemTo(itemId,count,env.player.inventory)
+      #TODO
+      #env.variable('allorfail')
+      @routine({id: 'ItemChange', ret: ret, version: env.player.inventoryVersion})
+      if ret
+        for e in ret when env.player.getItemAt(e.slot).autoUse
+          @next({id: 'UseItem', slot: e.slot, pIdx:env.variable('pIdx')})
+  },
+  RemoveItem: {
+    callback: (env) ->
+      {ret, version} = env.removeItem(env.variable('item'), env.variable('count'), env.variable('slot'), true)
+      @routine({id: 'ItemChange', ret: ret, version: version})
+  },
+}
+
+exports.installContainerFunction = (obj,csConfig) ->
+  playerCommandStream = (cmd,  csConfig,player=null) ->
+    env = new PlayerEnvironment(player)
+    cmdStream = new CommandStream(cmd, null,   csConfig, env)
+    return cmdStream
+
+
+  obj.doAction = (routine) ->
+    cmd = new playerCommandStream(routine,csConfig,obj)
+    cmd.process()
+    return cmd.translate()
+  
+  
+  obj.aquireItem = (item,  count, allOrFail,prenticeIdx) ->
+    @doAction({id: 'AquireItem', item: item, count: count, allorfail: allOrFail,pIdx:prenticeIdx})
+  
+  obj.removeItemById = (id, count, allorfail) ->
+    @doAction({id: 'RemoveItem', item: id, count: count, allorfail: allorfail})
+  obj.removeItem = (item, count, slot) ->
+    @doAction({id: 'RemoveItem', item: item, count: count, slot: slot})
 
 
 rearragenPrize= (prize) ->
@@ -203,7 +258,7 @@ exports.claimPrize = (oprator, prize, allOrFail = true,prenticeIdx) ->
           when "updateLeaderboard"
             oprator.counters['worldBoss'][p.counter] = 0 unless oprator.counters['worldBoss'][p.counter]?
             oprator.counters['worldBoss'][p.counter] += p.delta
-            helperLib.assignLeaderboard(oprator, p.boardId)
+            exports.assignLeaderboard(oprator, p.boardId)
           when "setValue"
             target = if p.target is 'player' then oprator. else gServerObject
             doSetProperty(target, p.key, p.value)

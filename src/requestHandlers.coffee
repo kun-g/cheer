@@ -969,6 +969,7 @@ exports.route = {
           ev = ev.concat(player.syncStage(true))
         else if e == 'act'
           ev = ev.concat(player.syncHero(true))
+          ev = ev.concat(player.syncGuild(true))
         else if e == 'dgn'
           ev = ev.concat(player.syncDungeon(true))
         else if e == 'eng'
@@ -1544,6 +1545,7 @@ exports.route = {
       dealWithResult =({ret,ntf,data}) ->
         result = {RET:ret,REQ:rpcID}
         result.arg = data if data?
+        ntf ?= []
         result = [result].concat(ntf)
         handler(result)
 

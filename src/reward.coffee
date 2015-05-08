@@ -1,5 +1,5 @@
 require('./define')
-{initObserveration} = require('./helper')
+#{initObserveration} = require('./helper')
 underscore = require('./underscore')
 
 getSpecialRewardByInfiniteLevel = (infiniteLevel, prizeCfg) ->
@@ -22,10 +22,11 @@ calcInfinitReward = (infiniteLevel, what, optArg) ->
   return ret
 
 getGuildModifyResult = (cfg,oprator) ->
-  cfg = underscore.extend(cfg, {name:oprator.name,faction:'player'})
-  initObserveration(cfg)
-  cfg.installObserver('onApplyModifier')
-  cfg.notify('onApplyModifier',{evt:'claimReward'})
+  return cfg
+  #cfg = underscore.extend(cfg, {name:oprator.name,faction:'player'})
+  #initObserveration(cfg)
+  #cfg.installObserver('onApplyModifier')
+  #cfg.notify('onApplyModifier',{evt:'claimReward'})
 
 exports.getRewardModifier = (type) ->
   guildMoifier = {}

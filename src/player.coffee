@@ -358,6 +358,7 @@ class Player extends DBWrapper
       energyVersion: ['energy', 'energyTime']
     }
     super(data, cfg, versionCfg)
+    helperLib.installContainerFunction(@,playerCSConfig)
 
   setName: (@name) -> @dbKeyName = playerPrefix+@name
   getServer: () -> return gServerObject
@@ -1159,10 +1160,10 @@ class Player extends DBWrapper
     return [] unless gid?
     gGuildManager.claimReward(prizeLst,gid)
 
-  claimGuildCost: (costLst) ->
-    gid = @getGuildId()
-    return [] unless gid?
-    gGuildManager.claimCost(costLst,gid)
+  #claimGuildCost: (costLst) ->
+  #  gid = @getGuildId()
+  #  return [] unless gid?
+  #  gGuildManager.claimCost(costLst,gid)
   isQuestAchieved: (qid) ->
     return false unless @quests[qid]?
     quest = queryTable(TABLE_QUEST, qid, @abIndex)
@@ -1326,18 +1327,18 @@ class Player extends DBWrapper
     logError({action: 'useItem', reason: 'unknow', catogory: item.category, subcategory: item.subcategory, id: item.id, pIdx: prenticeIdx})
     return {ret: RET_UseItemFailed}
 
-  doAction: (routine) ->
-    cmd = new playerCommandStream(routine, this)
-    cmd.process()
-    return cmd.translate()
-
-  aquireItem: (item,  count, allOrFail,prenticeIdx) ->
-    @doAction({id: 'AquireItem', item: item, count: count, allorfail: allOrFail,pIdx:prenticeIdx})
-
-  removeItemById: (id, count, allorfail) ->
-    @doAction({id: 'RemoveItem', item: id, count: count, allorfail: allorfail})
-  removeItem: (item, count, slot) ->
-    @doAction({id: 'RemoveItem', item: item, count: count, slot: slot})
+#  doAction: (routine) ->
+#    cmd = new playerCommandStream(routine,playerCSConfig,this)
+#    cmd.process()
+#    return cmd.translate()
+#
+#  aquireItem: (item,  count, allOrFail,prenticeIdx) ->
+#    @doAction({id: 'AquireItem', item: item, count: count, allorfail: allOrFail,pIdx:prenticeIdx})
+#
+#  removeItemById: (id, count, allorfail) ->
+#    @doAction({id: 'RemoveItem', item: id, count: count, allorfail: allorfail})
+#  removeItem: (item, count, slot) ->
+#    @doAction({id: 'RemoveItem', item: item, count: count, slot: slot})
 
   extendInventory: (delta) -> @inventory.size(delta)
 
@@ -2150,6 +2151,13 @@ class Player extends DBWrapper
   syncPrentice: (forceUpdate) ->
     @prenticeLst.syncPrentice()
 
+  syncGuild: (forceUpdate) ->
+    return {
+      NTF: Event_GuildInfo,
+      arg:{
+        gid:@getGuildId()
+      }
+    }
   syncVipData: (forceUpdate) ->
     vipOp = [
       "freeEnergyTimes", "dayEnergyBuyTimes", "energyPrize",
@@ -2538,52 +2546,32 @@ playerMessageFilter = (oldMessage, newMessage, name) ->
 
 #///////////////////////////////// item
 itemLib = require('./item')
-class PlayerEnvironment extends Environment
-  constructor: (@player) ->
+#class PlayerEnvironment extends Environment
+#  constructor: (@player) ->
+#
+#  removeItem: (item, count, slot, allorfail) ->
+#    result = {ret: @player?.inventory.remove(item, count, slot, allorfail), version: @player.inventoryVersion}
+#    if result.ret isnt []
+#      @player.unequipItem?(slot)
+#    return result
+#  translateAction: (cmd) ->
+#    return [] unless cmd?
+#    ret = []
+#    out = cmd.output()
+#    ret = out if out
+#
+#    for i, routine of cmd.cmdRoutine
+#      out = routine?.output()
+#      ret = ret.concat(out) if out?
+#
+#    return ret.concat(@translateAction(cmd.nextCMD))
+#
+#  translate: (cmd) -> @translateAction(cmd)
 
-  removeItem: (item, count, slot, allorfail) ->
-    result = {ret: @player?.inventory.remove(item, count, slot, allorfail), version: @player.inventoryVersion}
-    if result.ret isnt []
-      @player.unequipItem(slot)
-    return result
-  translateAction: (cmd) ->
-    return [] unless cmd?
-    ret = []
-    out = cmd.output()
-    ret = out if out
-
-    for i, routine of cmd.cmdRoutine
-      out = routine?.output()
-      ret = ret.concat(out) if out?
-
-    return ret.concat(@translateAction(cmd.nextCMD))
-
-  translate: (cmd) -> @translateAction(cmd)
-
-playerCommandStream = (cmd, player=null) ->
-  env = new PlayerEnvironment(player)
-  cmdStream = new CommandStream(cmd, null, playerCSConfig, env)
-  return cmdStream
-
-basicCSConfig = {
-  AquireItem: {
-    callback: (env) ->
-      count = env.variable('count') ? 1
-      itemId = env.variable('item')
-      ret = helperLib.addItemTo(itemId,count,env.player.inventory)
-      #TODO
-      #env.variable('allorfail')
-      @routine({id: 'ItemChange', ret: ret, version: env.player.inventoryVersion})
-      if ret
-        for e in ret when env.player.getItemAt(e.slot).autoUse
-          @next({id: 'UseItem', slot: e.slot, pIdx:env.variable('pIdx')})
-  },
-  RemoveItem: {
-    callback: (env) ->
-      {ret, version} = env.removeItem(env.variable('item'), env.variable('count'), env.variable('slot'), true)
-      @routine({id: 'ItemChange', ret: ret, version: version})
-  },
-}
+#playerCommandStream = (cmd,  csConfig,player=null) ->
+#  env = new PlayerEnvironment(player)
+#  cmdStream = new CommandStream(cmd, null,   csConfig, env)
+#  return cmdStream
 
 playerCSConfig = underscore.extend({
   ItemChange: {
@@ -2603,7 +2591,7 @@ playerCSConfig = underscore.extend({
   UseItem: {
     output: (env) -> return env.player.useItem(env.variable('slot'),null,env.variable('pIdx')).ntf
   },
-}, basicCSConfig)
+}, helperLib.basicCSConfig)
 
 getVip = (rmb) ->
   tbl = queryTable(TABLE_VIP, "VIP")

@@ -90,7 +90,7 @@ Modifier = implementing(Serializer, Upgradeable, class Modifier
     return @activeTimeStamp isnt 0 and verify(
       @currentTime()
       ,@getConfig('active').stayOpen
-      , {date:{activeTime:@activeTimeStamp }})
+      , {date:{activeTimeStamp:@activeTimeStamp }})
 
   _checkTarget : (target) -> @getConfig('target').indexOf(target.faction) isnt -1
 
@@ -229,7 +229,7 @@ GuildMember =  implementing(Serializer, Authority, class GuildMember
     name = arg.nam
     for tokenId, msg of @joinRecoder
       if msg.name is name and msg.type is  MESSAGE_TYPE_GuildRequestJoin
-        if arg.ans is NTFOP_ACCEPT
+        if arg.ans is NTFOP_ACCEPT and not gGuildManager.getplayerGid(msg.name)?
           @doJoin(msg.name)
         delete @joinRecoder[tokenId]
         return {ret:RET_OK}
@@ -237,11 +237,11 @@ GuildMember =  implementing(Serializer, Authority, class GuildMember
 
   getJoinRequestLst: () ->
 
-  doJoin: (player) ->
+  doJoin: (player, role = GuildRole.A) ->
     return {ret:RET_OK} if @isHave(player)
-    @playerLst.push({name:player,lastLogin:0,role:GuildRole.A})
+    @playerLst.push({name:player,lastLogin:0,role:role})
     gGuildManager.registNewGuildMember(player, @gid)
-    return {ret:RET_OK}
+    return {ret:RET_OK, data:{gid:@gid,max:@max}}
     
 
   leave: (player, callback) ->
@@ -389,10 +389,15 @@ Guild = implementing(Serializer, Upgradeable, class Guild
     @xp = temp
   getGuildId: () ->
     @gid
+
+  _getConfig: (key) ->
+    queryTable(TABLE_GUILD,'guild')[key]
+
   _getMemberRole:(name) ->
     role = @queryInfo(['memberByName'],{name:name}).memberByName?.role
     return if role? then role else GuildRole.Guest
-
+  upgradeCost:(level) ->
+    return @_getConfig('level')[level]?.upgradeCost
 )
 
 class GuildManager extends DBWrapper
@@ -434,7 +439,12 @@ class GuildManager extends DBWrapper
         return {ret:RET_InvalidOp} unless player.getGuildId()?
         return @_deleteGuild(player.name)
       when 'upgrade'
-        1
+        guild = @findPlayerGuild({id:player.getGuildId()})
+        return {ret:RET_InvalidGuild} unless guild?
+        ret = guild.upgrade(player)
+        return ret if ret.ret?
+        return {ret:RET_OK, ntf:ret}
+
 
   #query 
   findPlayerGuild: (nameOrId) ->
@@ -470,6 +480,7 @@ class GuildManager extends DBWrapper
         guild = @findPlayerGuild({id:gid})
         return {ret: RET_InvalidGuild} unless guild?
         if subType is 'basicInfo'
+          cb({ret: RET_OK, data:guild.queryInfo([subType],args)})
         else
           cb({ret: RET_OK, data:guild.queryInfo([subType],args)})
         #src cnt 
@@ -485,10 +496,7 @@ class GuildManager extends DBWrapper
   _getGuildInfo: (guildLst, proLst) ->
     return {
       ret: RET_OK,
-      data: {
-          NTF:Event_GuildInfo
-          arg:guildLst.map((guild) -> guild.queryInfo(proLst))
-        }
+      data: guildLst.map((guild) -> guild.queryInfo(proLst))
     }
 
   registNewGuildMember:(name, gid) ->
@@ -515,10 +523,11 @@ class GuildManager extends DBWrapper
     ntf = player.claimCost(cost)
     if ntf?
       gid = @_getNewGuidId()
-      guild = new Guild({gid:gid, name:name})
+      guild = new Guild({gid:gid, nam:name})
       @guildLst[gid] = guild
-      guild.memberOp('doJoin',null, player.name)
-      return {ret:RET_OK, ntf:ntf}
+      ret = guild.memberOp('doJoin',null, player.name, GuildRole.B)
+      if ret.ret is RET_OK
+        return {ret:RET_OK, ntf:ntf,data:ret.data}
     return {ret:RET_NotEnoughItem}
     
   _deleteGuild: (player) ->

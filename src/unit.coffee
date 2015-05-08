@@ -3,7 +3,7 @@ require('./define')
 {Wizard} = require('./spell')
 _ = require('./underscore')
 makeBasicCommand = require('./commandStream').makeCommand
-{initObserveration} = require('./helper')
+#{initObserveration} = require('./helper')
 # =============================================================
 
 flagCreation = false
@@ -16,8 +16,8 @@ class Unit extends Wizard
     @unitAppearance = {}
     @suitSkill = []
     @uniform = {}
-    initObserveration(@)
-    @installObserver('onApplyModifier')
+#    initObserveration(@)
+#    @installObserver('onApplyModifier')
 
   calculatePower: () ->
     ret = @health + @attack*6 + @speed*2 +
@@ -392,7 +392,7 @@ createUnit = (config) ->
     when Unit_NPC then   hero =  new Npc(config)
     when Unit_Hero then  hero =  new exports.Mirror(config)
 
-  hero = hero.notify('onApplyModifier', {evt:'createObj'})
+  #hero = hero.notify('onApplyModifier', {evt:'createObj'})
   return hero
 
 exports.Hero = Hero
