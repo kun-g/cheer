@@ -1066,8 +1066,8 @@ class Player extends DBWrapper
             @updateFriendHiredInfo(temp)
             team = team.concat(temp)
             @mercenary = []
-          else if mercenary.length >= leftTeamCount
-            team = team.concat(mercenary.splice(0, teamCount-team.length))
+          else if @mercenary.length >= leftTeamCount
+            team = team.concat(@mercenary.splice(0, teamCount-team.length))
             @mercenary = []
           else
             @costEnergy(-cost)
